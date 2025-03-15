@@ -96,7 +96,7 @@ class ClubEventTests(TestsBase):
         link = event.attendance_links.first()
 
         expected_url_path = reverse(
-            "clubs:join-event", kwargs={"club_id": event.club.id, "event_id": event.id}
+            "clubs:joinevent", kwargs={"club_id": event.club.id, "event_id": event.id}
         )
         expected_url = get_full_url(expected_url_path)
         self.assertEqual(link.target_url, expected_url)

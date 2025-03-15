@@ -65,7 +65,7 @@ def register_user_view(request: HttpRequest):
             context["form"] = form
             return render(
                 request,
-                "users/register-user.html",
+                "users/register_user.html",
                 context,
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -86,7 +86,7 @@ def register_user_view(request: HttpRequest):
         raise BadRequest("Method must be GET or POST.")
 
     context["form"] = form
-    return render(request, "users/register-user.html", context)
+    return render(request, "users/register_user.html", context)
 
 
 @login_required()

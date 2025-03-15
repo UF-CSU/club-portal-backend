@@ -15,16 +15,14 @@ User = get_user_model()
 def event_attendance_url(club_id: int, event_id: int):
     """Get url to log event attendance for member."""
 
-    return reverse(
-        "clubs:join-event", kwargs={"club_id": club_id, "event_id": event_id}
-    )
+    return reverse("clubs:joinevent", kwargs={"club_id": club_id, "event_id": event_id})
 
 
 def event_attendance_done_url(club_id: int, event_id: int):
     """Get url to log event attendance for member."""
 
     return reverse(
-        "clubs:join-event-done", kwargs={"club_id": club_id, "event_id": event_id}
+        "clubs:joinevent_done", kwargs={"club_id": club_id, "event_id": event_id}
     )
 
 

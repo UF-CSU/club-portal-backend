@@ -262,7 +262,7 @@ class ClubService(ServiceBase[Club]):
     def get_attendance_url(self, event: Event):
         """Visiting this link will register a user for an event."""
 
-        return reverse("clubs:join-event", event_id=event.id)
+        return reverse("clubs:joinevent", event_id=event.id)
 
     def send_email_invite(self, emails: list[str]):
         """Send email invite to list of emails."""

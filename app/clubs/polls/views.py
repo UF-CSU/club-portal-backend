@@ -20,7 +20,7 @@ def show_poll_view(request: HttpRequest, poll_id: int):
         parsed_data.pop("csrfmiddlewaretoken")
 
         PollSubmission.objects.create(poll=poll, data=parsed_data, user=request.user)
-        return redirect("clubs:polls:poll-success", poll_id=poll_id)
+        return redirect("clubs:polls:poll_success", poll_id=poll_id)
 
     return render(request, "clubs/polls/poll_form.html", context={"poll": poll})
 

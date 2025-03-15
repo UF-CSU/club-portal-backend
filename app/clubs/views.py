@@ -29,7 +29,7 @@ def club_home_view(request: HttpRequest, club_id: int):
     """Base page for a club."""
     club = get_object_or_404(Club, id=club_id)
 
-    return render(request, "clubs/club-home.html", context={"club": club})
+    return render(request, "clubs/club_home.html", context={"club": club})
 
 
 @login_required()
@@ -38,7 +38,7 @@ def record_attendance_view(request: HttpRequest, club_id: int, event_id: int):
     event = get_object_or_404(Event, id=event_id)
     ClubService(event.club).record_event_attendance(request.user, event)
 
-    return redirect("clubs:join-event-done", club_id=club_id, event_id=event_id)
+    return redirect("clubs:joinevent_done", club_id=club_id, event_id=event_id)
 
 
 def download_event_calendar(request: HttpRequest, club_id: int, event_id: int):
@@ -69,4 +69,4 @@ def download_club_calendar(request: HttpRequest, club_id: int):
 def available_clubs_view(request: HttpRequest):
     """Display list of clubs to user for them to join."""
 
-    return render(request, "clubs/available-clubs.html")
+    return render(request, "clubs/available_clubs.html")

@@ -492,7 +492,7 @@ class EventAttendanceLinkManager(ManagerBase["EventAttendanceLink"]):
         """Create event attendance link, and QRCode."""
 
         path = reverse(
-            "clubs:join-event", kwargs={"club_id": event.club.id, "event_id": event.id}
+            "clubs:joinevent", kwargs={"club_id": event.club.id, "event_id": event.id}
         )
         url = get_full_url(path)
         display_name = kwargs.pop("display_name", f"Join {event} Link")
