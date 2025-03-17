@@ -8,8 +8,10 @@ from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from rest_framework import status
 
-from clubs.models import Club, ClubMembership, Event
+from clubs.models import Club, ClubMembership
 from clubs.services import ClubService
+from events.models import Event
+from events.services import EventService
 from users.forms import RegisterForm
 from users.services import UserService
 
@@ -48,13 +50,11 @@ def register_user_view(request: HttpRequest):
             event: Event = data.get("event", None)
 
             if club:
-                club_svc = ClubService(club)
-                club_svc.add_member(user)
+                ClubService(club).add_member(user)
 
             if event:
-                club_svc = ClubService(event.club)
-                club_svc.add_member(user)
-                club_svc.record_event_attendance(user, event)
+                ClubService(event.club).add_member(user)
+                EventService(event).record_event_attendance(user)
 
             if "next" in request.GET:
                 return redirect(request.GET.get("next"))

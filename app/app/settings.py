@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "analytics",
     "clubs",
     "clubs.polls",
+    "events",
 ]
 
 MIDDLEWARE = [

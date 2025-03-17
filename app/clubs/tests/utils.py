@@ -1,10 +1,8 @@
 import uuid
-from datetime import datetime, timedelta
 
 from django.urls import reverse
-from django.utils import timezone
 
-from clubs.models import Club, Event, Team
+from clubs.models import Club, Team
 from lib.faker import fake
 
 CLUB_CREATE_PARAMS = {
@@ -34,33 +32,7 @@ def create_test_clubs(count=5, **kwargs):
     """Create amount of clubs equal to count, returns queryset."""
 
     ids = [create_test_club(**kwargs).id for _ in range(count)]
-    return Club.objects.filter(id__in=ids)
-
-
-def create_test_event(
-    club: Club,
-    name: str = "Test event",
-    start_datetime: datetime | None = None,
-    end_datetime: datetime | None = None,
-    **kwargs,
-):
-    """Create valid event for unit tests."""
-    event_start = (
-        start_datetime if start_datetime else timezone.now() - timedelta(days=1)
-    )
-    event_end = end_datetime if end_datetime else timezone.now() + timedelta(days=1)
-    location = kwargs.pop("location", "CSE A101")
-    description = kwargs.pop("description", "Lorem ipsum dolor sit amet")
-
-    return Event.objects.create(
-        name=name,
-        club=club,
-        start_at=event_start,
-        end_at=event_end,
-        location=location,
-        description=description,
-        **kwargs,
-    )
+    return Club.objects.filter(id__in=ids).all()
 
 
 def create_test_team(club: Club, **kwargs):
