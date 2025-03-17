@@ -58,9 +58,7 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
         name: str,
         day: DayChoice,
         start_date: date,
-        event_start_time: time,
         end_date: Optional[date] = None,
-        event_end_time: Optional[time] = None,
         club: Optional[Club] = None,
         other_clubs: Optional[list[Club]] = None,
         **kwargs,
@@ -70,16 +68,25 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
             day=day,
             start_date=start_date,
             end_date=end_date,
-            event_start_time=event_start_time,
-            event_end_time=event_end_time,
             club=club,
             **kwargs,
         )
 
-        rec_ev.other_clubs.set(other_clubs)
-        rec_ev.save()
+        if other_clubs:
+            rec_ev.other_clubs.set(other_clubs)
+            rec_ev.save()
 
         return rec_ev
+
+
+def get_default_start_time():
+    """Returns default start time to use if not provided for event models."""
+    return time(0, 0, 0)
+
+
+def get_default_end_time():
+    """Returns default end time to use if not provided for event models."""
+    return time(23, 59, 59)
 
 
 class RecurringEvent(EventFields):
@@ -89,16 +96,21 @@ class RecurringEvent(EventFields):
         Club,
         on_delete=models.CASCADE,
         related_name="recurring_events",
+        help_text="Club that owns recurring template, hosts all the events from it.",
         null=True,
         blank=True,
     )
 
     day = models.IntegerField(choices=DayChoice.choices)
     event_start_time = models.TimeField(
-        null=True, blank=True, help_text="Each event will start at this time"
+        blank=True,
+        help_text="Each event will start at this time",
+        default=get_default_start_time,
     )
     event_end_time = models.TimeField(
-        null=True, blank=True, help_text="Each event will end at this time"
+        blank=True,
+        help_text="Each event will end at this time",
+        default=get_default_end_time,
     )
 
     start_date = models.DateField(help_text="Date of the first occurance of this event")
@@ -107,7 +119,9 @@ class RecurringEvent(EventFields):
     )
     # TODO: add skip_dates field
 
-    other_clubs = models.ManyToManyField(Club, blank=True)
+    other_clubs = models.ManyToManyField(
+        Club, blank=True, help_text="These clubs host the events as secondary hosts."
+    )
 
     # Relationships
     events: models.QuerySet["Event"]
@@ -115,12 +129,20 @@ class RecurringEvent(EventFields):
     # Dynamic properties & methods
     @property
     def expected_event_count(self):
+        # TODO: How to handle no end date?
         if self.end_date is None:
             end_date = timezone.now()
         else:
             end_date = self.end_date
 
         return get_day_count(self.start_date, end_date, self.day)
+
+    @property
+    def all_day(self):
+        return (
+            self.event_start_time == get_default_start_time()
+            and self.event_end_time == get_default_end_time()
+        )
 
     # Overrides
     objects: ClassVar[RecurringEventManager] = RecurringEventManager()
@@ -143,7 +165,7 @@ class EventManager(ManagerBase["Event"]):
         event = super().create(name=name, start_at=start_at, end_at=end_at, **kwargs)
 
         if host:
-            event.add_host(host, is_primary=True)
+            event.add_host(host, primary=True)
         if secondary_hosts:
             event.add_hosts(*secondary_hosts)
 
@@ -181,7 +203,7 @@ class Event(EventFields):
     def primary_club(self):
         """Get the primary club hosting the event."""
 
-        host = self.hosts.filter(is_primary=True)
+        host = self.hosts.filter(primary=True)
         if not host.exists():
             return None
 
@@ -190,6 +212,13 @@ class Event(EventFields):
     @property
     def club(self):
         return self.primary_club
+
+    @property
+    def all_day(self):
+        return (
+            self.start_at.time() == get_default_start_time()
+            and self.end_at.time() == get_default_end_time()
+        )
 
     # Overrides
     objects: ClassVar[EventManager] = EventManager()
@@ -201,7 +230,7 @@ class Event(EventFields):
         return super().__str__()
 
     # Methods
-    def add_host(self, club: Club, is_primary=False, commit=True):
+    def add_host(self, club: Club, primary=False, commit=True):
         """
         Add a new club host to an event.
 
@@ -212,9 +241,9 @@ class Event(EventFields):
         host, _ = EventHost.objects.get_or_create(event=self, club=club)
 
         # Only update if the default arg is overwritten
-        if is_primary is True:
+        if primary is True:
             # TODO: Remove current primary host
-            host.is_primary = True
+            host.primary = True
             host.save()
 
         if commit:
@@ -236,7 +265,7 @@ class EventHost(ModelBase):
     club = models.ForeignKey(
         Club, on_delete=models.CASCADE, related_name="event_hostings"
     )
-    is_primary = models.BooleanField(
+    primary = models.BooleanField(
         default=False,
         blank=True,
         help_text="This is the main club that hosts the event.",
@@ -246,8 +275,8 @@ class EventHost(ModelBase):
         constraints = [
             models.UniqueConstraint(
                 name="one_primary_host_per_event",
-                fields=("event", "is_primary"),
-                condition=models.Q(is_primary=True),
+                fields=("event", "primary"),
+                condition=models.Q(primary=True),
             )
         ]
 

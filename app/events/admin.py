@@ -4,6 +4,7 @@ from events.models import (
     Event,
     EventAttendance,
     EventAttendanceLink,
+    EventHost,
     EventTag,
     RecurringEvent,
 )
@@ -21,6 +22,7 @@ class RecurringEventAdmin(admin.ModelAdmin):
         "end_date",
     )
     actions = ("sync_events",)
+    filter_horizontal = ("other_clubs",)
 
     @admin.action(description="Sync Events")
     def sync_events(self, request, queryset):
@@ -38,6 +40,9 @@ class EventAttendanceInlineAdmin(admin.TabularInline):
     extra = 0
     readonly_fields = ("created_at",)
 
+    def has_add_permission(self, request, *args, **kwargs):
+        return False
+
 
 class EventAttendenceLinkInlineAdmin(admin.StackedInline):
     """List event links in event admin."""
@@ -54,6 +59,13 @@ class EventAttendenceLinkInlineAdmin(admin.StackedInline):
         return obj.as_html()
 
 
+class EventHostInlineAdmin(admin.TabularInline):
+    """Manage clubs hosting events."""
+
+    model = EventHost
+    extra = 1
+
+
 class EventAdmin(admin.ModelAdmin):
     """Admin config for club events."""
 
@@ -66,7 +78,11 @@ class EventAdmin(admin.ModelAdmin):
     )
     ordering = ("start_at",)
 
-    inlines = (EventAttendenceLinkInlineAdmin, EventAttendanceInlineAdmin)
+    inlines = (
+        EventHostInlineAdmin,
+        EventAttendenceLinkInlineAdmin,
+        EventAttendanceInlineAdmin,
+    )
     filter_horizontal = ("tags",)
 
 

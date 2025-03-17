@@ -204,7 +204,7 @@ class EventService(ServiceBase[Event]):
                 recurring_event=rec_ev,
             )
             if rec_ev.club:
-                event.add_host(rec_ev.club, is_primary=True)
+                event.add_host(rec_ev.club, primary=True)
 
             if rec_ev.other_clubs.count() > 0:
                 event.add_hosts(*rec_ev.other_clubs.all())

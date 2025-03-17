@@ -32,7 +32,7 @@ def create_test_event(
     )
 
     if host:
-        EventHost.objects.create(event=event, club=host, is_primary=True)
+        EventHost.objects.create(event=event, club=host, primary=True)
 
     secondary_hosts = secondary_hosts or []
 

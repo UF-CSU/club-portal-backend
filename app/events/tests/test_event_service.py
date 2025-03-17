@@ -78,3 +78,27 @@ class ClubEventTests(TestsBase):
 
         EventService.sync_recurring_event(rec)
         self.assertEqual(Event.objects.count(), 13)
+
+    def test_recurring_event_allday_events(self):
+        """Recurring event template should handle all day events."""
+
+        self.assertEqual(Event.objects.count(), 0)
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            day=DayChoice.MONDAY,
+            start_date=timezone.datetime(2025, 3, 16),
+            end_date=timezone.datetime(2025, 3, 18),
+        )
+
+        self.assertEqual(rec.expected_event_count, 1)
+        self.assertEqual(Event.objects.count(), 1)
+
+        ev = Event.objects.first()
+        self.assertEqual(ev.start_at.weekday(), 0)
+        self.assertEqual(ev.start_at.hour, 0)
+        self.assertEqual(ev.start_at.minute, 0)
+
+        self.assertEqual(ev.end_at.weekday(), 0)
+        self.assertEqual(ev.end_at.hour, 23)
+        self.assertEqual(ev.end_at.minute, 59)
