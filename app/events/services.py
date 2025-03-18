@@ -1,15 +1,15 @@
-from django.db import models
-from clubs.models import Club
-from core.abstracts.services import ServiceBase
-from events.models import Event, EventAttendance, EventAttendanceLink, RecurringEvent
-from users.models import User
 import io
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import icalendar
+from django.db import models
 from django.urls import reverse
 
+from clubs.models import Club
+from core.abstracts.services import ServiceBase
+from events.models import Event, EventAttendance, EventAttendanceLink, RecurringEvent
+from users.models import User
 from utils.helpers import get_full_url
 
 

@@ -1,5 +1,6 @@
 from django.urls import reverse
 from rest_framework import status
+
 from core.abstracts.tests import ViewTestsBase
 from events.models import Event, EventAttendance
 from lib.faker import fake

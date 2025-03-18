@@ -12,12 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from analytics.models import Link
 from clubs.models import Club
-from core.abstracts.models import (
-    ManagerBase,
-    ModelBase,
-    Scope,
-    Tag,
-)
+from core.abstracts.models import ManagerBase, ModelBase, Scope, Tag
 from users.models import User
 from utils.dates import get_day_count
 
@@ -34,8 +29,6 @@ class DayChoice(models.IntegerChoices):
 
 class EventTag(Tag):
     """Group together different types of events."""
-
-    pass
 
 
 class EventFields(ModelBase):

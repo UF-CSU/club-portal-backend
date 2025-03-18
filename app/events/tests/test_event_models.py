@@ -1,4 +1,5 @@
 from django.urls import reverse
+
 from analytics.models import Link
 from clubs.tests.utils import create_test_club, create_test_clubs
 from core.abstracts.tests import TestsBase

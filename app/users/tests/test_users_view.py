@@ -1,8 +1,8 @@
 from rest_framework import status
 
-from events.models import EventAttendance
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import ViewTestsBase
+from events.models import EventAttendance
 from events.tests.utils import create_test_event
 from users.forms import RegisterForm
 from users.models import User

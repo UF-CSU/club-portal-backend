@@ -1,16 +1,12 @@
 from typing import Optional
 
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
 from django.core import exceptions, mail
+from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.html import strip_tags
 
 from app.settings import DEFAULT_FROM_EMAIL
-from clubs.models import (
-    Club,
-    ClubMembership,
-    ClubRole,
-)
+from clubs.models import Club, ClubMembership, ClubRole
 from core.abstracts.services import ServiceBase
 from events.models import EventAttendance
 from users.models import User

@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional
+
 from django.utils import timezone
+
 from clubs.models import Club
 from events.models import Event, EventHost
 from lib.faker import fake

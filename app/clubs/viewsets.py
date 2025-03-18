@@ -1,7 +1,9 @@
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
+
 from clubs.models import Club, ClubMembership
 from clubs.serializers import (
     ClubMembershipSerializer,
@@ -10,7 +12,6 @@ from clubs.serializers import (
 )
 from clubs.services import ClubService
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
-from drf_spectacular.utils import extend_schema
 
 
 class ClubViewSet(ModelViewSetBase):
