@@ -1,6 +1,7 @@
 from django import forms
 
-from clubs.models import Club, Event
+from clubs.models import Club
+from events.models import Event
 
 
 class AuthForm(forms.Form):

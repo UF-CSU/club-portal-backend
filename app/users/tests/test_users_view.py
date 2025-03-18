@@ -1,8 +1,9 @@
 from rest_framework import status
 
-from clubs.models import EventAttendance
-from clubs.tests.utils import create_test_club, create_test_event
+from clubs.tests.utils import create_test_club
 from core.abstracts.tests import ViewTestsBase
+from events.models import EventAttendance
+from events.tests.utils import create_test_event
 from users.forms import RegisterForm
 from users.models import User
 from users.tests.utils import register_user_url
@@ -21,7 +22,7 @@ class UserRegisterViewTests(ViewTestsBase):
 
     def setUp(self):
         self.club = create_test_club()
-        self.event = create_test_event(self.club)
+        self.event = create_test_event(host=self.club)
 
         return super().setUp()
 
@@ -94,8 +95,5 @@ class UserRegisterViewTests(ViewTestsBase):
             self.club.id, list(user.club_memberships.values_list("club__id", flat=True))
         )
         self.assertEqual(
-            EventAttendance.objects.filter(
-                event__club=self.club, member__user=user
-            ).count(),
-            1,
+            EventAttendance.objects.filter(event=self.event, user=user).count(), 1
         )

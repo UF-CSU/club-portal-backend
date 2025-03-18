@@ -3,6 +3,7 @@ Unit tests focused around REST APIs for the Clubs Service.
 """
 
 from django.urls import reverse
+
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import ApiTestsBase, AuthApiTestsBase, EmailTestsBase
 from lib.faker import fake

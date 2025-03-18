@@ -1,9 +1,12 @@
 # Project Conventions
 
-- App names are **plural**
-- Model names are **singular**
+**Table of Contents**
 
-## Doc Strings
+- [Documentation](#documentation)
+- [Snake Case](#snake-case)
+  - [URL Names](#url-names)
+
+## Documentation
 
 Example:
 
@@ -30,3 +33,18 @@ def example_function():
     """
     pass
 ```
+
+## Snake Case
+
+The following should be in snake case to abide by Django conventions:
+
+- Url names
+  - Ex: `path(..., name="example_detail")`
+- HTML file names
+- Python file names
+
+### URL Names
+
+Additionally, url names should follow this standard:
+
+`name="mainaction_subaction"`

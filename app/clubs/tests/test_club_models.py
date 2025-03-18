@@ -3,20 +3,11 @@ Unit tests for generic model functions, validation, etc.
 """
 
 from django.core import exceptions
-from django.urls import reverse
 
-from analytics.models import Link
-from clubs.models import Club, ClubMembership, Event, Team, TeamMembership
-from clubs.tests.utils import (
-    CLUB_CREATE_PARAMS,
-    CLUB_UPDATE_PARAMS,
-    create_test_club,
-    create_test_clubs,
-)
+from clubs.models import Club, ClubMembership, Team, TeamMembership
+from clubs.tests.utils import CLUB_CREATE_PARAMS, CLUB_UPDATE_PARAMS, create_test_club
 from core.abstracts.tests import TestsBase
-from lib.faker import fake
 from users.tests.utils import create_test_user
-from utils.helpers import get_full_url
 
 
 class BaseModelTests(TestsBase):
@@ -78,43 +69,6 @@ class ClubModelTests(TestsBase):
 
         with self.assertRaises(exceptions.ValidationError):
             ClubMembership.objects.create(club=club, user=user)
-
-
-class ClubEventTests(TestsBase):
-    """Unit tests for club events."""
-
-    def test_create_event_link(self):
-        """Creating an event should createa new event attendance link."""
-
-        self.assertEqual(Link.objects.count(), 0)
-
-        club = create_test_club()
-        event = Event.objects.create(club=club, name="Test Event")
-
-        self.assertEqual(Link.objects.count(), 1)
-        self.assertEqual(event.attendance_links.count(), 1)
-        link = event.attendance_links.first()
-
-        expected_url_path = reverse(
-            "clubs:join-event", kwargs={"club_id": event.club.id, "event_id": event.id}
-        )
-        expected_url = get_full_url(expected_url_path)
-        self.assertEqual(link.target_url, expected_url)
-        self.assertEqual(link.reference, "Default")
-
-    def test_prevent_event_overlapping_clubs(self):
-        """An event should not have fk to a club that exists in "other_clubs" field."""
-
-        primary_club = create_test_club()
-        clubs = create_test_clubs(count=5)
-
-        event = Event.objects.create(club=primary_club, name=fake.title())
-        event.other_clubs.add(*clubs)
-        self.assertEqual(event.other_clubs.count(), 5)
-
-        with self.assertRaises(exceptions.ValidationError):
-            event.other_clubs.add(primary_club)
-            event.save()
 
 
 class ClubTeamTests(TestsBase):

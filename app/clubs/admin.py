@@ -9,16 +9,10 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
-    Event,
-    EventAttendance,
-    EventAttendanceLink,
-    EventTag,
-    RecurringEvent,
     Team,
     TeamMembership,
 )
 from clubs.serializers import ClubCsvSerializer, ClubMembershipCsvSerializer
-from clubs.services import ClubService
 from core.abstracts.admin import ModelAdminBase
 
 
@@ -81,65 +75,6 @@ class ClubTagAdmin(ModelAdminBase):
     """Manage club tags in admin dashboard."""
 
 
-class RecurringEventAdmin(admin.ModelAdmin):
-
-    list_display = (
-        "__str__",
-        "day",
-        "location",
-        "start_date",
-        "end_date",
-    )
-    actions = ("sync_events",)
-
-    @admin.action(description="Sync Events")
-    def sync_events(self, request, queryset):
-
-        for recurring in queryset.all():
-            ClubService.sync_recurring_event(recurring)
-
-        return
-
-
-class EventAttendanceInlineAdmin(admin.TabularInline):
-    """List event attendees in event admin."""
-
-    model = EventAttendance
-    extra = 0
-    readonly_fields = ("created_at",)
-
-
-class EventAttendenceLinkInlineAdmin(admin.StackedInline):
-    """List event links in event admin."""
-
-    model = EventAttendanceLink
-    readonly_fields = (
-        "target_url",
-        "club",
-        "tracking_url_link",
-    )
-    extra = 0
-
-    def tracking_url_link(self, obj):
-        return obj.as_html()
-
-
-class EventAdmin(admin.ModelAdmin):
-    """Admin config for club events."""
-
-    list_display = (
-        "__str__",
-        "id",
-        "location",
-        "start_at",
-        "end_at",
-    )
-    ordering = ("start_at",)
-
-    inlines = (EventAttendenceLinkInlineAdmin, EventAttendanceInlineAdmin)
-    filter_horizontal = ("tags", "other_clubs")
-
-
 class TeamMembershipInlineAdmin(admin.TabularInline):
     """Manage user assignments to a team."""
 
@@ -182,8 +117,5 @@ class ClubMembershipAdmin(ModelAdminBase):
 
 admin.site.register(Club, ClubAdmin)
 admin.site.register(ClubTag, ClubTagAdmin)
-admin.site.register(Event, EventAdmin)
-admin.site.register(EventTag)
-admin.site.register(RecurringEvent, RecurringEventAdmin)
 admin.site.register(Team, TeamAdmin)
 admin.site.register(ClubMembership, ClubMembershipAdmin)

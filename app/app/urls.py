@@ -47,6 +47,7 @@ urlpatterns = [
     path("api/v1/", include(apipatterns)),
     path("users/", include("users.urls")),
     path("clubs/", include("clubs.urls")),
+    path("events/", include("events.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("oauth/", include("allauth.urls")),
     path("api/oauth/", include("allauth.headless.urls")),
