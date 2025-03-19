@@ -2,6 +2,7 @@
 Import/upload data tests.
 """
 
+import uuid
 from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 
@@ -320,7 +321,7 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
-    def test_upload_csv_single_nested(self):
+    def test_upload_csv_create_single_nested(self):
         """Uploading a csv with a nested single field should work."""
 
         payload = {
@@ -337,11 +338,70 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
         nested_obj = self.nested_repo.first()
         self.assertEqual(nested_obj.name, payload["one_tag_nested.name"])
 
-    def test_upload_csv_many_nested(self):
+    def test_upload_csv_update_single_nested(self):
+        """Uploading a csv with a nested single field should update appropriate objects."""
+
+        default_payload = {
+            "unique_name": uuid.uuid4(),
+            "name": fake.title(),
+        }
+
+        self.repo.create(**default_payload)
+
+        payload = {
+            **default_payload,
+            "one_tag_nested.name": fake.title(),
+        }
+        self.assertUploadCsv([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 1)
+        nested_obj = self.nested_repo.first()
+        self.assertEqual(nested_obj.name, payload["one_tag_nested.name"])
+
+    def test_upload_csv_create_many_nested(self):
         """Uploading a csv with nested many fields should work."""
 
         payload = {
             "name": fake.title(),
+            "many_tags_nested[0].name": fake.title(),
+            "many_tags_nested[0].color": fake.color(),
+            "many_tags_nested[1].name": fake.title(),
+            "many_tags_nested[1].color": fake.color(),
+        }
+        self.assertUploadCsv([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 2)
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[0].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[0].color"])
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[1].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[1].color"])
+
+    def test_upload_csv_update_many_nested(self):
+        """Uploading a csv with nested many fields should update the object."""
+
+        default_payload = {
+            "unique_name": uuid.uuid4(),
+            "name": fake.title(),
+        }
+
+        self.repo.create(**default_payload)
+
+        payload = {
+            **default_payload,
             "many_tags_nested[0].name": fake.title(),
             "many_tags_nested[0].color": fake.color(),
             "many_tags_nested[1].name": fake.title(),

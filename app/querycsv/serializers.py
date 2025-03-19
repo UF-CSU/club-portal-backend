@@ -340,6 +340,21 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         self.instance = instance
 
+    def _parse_m2m_value(self, value, field):
+        """Parses m2m values for create/update methods."""
+
+        if islistinstance(value, dict):
+            model = field.model
+            saved_objs = []
+
+            for nested_obj in value:
+                obj, _ = model._default_manager.get_or_create(**nested_obj)
+                saved_objs.append(obj)
+
+            value = saved_objs
+
+        return value
+
     def create(self, validated_data):
         """
         Override default create method.
@@ -401,19 +416,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         if many_to_many:
             for field_name, value in many_to_many.items():
                 field = getattr(instance, field_name)
-
-                # Get or create related nested objects
-                if islistinstance(value, dict):
-                    model = field.model
-                    saved_objs = []
-
-                    for nested_obj in value:
-                        obj, _ = model._default_manager.get_or_create(**nested_obj)
-                        saved_objs.append(obj)
-
-                    value = saved_objs
-
-                # Value must be of type/list models.Model
+                value = self._parse_m2m_value(value, field)
                 field.set(value)
 
         return instance
@@ -435,6 +438,12 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         for attr, value in validated_data.items():
             if attr in info.relations and info.relations[attr].to_many:
                 m2m_fields.append((attr, value))
+            elif attr in info.relations and not info.relations[attr].to_many:
+                if isinstance(value, dict):
+                    model = info.relations[attr].related_model
+                    value, _ = model._default_manager.get_or_create(**value)
+
+                setattr(instance, attr, value)
             else:
                 setattr(instance, attr, value)
 
@@ -445,6 +454,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         # updated instance and we do not want it to collide with .update()
         for attr, value in m2m_fields:
             field = getattr(instance, attr)
+            value = self._parse_m2m_value(value, field)
             field.set(value)
 
         return instance
