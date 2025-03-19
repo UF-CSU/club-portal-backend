@@ -5,6 +5,9 @@ Import/upload data tests.
 from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 
+from core.mock.models import BusterTag
+from core.mock.serializers import BusterTagNestedSerializer
+from lib.faker import fake
 from querycsv.models import QueryCsvUploadJob
 from querycsv.services import QueryCsvService
 from querycsv.tests.utils import (
@@ -218,7 +221,9 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         objects_before = self.initialize_csv_data()
 
         # Upload csv using service
-        self.service.upload_csv(path=self.filepath)
+        success, failed = self.service.upload_csv(path=self.filepath)
+        self.assertLength(success, self.dataset_size, failed)
+        self.assertLength(failed, 0)
 
         # Validate results
         self.assertObjectsHaveFields(objects_before)
@@ -241,7 +246,9 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         self.df_to_csv(self.df)
 
         # Upload csv using service
-        self.service.upload_csv(path=self.filepath)
+        success, failed = self.service.upload_csv(path=self.filepath)
+        self.assertLength(success, self.dataset_size, failed)
+        self.assertLength(failed, 0)
 
         # Validate results
         self.assertObjectsHaveFields(objects_before)
@@ -273,6 +280,8 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Upload csv using service
         success, failed = self.service.upload_csv(path=self.filepath)
+        self.assertLength(success, self.dataset_size, failed)
+        self.assertLength(failed, 0)
 
         # Validate results
         self.assertEqual(self.repo.all().count(), self.dataset_size)
@@ -287,3 +296,73 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         )
 
         self.assertObjectsM2MValidFields(self.df, objects_before)
+
+
+class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
+    """Test uploading csvs with nested fields."""
+
+    serializer_single_nested_key = "one_tag_nested"
+    serializer_many_nested_key = "many_tags_nested"
+
+    nested_model_class = BusterTag
+    nested_serializer_class = BusterTagNestedSerializer
+
+    def setUp(self):
+        self.nested_repo = self.nested_model_class.objects
+        return super().setUp()
+
+    def assertUploadCsv(self, payload: list[dict]):
+        """Given a list of flattened dicts, will convert to csv and upload."""
+
+        self.data_to_csv(payload)
+
+        success, failed = self.service.upload_csv(self.filepath)
+        self.assertLength(success, 1)
+        self.assertLength(failed, 0)
+
+    def test_upload_csv_single_nested(self):
+        """Uploading a csv with a nested single field should work."""
+
+        payload = {
+            "name": fake.title(),
+            "one_tag_nested.name": fake.title(),
+        }
+        self.assertUploadCsv([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 1)
+        nested_obj = self.nested_repo.first()
+        self.assertEqual(
+            nested_obj.name, payload[self.serializer_single_nested_key]["name"]
+        )
+
+    def test_upload_csv_many_nested(self):
+        """Uploading a csv with nested many fields should work."""
+
+        payload = {
+            "name": fake.title(),
+            "many_tags_nested[0].name": fake.title(),
+            "many_tags_nested[0].color": fake.color(),
+            "many_tags_nested[1].name": fake.title(),
+            "many_tags_nested[1].color": fake.color(),
+        }
+        self.assertUploadCsv([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 2)
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[0].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[0].color"])
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[1].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[1].color"])

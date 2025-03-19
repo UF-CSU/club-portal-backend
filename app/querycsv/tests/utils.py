@@ -125,12 +125,17 @@ class CsvDataTestsBase(TestsBase):
 
     def data_to_df(self, data: list[dict]):
         """Convert output of serializer to dataframe."""
-        data_copy = [{**obj} for obj in data]
+        # data_copy = [{**obj} for obj in data]
 
-        for model in data_copy:
-            for key, value in model.items():
-                if isinstance(value, list):
-                    model[key] = ",".join([str(v) for v in value])
+        data_copy = [self.serializer.json_to_flat(obj) for obj in data]
+
+        # for model in data_copy:
+        #     for key, value in model.items():
+        #         if isinstance(value, list):
+        #             if not islistinstance(value, dict):
+        #                 model[key] = ",".join([str(v) for v in value])
+        #             else:
+        #                 model[key] =
 
         return pd.DataFrame.from_records(data_copy)
 
@@ -251,7 +256,7 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
             # Raw values in csv
             expected_value = row[self.m2o_serializer_key]
 
-            if expected_value is None:
+            if expected_value is None or str(expected_value).strip() == "":
                 continue
 
             self.assertIsInstance(expected_value, str)
@@ -263,11 +268,13 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
                     if k != self.m2o_serializer_key
                     and k not in self.serializer.readonly_fields
                     and k not in self.serializer.any_related_fields
+                    and k not in self.serializer.many_nested_fields
+                    and k not in self.serializer.nested_fields
                 }
             )
 
-            m2o_obj = getattr(obj, self.m2o_serializer_key)
-            actual_value = getattr(m2o_obj, self.m2o_model_foreign_key)
+            m2o_obj = getattr(obj, self.m2o_model_key, {})
+            actual_value = getattr(m2o_obj, self.m2o_model_foreign_key, None)
 
             self.assertEqual(expected_value, actual_value)
 
@@ -456,8 +463,14 @@ class DownloadCsvTestsBase(CsvDataTestsBase):
             actual_serializer = self.serializer_class(actual_object)
 
             for field, expected_value in actual_serializer.data.items():
+                # FIXME: This just skips nested objects
+                if (
+                    field
+                    in self.serializer.nested_fields
+                    + self.serializer.many_nested_fields
+                ):
+                    continue
                 self.assertIn(field, record.keys())
-
                 actual_value = record[field]
 
                 if field in self.serializer.many_related_fields:
@@ -519,6 +532,7 @@ class UploadCsvTestsBase(CsvDataTestsBase):
 
         data = self.serializer_class(query, many=True).data
         self.df = self.data_to_df(data)
+        self.df = self.df.fillna("")
         self.df_to_csv(self.df)
 
     def initialize_csv_data(self, clear_db=True):

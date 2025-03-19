@@ -10,6 +10,7 @@ from rest_framework.utils import model_meta
 
 from core.abstracts.serializers import FieldType, ModelSerializerBase, SerializerBase
 from utils.helpers import str_to_list
+from utils.types import islistinstance
 
 
 class FlatField:
@@ -132,14 +133,27 @@ class FlatSerializer(SerializerBase):
     @classmethod
     def json_to_flat(cls, data: dict):
         """Convert representation to flattened struction for CSV."""
+        parsed = {}
 
         # TODO: Handle nested json to flat
         for key, value in data.items():
             # Convert lists to string
-            if isinstance(value, list):
-                data[key] = ", ".join([str(v) for v in value])
 
-        return data
+            if isinstance(value, list) and islistinstance(value, dict):
+                for i, obj in enumerate(value):
+                    parent_key = f"{key}[{i}]"
+
+                    for nested_key, nested_value in obj.items():
+                        if nested_value == "":
+                            continue
+                        final_key = ".".join([parent_key, nested_key])
+                        parsed[final_key] = nested_value
+            elif isinstance(value, list):
+                parsed[key] = ", ".join([str(v) for v in value])
+            else:
+                parsed[key] = value
+
+        return parsed
 
     @classmethod
     def flat_to_json(cls, record: dict) -> dict:
@@ -157,30 +171,31 @@ class FlatSerializer(SerializerBase):
 
         parsed = {}
 
-        # Initial parsing
+        # For each field, convert flattened syntax to JSON representation
         for key, value in record.items():
             list_objs_res = re.match(r"([a-z0-9_-]+)\[([0-9]+)\]\.?(.*)?", key)
 
-            if bool(list_objs_res):
-                # Handle list of objects
-                field, index, nested_field = list_objs_res.groups()
-                index = int(index)
+            # if bool(list_objs_res):
+            #     # Handle list of objects
+            #     field, index, nested_field = list_objs_res.groups()
+            #     index = int(index)
 
-                if field not in parsed.keys():
-                    parsed[field] = []
+            #     if field not in parsed.keys():
+            #         parsed[field] = []
 
-                assert isinstance(
-                    parsed[field], list
-                ), f"Inconsistent types for field {field}"
+            #     assert isinstance(
+            #         parsed[field], list
+            #     ), f"Inconsistent types for field {field}"
 
-                # Need to ensure the object is put at that specific location,
-                # since the other fields will expect it there.
-                while len(parsed[field]) <= index:
-                    parsed[field].append({})
+            #     # Need to ensure the object is put at that specific location,
+            #     # since the other fields will expect it there.
+            #     while len(parsed[field]) <= index:
+            #         parsed[field].append({})
 
-                # TODO: Recurse for deeply nested objects
-                parsed[field][index][nested_field] = value
-            elif key in cls().writable_many_related_fields and isinstance(value, str):
+            #     # TODO: Recurse for deeply nested objects
+            #     parsed[field][index][nested_field] = value
+            # el
+            if key in cls().writable_many_related_fields and isinstance(value, str):
                 # Handle list of slug related fields
                 parsed[key] = str_to_list(value)
             elif key in cls().writable_many_related_fields and not isinstance(
@@ -190,12 +205,57 @@ class FlatSerializer(SerializerBase):
                 parsed[key] = [value]
             elif key in cls().nested_fields:
                 # Handle nested object
-                pass
-            elif key in cls().many_nested_fields:
+                fields = str(key).split(".")
+
+                # Skip empty fields
+                if len(fields) == 1 and value is None or str(value).strip() == "":
+                    continue
+
+                assert (
+                    len(fields) == 2
+                ), f"Can only support nested objects with 1 field, but received {len(fields) - 1}."
+
+                main_field, nested_field = fields
+
+                # Create new nested object if not exists
+                if main_field not in parsed.keys():
+                    parsed[main_field] = {}
+
+                # Set a single field on the nested object
+                # FIXME: This will break on lists inside nested serializers
+                parsed[main_field][nested_field] = value
+
+                # raise NotImplementedError("Cannot unflatten nested objects")
+            elif bool(list_objs_res):
                 # Handle list of nested objects
-                pass
+                main_field, index, nested_field = list_objs_res.groups()
+                index = int(index)
+
+                assert (
+                    main_field in cls().many_nested_fields
+                ), f"Field {main_field} is not a list of nested objects."
+
+                if main_field not in parsed.keys():
+                    parsed[main_field] = []
+
+                assert isinstance(
+                    parsed[main_field], list
+                ), f"Inconsistent types for field {main_field}"
+
+                # Need to ensure the object is put at that specific location,
+                # since the other fields will expect it there.
+                while len(parsed[main_field]) <= index:
+                    parsed[main_field].append({})
+
+                # TODO: Recurse for deeply nested objects
+                if value == "" or value is None:
+                    continue
+                parsed[main_field][index][nested_field] = value
             else:
                 # Default
+                if str(value).strip() == "":
+                    continue
+
                 parsed[key] = value
 
         # Filtering
@@ -260,14 +320,15 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         """Override default functionality to implement update or create."""
 
         # Skip if data is empty
-        if data is None:
+        if data is None or data is empty:
             return super().__init__(instance=instance, **kwargs)
 
         # Try to expand out fields before processing
-        try:
-            data = self.flat_to_json(data)
-        except Exception:
-            pass
+        data = self.flat_to_json(data)
+        # try:
+        # except Exception as e:
+        #     print("unable to unflatten:", e)
+        #     pass
 
         # Initialize rest of serializer first, needed if data is flat
         super().__init__(data=data, **kwargs)

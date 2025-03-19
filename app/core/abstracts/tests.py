@@ -61,6 +61,15 @@ class TestsBase(TestCase):
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
 
+    # def assertListEqual(self, list1: list, list2: list, msg=None, sort_lists=True):
+    #     """Override default assertion to add sorting."""
+
+    #     if sort_lists:
+    #         list1.sort()
+    #         list2.sort()
+
+    #     return super().assertListEqual(list1, list2, msg)
+
 
 class ApiTestsBase(TestsBase):
     """Abstract testing utilities for api testing."""

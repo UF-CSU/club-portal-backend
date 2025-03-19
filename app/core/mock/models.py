@@ -9,6 +9,7 @@ class BusterTag(ModelBase):
     """Dummy related model used for testing only."""
 
     name = models.CharField(max_length=64)
+    color = models.CharField(null=True, blank=True)
 
 
 class Buster(ModelBase):

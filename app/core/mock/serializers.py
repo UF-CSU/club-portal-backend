@@ -10,6 +10,7 @@ class BusterTagNestedSerializer(CsvModelSerializer):
         fields = [
             "id",
             "name",
+            "color",
         ]
 
 
