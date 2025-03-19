@@ -135,10 +135,8 @@ class FlatSerializer(SerializerBase):
         """Convert representation to flattened struction for CSV."""
         parsed = {}
 
-        # TODO: Handle nested json to flat
         for key, value in data.items():
             # Convert lists to string
-
             if isinstance(value, list) and islistinstance(value, dict):
                 for i, obj in enumerate(value):
                     parent_key = f"{key}[{i}]"
@@ -150,6 +148,7 @@ class FlatSerializer(SerializerBase):
                         parsed[final_key] = nested_value
             elif isinstance(value, list):
                 parsed[key] = ", ".join([str(v) for v in value])
+            # TODO: Flatten nested objects
             else:
                 parsed[key] = value
 
@@ -174,27 +173,8 @@ class FlatSerializer(SerializerBase):
         # For each field, convert flattened syntax to JSON representation
         for key, value in record.items():
             list_objs_res = re.match(r"([a-z0-9_-]+)\[([0-9]+)\]\.?(.*)?", key)
+            nested_obj_res = re.match(r"([a-z0-9_-]+)\.(.*)", key)
 
-            # if bool(list_objs_res):
-            #     # Handle list of objects
-            #     field, index, nested_field = list_objs_res.groups()
-            #     index = int(index)
-
-            #     if field not in parsed.keys():
-            #         parsed[field] = []
-
-            #     assert isinstance(
-            #         parsed[field], list
-            #     ), f"Inconsistent types for field {field}"
-
-            #     # Need to ensure the object is put at that specific location,
-            #     # since the other fields will expect it there.
-            #     while len(parsed[field]) <= index:
-            #         parsed[field].append({})
-
-            #     # TODO: Recurse for deeply nested objects
-            #     parsed[field][index][nested_field] = value
-            # el
             if key in cls().writable_many_related_fields and isinstance(value, str):
                 # Handle list of slug related fields
                 parsed[key] = str_to_list(value)
@@ -203,29 +183,22 @@ class FlatSerializer(SerializerBase):
             ):
                 # Handle slug related field
                 parsed[key] = [value]
-            elif key in cls().nested_fields:
+            elif bool(nested_obj_res):
                 # Handle nested object
-                fields = str(key).split(".")
 
-                # Skip empty fields
-                if len(fields) == 1 and value is None or str(value).strip() == "":
-                    continue
-
+                main_field, nested_field = nested_obj_res.groups()
                 assert (
-                    len(fields) == 2
-                ), f"Can only support nested objects with 1 field, but received {len(fields) - 1}."
-
-                main_field, nested_field = fields
+                    main_field in cls().nested_fields
+                ), f"Field {main_field} is not a nested object."
 
                 # Create new nested object if not exists
                 if main_field not in parsed.keys():
                     parsed[main_field] = {}
 
                 # Set a single field on the nested object
-                # FIXME: This will break on lists inside nested serializers
+                # FIXME: This will probably break on lists inside nested serializers
                 parsed[main_field][nested_field] = value
 
-                # raise NotImplementedError("Cannot unflatten nested objects")
             elif bool(list_objs_res):
                 # Handle list of nested objects
                 main_field, index, nested_field = list_objs_res.groups()
@@ -373,7 +346,10 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         DRF does not like calling ``.create()`` on a serializer that has
         a nested serializer, so we just override the entire method.
+
+        The following code was adapted from DRF's create method.
         """
+
         ModelClass = self.Meta.model
 
         # Remove many-to-many relationships from validated_data.
@@ -381,9 +357,23 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         # as they require that the instance has already been saved.
         info = model_meta.get_field_info(ModelClass)
         many_to_many = {}
+
         for field_name, relation_info in info.relations.items():
             if relation_info.to_many and (field_name in validated_data):
                 many_to_many[field_name] = validated_data.pop(field_name)
+            elif not relation_info.to_many and (field_name in validated_data):
+                model = relation_info.related_model
+                payload = validated_data.pop(field_name, None)
+
+                if not payload:
+                    continue
+                elif not isinstance(payload, dict):
+                    validated_data[field_name] = payload
+                    continue
+
+                validated_data[field_name], _ = model._default_manager.get_or_create(
+                    **payload
+                )
 
         try:
             instance = ModelClass._default_manager.create(**validated_data)
@@ -411,6 +401,19 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         if many_to_many:
             for field_name, value in many_to_many.items():
                 field = getattr(instance, field_name)
+
+                # Get or create related nested objects
+                if islistinstance(value, dict):
+                    model = field.model
+                    saved_objs = []
+
+                    for nested_obj in value:
+                        obj, _ = model._default_manager.get_or_create(**nested_obj)
+                        saved_objs.append(obj)
+
+                    value = saved_objs
+
+                # Value must be of type/list models.Model
                 field.set(value)
 
         return instance

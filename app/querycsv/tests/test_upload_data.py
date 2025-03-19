@@ -317,7 +317,7 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
         self.data_to_csv(payload)
 
         success, failed = self.service.upload_csv(self.filepath)
-        self.assertLength(success, 1)
+        self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
     def test_upload_csv_single_nested(self):
@@ -335,9 +335,7 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
 
         self.assertEqual(self.nested_repo.count(), 1)
         nested_obj = self.nested_repo.first()
-        self.assertEqual(
-            nested_obj.name, payload[self.serializer_single_nested_key]["name"]
-        )
+        self.assertEqual(nested_obj.name, payload["one_tag_nested.name"])
 
     def test_upload_csv_many_nested(self):
         """Uploading a csv with nested many fields should work."""
