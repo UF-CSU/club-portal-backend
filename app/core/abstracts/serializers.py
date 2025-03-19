@@ -55,6 +55,27 @@ class SerializerBase(serializers.Serializer):
             if value.required is True and value.read_only is False
         ]
 
+    @property
+    def nested_fields(self):
+        """List of fields that are nested serializers."""
+
+        return [
+            key
+            for key, value in self.get_fields().items()
+            if isinstance(value, serializers.BaseSerializer)
+            and not (hasattr(value, "many") and value.many)
+        ]
+
+    @property
+    def many_nested_fields(self):
+        """List of fields that are nested serializers with many=True."""
+        return [
+            key
+            for key, value in self.get_fields().items()
+            if isinstance(value, serializers.BaseSerializer)
+            and (hasattr(value, "many") and value.many)
+        ]
+
     def get_field_types(self, field_name: str, serializer=None) -> list[FieldType]:
         """Get ``FieldType`` for a given field."""
         serializer = serializer if serializer is not None else self

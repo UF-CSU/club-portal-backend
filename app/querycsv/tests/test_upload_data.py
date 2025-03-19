@@ -184,7 +184,7 @@ class UploadCsvM2OFieldsTests(UploadCsvTestsBase, CsvDataM2OTestsBase):
 
         # Validate database
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2o_selector, list(self.df.columns))
+        self.assertIn(self.m2o_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2OValidFields(self.df)
 
@@ -203,7 +203,7 @@ class UploadCsvM2OFieldsTests(UploadCsvTestsBase, CsvDataM2OTestsBase):
 
         # Validate database
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2o_selector, list(self.df.columns))
+        self.assertIn(self.m2o_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2OValidFields(self.df)
 
@@ -222,7 +222,7 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Validate results
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2m_selector, list(self.df.columns))
+        self.assertIn(self.m2m_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2MValidFields(self.df)
 
@@ -233,10 +233,10 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Iterate through csv, manually add spacing
         for i, row in self.df.iterrows():
-            pre_value = row[self.m2m_selector]
+            pre_value = row[self.m2m_serializer_key]
             pre_values = pre_value.split(",")
             modified_value = "  ,  ".join(pre_values)
-            row[self.m2m_selector] = modified_value
+            row[self.m2m_serializer_key] = modified_value
 
         self.df_to_csv(self.df)
 
@@ -245,7 +245,7 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Validate results
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2m_selector, list(self.df.columns))
+        self.assertIn(self.m2m_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2MValidFields(self.df)
 
@@ -257,15 +257,13 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Update fields after create csv
         self.update_dataset()
-        # for obj in self.repo.all().prefetch_related(self.m2m_selector):
-        #     self.update_mock_object(obj)
 
         objects_before = list(
             self.repo.all()
             .annotate(
-                pre_objs_count=models.Count(self.m2m_selector),
+                pre_objs_count=models.Count(self.m2m_model_key),
                 pre_objs=StringAgg(
-                    models.F(f"{self.m2m_selector}__{self.m2m_target_field}"),
+                    models.F(f"{self.m2m_model_key}__{self.m2m_model_foreign_key}"),
                     distinct=True,
                     delimiter=",",
                 ),
@@ -281,7 +279,7 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         expected_objects = list(self.df.to_dict("records"))
 
         self.assertObjectsHaveFields(expected_objects)
-        self.assertIn(self.m2m_selector, list(self.df.columns))
+        self.assertIn(self.m2m_serializer_key, list(self.df.columns))
         self.assertTrue(
             self.m2m_repo.all().count() <= self.m2m_size + self.m2m_update_size,
             f"Expected at most {self.m2m_size + self.m2m_update_size} M2M objects, "

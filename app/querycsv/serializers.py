@@ -1,10 +1,12 @@
 import re
+import traceback
 from typing import Optional
 
 from django.db import models
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.relations import SlugRelatedField
+from rest_framework.utils import model_meta
 
 from core.abstracts.serializers import FieldType, ModelSerializerBase, SerializerBase
 from utils.helpers import str_to_list
@@ -179,16 +181,20 @@ class FlatSerializer(SerializerBase):
                 # TODO: Recurse for deeply nested objects
                 parsed[field][index][nested_field] = value
             elif key in cls().writable_many_related_fields and isinstance(value, str):
-                # Handle list of literals
+                # Handle list of slug related fields
                 parsed[key] = str_to_list(value)
             elif key in cls().writable_many_related_fields and not isinstance(
                 value, list
             ):
+                # Handle slug related field
                 parsed[key] = [value]
+            elif key in cls().nested_fields:
+                # Handle nested object
+                pass
+            elif key in cls().many_nested_fields:
+                # Handle list of nested objects
+                pass
             else:
-                # Handle objects
-                # TODO: CSV Objects
-
                 # Default
                 parsed[key] = value
 
@@ -213,26 +219,30 @@ class FlatSerializer(SerializerBase):
         flat_fields = {}
 
         for key, value in self.get_fields().items():
+            # For simple fields, just get FlatField value
             if not isinstance(value, serializers.BaseSerializer):
 
                 field = FlatField(key, value, self.get_field_types(key))
                 flat_fields[key] = field
                 continue
 
+            # For nested fields, add the inner fields using nested syntax
             field_name = key
+            flat_field_class = None
 
-            if value.many:
+            if hasattr(value, "many") and value.many:
                 field_name += "[n]."
+                sub_serializer = value.child
+                flat_field_class = FlatListField
             else:
                 field_name += "."
-
-            sub_serializer = value.child
+                sub_serializer = value
+                flat_field_class = FlatField
 
             for sub_field in sub_serializer.get_fields():
                 nested_field_name = field_name + sub_field
-                field_cls = FlatField if not value.many else FlatListField
 
-                field = field_cls(
+                field = flat_field_class(
                     nested_field_name,
                     sub_serializer.get_fields()[sub_field],
                     self.get_field_types(sub_field, serializer=sub_serializer),
@@ -253,19 +263,9 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         if data is None:
             return super().__init__(instance=instance, **kwargs)
 
-        # Coerce Slug Many Related Field to a list before processing
-        # TODO: This should be handled entirely by flat_to_json
+        # Try to expand out fields before processing
         try:
-            fields = [
-                field
-                for field in self.writable_many_related_fields
-                if field in data.keys()
-            ]
-
-            for field in fields:
-                if isinstance(data[field], str):
-                    data[field] = str_to_list(data[field])
-
+            data = self.flat_to_json(data)
         except Exception:
             pass
 
@@ -305,6 +305,85 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
             pass
 
         self.instance = instance
+
+    def create(self, validated_data):
+        """
+        Override default create method.
+
+        DRF does not like calling ``.create()`` on a serializer that has
+        a nested serializer, so we just override the entire method.
+        """
+        ModelClass = self.Meta.model
+
+        # Remove many-to-many relationships from validated_data.
+        # They are not valid arguments to the default `.create()` method,
+        # as they require that the instance has already been saved.
+        info = model_meta.get_field_info(ModelClass)
+        many_to_many = {}
+        for field_name, relation_info in info.relations.items():
+            if relation_info.to_many and (field_name in validated_data):
+                many_to_many[field_name] = validated_data.pop(field_name)
+
+        try:
+            instance = ModelClass._default_manager.create(**validated_data)
+        except TypeError:
+            tb = traceback.format_exc()
+            msg = (
+                "Got a `TypeError` when calling `%s.%s.create()`. "
+                "This may be because you have a writable field on the "
+                "serializer class that is not a valid argument to "
+                "`%s.%s.create()`. You may need to make the field "
+                "read-only, or override the %s.create() method to handle "
+                "this correctly.\nOriginal exception was:\n %s"
+                % (
+                    ModelClass.__name__,
+                    ModelClass._default_manager.name,
+                    ModelClass.__name__,
+                    ModelClass._default_manager.name,
+                    self.__class__.__name__,
+                    tb,
+                )
+            )
+            raise TypeError(msg)
+
+        # Save many-to-many relationships after the instance is created.
+        if many_to_many:
+            for field_name, value in many_to_many.items():
+                field = getattr(instance, field_name)
+                field.set(value)
+
+        return instance
+
+    def update(self, instance, validated_data):
+        """
+        Override default update method.
+
+        DRF does not like calling ``.udpate()`` on a serializer that has
+        a nested serializer, so we just override the entire method.
+        """
+        info = model_meta.get_field_info(instance)
+
+        # Simply set each attribute on the instance, and then save it.
+        # Note that unlike `.create()` we don't need to treat many-to-many
+        # relationships as being a special case. During updates we already
+        # have an instance pk for the relationships to be associated with.
+        m2m_fields = []
+        for attr, value in validated_data.items():
+            if attr in info.relations and info.relations[attr].to_many:
+                m2m_fields.append((attr, value))
+            else:
+                setattr(instance, attr, value)
+
+        instance.save()
+
+        # Note that many-to-many fields are set after updating instance.
+        # Setting m2m fields triggers signals which could potentially change
+        # updated instance and we do not want it to collide with .update()
+        for attr, value in m2m_fields:
+            field = getattr(instance, attr)
+            field.set(value)
+
+        return instance
 
 
 class WritableSlugRelatedField(SlugRelatedField):

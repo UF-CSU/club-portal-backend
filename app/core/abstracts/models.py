@@ -239,3 +239,6 @@ class SocialProfile(ModelBase):
     class Meta:
         abstract = True
         ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.username} ({self.social_type})"
