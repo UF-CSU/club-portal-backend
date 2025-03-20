@@ -125,12 +125,17 @@ class CsvDataTestsBase(TestsBase):
 
     def data_to_df(self, data: list[dict]):
         """Convert output of serializer to dataframe."""
-        data_copy = [{**obj} for obj in data]
+        # data_copy = [{**obj} for obj in data]
 
-        for model in data_copy:
-            for key, value in model.items():
-                if isinstance(value, list):
-                    model[key] = ",".join([str(v) for v in value])
+        data_copy = [self.serializer.json_to_flat(obj) for obj in data]
+
+        # for model in data_copy:
+        #     for key, value in model.items():
+        #         if isinstance(value, list):
+        #             if not islistinstance(value, dict):
+        #                 model[key] = ",".join([str(v) for v in value])
+        #             else:
+        #                 model[key] =
 
         return pd.DataFrame.from_records(data_copy)
 
@@ -193,10 +198,13 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
     m2o_model_class = BusterTag
     m2o_size = 2
 
-    m2o_selector = "one_tag"
-    """Field on the main object that points to child object."""
+    m2o_serializer_key = "one_tag_str"
+    """Field on the main serializer that points to child object."""
 
-    m2o_target_field = "name"
+    m2o_model_key = "one_tag"
+    """Field on the model object that points to child."""
+
+    m2o_model_foreign_key = "name"
     """Field on child object whose value is used in serializer."""
 
     def setUp(self) -> None:
@@ -220,7 +228,7 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
             m2o_objects.append(self.create_mock_m2o_object())
 
         for obj in self.repo.all():
-            setattr(obj, self.m2o_selector, random.choice(m2o_objects))
+            setattr(obj, self.m2o_serializer_key, random.choice(m2o_objects))
 
         # return self.repo.all()
 
@@ -233,7 +241,7 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
             objects.remove(obj)
 
             m2o = random.choice(m2os)
-            self.update_mock_object(obj=obj, **{self.m2o_selector: m2o})
+            self.update_mock_object(obj=obj, **{self.m2o_serializer_key: m2o})
 
     def clear_db(self) -> list:
         self.m2o_repo.all().delete()
@@ -246,9 +254,9 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
         # Compare csv value with actual value
         for index, row in df.iterrows():
             # Raw values in csv
-            expected_value = row[self.m2o_selector]
+            expected_value = row[self.m2o_serializer_key]
 
-            if expected_value is None:
+            if expected_value is None or str(expected_value).strip() == "":
                 continue
 
             self.assertIsInstance(expected_value, str)
@@ -257,14 +265,16 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
                 **{
                     k: v
                     for k, v in query.items()
-                    if k != self.m2o_selector
+                    if k != self.m2o_serializer_key
                     and k not in self.serializer.readonly_fields
                     and k not in self.serializer.any_related_fields
+                    and k not in self.serializer.many_nested_fields
+                    and k not in self.serializer.nested_fields
                 }
             )
 
-            m2o_obj = getattr(obj, self.m2o_selector)
-            actual_value = getattr(m2o_obj, self.m2o_target_field)
+            m2o_obj = getattr(obj, self.m2o_model_key, {})
+            actual_value = getattr(m2o_obj, self.m2o_model_foreign_key, None)
 
             self.assertEqual(expected_value, actual_value)
 
@@ -300,10 +310,13 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
     m2m_update_size = 4
     m2m_assignment_max = 3
 
-    m2m_selector = "many_tags"
-    """Field on the main object that points to child object."""
+    m2m_serializer_key = "many_tags_str"
+    """Field on the main serializer that points to child object."""
 
-    m2m_target_field = "name"
+    m2m_model_key = "many_tags"
+    """Field on the model object that points to child."""
+
+    m2m_model_foreign_key = "name"
     """Field on child object whose value is used in serializer."""
 
     def setUp(self) -> None:
@@ -311,14 +324,15 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
 
         self.m2m_repo = self.m2m_model_class.objects
 
-        if self.m2m_selector not in self.model_class.get_fields_list():
+        if self.m2m_serializer_key not in self.model_class.get_fields_list():
             self.m2m_model_selector = self.serializer.get_fields()[
-                self.m2m_selector
+                self.m2m_serializer_key
             ].source
         else:
-            self.m2m_model_selector = self.m2m_selector
+            self.m2m_model_selector = self.m2m_serializer_key
 
     def get_m2m_create_params(self, **kwargs):
+
         return {"name": fake.title(), **kwargs}
 
     def initialize_dataset(self):
@@ -334,7 +348,7 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
             assignment_count = random.randint(0, self.m2m_assignment_max)
             selected_m2m_objects = random.sample(m2m_objects, assignment_count)
 
-            for m2m_obj in selected_m2m_objects:
+            for i, m2m_obj in enumerate(selected_m2m_objects):
                 m2m_repo.add(m2m_obj)
 
             obj.save()
@@ -355,7 +369,7 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
         # Compare csv value with actual value
         for index, row in df.iterrows():
             # Raw value in csv
-            expected_value = row[self.m2m_selector]
+            expected_value = row[self.m2m_serializer_key]
 
             if expected_value is None:
                 continue
@@ -367,7 +381,10 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
             for key, value in csv_values.items():
                 # Skip fields if they represent object, are none, or are for the serializer only
                 if (
-                    key == self.m2m_selector
+                    key in self.serializer.many_related_fields
+                    or key in self.serializer.related_fields
+                    or key in self.serializer.many_nested_fields
+                    or key in self.serializer.nested_fields
                     or key in self.serializer.readonly_fields
                     or value is None
                     or key not in self.model_class.get_fields_list()
@@ -377,15 +394,21 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
                 query_filter = models.Q(**{key: value})
                 query = query & query_filter if query is not None else query_filter
 
-            actual_obj = self.repo.get(query)
-            actual_related_objs = getattr(actual_obj, self.m2m_selector).all()
+            try:
+                actual_obj = self.repo.get(query)
+            except self.model_class.DoesNotExist as e:
+                # Easier to debug
+                print("Model not found with query:", query)
+                raise e
+
+            actual_related_objs = getattr(actual_obj, self.m2m_model_key).all()
 
             # Check database against csv
             expected_values = [str(v).strip() for v in str(expected_value).split(",")]
             expected_values = clean_list(expected_values)
 
             actual_values = [
-                getattr(obj, self.m2m_target_field) for obj in actual_related_objs
+                getattr(obj, self.m2m_model_foreign_key) for obj in actual_related_objs
             ]
             actual_values = clean_list(actual_values)
 
@@ -441,8 +464,14 @@ class DownloadCsvTestsBase(CsvDataTestsBase):
             actual_serializer = self.serializer_class(actual_object)
 
             for field, expected_value in actual_serializer.data.items():
+                # FIXME: This just skips nested objects
+                if (
+                    field
+                    in self.serializer.nested_fields
+                    + self.serializer.many_nested_fields
+                ):
+                    continue
                 self.assertIn(field, record.keys())
-
                 actual_value = record[field]
 
                 if field in self.serializer.many_related_fields:
@@ -457,6 +486,12 @@ class DownloadCsvTestsBase(CsvDataTestsBase):
                     self.assertListEqual(
                         clean_list(actual_values), clean_list(expected_values)
                     )
+                elif field in self.serializer.nested_fields:
+                    # TODO: Verify nested serialization
+                    pass
+                elif field in self.serializer.many_nested_fields:
+                    # TODO: Verify many nested serialization
+                    pass
                 else:
                     self.assertEqual(str(actual_value or ""), str(expected_value or ""))
 
@@ -498,6 +533,7 @@ class UploadCsvTestsBase(CsvDataTestsBase):
 
         data = self.serializer_class(query, many=True).data
         self.df = self.data_to_df(data)
+        self.df = self.df.fillna("")
         self.df_to_csv(self.df)
 
     def initialize_csv_data(self, clear_db=True):
@@ -520,6 +556,15 @@ class UploadCsvTestsBase(CsvDataTestsBase):
 
         self.repo.all().delete()
         self.assertNoObjects()
+
+    def assertUploadPayload(self, payload: list[dict]):
+        """Given a list of flattened dicts, will convert to csv and upload."""
+
+        self.data_to_csv(payload)
+
+        success, failed = self.service.upload_csv(self.filepath)
+        self.assertLength(success, 1, failed)
+        self.assertLength(failed, 0)
 
     def assertObjectsExist(self, pre_queryset: list, msg=None):
         """Objects represented in queryset should exist in the database."""

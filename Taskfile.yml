@@ -53,7 +53,7 @@ tasks:
     deps:
       - build
     cmds:
-      - docker-compose run --rm app sh -c "python manage.py test"
+      - docker-compose run --rm app sh -c "python manage.py test {{.CLI_ARGS}}"
 
   makemigrations:dry-run:
     desc: 'Runs makemigrations command with --dry-run in django'

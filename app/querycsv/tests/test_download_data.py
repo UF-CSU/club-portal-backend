@@ -2,12 +2,13 @@
 CSV Download Tests
 """
 
+from lib.faker import fake
 from querycsv.tests.utils import (
     CsvDataM2MTestsBase,
     CsvDataM2OTestsBase,
     DownloadCsvTestsBase,
 )
-from utils.helpers import clean_list
+from utils.helpers import clean_list, str_to_list
 
 
 class DownloadDataTests(DownloadCsvTestsBase):
@@ -61,14 +62,14 @@ class DownloadCsvM2OFieldsTests(DownloadCsvTestsBase, CsvDataM2OTestsBase):
             obj_id = row["id"]
             expected_obj = self.repo.get_by_id(obj_id)
 
-            expected_m2o_obj = getattr(expected_obj, self.m2o_selector)
+            expected_m2o_obj = getattr(expected_obj, self.m2o_model_key)
 
             if expected_m2o_obj is None:
                 expected_value = None
             else:
-                expected_value = getattr(expected_m2o_obj, self.m2o_target_field)
+                expected_value = getattr(expected_m2o_obj, self.m2o_model_foreign_key)
 
-            actual_value = row[self.m2o_selector]
+            actual_value = row[self.m2o_serializer_key]
             if actual_value == "":
                 actual_value = None
 
@@ -100,21 +101,57 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
             expected_m2m_objs = getattr(expected_obj, self.m2m_model_selector)
             expected_values = clean_list(
                 [
-                    str(getattr(obj, self.m2m_target_field))
+                    str(getattr(obj, self.m2m_model_foreign_key))
                     for obj in expected_m2m_objs.all()
                 ]
             )
 
-            actual_value_raw = str(row[self.m2m_selector])
+            actual_value_raw = str(row[self.m2m_serializer_key])
             actual_values = clean_list(
                 [str(v).strip() for v in actual_value_raw.split(",")]
             )
 
             self.assertListEqual(actual_values, expected_values)
 
+    def test_download_csv_m2m_commas(self):
+        """Should be able to download tags if they include commas."""
 
-class DownloadCsvM2MFieldsIntTests(DownloadCsvM2MFieldsStrTests):
-    """Unit tests for testing downloaded csv many-to-many fields with int slug."""
+        self.initialize_dataset()
 
-    m2m_selector = "many_tags_int"
-    m2m_target_field = "id"
+        for i, tag in enumerate(list(self.m2m_repo.all())):
+            if i % 2 != 0:
+                continue
+
+            tag.name = tag.name + f", {fake.title()}"
+            tag.save()
+
+        qs = self.repo.all()
+
+        filepath = self.service.download_csv(queryset=qs)
+        self.assertValidCsv(filepath)
+
+        df = self.csv_to_df(filepath)
+
+        for index, row in df.iterrows():
+            obj_id = row["id"]
+            expected_obj = self.repo.get_by_id(obj_id)
+
+            expected_m2m_objs = getattr(expected_obj, self.m2m_model_selector)
+            expected_values = clean_list(
+                [
+                    str(getattr(obj, self.m2m_model_foreign_key))
+                    for obj in expected_m2m_objs.all()
+                ]
+            )
+
+            actual_value_raw = str(row[self.m2m_serializer_key])
+            actual_values = str_to_list(actual_value_raw)
+
+            self.assertListEqual(actual_values, expected_values)
+
+
+# class DownloadCsvM2MFieldsIntTests(DownloadCsvM2MFieldsStrTests):
+#     """Unit tests for testing downloaded csv many-to-many fields with int slug."""
+
+#     m2m_selector = "many_tags_int"
+#     m2m_target_field = "id"

@@ -2,9 +2,13 @@
 Import/upload data tests.
 """
 
+import uuid
 from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 
+from core.mock.models import BusterTag
+from core.mock.serializers import BusterTagNestedSerializer
+from lib.faker import fake
 from querycsv.models import QueryCsvUploadJob
 from querycsv.services import QueryCsvService
 from querycsv.tests.utils import (
@@ -184,7 +188,7 @@ class UploadCsvM2OFieldsTests(UploadCsvTestsBase, CsvDataM2OTestsBase):
 
         # Validate database
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2o_selector, list(self.df.columns))
+        self.assertIn(self.m2o_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2OValidFields(self.df)
 
@@ -203,7 +207,7 @@ class UploadCsvM2OFieldsTests(UploadCsvTestsBase, CsvDataM2OTestsBase):
 
         # Validate database
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2o_selector, list(self.df.columns))
+        self.assertIn(self.m2o_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2OValidFields(self.df)
 
@@ -218,11 +222,13 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         objects_before = self.initialize_csv_data()
 
         # Upload csv using service
-        self.service.upload_csv(path=self.filepath)
+        success, failed = self.service.upload_csv(path=self.filepath)
+        self.assertLength(success, self.dataset_size, failed)
+        self.assertLength(failed, 0)
 
         # Validate results
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2m_selector, list(self.df.columns))
+        self.assertIn(self.m2m_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2MValidFields(self.df)
 
@@ -233,19 +239,21 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Iterate through csv, manually add spacing
         for i, row in self.df.iterrows():
-            pre_value = row[self.m2m_selector]
+            pre_value = row[self.m2m_serializer_key]
             pre_values = pre_value.split(",")
             modified_value = "  ,  ".join(pre_values)
-            row[self.m2m_selector] = modified_value
+            row[self.m2m_serializer_key] = modified_value
 
         self.df_to_csv(self.df)
 
         # Upload csv using service
-        self.service.upload_csv(path=self.filepath)
+        success, failed = self.service.upload_csv(path=self.filepath)
+        self.assertLength(success, self.dataset_size, failed)
+        self.assertLength(failed, 0)
 
         # Validate results
         self.assertObjectsHaveFields(objects_before)
-        self.assertIn(self.m2m_selector, list(self.df.columns))
+        self.assertIn(self.m2m_serializer_key, list(self.df.columns))
 
         self.assertObjectsM2MValidFields(self.df)
 
@@ -257,15 +265,13 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Update fields after create csv
         self.update_dataset()
-        # for obj in self.repo.all().prefetch_related(self.m2m_selector):
-        #     self.update_mock_object(obj)
 
         objects_before = list(
             self.repo.all()
             .annotate(
-                pre_objs_count=models.Count(self.m2m_selector),
+                pre_objs_count=models.Count(self.m2m_model_key),
                 pre_objs=StringAgg(
-                    models.F(f"{self.m2m_selector}__{self.m2m_target_field}"),
+                    models.F(f"{self.m2m_model_key}__{self.m2m_model_foreign_key}"),
                     distinct=True,
                     delimiter=",",
                 ),
@@ -275,13 +281,15 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         # Upload csv using service
         success, failed = self.service.upload_csv(path=self.filepath)
+        self.assertLength(success, self.dataset_size, failed)
+        self.assertLength(failed, 0)
 
         # Validate results
         self.assertEqual(self.repo.all().count(), self.dataset_size)
         expected_objects = list(self.df.to_dict("records"))
 
         self.assertObjectsHaveFields(expected_objects)
-        self.assertIn(self.m2m_selector, list(self.df.columns))
+        self.assertIn(self.m2m_serializer_key, list(self.df.columns))
         self.assertTrue(
             self.m2m_repo.all().count() <= self.m2m_size + self.m2m_update_size,
             f"Expected at most {self.m2m_size + self.m2m_update_size} M2M objects, "
@@ -289,3 +297,140 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         )
 
         self.assertObjectsM2MValidFields(self.df, objects_before)
+
+    def test_upload_csv_m2m_fields_commas(self):
+        """Uploading a M2M object with a comma should work if wrapped in quotes."""
+
+        payload = {
+            "name": fake.title(),
+            "many_tags_str": 'one,two,"three, four, five"',
+        }
+        self.assertUploadPayload([payload])
+
+        self.assertEqual(self.m2m_repo.count(), 3)
+        q1 = self.m2m_repo.filter(name="one")
+        self.assertTrue(q1.exists())
+
+        q2 = self.m2m_repo.filter(name="two")
+        self.assertTrue(q2.exists())
+
+        q3 = self.m2m_repo.filter(name="three, four, five")
+        self.assertTrue(q3.exists())
+
+
+class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
+    """Test uploading csvs with nested fields."""
+
+    serializer_single_nested_key = "one_tag_nested"
+    serializer_many_nested_key = "many_tags_nested"
+
+    nested_model_class = BusterTag
+    nested_serializer_class = BusterTagNestedSerializer
+
+    def setUp(self):
+        self.nested_repo = self.nested_model_class.objects
+        return super().setUp()
+
+    def test_upload_csv_create_single_nested(self):
+        """Uploading a csv with a nested single field should work."""
+
+        payload = {
+            "name": fake.title(),
+            "one_tag_nested.name": fake.title(),
+        }
+        self.assertUploadPayload([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 1)
+        nested_obj = self.nested_repo.first()
+        self.assertEqual(nested_obj.name, payload["one_tag_nested.name"])
+
+    def test_upload_csv_update_single_nested(self):
+        """Uploading a csv with a nested single field should update appropriate objects."""
+
+        default_payload = {
+            "unique_name": uuid.uuid4(),
+            "name": fake.title(),
+        }
+
+        self.repo.create(**default_payload)
+
+        payload = {
+            **default_payload,
+            "one_tag_nested.name": fake.title(),
+        }
+        self.assertUploadPayload([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 1)
+        nested_obj = self.nested_repo.first()
+        self.assertEqual(nested_obj.name, payload["one_tag_nested.name"])
+
+    def test_upload_csv_create_many_nested(self):
+        """Uploading a csv with nested many fields should work."""
+
+        payload = {
+            "name": fake.title(),
+            "many_tags_nested[0].name": fake.title(),
+            "many_tags_nested[0].color": fake.color(),
+            "many_tags_nested[1].name": fake.title(),
+            "many_tags_nested[1].color": fake.color(),
+        }
+        self.assertUploadPayload([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 2)
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[0].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[0].color"])
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[1].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[1].color"])
+
+    def test_upload_csv_update_many_nested(self):
+        """Uploading a csv with nested many fields should update the object."""
+
+        default_payload = {
+            "unique_name": uuid.uuid4(),
+            "name": fake.title(),
+        }
+
+        self.repo.create(**default_payload)
+
+        payload = {
+            **default_payload,
+            "many_tags_nested[0].name": fake.title(),
+            "many_tags_nested[0].color": fake.color(),
+            "many_tags_nested[1].name": fake.title(),
+            "many_tags_nested[1].color": fake.color(),
+        }
+        self.assertUploadPayload([payload])
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["name"])
+
+        self.assertEqual(self.nested_repo.count(), 2)
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[0].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[0].color"])
+
+        nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[1].name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["many_tags_nested[1].color"])
