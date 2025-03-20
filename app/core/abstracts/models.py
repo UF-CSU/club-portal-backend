@@ -210,7 +210,7 @@ class Color(models.TextChoices):
 class Tag(ModelBase):
     """Represents a category, tag, status, etc an object can have."""
 
-    name = models.CharField(max_length=16, validators=[MinLengthValidator(2)])
+    name = models.CharField(max_length=32, validators=[MinLengthValidator(2)])
     color = models.CharField(choices=Color.choices, default=Color.GREY)
     order = models.IntegerField(default=0, blank=True)
 

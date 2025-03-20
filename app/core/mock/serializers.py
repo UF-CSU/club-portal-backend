@@ -1,5 +1,9 @@
 from core.mock.models import Buster, BusterTag
-from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from querycsv.serializers import (
+    CsvModelSerializer,
+    ImageUrlField,
+    WritableSlugRelatedField,
+)
 
 
 class BusterTagNestedSerializer(CsvModelSerializer):
@@ -50,6 +54,8 @@ class BusterCsvSerializer(CsvModelSerializer):
         allow_null=True, required=False, source="one_tag"
     )
 
+    image = ImageUrlField(required=False)
+
     class Meta(CsvModelSerializer.Meta):
         model = Buster
         fields = [
@@ -58,6 +64,7 @@ class BusterCsvSerializer(CsvModelSerializer):
             "updated_at",
             "name",
             "unique_name",
+            "image",
             "one_tag_nested",
             "one_tag_str",
             "many_tags_nested",
@@ -65,20 +72,3 @@ class BusterCsvSerializer(CsvModelSerializer):
             "many_tags_int",
         ]
         exclude = None
-
-    # def create(self, validated_data):
-    #     many_tags_nested = validated_data.pop("many_tags", [])
-    #     one_tag_nested = validated_data.pop("one_tag", None)
-
-    #     print("validated data:", validated_data)
-
-    #     buster: Buster = super().create(validated_data)
-
-    #     for tag in many_tags_nested:
-    #         buster.many_tags.add(BusterTag.objects.create(**tag))
-
-    #     if one_tag_nested:
-    #         buster.one_tag = BusterTag.objects.create(**one_tag_nested)
-
-    #     buster.save()
-    #     return buster

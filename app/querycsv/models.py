@@ -99,6 +99,11 @@ class QueryCsvUploadJob(ModelBase):
 
         return super().save(*args, **kwargs)
 
+    def __str__(self):
+        if self.filepath:
+            return f'Upload for "{self.object_type}" objects, {self.row_count} rows'
+        return f'Upload for "{self.object_type}" objects'
+
     # Dynamic properties
     @property
     def filepath(self):
@@ -107,6 +112,10 @@ class QueryCsvUploadJob(ModelBase):
     @property
     def spreadsheet(self):
         return read_spreadsheet(self.filepath)
+
+    @property
+    def row_count(self):
+        return len(self.spreadsheet.index)
 
     @property
     def serializer_class(self) -> Type[CsvModelSerializer]:
@@ -119,6 +128,10 @@ class QueryCsvUploadJob(ModelBase):
     @property
     def model_class(self) -> Type[ModelBase]:
         return self.serializer_class.Meta.model
+
+    @property
+    def object_type(self):
+        return self.model_class.__name__
 
     @property
     def custom_fields(self) -> list[FieldMappingType]:

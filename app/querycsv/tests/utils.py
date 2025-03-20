@@ -557,12 +557,12 @@ class UploadCsvTestsBase(CsvDataTestsBase):
         self.repo.all().delete()
         self.assertNoObjects()
 
-    def assertUploadPayload(self, payload: list[dict]):
+    def assertUploadPayload(self, payload: list[dict], *args, **kwargs):
         """Given a list of flattened dicts, will convert to csv and upload."""
 
         self.data_to_csv(payload)
 
-        success, failed = self.service.upload_csv(self.filepath)
+        success, failed = self.service.upload_csv(self.filepath, *args, **kwargs)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
