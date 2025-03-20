@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urljoin
 
 from django.http import HttpRequest
@@ -84,11 +85,15 @@ def clean_list(target: list):
 
 
 def str_to_list(target: str | None):
-    """Split string into list using comma as a separator."""
+    """
+    Split string into list using comma as a separator,
+    skips commas surrounded by quotes.
+    """
     if not isinstance(target, str):
         return []
 
-    items = target.split(",")
-    items = clean_list([item.strip() for item in items])
+    # items = target.split(r',(?=(?:[^"]*"[^"]*")*[^"]*$)')
+    items = re.split(',(?=(?:[^"]*"[^"]*")*[^"]*$)', target)
+    items = clean_list([str(item).strip().replace('"', "") for item in items])
 
     return items

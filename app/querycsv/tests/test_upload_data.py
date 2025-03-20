@@ -298,6 +298,25 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
 
         self.assertObjectsM2MValidFields(self.df, objects_before)
 
+    def test_upload_csv_m2m_fields_commas(self):
+        """Uploading a M2M object with a comma should work if wrapped in quotes."""
+
+        payload = {
+            "name": fake.title(),
+            "many_tags_str": 'one,two,"three, four, five"',
+        }
+        self.assertUploadPayload([payload])
+
+        self.assertEqual(self.m2m_repo.count(), 3)
+        q1 = self.m2m_repo.filter(name="one")
+        self.assertTrue(q1.exists())
+
+        q2 = self.m2m_repo.filter(name="two")
+        self.assertTrue(q2.exists())
+
+        q3 = self.m2m_repo.filter(name="three, four, five")
+        self.assertTrue(q3.exists())
+
 
 class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
     """Test uploading csvs with nested fields."""
@@ -312,15 +331,6 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
         self.nested_repo = self.nested_model_class.objects
         return super().setUp()
 
-    def assertUploadCsv(self, payload: list[dict]):
-        """Given a list of flattened dicts, will convert to csv and upload."""
-
-        self.data_to_csv(payload)
-
-        success, failed = self.service.upload_csv(self.filepath)
-        self.assertLength(success, 1, failed)
-        self.assertLength(failed, 0)
-
     def test_upload_csv_create_single_nested(self):
         """Uploading a csv with a nested single field should work."""
 
@@ -328,7 +338,7 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
             "name": fake.title(),
             "one_tag_nested.name": fake.title(),
         }
-        self.assertUploadCsv([payload])
+        self.assertUploadPayload([payload])
 
         self.assertEqual(self.repo.count(), 1)
         obj = self.repo.first()
@@ -352,7 +362,7 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
             **default_payload,
             "one_tag_nested.name": fake.title(),
         }
-        self.assertUploadCsv([payload])
+        self.assertUploadPayload([payload])
 
         self.assertEqual(self.repo.count(), 1)
         obj = self.repo.first()
@@ -372,7 +382,7 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
             "many_tags_nested[1].name": fake.title(),
             "many_tags_nested[1].color": fake.color(),
         }
-        self.assertUploadCsv([payload])
+        self.assertUploadPayload([payload])
 
         self.assertEqual(self.repo.count(), 1)
         obj = self.repo.first()
@@ -407,7 +417,7 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
             "many_tags_nested[1].name": fake.title(),
             "many_tags_nested[1].color": fake.color(),
         }
-        self.assertUploadCsv([payload])
+        self.assertUploadPayload([payload])
 
         self.assertEqual(self.repo.count(), 1)
         obj = self.repo.first()

@@ -147,7 +147,9 @@ class FlatSerializer(SerializerBase):
                         final_key = ".".join([parent_key, nested_key])
                         parsed[final_key] = nested_value
             elif isinstance(value, list):
-                parsed[key] = ", ".join([str(v) for v in value])
+                parsed[key] = ", ".join(
+                    [str(v) if "," not in str(v) else f'"{str(v)}"' for v in value]
+                )
             # TODO: Flatten nested objects
             else:
                 parsed[key] = value

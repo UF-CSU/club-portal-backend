@@ -332,6 +332,7 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
             self.m2m_model_selector = self.m2m_serializer_key
 
     def get_m2m_create_params(self, **kwargs):
+
         return {"name": fake.title(), **kwargs}
 
     def initialize_dataset(self):
@@ -347,7 +348,7 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
             assignment_count = random.randint(0, self.m2m_assignment_max)
             selected_m2m_objects = random.sample(m2m_objects, assignment_count)
 
-            for m2m_obj in selected_m2m_objects:
+            for i, m2m_obj in enumerate(selected_m2m_objects):
                 m2m_repo.add(m2m_obj)
 
             obj.save()
@@ -555,6 +556,15 @@ class UploadCsvTestsBase(CsvDataTestsBase):
 
         self.repo.all().delete()
         self.assertNoObjects()
+
+    def assertUploadPayload(self, payload: list[dict]):
+        """Given a list of flattened dicts, will convert to csv and upload."""
+
+        self.data_to_csv(payload)
+
+        success, failed = self.service.upload_csv(self.filepath)
+        self.assertLength(success, 1, failed)
+        self.assertLength(failed, 0)
 
     def assertObjectsExist(self, pre_queryset: list, msg=None):
         """Objects represented in queryset should exist in the database."""
