@@ -355,6 +355,34 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         return value
 
+    def _get_remote_field_name(self, field_name):
+        """Get the field name a foreign model uses to reference this object."""
+        ModelClass = self.Meta.model
+
+        # We need the name of the field on the foreign object
+        # that connects to this object. To get that, we need to
+        # find the info about this relationship by looping through
+        # the related field descriptors and finding the correct one.
+        # ModelClass._meta.related_objects returns list of ManyToOneRel or ManyToManyRel
+        rel_obj = [
+            rel for rel in ModelClass._meta.related_objects if rel.name == field_name
+        ][0]
+
+        # We'll have a ManyToOneRel/ManyToManyRel, which has a reference
+        # to the field that connects to this model
+        remote_name = rel_obj.remote_field.name
+
+        return remote_name
+
+    def _get_remote_model(self, field_name, info=None):
+        """Get the model that is at the other end of a foreign relationship."""
+
+        if info is None:
+            ModelClass = self.Meta.model
+            info = model_meta.get_field_info(ModelClass)
+
+        return info.relations[field_name].related_model
+
     def create(self, validated_data):
         """
         Override default create method.
@@ -362,7 +390,8 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         DRF does not like calling ``.create()`` on a serializer that has
         a nested serializer, so we just override the entire method.
 
-        The following code was adapted from DRF's create method.
+        This code was adapted from the original DRF create method to include
+        functionality to handle more complex model relationships.
         """
 
         ModelClass = self.Meta.model
@@ -372,13 +401,20 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         # as they require that the instance has already been saved.
         info = model_meta.get_field_info(ModelClass)
         many_to_many = {}
+        reverse_many = {}
 
         for field_name, relation_info in info.relations.items():
-            if relation_info.to_many and (field_name in validated_data):
+            if (
+                relation_info.to_many
+                and (field_name in validated_data)
+                and not relation_info.reverse
+            ):
+                # This model references foreign model via m2m
                 many_to_many[field_name] = validated_data.pop(field_name)
             elif not relation_info.to_many and (field_name in validated_data):
-                model = relation_info.related_model
+                # This model references foreign model via fk
                 payload = validated_data.pop(field_name, None)
+                model = self._get_remote_model(field_name, info=info)
 
                 if not payload:
                     continue
@@ -389,6 +425,16 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 validated_data[field_name], _ = model._default_manager.get_or_create(
                     **payload
                 )
+            elif (
+                relation_info.to_many
+                and relation_info.reverse
+                and (field_name in validated_data)
+            ):
+                # Many to one reversed or many to many reversed
+                # The foreign model either references this model via fk,
+                # or the foreign model references this model via m2m
+                payload = validated_data.pop(field_name, None)
+                reverse_many[field_name] = payload
 
         try:
             instance = ModelClass._default_manager.create(**validated_data)
@@ -419,6 +465,20 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 value = self._parse_m2m_value(value, field)
                 field.set(value)
 
+        # Create foreign models that reference this model
+        if reverse_many:
+            for field_name, value in reverse_many.items():
+                if not isinstance(value, list):
+                    value = [value]
+
+                remote_name = self._get_remote_field_name(field_name)
+                remote_model = self._get_remote_model(field_name, info=info)
+
+                for obj in value:
+                    # Add this model to the payload for creating the foreign object
+                    obj[remote_name] = instance
+                    remote_model._default_manager.create(**obj)
+
         return instance
 
     def update(self, instance, validated_data):
@@ -427,6 +487,9 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         DRF does not like calling ``.udpate()`` on a serializer that has
         a nested serializer, so we just override the entire method.
+
+        This code was adapted from the original DRF update method to include
+        functionality to handle more complex model relationships.
         """
         info = model_meta.get_field_info(instance)
 
@@ -436,14 +499,39 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         # have an instance pk for the relationships to be associated with.
         m2m_fields = []
         for attr, value in validated_data.items():
-            if attr in info.relations and info.relations[attr].to_many:
+            if (
+                attr in info.relations
+                and info.relations[attr].to_many
+                and not info.relations[attr].reverse
+            ):
+                # This model references foreign model via m2m
                 m2m_fields.append((attr, value))
             elif attr in info.relations and not info.relations[attr].to_many:
+                # This model references foreign model via fk
                 if isinstance(value, dict):
                     model = info.relations[attr].related_model
                     value, _ = model._default_manager.get_or_create(**value)
 
                 setattr(instance, attr, value)
+            elif (
+                attr in info.relations
+                and info.relations[attr].to_many
+                and info.relations[attr].reverse
+            ):
+                # Many to one reversed or many to many reversed
+                # The foreign model either references this model via fk,
+                # or the foreign model references this model via m2m
+                remote_name = self._get_remote_field_name(attr)
+                remote_model = self._get_remote_model(attr, info=info)
+
+                if not isinstance(value, list):
+                    value = [value]
+
+                for obj in value:
+                    # For each, set this instance as appropriate field, then create/skip
+                    obj[remote_name] = instance
+                    remote_model._default_manager.get_or_create(**obj)
+
             else:
                 setattr(instance, attr, value)
 

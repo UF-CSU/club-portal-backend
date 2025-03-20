@@ -231,7 +231,7 @@ class SocialType(models.TextChoices):
 class SocialProfile(ModelBase):
     """Links to social media."""
 
-    url = models.URLField()
+    url = models.URLField(null=True, blank=True)
     username = models.CharField()
     social_type = models.CharField(choices=SocialType.choices)
     order = models.IntegerField(default=0, blank=True)
