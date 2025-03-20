@@ -281,7 +281,7 @@ class FlatSerializer(SerializerBase):
                     self.get_field_types(sub_field, serializer=sub_serializer),
                 )
 
-                flat_fields[key] = field
+                flat_fields[nested_field_name] = field
 
         return flat_fields
 

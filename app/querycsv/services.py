@@ -75,22 +75,34 @@ class QueryCsvService:
 
         return filepath
 
-    def get_csv_template(self, field_types: Literal["all", "required", "writable"]):
+    def get_csv_template(
+        self, field_types: Literal["all", "required", "writable"]
+    ) -> str:
         """
         Get path to csv file containing required fields for upload.
 
         Parameters
         ----------
             - all_fields (bool): Whether to include all fields or just required fields.
+
+        Returns
+        -------
+            Path to csv template file.
         """
+
+        flat_field_names = self.flat_fields.values()
 
         match field_types:
             case "required":
-                template_fields = self.required_fields
+                template_fields = [
+                    str(field) for field in flat_field_names if field.is_required
+                ]
             case "writable":
-                template_fields = self.writable_fields
+                template_fields = [
+                    str(field) for field in flat_field_names if field.is_writable
+                ]
             case "all" | _:
-                template_fields = self.all_fields
+                template_fields = [str(field) for field in flat_field_names]
 
         filepath = get_media_path(
             QUERYCSV_MEDIA_SUBDIR + "templates/",

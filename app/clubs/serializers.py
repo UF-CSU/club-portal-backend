@@ -45,7 +45,7 @@ class ClubSocialNestedSerializer(CsvModelSerializer):
 
     class Meta:
         model = ClubSocialProfile
-        fields = ["url", "username", "social_type", "order"]
+        fields = ["id", "url", "username", "social_type", "order"]
 
 
 class ClubCsvSerializer(CsvModelSerializer):

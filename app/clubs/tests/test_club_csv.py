@@ -12,6 +12,20 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
     model_class = Club
     serializer_class = ClubCsvSerializer
 
+    def test_club_csv_fields(self):
+        """Getting a list of available fields should return correct fields."""
+
+        expected_fields = [
+            "socials[n].social_type",
+            "socials[n].username",
+            "socials[n].url",
+            "socials[n].order",
+        ]
+        actual_fields = list(self.service.flat_fields.keys())
+
+        for field in expected_fields:
+            self.assertIn(field, actual_fields)
+
     def test_create_club_from_csv(self):
         """Uploading a csv for a club should create club."""
 
