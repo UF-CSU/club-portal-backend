@@ -2,8 +2,8 @@
 Import/upload data tests.
 """
 
-from unittest.mock import Mock, patch
 import uuid
+from unittest.mock import Mock, patch
 
 from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
