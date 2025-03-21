@@ -1,0 +1,43 @@
+Django>=4.2.7,<4.3
+djangorestframework>=3.14.0,<3.16
+drf-spectacular>=0.27.1,<0.28
+requests>=2.31.0,<2.33
+django-cors-headers>=3.13.0,<3.14
+django-admin-tools>=0.9.3,<1.0
+coverage>=7.4.1,<7.5
+Pillow>=10.2.0,<11.2
+sendgrid>=6.11.0,<6.12
+typing_extensions>=4.12.2,<4.13
+
+
+# csv files
+pandas>=2.2.3,<2.3
+xlsxwriter>=3.2.0,<3.3
+pathlib>=1.0.1,<1.1
+
+# OAuth
+django-allauth>=65.4.1,<65.5
+PyJWT>=2.10.1,<2.11
+requests-oauthlib>=2.0.0,<2.1
+python3-openid>=3.2.0,<3.3
+python3-saml>=1.16.0,<1.17
+cryptography>=43.0.0,<44.1
+
+# QRCodes
+segno>=1.6.1,<1.7
+
+# Celery
+celery>=5.4.0,<5.5
+redis>=5.0.4,<5.1
+django-celery-beat>=2.7.0,<2.8
+
+# AWS S3
+boto3>=1.34.0,<1.35.0
+django-storages>=1.14.3,<1.15.0
+
+# ICS files
+icalendar>=6.1.0,<6.2
+
+# Not required for local dev
+sentry-sdk>=2.22.0,<2.23
+psycopg2>=2.9.3,<2.10

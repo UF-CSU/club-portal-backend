@@ -1,0 +1,48 @@
+{% extends "users/form.html" %}
+
+{% load static %}
+
+{% block head %}
+<title>Register</title>
+<link rel="stylesheet" href="{% static 'css/form.css' %}">
+{% endblock %}
+
+{% block formbody %}
+<div class="header-font header-surface">
+    Club Manager
+</div>
+<div class="container-body">
+    <div class="header-font header-black header-center">
+        Register
+    </div>
+    <div class="formBody-container">
+    <form method="POST" class="formBody">
+        {% csrf_token %}
+        <div class="input-container">
+        {% for field in form %}
+        <!---Not sure how to handle club or event fields yet-->
+        {% if field.name == "club" or field.name == "event" %}
+            <div></div>
+        {% elif field.name == "first_name" %}
+        <div class="input-field input-center">
+            <div class="input-name-field">
+                {{ field }}
+            </div>
+
+        {% elif field.name == "last_name" %}
+            <div class="input-name-field">
+                {{ field }}
+            </div>
+        </div>
+        {% else %}
+            <div class="input-field">
+                {{ field }}
+            </div>
+        {% endif %}
+        {% endfor %}
+        </div>
+        <input type="submit" value="Sign Up" class="standard-font">
+    </form>
+</div>
+</div>
+{% endblock %}

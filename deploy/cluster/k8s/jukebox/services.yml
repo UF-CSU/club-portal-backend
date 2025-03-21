@@ -1,0 +1,17 @@
+#####################
+## Jukebox Service ##
+#####################
+# Manages access to the jukebox pods.
+# Is only accessed directly by the proxy.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jukebox-service
+  namespace: main
+spec:
+  selector:
+    app: jukebox-server
+  ports:
+    - name: http
+      port: 9000

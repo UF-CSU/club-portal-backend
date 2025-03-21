@@ -1,0 +1,141 @@
+############################
+## Reverse Proxy Workload ##
+############################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy
+  namespace: main
+spec:
+  selector:
+    matchLabels:
+      app: proxy
+  template:
+    metadata:
+      labels:
+        app: proxy
+    spec:
+      containers:
+        - name: proxy
+          image: ikehunter5/club-manager-proxy:latest
+          imagePullPolicy: Always
+
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/static
+
+          envFrom:
+            - configMapRef:
+                name: proxy-config
+      volumes:
+        - name: club-static
+          persistentVolumeClaim:
+            claimName: club-static-pvc
+
+##################################
+## Club Manager Server Workload ##
+##################################
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-manager
+  namespace: main
+spec:
+  selector:
+    matchLabels:
+      app: club-manager
+  template:
+    metadata:
+      labels:
+        app: club-manager
+    spec:
+      containers:
+        - name: club-manager
+          image: ikehunter5/club-manager:latest
+          imagePullPolicy: Always
+
+          securityContext:
+            runAsUser: 1000
+
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/static
+
+          envFrom:
+            - configMapRef:
+                name: club-manager-config
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: cluster-db-name
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: cluster-db-username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: cluster-db-password
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: cluster-db-address
+            - name: DJANGO_SUPERUSER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: clubs-admin-email
+            - name: DJANGO_SUPERUSER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: clubs-admin-password
+            - name: S3_STORAGE_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: clubs-static-bucket-name
+            - name: S3_STORAGE_BUCKET_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: clubs-static-bucket-region
+            - name: DJANGO_ALLOWED_HOSTS
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: clubs-allowed-hosts
+            - name: DJANGO_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: clubs-base-url
+            - name: CSRF_TRUSTED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: aws-secrets
+                  key: clubs-csrf-trusted-origins
+      initContainers:
+        - name: create-static
+          image: busybox
+          command:
+            [
+              'sh',
+              '-c',
+              'mkdir -p /vol/static && chown -R 1000:1000 /vol/static && mkdir -p /app && cd /app'
+            ]
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/static
+
+      volumes:
+        - name: club-static
+          persistentVolumeClaim:
+            claimName: club-static-pvc

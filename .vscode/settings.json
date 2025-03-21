@@ -1,0 +1,53 @@
+{
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.inlayHints.callArgumentNames": "off",
+  "flake8.args": ["--config=app/.flake8"],
+  "python.autoComplete.extraPaths": ["app"],
+  "python.analysis.extraPaths": ["app"],
+  "python.analysis.packageIndexDepths": [
+    {
+      "name": "rest_framework",
+      "depth": 3,
+      "includeAllSymbols": true
+    },
+    {
+      "name": "django",
+      "depth": 5,
+      "includeAllSymbols": true
+    },
+    {
+      "name": "sendgrid",
+      "depth": 3,
+      "includeAllSymbols": true
+    },
+    {
+      "name": "typing_extensions",
+      "depth": 3,
+      "includeAllSymbols": true
+    },
+    {
+      "name": "drf_spectacular",
+      "depth": 3,
+      "includeAllSymbols": true
+    }
+  ],
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.unusedImports": "explicit",
+      "source.fixAll": "explicit"
+    },
+    "diffEditor.codeLens": false
+  },
+  "python.REPL.enableREPLSmartSend": false,
+  "python.testing.unittestArgs": ["-v", "-s", "./app", "-p", "test_*.py"],
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": true,
+  "makefile.configureOnOpen": false
+
+  // "flake8.ignorePatterns": ["migrations/*"]
+}

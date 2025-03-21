@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/buttons.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <!-- Allow templates to inject their own types -->
+    {% block head %}
+    {% endblock %}
+    
+  </head>
+  <body>
+    <!-- The following tags define dynamic body content -->
+
+    <div class="form-container">
+    
+      <div class="background-1">
+        <div class="background-3">
+  
+        </div>
+        <div class="background-2">
+  
+        </div>
+        <div class="background-0">
+
+        </div>
+  
+      </div>
+  
+      <div class="form-body">
+        {% block formbody %}
+        {% endblock %}
+      </div>
+
+    </div>
+    
+    <script src="{% static 'js/script.js' %}"></script>
+  </body>
+</html>

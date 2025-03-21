@@ -1,0 +1,11 @@
+coverage>=7.4.1,<7.5
+flake8>=7.0.0,<7.1
+black>=24.1.1,<25.2
+autoflake>=2.3.1,<2.4
+isort>=5.13.2,<5.14
+
+django-extensions>=3.2.3,<3.3
+django-debug-toolbar>=4.4.6,<4.5
+django-browser-reload>=1.17.0,<1.18
+
+faker>=33.0.0,<33.1.0

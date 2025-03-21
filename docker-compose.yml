@@ -1,0 +1,94 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        - DEV=true
+    container_name: clubs-app
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./app:/app
+      - static-clubs-dev:/vol/web
+    command: >
+      sh -c "
+      python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py init_superuser &&
+             python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:13-alpine
+    volumes:
+      - postgres-clubs-dev:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=devdatabase
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=devpass
+
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+
+  celery:
+    build:
+      context: .
+      args:
+        - DEV=true
+    restart: unless-stopped
+    user: django-user
+    command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+    volumes:
+      - ./app:/app
+      - static-clubs-dev:/vol/web
+    depends_on:
+      - redis
+      - postgres
+      - app
+    env_file:
+      - .env
+
+  celerybeat:
+    build:
+      context: .
+      args:
+        - DEV=true
+    user: django-user
+    restart: unless-stopped
+    command:
+      [
+        'celery',
+        '-A',
+        'app',
+        'beat',
+        '--loglevel=info',
+        '--scheduler',
+        'django_celery_beat.schedulers:DatabaseScheduler'
+      ]
+    volumes:
+      - ./app:/app
+      - static-clubs-dev:/vol/web
+    depends_on:
+      - redis
+      - postgres
+      - celery
+      - app
+    env_file:
+      - .env
+
+  coverage:
+    image: nginx
+    ports:
+      - '8001:80'
+    volumes:
+      - ./app/htmlcov:/usr/share/nginx/html
+
+volumes:
+  postgres-clubs-dev:
+  static-clubs-dev:

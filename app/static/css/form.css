@@ -1,0 +1,115 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 300px;
+  }
+  h2 {
+    text-align: center;
+    color: #333;
+  }
+  form {
+    display: flex;
+    flex-direction: column;
+  }
+  label {
+    margin-top: 1rem;
+    font-weight: bold;
+    color: #555;
+  }
+  input {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  input[type="submit"] {
+    background-color: #285257;
+    color: white;
+    border: none;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-radius: 20px;
+    height: 60px;
+    
+  }
+  input[type="submit"]:hover {
+    background-color:  #50a6af;
+  }
+
+.container-body{
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 4px 4px 0px rgba(0, 0, 0, 0.25), -4px -4px 7px 0px rgba(0, 0, 0, 0.25);
+  border-radius: 15px;
+  padding-left: 55px;
+  padding-right: 55px;
+  padding-top: 16px;
+  padding-bottom: 40px;
+  margin-top: 1.5rem;
+}
+
+.input-field{
+  width: 550px;
+  height: 64px;
+  display: flex;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.input-name-field{
+  width: 246px;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.input-field .field-text{
+  width: 100%;
+  border-radius: 20px;
+  color: #7C7C7C;
+  font-family: Inter;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: 0.6px;
+}
+
+.input-center{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.subtext-container{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 370px;
+  margin-top: 115px;
+}
+
+.reset-password{
+  width: 550px;
+  height: 24px;
+  margin-bottom: 20px;
+  color: #000DFF;
+  font-family: Inter;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: 0.6px;
+  text-align: right;
+  margin-top: -10px;
+}

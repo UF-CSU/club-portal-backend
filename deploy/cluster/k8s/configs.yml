@@ -1,0 +1,27 @@
+#####################################
+## Club Manager Environment Config ##
+#####################################
+# Sets non-sensitive environment variables
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: proxy-config
+  namespace: main
+data:
+  DNS_RESOLVER: kube-dns.kube-system.svc.cluster.local
+  CLUB_MANAGER_URI: 'club-service:9000'
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: club-manager-config
+  namespace: main
+data:
+  PORT: '9000'
+  DJANGO_ENV: 'production'
+  DEBUG: '1'
+  S3_STORAGE_BACKEND: '1'
+  AWS_EXECUTION_ENV: '1'
+  CREATE_SUPERUSER: '1'

@@ -1,0 +1,128 @@
+services:
+  app:
+    build:
+      context: .
+      # args:
+      #   - DEV=true
+    container_name: club-app-network
+    volumes:
+      - ./app:/app
+      - static-clubs-network:/vol/web
+
+    env_file:
+      - .env
+    environment:
+      - PORT=9000
+      - CELERY_BROKER_URL=redis://clubs-network-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://clubs-network-redis:6379/0
+      - DJANGO_REDIS_URL=redis://clubs-network-redis:6379/1
+      - POSTGRES_HOST=postgres-clubs-network
+      - CSRF_TRUSTED_ORIGINS=http://localhost:3000
+    depends_on:
+      - postgres
+    networks:
+      - cluster
+
+  postgres:
+    image: postgres:13-alpine
+    container_name: postgres-clubs-network
+    volumes:
+      - postgres-clubs-network:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=devdatabase
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=devpass
+    networks:
+      - cluster
+
+  redis:
+    image: redis:alpine
+    container_name: clubs-network-redis
+    ports:
+      - 6379:6379
+    networks:
+      - cluster
+
+  celery:
+    build:
+      context: .
+      # args:
+      #   - DEV=true
+    restart: unless-stopped
+    user: django-user
+    command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+    volumes:
+      - ./app:/app
+      - static-clubs-network:/vol/web
+    depends_on:
+      - redis
+      - postgres
+      - app
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://clubs-network-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://clubs-network-redis:6379/0
+      - DJANGO_REDIS_URL=redis://clubs-network-redis:6379/1
+      - POSTGRES_HOST=postgres-clubs-network
+    networks:
+      - cluster
+
+  celerybeat:
+    build:
+      context: .
+      # args:
+      #   - DEV=true
+    user: django-user
+    restart: unless-stopped
+    command:
+      [
+        'celery',
+        '-A',
+        'app',
+        'beat',
+        '--loglevel=info',
+        '--scheduler',
+        'django_celery_beat.schedulers:DatabaseScheduler'
+      ]
+    volumes:
+      - ./app:/app
+      - static-clubs-network:/vol/web
+    depends_on:
+      - redis
+      - postgres
+      - celery
+      - app
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://clubs-network-redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://clubs-network-redis:6379/0
+      - DJANGO_REDIS_URL=redis://clubs-network-redis:6379/1
+      - POSTGRES_HOST=postgres-clubs-network
+    networks:
+      - cluster
+
+  proxy:
+    build:
+      context: ./deploy/proxy/
+    ports:
+      - 8080:8080
+      - 8081:8081
+    networks:
+      - cluster
+    depends_on:
+      - app
+    volumes:
+      - static-clubs-network:/vol/web
+    environment:
+      - SERVER_URI=club-app-network:9000
+
+volumes:
+  postgres-clubs-network:
+  static-clubs-network:
+
+networks:
+  cluster:
+    name: clubs_cluster
+    # driver: bridge

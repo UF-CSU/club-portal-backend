@@ -1,0 +1,34 @@
+name: Django Tests
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'production'
+      - 'staging'
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Compose
+        run: |
+          sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+
+      - name: Build image
+        run: |
+          cp sample.env .env
+          docker-compose build
+
+      - name: Run Tests
+        run: |
+          docker-compose up postgres -d
+          docker-compose run --rm app sh -c "python manage.py wait_for_db && python manage.py migrate && python manage.py test"
+
+      - name: Stop containers
+        run: |
+          docker-compose down
