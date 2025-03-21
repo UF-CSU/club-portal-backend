@@ -315,15 +315,11 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         # Try to expand out fields before processing
         data = self.flat_to_json(data)
-        # try:
-        # except Exception as e:
-        #     print("unable to unflatten:", e)
-        #     pass
 
         # Initialize rest of serializer first, needed if data is flat
         super().__init__(data=data, **kwargs)
 
-        # Allow create_or_udpate functionality
+        # Allow create_or_update functionality
         try:
             if instance is None and data is not None and data is not empty:
                 ModelClass = self.model_class
@@ -413,7 +409,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
             if retries < 1:
                 break
 
-            sleep(2)
+            sleep(3)
 
             res = requests.get(url, stream=True)
             retries = retries - 1

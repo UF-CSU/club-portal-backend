@@ -58,7 +58,7 @@ class ClubCsvSerializer(CsvModelSerializer):
     socials = ClubSocialNestedSerializer(many=True, required=False)
     logo = ImageUrlField(required=False)
     tags = WritableSlugRelatedField(
-        many=True, slug_field="name", queryset=ClubTag.objects.all()
+        many=True, slug_field="name", queryset=ClubTag.objects.all(), required=False
     )
 
     class Meta:
