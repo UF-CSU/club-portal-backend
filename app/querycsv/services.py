@@ -11,6 +11,7 @@ from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
 from querycsv.models import QueryCsvUploadJob
 from querycsv.serializers import CsvModelSerializer
 from utils.files import get_media_path
+from utils.helpers import str_to_list
 
 
 class FieldMappingType(TypedDict):
@@ -131,6 +132,7 @@ class QueryCsvService:
 
             for mapping in custom_field_maps:
                 map_field_name = mapping["field_name"]
+                column_name = mapping["column_name"]
 
                 if (
                     map_field_name not in self.flat_fields.keys()
@@ -138,12 +140,17 @@ class QueryCsvService:
                 ):
                     continue  # Safely skip invalid mappings
 
+                elif map_field_name == self.Actions.SKIP.value:
+                    df.drop(columns=column_name, inplace=True)
+
+                    continue
+
                 field = self.flat_fields[map_field_name]
 
                 if not field.is_list_item:
                     # Default field logic
                     df.rename(
-                        columns={mapping["column_name"]: map_field_name},
+                        columns={column_name: map_field_name},
                         inplace=True,
                     )
                     continue
@@ -186,9 +193,7 @@ class QueryCsvService:
 
             if field_type.is_list_item:
                 df[field_name] = df[field_name].map(
-                    lambda val: [
-                        item for item in str(val).split(",") if str(item) != ""
-                    ]
+                    lambda val: [item for item in str_to_list(val) if str(item) != ""]
                 )
             else:
                 df[field_name] = df[field_name].map(

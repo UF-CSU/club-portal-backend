@@ -1,9 +1,13 @@
 from rest_framework import serializers
 from rest_framework.fields import empty
 
-from clubs.models import Club, ClubMembership, ClubRole, ClubSocialProfile
+from clubs.models import Club, ClubMembership, ClubRole, ClubSocialProfile, ClubTag
 from core.abstracts.serializers import ModelSerializerBase
-from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from querycsv.serializers import (
+    CsvModelSerializer,
+    ImageUrlField,
+    WritableSlugRelatedField,
+)
 from users.models import User
 
 
@@ -52,6 +56,10 @@ class ClubCsvSerializer(CsvModelSerializer):
     """Represents clubs in csvs."""
 
     socials = ClubSocialNestedSerializer(many=True, required=False)
+    logo = ImageUrlField(required=False)
+    tags = WritableSlugRelatedField(
+        many=True, slug_field="name", queryset=ClubTag.objects.all(), required=False
+    )
 
     class Meta:
         model = Club

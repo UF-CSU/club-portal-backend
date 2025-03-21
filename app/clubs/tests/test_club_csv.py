@@ -26,6 +26,27 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
         for field in expected_fields:
             self.assertIn(field, actual_fields)
 
+    def test_club_csv_serializer(self):
+        """Club csv serializer should work properly."""
+
+        payload = {
+            "name": fake.title(),
+            "alias": "ABC",
+            "contact_email": fake.safe_email(),
+            "about": fake.paragraph(),
+        }
+        self.repo.create(**payload)
+        payload = {
+            **payload,
+            "tags": "one, two, three",
+            "socials[0].social_type": "discord",
+            "socials[0].username": "@example_user",
+        }
+
+        serializer = self.serializer_class(data=payload, flat=True)
+        self.assertIsNotNone(serializer.instance)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
     def test_create_club_from_csv(self):
         """Uploading a csv for a club should create club."""
 

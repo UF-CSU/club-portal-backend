@@ -1,7 +1,12 @@
 import re
 import traceback
+import uuid
+from time import sleep
 from typing import Optional
 
+import requests
+from django.core.files import File
+from django.core.files.temp import NamedTemporaryFile
 from django.db import models
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -121,6 +126,16 @@ class FlatSerializer(SerializerBase):
                 isinstance(value, serializers.ManyRelatedField)
                 and value.read_only is False
             )
+        ]
+
+    @property
+    def image_url_fields(self):
+        """List of fields that represent images."""
+
+        return [
+            key
+            for key, value in self.get_fields().items()
+            if (isinstance(value, ImageUrlField))
         ]
 
     @property
@@ -300,15 +315,11 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         # Try to expand out fields before processing
         data = self.flat_to_json(data)
-        # try:
-        # except Exception as e:
-        #     print("unable to unflatten:", e)
-        #     pass
 
         # Initialize rest of serializer first, needed if data is flat
         super().__init__(data=data, **kwargs)
 
-        # Allow create_or_udpate functionality
+        # Allow create_or_update functionality
         try:
             if instance is None and data is not None and data is not empty:
                 ModelClass = self.model_class
@@ -385,6 +396,37 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         return info.relations[field_name].related_model
 
+    def _download_image(self, instance, field_name, url):
+        """Given external url, download and save image to the instance."""
+
+        res = requests.get(
+            url,
+            stream=True,
+        )
+
+        retries = 3
+        while res.status_code > 300:
+            if retries < 1:
+                break
+
+            sleep(3)
+
+            res = requests.get(url, stream=True)
+            retries = retries - 1
+
+        if not res.status_code < 300:
+            raise ValueError(
+                f"Expected url {url} to return 200, but returned {res.status_code}"
+            )
+
+        temp_file = NamedTemporaryFile(delete=True)
+        temp_file.write(res.content)
+        temp_file.flush()
+
+        file = File(temp_file, uuid.uuid4().__str__())
+        setattr(instance, field_name, file)
+        instance.save()
+
     def create(self, validated_data):
         """
         Override default create method.
@@ -438,6 +480,16 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 payload = validated_data.pop(field_name, None)
                 reverse_many[field_name] = payload
 
+        # Handle images
+        image_urls = {}
+        for field_name in self.image_url_fields:
+            data = validated_data.pop(field_name, None)
+
+            if data is None:
+                continue
+
+            image_urls[field_name] = data
+
         try:
             instance = ModelClass._default_manager.create(**validated_data)
         except TypeError:
@@ -481,6 +533,11 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     obj[remote_name] = instance
                     remote_model._default_manager.create(**obj)
 
+        # Download images and save to model
+        if image_urls:
+            for field_name, url in image_urls.items():
+                self._download_image(instance, field_name=field_name, url=url)
+
         return instance
 
     def update(self, instance, validated_data):
@@ -494,6 +551,16 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         functionality to handle more complex model relationships.
         """
         info = model_meta.get_field_info(instance)
+
+        image_urls = {}
+
+        for field in self.image_url_fields:
+            if field in validated_data:
+                url = validated_data.pop(field, None)
+                if url is None:
+                    continue
+
+                image_urls[field] = url
 
         # Simply set each attribute on the instance, and then save it.
         # Note that unlike `.create()` we don't need to treat many-to-many
@@ -533,7 +600,6 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     # For each, set this instance as appropriate field, then create/skip
                     obj[remote_name] = instance
                     remote_model._default_manager.get_or_create(**obj)
-
             else:
                 setattr(instance, attr, value)
 
@@ -546,6 +612,16 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
             field = getattr(instance, attr)
             value = self._parse_m2m_value(value, field)
             field.set(value)
+
+        # Save any images
+        for field_name, value in image_urls.items():
+            current_image = getattr(instance, field_name, None)
+
+            # This would happen if reuploading a csv, url would be the same
+            if current_image and current_image.url == value:
+                continue
+
+            self._download_image(instance, field_name=field_name, url=value)
 
         return instance
 
@@ -574,3 +650,11 @@ class WritableSlugRelatedField(SlugRelatedField):
             return obj
         except (TypeError, ValueError) as e:
             print(e)
+
+
+class ImageUrlField(serializers.URLField):
+    """
+    Represents an image via a url.
+
+    Allows images to be uploaded to API via external urls.
+    """
