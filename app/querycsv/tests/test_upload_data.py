@@ -2,6 +2,7 @@
 Import/upload data tests.
 """
 
+from unittest.mock import Mock, patch
 import uuid
 
 from django.contrib.postgres.aggregates import StringAgg
@@ -122,12 +123,17 @@ class UploadCsvTests(UploadCsvTestsBase):
         # Validate data
         self.assertObjectsHaveFields(updated_records)
 
-    def test_upload_csv_create_images(self):
+    @patch("requests.get")
+    def test_upload_csv_create_images(self, mock_get):
         """Should download images from url when uploading csv to create objects."""
+
+        mock_get.return_value = Mock()
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.content = fake.image((300, 300), "png")
 
         payload = {
             "name": fake.title(),
-            "image": fake.image_url(width=300, height=300),
+            "image": "https://example.com/",
         }
 
         self.assertUploadPayload([payload])
@@ -139,8 +145,13 @@ class UploadCsvTests(UploadCsvTestsBase):
         self.assertEqual(obj.image.width, 300)
         self.assertEqual(obj.image.height, 300)
 
-    def test_upload_csv_update_images(self):
+    @patch("requests.get")
+    def test_upload_csv_update_images(self, mock_get):
         """Should download images from url when updating objects with csv."""
+
+        mock_get.return_value = Mock()
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.content = fake.image((300, 300), "png")
 
         default_payload = {
             "name": fake.title(),
@@ -151,7 +162,7 @@ class UploadCsvTests(UploadCsvTestsBase):
 
         payload = {
             **default_payload,
-            "image": fake.image_url(width=300, height=300),
+            "image": "https://example.com/",
         }
 
         self.assertUploadPayload([payload])
