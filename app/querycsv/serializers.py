@@ -1,13 +1,13 @@
 import re
-from time import sleep
 import traceback
-from typing import Optional
 import uuid
+from time import sleep
+from typing import Optional
 
+import requests
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
-import requests
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.relations import SlugRelatedField

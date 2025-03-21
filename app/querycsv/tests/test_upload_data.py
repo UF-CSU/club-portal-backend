@@ -3,6 +3,7 @@ Import/upload data tests.
 """
 
 import uuid
+
 from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
 
