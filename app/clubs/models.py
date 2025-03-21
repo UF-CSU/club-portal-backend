@@ -77,6 +77,7 @@ class Club(UniqueModel):
 
     class Meta:
         permissions = [("preview_club", "Can view a set of limited fields for a club.")]
+        ordering = ["name", "-id"]
 
     def save(self, *args, **kwargs):
         # On save, set default alias from name

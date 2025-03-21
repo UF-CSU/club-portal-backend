@@ -563,7 +563,7 @@ class UploadCsvTestsBase(CsvDataTestsBase):
         self.data_to_csv(payload)
 
         success, failed = self.service.upload_csv(self.filepath, *args, **kwargs)
-        self.assertLength(success, 1, failed)
+        self.assertLength(success, len(payload), failed)
         self.assertLength(failed, 0)
 
     def assertObjectsExist(self, pre_queryset: list, msg=None):

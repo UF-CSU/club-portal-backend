@@ -2,7 +2,7 @@ import re
 import traceback
 import uuid
 from time import sleep
-from typing import Optional
+from typing import Iterable, Optional
 
 import requests
 from django.core.files import File
@@ -365,6 +365,9 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 saved_objs.append(obj)
 
             value = saved_objs
+
+        if not isinstance(value, Iterable):
+            value = [value]
 
         return value
 
