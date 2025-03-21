@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from core.abstracts.admin import ModelAdminBase
 from events.models import (
     Event,
     EventAttendance,
@@ -8,6 +9,7 @@ from events.models import (
     EventTag,
     RecurringEvent,
 )
+from events.serializers import EventCsvSerializer
 from events.services import EventService
 
 
@@ -66,8 +68,10 @@ class EventHostInlineAdmin(admin.TabularInline):
     extra = 1
 
 
-class EventAdmin(admin.ModelAdmin):
+class EventAdmin(ModelAdminBase):
     """Admin config for club events."""
+
+    csv_serializer_class = EventCsvSerializer
 
     list_display = (
         "__str__",
