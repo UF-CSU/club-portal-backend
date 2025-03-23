@@ -12,7 +12,7 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from core.abstracts.models import ManagerBase, ModelBase, UniqueModel
+from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from utils.models import UploadFilepathFactory
 
 
@@ -92,6 +92,10 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
 
+    clubs = models.ManyToManyField(
+        "clubs.Club", through="clubs.ClubMembership", blank=True
+    )
+
     USERNAME_FIELD = "username"
 
     objects: ClassVar[UserManager] = UserManager()
@@ -100,6 +104,7 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     profile: Optional["Profile"]
     club_memberships: models.QuerySet
     team_memberships: models.QuerySet
+    socials: models.QuerySet["SocialProfile"]
 
     # Dynamic Properties
     @property
@@ -187,3 +192,9 @@ class Profile(ModelBase):
                 fields=("phone",), name="phone_idx", condition=_is_unique_nonempty_phone
             )
         ]
+
+
+class SocialProfile(SocialProfileBase):
+    """A user's social media links."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="socials")

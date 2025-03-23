@@ -7,7 +7,9 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
+from core.abstracts.admin import ModelAdminBase
 from users.models import Profile, User
+from users.serializers import UserCsvSerializer
 
 
 class UserProfileInline(admin.StackedInline):
@@ -35,8 +37,10 @@ class CreateUserForm(UserCreationForm):
         fields = UserCreationForm.Meta.fields + ("email",)
 
 
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(BaseUserAdmin, ModelAdminBase):
     """Manager users in admin dashbaord."""
+
+    csv_serializer_class = UserCsvSerializer
 
     readonly_fields = (
         *BaseUserAdmin.readonly_fields,

@@ -15,7 +15,7 @@ from core.abstracts.models import (
     ManagerBase,
     ModelBase,
     Scope,
-    SocialProfile,
+    SocialProfileBase,
     Tag,
     UniqueModel,
 )
@@ -92,7 +92,7 @@ class Club(UniqueModel):
         return super().save(*args, **kwargs)
 
 
-class ClubSocialProfile(SocialProfile):
+class ClubSocialProfile(SocialProfileBase):
     """Saves social media profile info for clubs."""
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="socials")
@@ -147,6 +147,9 @@ class ClubRole(ModelBase):
             ),
         ]
 
+    def __str__(self):
+        return f"{self.name} ({self.club})"
+
     def clean(self):
         """Validate and sync club roles on save."""
         if self.default:
@@ -179,6 +182,15 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
 
         for role in roles:
             membership.roles.add(role)
+
+        return membership
+
+    def update_or_create(self, defaults=None, **kwargs):
+        defaults = defaults or {}
+        roles = defaults.pop("roles", [])
+
+        membership, _ = super().update_or_create(defaults, **kwargs)
+        membership.add_roles(*roles)
 
         return membership
 
@@ -244,7 +256,7 @@ class ClubMembership(ModelBase):
             return super().clean()
 
         for role in self.roles.all():
-            if not role.club.id == self.club.id:
+            if role.club.id != self.club.id:
                 raise exceptions.ValidationError(
                     f"Club role {role} is not a part of club {self.club}."
                 )

@@ -4,10 +4,10 @@ import uuid
 from time import sleep
 from typing import Iterable, Optional
 
+from django.db import models
 import requests
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
-from django.db import models
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.relations import SlugRelatedField
@@ -38,6 +38,21 @@ class FlatField:
 
     def __eq__(self, value):
         return self.key == value
+
+    @property
+    def __name__(self):
+        return "FlatField"
+
+    def __repr__(self):
+        return f'<{self.__name__}: key={self.__str__()},  types={",".join([str(t) for t in self.field_types])}>'
+
+    def parse_value(self, value):
+        """Given a raw value, will parse and return the current format."""
+
+        if FieldType.LIST in self.field_types and not isinstance(value, list):
+            return str_to_list(value)
+
+        return value
 
     @property
     def is_readonly(self):
@@ -71,6 +86,10 @@ class FlatListField(FlatField):
         super().__init__(key, value, field_types)
 
         self._set_list_values()
+
+    @property
+    def __name__(self):
+        return "FlatListField"
 
     def __eq__(self, value):
         return value == self.key or re.sub(r"\[(\d+|n)\]", "[n]", value) == self.key
@@ -112,6 +131,10 @@ class FlatSerializer(SerializerBase):
     ##############################
 
     @property
+    def many_related_fields(self):
+        return super().many_related_fields + self.writable_many_related_fields
+
+    @property
     def writable_many_related_fields(self):
         """List of fields that are WritableRelated, and have many=True"""
 
@@ -144,6 +167,58 @@ class FlatSerializer(SerializerBase):
 
         data = self.data
         return self.json_to_flat(data)
+
+    def get_flat_fields(self) -> dict[str, FlatField | FlatListField]:
+        """Like ``get_fields``, returns a dict of fields with their flat type."""
+
+        flat_fields = {}
+
+        for key, value in self.get_fields().items():
+            # For simple fields, just get FlatField value
+            if not isinstance(value, serializers.BaseSerializer):
+                field = FlatField(key, value, self.get_field_types(key))
+                flat_fields[key] = field
+                continue
+
+            # For nested fields, add the inner fields using nested syntax
+            field_name = key
+            flat_field_class = None
+
+            if getattr(value, "many", False):
+                field_name += "[n]."
+                sub_serializer = value.child
+                flat_field_class = FlatListField
+            else:
+                field_name += "."
+                sub_serializer = value
+                flat_field_class = FlatField
+
+            for sub_field in sub_serializer.get_fields():
+                nested_field_name = field_name + sub_field
+
+                field = flat_field_class(
+                    nested_field_name,
+                    sub_serializer.get_fields()[sub_field],
+                    self.get_field_types(sub_field, serializer=sub_serializer),
+                )
+
+                flat_fields[nested_field_name] = field
+
+        return flat_fields
+
+    def get_flat_field(self, field_name: str):
+        """
+        Pass in field names, starting with outermost parent, to get
+        structured representation.
+        """
+
+        flat_fields = self.get_flat_fields()
+
+        for field in flat_fields.values():
+            if field_name == field:  # Compares string values, returns class
+                return field
+
+        return None
 
     @classmethod
     def json_to_flat(cls, data: dict):
@@ -186,34 +261,34 @@ class FlatSerializer(SerializerBase):
         """
 
         parsed = {}
+        self = cls()
 
         # For each field, convert flattened syntax to JSON representation
         for key, value in record.items():
             list_objs_res = re.match(r"([a-z0-9_-]+)\[([0-9]+)\]\.?(.*)?", key)
             nested_obj_res = re.match(r"([a-z0-9_-]+)\.(.*)", key)
 
-            if key in cls().writable_many_related_fields and isinstance(value, str):
-                # Handle list of slug related fields
-                parsed[key] = str_to_list(value)
-            elif key in cls().writable_many_related_fields and not isinstance(
-                value, list
-            ):
-                # Handle slug related field
-                parsed[key] = [value]
-            elif bool(nested_obj_res):
+            field = self.get_flat_field(key)
+
+            if field is not None:
+                value = field.parse_value(value)
+
+            if bool(nested_obj_res):
                 # Handle nested object
 
                 main_field, nested_field = nested_obj_res.groups()
                 assert (
-                    main_field in cls().nested_fields
+                    main_field in self.nested_fields
                 ), f"Field {main_field} is not a nested object."
 
                 # Create new nested object if not exists
                 if main_field not in parsed.keys():
                     parsed[main_field] = {}
 
+                if value is None:
+                    continue
+
                 # Set a single field on the nested object
-                # FIXME: This will probably break on lists inside nested serializers
                 parsed[main_field][nested_field] = value
 
             elif bool(list_objs_res):
@@ -222,7 +297,7 @@ class FlatSerializer(SerializerBase):
                 index = int(index)
 
                 assert (
-                    main_field in cls().many_nested_fields
+                    main_field in self.many_nested_fields
                 ), f"Field {main_field} is not a list of nested objects."
 
                 if main_field not in parsed.keys():
@@ -237,9 +312,14 @@ class FlatSerializer(SerializerBase):
                 while len(parsed[main_field]) <= index:
                     parsed[main_field].append({})
 
-                # TODO: Recurse for deeply nested objects
-                if value == "" or value is None:
+                if (
+                    value == ""
+                    or value is None
+                    or (isinstance(value, list) and len(value) == 0)
+                ):
                     continue
+
+                # TODO: Recurse for deeply nested objects
                 parsed[main_field][index][nested_field] = value
             else:
                 # Default
@@ -262,45 +342,6 @@ class FlatSerializer(SerializerBase):
             parsed[key] = [item for item in value if len(item.keys()) > 0]
 
         return parsed
-
-    def get_flat_fields(self) -> dict[str, FlatField | FlatListField]:
-        """Like ``get_fields``, returns a dict of fields with their flat type."""
-
-        flat_fields = {}
-
-        for key, value in self.get_fields().items():
-            # For simple fields, just get FlatField value
-            if not isinstance(value, serializers.BaseSerializer):
-
-                field = FlatField(key, value, self.get_field_types(key))
-                flat_fields[key] = field
-                continue
-
-            # For nested fields, add the inner fields using nested syntax
-            field_name = key
-            flat_field_class = None
-
-            if hasattr(value, "many") and value.many:
-                field_name += "[n]."
-                sub_serializer = value.child
-                flat_field_class = FlatListField
-            else:
-                field_name += "."
-                sub_serializer = value
-                flat_field_class = FlatField
-
-            for sub_field in sub_serializer.get_fields():
-                nested_field_name = field_name + sub_field
-
-                field = flat_field_class(
-                    nested_field_name,
-                    sub_serializer.get_fields()[sub_field],
-                    self.get_field_types(sub_field, serializer=sub_serializer),
-                )
-
-                flat_fields[nested_field_name] = field
-
-        return flat_fields
 
 
 class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
@@ -449,6 +490,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         info = model_meta.get_field_info(ModelClass)
         many_to_many = {}
         reverse_many = {}
+        reverse_one = {}
 
         for field_name, relation_info in info.relations.items():
             if (
@@ -458,7 +500,11 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
             ):
                 # This model references foreign model via m2m
                 many_to_many[field_name] = validated_data.pop(field_name)
-            elif not relation_info.to_many and (field_name in validated_data):
+            elif (
+                not relation_info.to_many
+                and (field_name in validated_data)
+                and not relation_info.reverse
+            ):
                 # This model references foreign model via fk
                 payload = validated_data.pop(field_name, None)
                 model = self._get_remote_model(field_name, info=info)
@@ -472,6 +518,15 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 validated_data[field_name], _ = model._default_manager.get_or_create(
                     **payload
                 )
+            elif (
+                not relation_info.to_many
+                and (field_name in validated_data)
+                and relation_info.reverse
+            ):
+                # Foreign model references this model as one to one
+                payload = validated_data.pop(field_name, None)
+                reverse_one[field_name] = payload
+
             elif (
                 relation_info.to_many
                 and relation_info.reverse
@@ -522,19 +577,45 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 value = self._parse_m2m_value(value, field)
                 field.set(value)
 
-        # Create foreign models that reference this model
+        # Create foreign models that reference this model as many-to-one
         if reverse_many:
             for field_name, value in reverse_many.items():
                 if not isinstance(value, list):
                     value = [value]
 
-                remote_name = self._get_remote_field_name(field_name)
+                remote_field = self._get_remote_field_name(field_name)
                 remote_model = self._get_remote_model(field_name, info=info)
 
                 for obj in value:
                     # Add this model to the payload for creating the foreign object
-                    obj[remote_name] = instance
-                    remote_model._default_manager.create(**obj)
+                    obj[remote_field] = instance
+                    search = {remote_field: instance}
+
+                    for key, value in obj.items():
+                        if not isinstance(value, list):
+                            search[key] = value
+
+                    remote_model._default_manager.update_or_create(
+                        **search, defaults=obj
+                    )
+
+        # Create foreign models that reference this model as one-to-one
+        if reverse_one:
+            for (
+                field_name,
+                payload,
+            ) in reverse_one.items():
+                remote_field = self._get_remote_field_name(field_name)
+                remote_model = self._get_remote_model(field_name, info=info)
+                payload[remote_field] = instance
+
+                # Fields to search for existing object
+                search = {remote_field: instance}
+
+                # Use search fields to find/create instance, payload to update fields either way
+                remote_model._default_manager.update_or_create(
+                    **search, defaults=payload
+                )
 
         # Download images and save to model
         if image_urls:
