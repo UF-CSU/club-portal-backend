@@ -7,6 +7,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
+from clubs.models import ClubMembership
 from core.abstracts.admin import ModelAdminBase
 from users.models import Profile, User
 from users.serializers import UserCsvSerializer
@@ -18,6 +19,13 @@ class UserProfileInline(admin.StackedInline):
     model = Profile
     can_delete = False
     verbose_name_plural = "profile"
+
+
+class UserClubMembershipInline(admin.StackedInline):
+    """Manage user memberships to a club in admin."""
+
+    model = ClubMembership
+    extra = 0
 
 
 class UpdateUserForm(UserChangeForm):
@@ -74,7 +82,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         ),
     )
 
-    inlines = (UserProfileInline,)
+    inlines = (UserProfileInline, UserClubMembershipInline)
 
 
 admin.site.register(User, UserAdmin)
