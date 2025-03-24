@@ -592,6 +592,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     search = {remote_field: instance}
 
                     for key, value in obj.items():
+                        # Add fields to search if they are not many-to-many
                         if not isinstance(value, list):
                             search[key] = value
 
@@ -651,26 +652,18 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         # relationships as being a special case. During updates we already
         # have an instance pk for the relationships to be associated with.
         m2m_fields = []
+
         for attr, value in validated_data.items():
-            if (
-                attr in info.relations
-                and info.relations[attr].to_many
-                and not info.relations[attr].reverse
-            ):
+            if attr not in info.relations:
+                setattr(instance, attr, value)
+                continue
+
+            relation_info = info.relations[attr]
+
+            if relation_info.to_many and not info.relations[attr].reverse:
                 # This model references foreign model via m2m
                 m2m_fields.append((attr, value))
-            elif attr in info.relations and not info.relations[attr].to_many:
-                # This model references foreign model via fk
-                if isinstance(value, dict):
-                    model = info.relations[attr].related_model
-                    value, _ = model._default_manager.get_or_create(**value)
-
-                setattr(instance, attr, value)
-            elif (
-                attr in info.relations
-                and info.relations[attr].to_many
-                and info.relations[attr].reverse
-            ):
+            elif relation_info.to_many and relation_info.reverse:
                 # Many to one reversed or many to many reversed
                 # The foreign model either references this model via fk,
                 # or the foreign model references this model via m2m
@@ -681,9 +674,42 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     value = [value]
 
                 for obj in value:
-                    # For each, set this instance as appropriate field, then create/skip
+                    # For each, either create or update an instance
                     obj[remote_name] = instance
-                    remote_model._default_manager.get_or_create(**obj)
+                    search = {remote_name: instance}
+
+                    for key, value in obj.items():
+                        # Add fields to search if they are not many-to-many
+                        if not isinstance(value, list):
+                            search[key] = value
+
+                    remote_model._default_manager.update_or_create(
+                        **search, defaults=obj
+                    )
+
+            elif not relation_info.to_many and not relation_info.reverse:
+                # This model references foreign model via fk
+                if isinstance(value, dict):
+                    model = info.relations[attr].related_model
+                    value, _ = model._default_manager.get_or_create(**value)
+
+                setattr(instance, attr, value)
+            elif not relation_info.to_many and relation_info.reverse:
+                # Foreign model references this model as one to one
+                payload = validated_data.get(attr, None)
+
+                remote_field = self._get_remote_field_name(attr)
+                remote_model = self._get_remote_model(attr, info=info)
+                payload[remote_field] = instance
+
+                # Fields to search for existing object
+                search = {remote_field: instance}
+
+                # Use search fields to find/create instance, payload to update fields either way
+                remote_model._default_manager.update_or_create(
+                    **search, defaults=payload
+                )
+                # reverse_one[attr] = payload
             else:
                 setattr(instance, attr, value)
 

@@ -8,7 +8,7 @@ from rest_framework import serializers
 from clubs.models import Club, ClubMembership, ClubRole
 from core.abstracts.serializers import ModelSerializerBase
 from querycsv.serializers import CsvModelSerializer, ImageUrlField
-from users.models import Profile, User
+from users.models import Profile, SocialProfile, User
 
 
 class UserClubNestedSerializer(serializers.ModelSerializer):
@@ -113,11 +113,20 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
         fields = ["club", "roles"]
 
 
+class UserSocialNestedCsvSerializer(CsvModelSerializer):
+    """Manage user social profiles in a csv."""
+
+    class Meta:
+        model = SocialProfile
+        fields = ["username", "social_type", "url"]
+
+
 class UserCsvSerializer(CsvModelSerializer):
     """Define fields in a csv for users."""
 
     profile = UserProfileNestedCsvSerialzier(required=False)
     club_memberships = ClubMembershipNestedCsvSerializer(many=True, required=False)
+    socials = UserSocialNestedCsvSerializer(many=True, required=False)
 
     class Meta:
         model = User
@@ -129,4 +138,5 @@ class UserCsvSerializer(CsvModelSerializer):
             "is_staff",
             "profile",
             "club_memberships",
+            "socials",
         ]
