@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from clubs.models import Club
 from events.models import Event, EventTag
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField

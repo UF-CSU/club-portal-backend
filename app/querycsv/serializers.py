@@ -4,10 +4,10 @@ import uuid
 from time import sleep
 from typing import Iterable, Optional
 
-from django.db import models
 import requests
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
+from django.db import models
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.relations import SlugRelatedField

@@ -1,4 +1,5 @@
 from django.utils import timezone
+
 from clubs.models import Club
 from clubs.tests.utils import create_test_clubs
 from events.models import Event, EventTag
@@ -23,8 +24,12 @@ class EventCsvTests(UploadCsvTestsBase):
                 "name": fake.title(),
                 "description": fake.paragraph(),
                 "location": fake.address(),
-                "start_at": timezone.datetime(year=2025, month=1, day=1, hour=18, minute=0),
-                "end_at": timezone.datetime(year=2025, month=1, day=1, hour=20, minute=0),
+                "start_at": timezone.datetime(
+                    year=2025, month=1, day=1, hour=18, minute=0
+                ),
+                "end_at": timezone.datetime(
+                    year=2025, month=1, day=1, hour=20, minute=0
+                ),
                 "tags": "Tag 1, Tag 2",
                 "clubs": f"{clubs[0].name}, {clubs[1].name}",
             },
@@ -32,8 +37,12 @@ class EventCsvTests(UploadCsvTestsBase):
                 "name": fake.title(),
                 "description": fake.paragraph(),
                 "location": fake.address(),
-                "start_at": timezone.datetime(year=2025, month=1, day=2, hour=18, minute=0),
-                "end_at": timezone.datetime(year=2025, month=1, day=2, hour=20, minute=0),
+                "start_at": timezone.datetime(
+                    year=2025, month=1, day=2, hour=18, minute=0
+                ),
+                "end_at": timezone.datetime(
+                    year=2025, month=1, day=2, hour=20, minute=0
+                ),
                 "tags": "Tag 3",
                 "clubs": clubs[2].name,
             },
@@ -41,8 +50,12 @@ class EventCsvTests(UploadCsvTestsBase):
                 "name": fake.title(),
                 "description": fake.paragraph(),
                 "location": fake.address(),
-                "start_at": timezone.datetime(year=2025, month=1, day=3, hour=18, minute=0),
-                "end_at": timezone.datetime(year=2025, month=1, day=3, hour=20, minute=0),
+                "start_at": timezone.datetime(
+                    year=2025, month=1, day=3, hour=18, minute=0
+                ),
+                "end_at": timezone.datetime(
+                    year=2025, month=1, day=3, hour=20, minute=0
+                ),
                 "tags": "Tag 3",
                 "clubs": ",".join(club.name for club in clubs),
             },
