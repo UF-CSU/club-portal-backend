@@ -153,6 +153,10 @@ class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
         validated_data["roles"] = []
 
         for role in roles:
+            if isinstance(role, ClubRole):
+                validated_data["roles"].append(role)
+                continue
+
             if not ClubRole.objects.filter(name=role, club=club).exists():
                 validated_data["roles"].append(
                     ClubRole.objects.create(name=role, club=club)

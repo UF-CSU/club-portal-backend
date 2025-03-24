@@ -5,8 +5,10 @@ Serializers for the user API View
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from clubs.models import Club
+from clubs.models import Club, ClubMembership, ClubRole
 from core.abstracts.serializers import ModelSerializerBase
+from querycsv.serializers import CsvModelSerializer, ImageUrlField
+from users.models import Profile, SocialProfile, User
 
 
 class UserClubNestedSerializer(serializers.ModelSerializer):
@@ -74,3 +76,67 @@ class OauthDirectorySerializer(serializers.Serializer):
     """Display available OAuth api routes."""
 
     google = serializers.CharField()
+
+
+class UserProfileNestedCsvSerialzier(CsvModelSerializer):
+    """Manage user profiles for csv."""
+
+    id = None
+    created_at = None
+    updated_at = None
+
+    image = ImageUrlField(required=False)
+
+    class Meta:
+        model = Profile
+        exclude = ["created_at", "updated_at", "user"]
+
+
+class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
+    """Manage club memberships for user csvs."""
+
+    club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
+    roles = serializers.SlugRelatedField(
+        slug_field="name", queryset=ClubRole.objects.all(), many=True, required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance:
+            self.fields["roles"].queryset = ClubRole.objects.filter(
+                club=self.instance.club
+            )
+
+    class Meta:
+        model = ClubMembership
+        fields = ["club", "roles"]
+
+
+class UserSocialNestedCsvSerializer(CsvModelSerializer):
+    """Manage user social profiles in a csv."""
+
+    class Meta:
+        model = SocialProfile
+        fields = ["username", "social_type", "url"]
+
+
+class UserCsvSerializer(CsvModelSerializer):
+    """Define fields in a csv for users."""
+
+    profile = UserProfileNestedCsvSerialzier(required=False)
+    club_memberships = ClubMembershipNestedCsvSerializer(many=True, required=False)
+    socials = UserSocialNestedCsvSerializer(many=True, required=False)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "is_active",
+            "is_staff",
+            "profile",
+            "club_memberships",
+            "socials",
+        ]

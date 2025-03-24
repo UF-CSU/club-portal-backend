@@ -226,13 +226,14 @@ class SocialType(models.TextChoices):
     INSTAGRAM = "instagram", _("Instagram")
     FACEBOOK = "facebook", _("Facebook")
     TWITTER = "twitter", _("Twitter (X)")
+    LINKEDIN = "linkedin", _("LinkedIn")
 
 
-class SocialProfile(ModelBase):
+class SocialProfileBase(ModelBase):
     """Links to social media."""
 
     url = models.URLField(null=True, blank=True)
-    username = models.CharField()
+    username = models.CharField(null=True, blank=True)
     social_type = models.CharField(choices=SocialType.choices)
     order = models.IntegerField(default=0, blank=True)
 

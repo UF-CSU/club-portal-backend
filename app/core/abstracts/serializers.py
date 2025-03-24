@@ -10,6 +10,7 @@ class FieldType(Enum):
     WRITABLE = "writable"
     REQUIRED = "required"
     UNIQUE = "unique"
+    LIST = "list"
 
 
 class SerializerBase(serializers.Serializer):
@@ -56,6 +57,33 @@ class SerializerBase(serializers.Serializer):
         ]
 
     @property
+    def many_related_fields(self) -> list[str]:
+        """List of fields that inherit RelatedField, and are many=True."""
+
+        return [
+            key
+            for key, value in self.fields.items()
+            if isinstance(value, serializers.ManyRelatedField)
+        ]
+
+    @property
+    def list_fields(self) -> list[str]:
+        """List of fields that represent a list of items."""
+
+        return list(
+            set(
+                [
+                    key
+                    for key, value in self.fields.items()
+                    if isinstance(value, serializers.ListField)
+                    or getattr(value, "many", False)
+                ]
+                + self.many_related_fields
+                + self.many_nested_fields
+            )
+        )
+
+    @property
     def nested_fields(self):
         """List of fields that are nested serializers."""
 
@@ -93,6 +121,9 @@ class SerializerBase(serializers.Serializer):
 
         if field_name in serializer.unique_fields:
             field_types.append(FieldType.UNIQUE)
+
+        if field_name in serializer.list_fields:
+            field_types.append(FieldType.LIST)
 
         return field_types
 
