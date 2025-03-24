@@ -1,8 +1,9 @@
+from unittest.mock import Mock, patch
 from clubs.models import Club, ClubMembership, ClubRole
 from clubs.tests.utils import create_test_club
 from lib.faker import fake
 from querycsv.tests.utils import UploadCsvTestsBase
-from users.models import SocialProfile, User
+from users.models import Profile, SocialProfile, User
 from users.serializers import UserCsvSerializer
 from users.tests.utils import create_test_user
 
@@ -99,3 +100,26 @@ class UserCsvTests(UploadCsvTestsBase):
         self.assertEqual(ClubMembership.objects.count(), 3)
         self.assertEqual(ClubRole.objects.count(), roles_before)
         self.assertEqual(SocialProfile.objects.count(), 2)
+
+    @patch("requests.get")
+    def test_upload_user_profile_image(self, mock_get):
+        """When uploading user csv, should upload profile images."""
+
+        mock_get.return_value = Mock()
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.content = fake.image((300, 300), "png")
+
+        payload = {
+            "email": fake.safe_email(),
+            "profile.image": "https://example.com/image.png",
+        }
+
+        self.assertUploadPayload([payload])
+
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(Profile.objects.count(), 1)
+
+        user = User.objects.first()
+        self.assertTrue(user.profile.image)
+        self.assertEqual(user.profile.image.width, 300)
+        self.assertEqual(user.profile.image.height, 300)

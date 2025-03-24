@@ -1,7 +1,7 @@
+from core.abstracts.serializers import ImageUrlField
 from core.mock.models import Buster, BusterTag
 from querycsv.serializers import (
     CsvModelSerializer,
-    ImageUrlField,
     WritableSlugRelatedField,
 )
 

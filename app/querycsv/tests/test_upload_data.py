@@ -133,7 +133,7 @@ class UploadCsvTests(UploadCsvTestsBase):
 
         payload = {
             "name": fake.title(),
-            "image": "https://example.com/",
+            "image": "https://example.com/image.png",
         }
 
         self.assertUploadPayload([payload])
@@ -162,7 +162,7 @@ class UploadCsvTests(UploadCsvTestsBase):
 
         payload = {
             **default_payload,
-            "image": "https://example.com/",
+            "image": "https://example.com/image.png",
         }
 
         self.assertUploadPayload([payload])
