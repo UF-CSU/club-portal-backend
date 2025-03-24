@@ -141,11 +141,15 @@ class Profile(ModelBase):
         User, primary_key=True, related_name="profile", on_delete=models.CASCADE
     )
 
-    # email = models.EmailField(max_length=128, unique=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
 
     first_name = models.CharField(max_length=255, blank=True, null=True)
+    middle_name = models.CharField(max_length=255, blank=True, null=True)
     last_name = models.CharField(max_length=255, blank=True, null=True)
+    title = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Mr/Mrs/Dr/etc"
+    )
+    nickname = models.CharField(max_length=255, blank=True, null=True)
 
     address_1 = models.CharField(max_length=255, null=True, blank=True)
     address_2 = models.CharField(max_length=255, null=True, blank=True)
