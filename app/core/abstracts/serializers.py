@@ -2,13 +2,13 @@ from enum import Enum
 from time import sleep
 from typing import Type
 
+import requests
 from django.core import validators
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
-import requests
-from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
 
 class FieldType(Enum):
