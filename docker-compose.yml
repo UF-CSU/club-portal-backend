@@ -28,10 +28,10 @@ services:
 
   postgres:
     image: postgres:13-alpine
-    restart: unless-stopped
-    profiles:
-      - slim
-      - dev
+    # restart: unless-stopped
+    # profiles:
+    #   - slim
+    #   - dev
     volumes:
       - postgres-clubs-dev:/var/lib/postgresql/data
     environment:
