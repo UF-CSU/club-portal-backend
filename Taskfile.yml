@@ -31,7 +31,8 @@ tasks:
     deps:
       - build
     cmds:
-      - docker-compose --profile dev up
+      - docker-compose up
+      # - docker-compose --profile dev up
 
   dev:slim:
     desc: 'Run only essential services with dev mode'

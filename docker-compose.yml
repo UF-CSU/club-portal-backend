@@ -42,9 +42,9 @@ services:
   redis:
     image: redis:alpine
     restart: unless-stopped
-    profiles:
-      - slim
-      - dev
+    # profiles:
+    #   - slim
+    #   - dev
     ports:
       - 6379:6379
 
@@ -54,9 +54,9 @@ services:
       args:
         - DEV=true
     restart: unless-stopped
-    profiles:
-      - slim
-      - dev
+    # profiles:
+    #   - slim
+    #   - dev
     user: django-user
     command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
     volumes:
@@ -76,9 +76,9 @@ services:
         - DEV=true
     user: django-user
     restart: unless-stopped
-    profiles:
-      - slim
-      - dev
+    # profiles:
+    #   - slim
+    #   - dev
     command:
       [
         'celery',
@@ -104,8 +104,8 @@ services:
     image: nginx
     restart: unless-stopped
     attach: false
-    profiles:
-      - dev
+    # profiles:
+    #   - dev
     ports:
       - '8001:80'
     volumes:
@@ -115,8 +115,8 @@ services:
     image: mailhog/mailhog
     container_name: 'mailhog'
     restart: unless-stopped
-    profiles:
-      - dev
+    # profiles:
+    #   - dev
     attach: false
     user: root
     volumes:
@@ -134,8 +134,8 @@ services:
     # Config adapted from: https://stackoverflow.com/a/77519799/10914922
     image: dpage/pgadmin4
     restart: unless-stopped
-    profiles:
-      - dev
+    # profiles:
+    #   - dev
     attach: false
     ports:
       - '8888:80'
