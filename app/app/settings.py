@@ -289,17 +289,19 @@ sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True)
 # == Email Config == #
 ######################
 CONSOLE_EMAIL_BACKEND = environ_bool("DJANGO_CONSOLE_EMAIL_BACKEND", 0)
+SMTP_EMAIL_BACKEND = environ_bool("DJANGO_SMTP_EMAIL_BACKEND", 0)
 
 if CONSOLE_EMAIL_BACKEND:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", None)
 
-EMAIL_HOST = "smtp.sendgrid.net"
-EMAIL_HOST_USER = "apikey"
-EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+# EMAIL_HOST = "smtp.sendgrid.net"
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "smtp.sendgrid.net")
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "apikey")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", SENDGRID_API_KEY)
+EMAIL_PORT = os.environ.get("DJANGO_EMAIL_PORT", 587)
+EMAIL_USE_TLS = environ_bool("DJANGO_EMAIL_USE_TLS", 1)
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "admin@example.com")
 
 #######################
