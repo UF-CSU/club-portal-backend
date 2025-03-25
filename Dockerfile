@@ -23,9 +23,10 @@ RUN python -m venv /py && \
 
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./requirements.dev.txt /tmp/requirements.dev.txt
+COPY ./requirements.prod.txt /tmp/requirements.prod.txt
 COPY ./scripts /scripts
     
-RUN /py/bin/pip install -r /tmp/requirements.txt && \
+RUN /py/bin/pip install -r /tmp/requirements.txt && /py/bin/pip install -r /tmp/requirements.prod.txt && \
     if [ $DEV = "true" ]; \
         then /py/bin/pip install -r /tmp/requirements.dev.txt ; \
     fi && \

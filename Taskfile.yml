@@ -2,6 +2,13 @@
 version: '3'
 
 tasks:
+  setup:
+    desc: 'Run initial setup for the repo using venv'
+    cmds:
+      - cp ./sample.env ./.env
+      - python3 -m venv ./.venv
+      - source ./.venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && pip install -r requirements.dev.txt
+
   build:
     desc: 'Build docker image if necessary'
     sources:
@@ -25,6 +32,14 @@ tasks:
       - build
     cmds:
       - docker-compose up
+      # - docker-compose --profile dev up
+
+  dev:slim:
+    desc: 'Run only essential services with dev mode'
+    deps:
+      - build
+    cmds:
+      - docker-compose --profile slim up
 
   network:
     desc: 'Run server in network mode'
@@ -75,6 +90,11 @@ tasks:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py migrate"
+
+  build-docker:clubs:
+    desc: 'Build docker image for clubs server'
+    cmds:
+      - docker buildx build --platform=linux/amd64,linux/arm64 -t ikehunter5/club-manager:latest -f ./Dockerfile .
 
   push-docker:clubs:
     desc: 'Push docker image for clubs server'
