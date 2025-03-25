@@ -89,6 +89,21 @@ services:
     volumes:
       - ./app/htmlcov:/usr/share/nginx/html
 
+  mailhog:
+    image: mailhog/mailhog
+    container_name: 'mailhog'
+    attach: false
+    user: root
+    volumes:
+      - mailhog-clubs-dev:/home/maildir
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    environment:
+      MH_STORAGE: maildir
+      MH_MAILDIR_PATH: /home/maildir
+
 volumes:
   postgres-clubs-dev:
   static-clubs-dev:
+  mailhog-clubs-dev:
