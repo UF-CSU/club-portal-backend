@@ -1,8 +1,9 @@
+from rest_framework import serializers
+
 from clubs.models import Club
 from core.abstracts.serializers import ModelSerializerBase
 from events.models import Event, EventTag
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from rest_framework import serializers
 
 
 class EventSerializer(ModelSerializerBase):
