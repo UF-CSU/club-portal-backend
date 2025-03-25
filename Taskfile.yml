@@ -24,7 +24,14 @@ tasks:
     deps:
       - build
     cmds:
-      - docker-compose up
+      - docker-compose --profile dev up
+
+  dev:slim:
+    desc: 'Run only essential services with dev mode'
+    deps:
+      - build
+    cmds:
+      - docker-compose --profile slim up
 
   network:
     desc: 'Run server in network mode'
