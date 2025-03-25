@@ -20,7 +20,7 @@ class EventSerializer(ModelSerializerBase):
             "primary_club",
             "attendance_links",
             "hosts",
-            "all_day"
+            "all_day",
         ]
 
 

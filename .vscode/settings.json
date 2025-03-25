@@ -43,6 +43,7 @@
     },
     "diffEditor.codeLens": false
   },
+  "isort.args": ["--profile", "black"],
   "python.REPL.enableREPLSmartSend": false,
   "python.testing.unittestArgs": ["-v", "-s", "./app", "-p", "test_*.py"],
   "python.testing.pytestEnabled": false,
