@@ -5,10 +5,10 @@ services:
       args:
         - DEV=true
     container_name: clubs-app
-    profiles:
-      - slim
-      - dev
-    restart: unless-stopped
+    # profiles:
+    #   - slim
+    #   - dev
+    # restart: unless-stopped
     ports:
       - '8000:8000'
     volumes:
