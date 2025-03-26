@@ -5,6 +5,9 @@ on:
       - 'main'
       - 'production'
       - 'staging'
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.yml'
 
 jobs:
   unit-tests:
