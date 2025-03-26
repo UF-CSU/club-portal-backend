@@ -1,5 +1,16 @@
 # Club Portal Authentication
 
+- [Auth Flow](#auth-flow)
+- [Auth for Local Dev Testing](#auth-for-local-dev-testing)
+  - [Getting the token](#getting-the-token)
+  - [Using the token with Swagger](#using-the-token-with-swagger)
+    - [Header injections and Swagger](#header-injections-and-swagger)
+  - [Using the token with Postman](#using-the-token-with-postman)
+- [OAuth](#oauth)
+  - [Setting up OAuth for dev](#setting-up-oauth-for-dev)
+    - [Google](#google)
+    - [GitHub](#github)
+
 ## Auth Flow
 
 In order to make requests to private api routes, you will need to supply a "token" in the Authorization header of the request. The token must be preceded by the word `Token`. In Postman it would look like this for a token value `somelongtoken123`:
@@ -48,3 +59,23 @@ Once you have the token, under the url input bar, go to Headers and add the foll
 - Value: `Token somelongtoken123`
 
 And replace _somelongtoken123_ with the value of the token.
+
+## OAuth
+
+### Setting up OAuth for dev
+
+#### Google
+
+You will need to setup an OAuth consent screen in Google Cloud. Use these docs to learn more:
+
+- <https://developers.google.com/workspace/guides/configure-oauth-consent>
+- <https://dev.to/odhiambo/integrate-google-oauth2-social-authentication-into-your-django-web-app-1bk5>
+
+#### GitHub
+
+Steps to create a GitHub application
+
+1. Create a new application at <https://github.com/settings/applications/new>.
+2. Specify callback URL as <http://localhost:8000/oauth/github/login/callback/>.
+3. Copy Client ID into GITHUB_CLIENT_ID and Secret into GITHUB_CLIENT_SECRET in .env.
+4. Don't select Enable Device Flow.
