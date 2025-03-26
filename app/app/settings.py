@@ -207,6 +207,8 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
 }
 
+FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
+
 
 ###############################
 # == Auth & Session Config == #
