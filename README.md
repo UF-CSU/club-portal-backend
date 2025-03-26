@@ -14,6 +14,7 @@
 - [Taskfile Commands](#taskfile-commands)
 - [Local Dev Links](#local-dev-links)
 - [Admin Dashboard](#admin-dashboard)
+- [Server "Modes"](#server-modes)
 - [Contributing](#contributing)
 
 ## Getting Started
@@ -82,7 +83,7 @@ If you have Taskfile installed, you can use the following:
 | Command                       | Purpose                                              |
 | ----------------------------- | ---------------------------------------------------- |
 | `task setup`                  | Setup local python environment                       |
-| `task dev`                    | Start dev server                                     |
+| `task dev`                    | Start the server in "dev" mode                       |
 | `task dev:slim`               | Start only essential dev services                    |
 | `task network`                | Starts the server in "network" mode                  |
 | `task test`                   | Run unit tests                                       |
@@ -134,6 +135,17 @@ If you want to create a new admin without removing the old database, run this co
 ```sh
 docker-compose run --rm app sh -c "python manage.py createsuperuser --no-input"
 ```
+
+## Server "Modes"
+
+You can run the project in multiple different environments, which are referred to as "modes".
+
+| Mode       | Purpose                                                                          |
+| ---------- | -------------------------------------------------------------------------------- |
+| Dev        | Main development mode, uses mock data in leu of making requests to microservices |
+| Network    | Does not use mock data, connects to any needed microservices                     |
+| Test       | Slimmer version of dev mode for unit testing                                     |
+| Production | When the project is run in a cloud environment and receiving traffic             |
 
 ## Contributing
 
