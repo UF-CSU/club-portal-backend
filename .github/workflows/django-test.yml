@@ -26,9 +26,9 @@ jobs:
 
       - name: Run Tests
         run: |
-          docker-compose up postgres -d
-          docker-compose run --rm app sh -c "python manage.py wait_for_db && python manage.py migrate && python manage.py test"
+          docker-compose --profile dev up postgres -d
+          docker-compose --profile dev run --rm app sh -c "python manage.py wait_for_db && python manage.py migrate && python manage.py test"
 
       - name: Stop containers
         run: |
-          docker-compose down
+          docker-compose --profile dev down

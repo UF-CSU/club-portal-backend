@@ -23,7 +23,7 @@ spec:
 
           volumeMounts:
             - name: club-static
-              mountPath: /vol/static
+              mountPath: /vol/web
 
           envFrom:
             - configMapRef:
@@ -33,26 +33,31 @@ spec:
           persistentVolumeClaim:
             claimName: club-static-pvc
 
-##################################
-## Club Manager Server Workload ##
-##################################
+#################################
+## Club Portal Server Workload ##
+#################################
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: club-manager
+  name: club-portal
   namespace: main
 spec:
   selector:
     matchLabels:
-      app: club-manager
+      app: club-portal
   template:
     metadata:
       labels:
-        app: club-manager
+        app: club-portal
     spec:
+      volumes:
+        - name: club-static
+          persistentVolumeClaim:
+            claimName: club-static-pvc
+
       containers:
-        - name: club-manager
+        - name: club-portal
           image: ikehunter5/club-manager:latest
           imagePullPolicy: Always
 
@@ -61,67 +66,73 @@ spec:
 
           volumeMounts:
             - name: club-static
-              mountPath: /vol/static
+              mountPath: /vol/web
 
           envFrom:
-            - configMapRef:
-                name: club-manager-config
-          env:
-            - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: cluster-db-name
-            - name: DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: cluster-db-username
-            - name: DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: cluster-db-password
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: cluster-db-address
-            - name: DJANGO_SUPERUSER_EMAIL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: clubs-admin-email
-            - name: DJANGO_SUPERUSER_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: clubs-admin-password
-            - name: S3_STORAGE_BUCKET_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: clubs-static-bucket-name
-            - name: S3_STORAGE_BUCKET_REGION
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: clubs-static-bucket-region
-            - name: DJANGO_ALLOWED_HOSTS
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: clubs-allowed-hosts
-            - name: DJANGO_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: clubs-base-url
-            - name: CSRF_TRUSTED_ORIGINS
-              valueFrom:
-                secretKeyRef:
-                  name: aws-secrets
-                  key: clubs-csrf-trusted-origins
+            - secretRef:
+                name: club-portal-secrets
+
+          ## EKS Production Config
+          ########################
+          # envFrom:
+          #   - configMapRef:
+          #       name: club-portal-config
+          # env:
+          #   - name: DB_NAME
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: cluster-db-name
+          #   - name: DB_USER
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: cluster-db-username
+          #   - name: DB_PASS
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: cluster-db-password
+          #   - name: DB_HOST
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: cluster-db-address
+          #   - name: DJANGO_SUPERUSER_EMAIL
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: clubs-admin-email
+          #   - name: DJANGO_SUPERUSER_PASS
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: clubs-admin-password
+          #   - name: S3_STORAGE_BUCKET_NAME
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: clubs-static-bucket-name
+          #   - name: S3_STORAGE_BUCKET_REGION
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: clubs-static-bucket-region
+          #   - name: DJANGO_ALLOWED_HOSTS
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: clubs-allowed-hosts
+          #   - name: DJANGO_BASE_URL
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: clubs-base-url
+          #   - name: CSRF_TRUSTED_ORIGINS
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: aws-secrets
+          #         key: clubs-csrf-trusted-origins
       initContainers:
         - name: create-static
           image: busybox
@@ -129,13 +140,118 @@ spec:
             [
               'sh',
               '-c',
-              'mkdir -p /vol/static && chown -R 1000:1000 /vol/static && mkdir -p /app && cd /app'
+              'mkdir -p /vol/web && chown -R 1000:1000 /vol/web && mkdir -p /app && cd /app'
             ]
           volumeMounts:
             - name: club-static
-              mountPath: /vol/static
+              mountPath: /vol/web
 
+---
+## Celery
+###########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-portal-celery
+  namespace: main
+spec:
+  selector:
+    matchLabels:
+      app: club-portal-celery
+  template:
+    metadata:
+      labels:
+        app: club-portal-celery
+    spec:
       volumes:
         - name: club-static
           persistentVolumeClaim:
             claimName: club-static-pvc
+
+      containers:
+        - name: club-portal-celery
+          image: ikehunter5/club-manager:latest
+          imagePullPolicy: Always
+          command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+
+          securityContext:
+            runAsUser: 1000
+
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web
+
+          envFrom:
+            - secretRef:
+                name: club-portal-secrets
+      initContainers:
+        - name: create-static
+          image: busybox
+          command:
+            [
+              'sh',
+              '-c',
+              'mkdir -p /vol/web && chown -R 1000:1000 /vol/web && mkdir -p /app && cd /app'
+            ]
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web
+---
+## Celery Beat
+###########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-portal-celerybeat
+  namespace: main
+spec:
+  selector:
+    matchLabels:
+      app: club-portal-celerybeat
+  template:
+    metadata:
+      labels:
+        app: club-portal-celerybeat
+    spec:
+      volumes:
+        - name: club-static
+          persistentVolumeClaim:
+            claimName: club-static-pvc
+
+      containers:
+        - name: club-portal-celerybeat
+          image: ikehunter5/club-manager:latest
+          imagePullPolicy: Always
+          command:
+            [
+              'celery',
+              '-A',
+              'app',
+              'beat',
+              '--loglevel=info',
+              '--scheduler',
+              'django_celery_beat.schedulers:DatabaseScheduler'
+            ]
+
+          securityContext:
+            runAsUser: 1000
+
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web
+
+          envFrom:
+            - secretRef:
+                name: club-portal-secrets
+      initContainers:
+        - name: create-static
+          image: busybox
+          command:
+            [
+              'sh',
+              '-c',
+              'mkdir -p /vol/web && chown -R 1000:1000 /vol/web && mkdir -p /app && cd /app'
+            ]
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web

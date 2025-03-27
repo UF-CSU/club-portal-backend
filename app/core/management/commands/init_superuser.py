@@ -10,14 +10,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Entrypoint for command"""
 
-        if not bool(int(os.environ.get("DJANGO_DEBUG", 0))):
-            self.stdout.write(
-                self.style.ERROR(
-                    "Unable to automate super user creation when not in DEBUG mode."
-                )
-            )
+        # FIXME: Re-add this check after first deployment
+        # if not bool(int(os.environ.get("DJANGO_DEBUG", 0))):
+        #     self.stdout.write(
+        #         self.style.ERROR(
+        #             "Unable to automate super user creation when not in DEBUG mode."
+        #         )
+        #     )
 
-            return
+        #     return
 
         User = get_user_model()
         super_users = User.objects.filter(is_superuser=True)

@@ -10,13 +10,13 @@ metadata:
   namespace: main
 data:
   DNS_RESOLVER: kube-dns.kube-system.svc.cluster.local
-  CLUB_MANAGER_URI: 'club-service:9000'
+  SERVER_URI: 'club-service:9000'
 
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: club-manager-config
+  name: club-portal-config
   namespace: main
 data:
   PORT: '9000'
