@@ -330,9 +330,9 @@ CELERY_BEAT_SCHEDULE = {}
 DJANGO_REDIS_URL = os.environ.get("DJANGO_REDIS_URL", None)
 
 if DJANGO_REDIS_URL is not None:
-    assert (
-        DEV is True or DEBUG is True
-    ), "Django needs a redis server in production mode."
+    # assert (
+    #     DEV is True or DEBUG is True
+    # ), "Django needs a redis server in production mode."
 
     CACHES = {
         "default": {
