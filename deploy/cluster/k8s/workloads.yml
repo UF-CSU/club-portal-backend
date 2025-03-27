@@ -33,9 +33,9 @@ spec:
           persistentVolumeClaim:
             claimName: club-static-pvc
 
-##################################
-## Club Manager Server Workload ##
-##################################
+#################################
+## Club Portal Server Workload ##
+#################################
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -133,6 +133,116 @@ spec:
           #       secretKeyRef:
           #         name: aws-secrets
           #         key: clubs-csrf-trusted-origins
+      initContainers:
+        - name: create-static
+          image: busybox
+          command:
+            [
+              'sh',
+              '-c',
+              'mkdir -p /vol/web && chown -R 1000:1000 /vol/web && mkdir -p /app && cd /app'
+            ]
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web
+
+---
+## Celery
+###########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-portal-celery
+  namespace: main
+spec:
+  selector:
+    matchLabels:
+      app: club-portal-celery
+  template:
+    metadata:
+      labels:
+        app: club-portal-celery
+    spec:
+      volumes:
+        - name: club-static
+          persistentVolumeClaim:
+            claimName: club-static-pvc
+
+      containers:
+        - name: club-portal-celery
+          image: ikehunter5/club-manager:latest
+          imagePullPolicy: Always
+          command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+
+          securityContext:
+            runAsUser: 1000
+
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web
+
+          envFrom:
+            - secretRef:
+                name: club-portal-secrets
+      initContainers:
+        - name: create-static
+          image: busybox
+          command:
+            [
+              'sh',
+              '-c',
+              'mkdir -p /vol/web && chown -R 1000:1000 /vol/web && mkdir -p /app && cd /app'
+            ]
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web
+---
+## Celery Beat
+###########################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-portal-celerybeat
+  namespace: main
+spec:
+  selector:
+    matchLabels:
+      app: club-portal-celerybeat
+  template:
+    metadata:
+      labels:
+        app: club-portal-celerybeat
+    spec:
+      volumes:
+        - name: club-static
+          persistentVolumeClaim:
+            claimName: club-static-pvc
+
+      containers:
+        - name: club-portal-celerybeat
+          image: ikehunter5/club-manager:latest
+          imagePullPolicy: Always
+          command:
+            [
+              'celery',
+              '-A',
+              'app',
+              'beat',
+              '--loglevel=info',
+              '--scheduler',
+              'django_celery_beat.schedulers:DatabaseScheduler'
+            ]
+
+          securityContext:
+            runAsUser: 1000
+
+          volumeMounts:
+            - name: club-static
+              mountPath: /vol/web
+
+          envFrom:
+            - secretRef:
+                name: club-portal-secrets
       initContainers:
         - name: create-static
           image: busybox
