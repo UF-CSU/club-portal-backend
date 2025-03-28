@@ -2,14 +2,16 @@
 Api Views for core app functionalities.
 """
 
+from clubs.models import Club
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import exception_handler
-
-from clubs.models import Club
+from utils.admin import get_admin_context
 from utils.logging import print_error
 
 
@@ -42,3 +44,14 @@ def api_exception_handler(exc, context):
         )
 
     return response
+
+
+@login_required
+@staff_member_required
+def sys_info(request):
+    """View system info."""
+
+    context = get_admin_context(request)
+    context["celery-running"] = ""
+
+    return render(request, "core/system_info.html", context=context)
