@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 
 import sentry_sdk
 from celery import Celery
-from clubs.models import Club
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
@@ -20,10 +19,11 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import exception_handler
 from sendgrid import SendGridAPIClient
-from utils.admin import get_admin_context
-from utils.logging import print_error
 
 from app.settings import EMAIL_HOST, S3_STORAGE_BACKEND, SENDGRID_API_KEY
+from clubs.models import Club
+from utils.admin import get_admin_context
+from utils.logging import print_error
 
 
 def index(request):
