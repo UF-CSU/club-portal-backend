@@ -16,6 +16,7 @@ from pathlib import Path
 from socket import gethostbyname, gethostname
 
 import sentry_sdk  # type: ignore
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -329,6 +330,13 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # Custom schedules
 CELERY_BEAT_SCHEDULE = {}
+CELERY_BEAT_ENABLE_HEARTBEAT = environ_bool("CELERY_BEAT_ENABLE_HEARTBEAT", 0)
+
+if CELERY_BEAT_ENABLE_HEARTBEAT:
+    CELERY_BEAT_SCHEDULE["heartbeat"] = {
+        "task": "core.tasks.heartbeat_task",
+        "schedule": crontab(minute="*"),
+    }
 
 DJANGO_REDIS_URL = os.environ.get("DJANGO_REDIS_URL", None)
 

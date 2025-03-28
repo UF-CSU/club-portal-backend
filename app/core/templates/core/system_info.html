@@ -1,3 +1,28 @@
 {% extends 'admin/base_site.html' %} {% block content %}
-<p>System Info</p>
+<style>
+  td[data-status='Online'] {
+    color: green;
+  }
+  td[data-status='Offline'] {
+    color: red;
+    font-weight: bold;
+  }
+</style>
+<h1>System Status</h1>
+<table style="width: 100%">
+  <thead>
+    <tr>
+      <th>Service</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for service, status in services.items %}
+    <tr>
+      <td>{{ service }}</td>
+      <td data-status="{{ status }}">{{ status }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
