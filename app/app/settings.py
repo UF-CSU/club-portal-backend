@@ -284,6 +284,9 @@ AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
 AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
 AWS_QUERYSTRING_AUTH = False
 
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+
 # Sentry
 sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True)
 
