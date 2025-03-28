@@ -1,0 +1,84 @@
+{% extends 'admin/base_site.html' %} {% block content %}
+<div class="container">
+  <div class="row">
+    <h1>Upload CSV</h1>
+  </div>
+  <div class="row">
+    <div class="col-12">
+      <strong>CSV Templates</strong>
+      <ul>
+        <li>
+          Required fields only:
+          <a href="{% url template_url %}?fields=required">Download</a>
+        </li>
+        <li>
+          All writable fields:
+          <a href="{% url template_url %}?fields=writable">Download</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="row">
+    <form
+      method="POST"
+      enctype="multipart/form-data"
+      class="col-12"
+    >
+      {% csrf_token %} {% for field in form %}
+      <div class="form-group">
+        {{ field.label_tag }} {{ field }}
+        <p class="form-group__help-text">{{ field.help_text }}</p>
+        <p class="form-group__errors">{{ field.errors }}</p>
+      </div>
+      {% endfor %}
+      <button
+        type="submit"
+        class="btn btn-primary"
+      >
+        Submit
+      </button>
+    </form>
+  </div>
+  <div class="row mt-5">
+    <div class="col-12">
+      <h3>Field Info</h3>
+    </div>
+    {% if unique_together_fields %}
+    <div class="col-12">
+      Unique together:
+      <ul>
+        {% for fields in unique_together_fields %}
+        <li>{{ fields|join:', ' }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <div class="col-12">
+      <table class="table table-hover table-bordered">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Info</th>
+            <th>Can View</th>
+            <th>Can Edit</th>
+            <th>Required</th>
+            <th>Unique</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for field in all_fields %}
+          <tr>
+            <td>{{ field }}</td>
+            <td>{% if field.help_text %}{{ field.help_text }}{% endif %}</td>
+            <td>✓</td>
+            <td>{% if field.is_writable %}✓{% endif %}</td>
+            <td>{% if field.is_required %}✓{% endif %}</td>
+            <td>{% if field.is_unique %}✓{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

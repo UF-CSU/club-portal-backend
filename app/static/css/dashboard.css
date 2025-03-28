@@ -1,0 +1,32 @@
+.body-container{
+  margin-left: 35px;
+  margin-right: 35px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-container{
+  background-color: #DCEDEF;
+  border-radius: 15px;
+}
+
+.dashboard-margin{
+  margin-left: 35px;
+  margin-right: 35px;
+  margin-top: 20px;
+}
+
+.dashboard-header-information{
+  margin-top: 8px;
+  margin-bottom: 26px;
+  display: flex;
+  flex-direction: row;
+}
+
+.dashboard-header-information .icon{
+  width: 44px;
+  height: 44px;
+  background-color: gray;
+  margin-right: 2rem;
+}

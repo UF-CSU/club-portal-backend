@@ -1,0 +1,48 @@
+{% extends 'users/form.html' %}
+{% block head %}
+{% load static %}
+<title>Login</title>
+<link rel="stylesheet" href="{% static 'css/form.css' %}">
+{% endblock %}
+
+{% block formbody %}
+<div class="header-font header-surface">
+  Club Manager
+</div>
+<div class="container-body">
+  <div class="header-font header-black header-center">
+      Login
+  </div>
+  <div class="formBody-container">
+  <form method="POST" class="formBody">
+      {% csrf_token %}
+      <div class="input-container">
+      {% for field in form %}
+      <!---Not sure how to handle club or event fields yet-->
+      {% if field.name == "club" or field.name == "event" %}
+          <div></div>
+      {% else %}
+          <div class="input-field">
+              {{ field }}
+          </div>
+      {% endif %}
+      {% endfor %}
+      </div>
+      <input type="submit" value="Login" class="standard-font">
+  </form>
+  </div>
+</div>
+<div class="subtext-container">
+    <div class="subtext-regular">
+        New to Club Manager?
+    </div>
+    {% url 'users:register' as userregister %}
+
+    <!-- {% url 'users:register' %}{% if next %}?next={{ next }}{% endif %} -->
+    <a href="{% url 'users:register' %}{% if next %}?next={{ next }}{% endif %}">
+    <div class="subtext-link">
+        Sign Up Now
+    </div>
+    </a>
+</div>
+{% endblock %}

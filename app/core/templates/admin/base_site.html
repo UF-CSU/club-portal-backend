@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %} {% block extrahead %}
+<style>
+  label.required::after {
+    content: '*' !important;
+    color: red !important;
+
+    margin-left: 5px;
+
+    font-size: inherit !important;
+    line-height: inherit !important;
+    vertical-align: baseline !important;
+  }
+</style>
+<script>
+  // Timezone settings
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone // e.g. "America/New_York"
+  document.cookie = 'django_timezone=' + timezone
+  console.log('timezone:', timezone)
+  
+</script>
+{% endblock %}
+{% block content %}
+{% endblock content %}
+{% block footer %}
+<script>
+  // Override behavior at https://github.com/django/django/blob/main/django/contrib/admin/static/admin/js/admin/DateTimeShortcuts.js#L34
+  document.body.dataset.adminUtcOffset = new Date().getTimezoneOffset() * -60
+</script>
+{% endblock footer %}

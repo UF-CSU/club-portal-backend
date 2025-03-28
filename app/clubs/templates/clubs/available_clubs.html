@@ -1,0 +1,475 @@
+<!-- {% extends 'base.html' %}
+{% block body %}
+
+<section>
+  <div>Join Clubs</div>
+</section>
+
+{% endblock %} -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Available Clubs Page</title>
+    <link rel="icon" href="https://icons.iconarchive.com/icons/iconarchive/badge-trophy/512/Badge-Trophy-19-icon.png">
+    <link rel="stylesheet" href="/app/clubs/static/clubs/available-clubs.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+</head>
+<body>
+    <div class="container">
+        <!-- Header container -->
+        <div class="bg-white rounded d-flex align-items-center justify-content-between mb-5" id="header">
+            <!-- Filter toggle button -->
+            <button class="btn btn-hide text-uppercase" type="button" data-toggle="collapse" data-target="#filterbar"
+                aria-expanded="false" aria-controls="filterbar" id="filter-btn" >
+                <span class="fas fa-angle-left" id="filter-angle"></span>
+                <span id="btn-txt">Hide filters</span>
+            </button>
+            <!-- End filter toggle button -->
+
+            <!-- Search bar and filter button-->
+            <nav class="navbar navbar-expand-lg navbar-light pl-lg-0 pl-auto">
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mynav"
+                    aria-controls="mynav" aria-expanded="false" aria-label="Toggle navigation" id="icon">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mynav">
+                    <ul class="navbar-nav d-lg-flex align-items-lg-center">
+                        <li class="nav-item active">
+                            <form class="d-flex">
+                                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                                <button class="btn btn-outline-success" type="submit">Search</button>
+                              </form>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            <!-- End search bar and filter button-->
+
+            <!-- Pagination controls -->
+            <div class="ml-auto mt-3 mr-2">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        <li class="page-item">
+                            <a class="page-link" href="#" aria-label="Previous">
+                                <span aria-hidden="true" class="font-weight-bold">&lt;</span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                        </li>
+                        <li class="page-item active">
+                            <a class="page-link" href="#">1</a>
+                        </li>
+                        <li class="page-item"><a class="page-link" href="#">..</a></li>
+                        <li class="page-item"><a class="page-link" href="#">10</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#" aria-label="Next">
+                                <span aria-hidden="true" class="font-weight-bold">&gt;</span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            <!-- End pagination controls -->
+        </div>
+        <!-- End header container -->
+
+        <!-- Content container -->
+        <div id="content" class="individual-checkbox my-1">
+            <!-- Filterbar -->
+            <div id="filterbar" class="collapse">
+                <div class="box border-bottom">
+                    <div class="form-group text-center">
+                        <div class="btn-group" data-toggle="buttons">
+                            <label class="btn btn-success form-check-label">
+                                <input class="form-check-input" type="radio" /> Reset
+                            </label>
+                            <label class="btn btn-success form-check-label active">
+                                <input class="form-check-input" type="radio" checked /> Apply
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="box border-bottom">
+                    <div class="box-label text-uppercase d-flex align-items-center">
+                        Type of club
+                        <button class="btn ml-auto" type="button" data-toggle="collapse" data-target="#inner-box"
+                            aria-expanded="false" aria-controls="inner-box" id="out" onclick="outerFilter()">
+                            <span class="fas fa-plus"></span>
+                        </button>
+                    </div>
+                    <div id="inner-box" class="collapse mt-2 mr-1">
+                        <div class="individual-checkbox my-1">
+                            <label class="tick" id="check_all">ALL <input type="checkbox"  id="selectAll" onclick="toggleAllCheckboxes(this)" checked="checked"/>
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Mathematics <input type="checkbox" id="checkbox-item"  checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Physics <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Chemistry <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Computer Science <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Entrepreneurship <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Scientific Research <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Music <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Dance <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Fine Arts <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Photography <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Soccer <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Basketball <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Badminton <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Fitness <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Martial Arts <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Volunteering <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Foreign Language <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Book <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">International <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Soft Skills <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Self-Improvement <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Leadership <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Chess <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Cooking <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Gaming <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        <div class="individual-checkbox my-1">
+                            <label class="tick">Environmental Protection <input type="checkbox" id="checkbox-item" checked="checked" />
+                                <span class="check"></span>
+                            </label>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <div class="box pb-2">
+                    <div class="box-label text-uppercase d-flex align-items-center">
+                        Number of members
+                        <button class="btn ml-auto" type="button" data-toggle="collapse" data-target="#member-count"
+                            aria-expanded="false" aria-controls="member-count" id="num_out" onclick="outerFilter2()">
+                            <span class="fas fa-minus"></span>
+                        </button>
+                    </div>
+                    <div class="collapse" id="member-count">
+                        <div class="middle">
+                            <div class="multi-range-slider">
+                                <input type="range" id="input-left" min="0" max="100" value="10" />
+                                <input type="range" id="input-right" min="0" max="100" value="50" />
+                                <div class="slider">
+                                    <div class="track"></div>
+                                    <div class="range"></div>
+                                    <div class="thumb left"></div>
+                                    <div class="thumb right"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between mt-1">
+                            <div>
+                                <span id="amount-left" class="font-weight-bold"></span> Members
+                            </div>
+                            <div>
+                                <span id="amount-right" class="font-weight-bold"></span> Members
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            <!-- End filterbar -->
+
+            <!-- Available clubs -->
+            <div id="clubs">
+                <!-- Row of club -->
+                <div class="row mx-0">
+                    <div class="col-lg-4 col-md-6 pb-md-4 pt-0.5">
+                        <div class="card d-flex flex-column align-items-center">
+                            <!-- Logo of club -->
+                            <div class="card-img">
+                                <img src="https://icons.iconarchive.com/icons/iconarchive/badge-trophy/512/Badge-Trophy-19-icon.png"
+                                    alt="" />
+                            </div>
+                            <div class="club-name text-center">Club Name</div>
+                            <div class="card-body">
+                                <div class="text-muted text-center mt-auto">
+                                    <div class="info">
+                                        <div class="ID">ID Club: 123456</div>
+                                        <div class="create">Create at: 1/1/2024</div>
+                                        <div class="member_count">Members: 1234</div>
+                                    </div>
+                                </div>
+                                <!-- Button Join -->
+                                <div class="d-flex align-items-center justify-content-center join pt-2">
+                                    <button class="btn-join">
+                                        <a href="/clubs/club/1/join/"
+                                            class="flex-md-order-2 Button--primary Button--small Button">
+                                            <span class="Btn-content">
+                                                <span class="Btn-label"> Join </span>
+                                            </span>
+                                        </a>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 pb-md-4 pt-0.5">
+                        <div class="card d-flex flex-column align-items-center">
+                            <!-- Logo of club -->
+                            <div class="card-img">
+                                <img src="https://icons.iconarchive.com/icons/iconarchive/badge-trophy/512/Badge-Trophy-19-icon.png"
+                                    alt="" />
+                            </div>
+                            <div class="club-name text-center">Club Name</div>
+                            <div class="card-body">
+                                <div class="text-muted text-center mt-auto">
+                                    <div class="info">
+                                        <div class="ID">ID Club: 123456</div>
+                                        <div class="create">Create at: 1/1/2024</div>
+                                        <div class="member_count">Members: 1234</div>
+                                    </div>
+                                </div>
+                                <!-- Button Join -->
+                                <div class="d-flex align-items-center justify-content-center join pt-2">
+                                    <button class="btn-join">
+                                        <a href="/clubs/club/1/join/"
+                                            class="flex-md-order-2 Button--primary Button--small Button">
+                                            <span class="Btn-content">
+                                                <span class="Btn-label"> Join </span>
+                                            </span>
+                                        </a>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 pb-md-4 pt-0.5">
+                        <div class="card d-flex flex-column align-items-center">
+                            <!-- Logo of club -->
+                            <div class="card-img">
+                                <img src="https://icons.iconarchive.com/icons/iconarchive/badge-trophy/512/Badge-Trophy-19-icon.png"
+                                    alt="" />
+                            </div>
+                            <div class="club-name text-center">Club Name</div>
+                            <div class="card-body">
+                                <div class="text-muted text-center mt-auto">
+                                    <div class="info">
+                                        <div class="ID">ID Club: 123456</div>
+                                        <div class="create">Create at: 1/1/2024</div>
+                                        <div class="member_count">Members: 1234</div>
+                                    </div>
+                                </div>
+                                <!-- Button Join -->
+                                <div class="d-flex align-items-center justify-content-center join pt-2">
+                                    <button class="btn-join">
+                                        <a href="/clubs/club/1/join/"
+                                            class="flex-md-order-2 Button--primary Button--small Button">
+                                            <span class="Btn-content">
+                                                <span class="Btn-label"> Join </span>
+                                            </span>
+                                        </a>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 pb-md-4 pt-0.5">
+                        <div class="card d-flex flex-column align-items-center">
+                            <!-- Logo of club -->
+                            <div class="card-img">
+                                <img src="https://icons.iconarchive.com/icons/iconarchive/badge-trophy/512/Badge-Trophy-19-icon.png"
+                                    alt="" />
+                            </div>
+                            <div class="club-name text-center">Club Name</div>
+                            <div class="card-body">
+                                <div class="text-muted text-center mt-auto">
+                                    <div class="info">
+                                        <div class="ID">ID Club: 123456</div>
+                                        <div class="create">Create at: 1/1/2024</div>
+                                        <div class="member_count">Members: 1234</div>
+                                    </div>
+                                </div>
+                                <!-- Button Join -->
+                                <div class="d-flex align-items-center justify-content-center join pt-2">
+                                    <button class="btn-join">
+                                        <a href="/clubs/club/1/join/"
+                                            class="flex-md-order-2 Button--primary Button--small Button">
+                                            <span class="Btn-content">
+                                                <span class="Btn-label"> Join </span>
+                                            </span>
+                                        </a>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 pb-md-4 pt-0.5">
+                        <div class="card d-flex flex-column align-items-center">
+                            <!-- Logo of club -->
+                            <div class="card-img">
+                                <img src="https://icons.iconarchive.com/icons/iconarchive/badge-trophy/512/Badge-Trophy-19-icon.png"
+                                    alt="" />
+                            </div>
+                            <div class="club-name text-center">Club Name</div>
+                            <div class="card-body">
+                                <div class="text-muted text-center mt-auto">
+                                    <div class="info">
+                                        <div class="ID">ID Club: 123456</div>
+                                        <div class="create">Create at: 1/1/2024</div>
+                                        <div class="member_count">Members: 1234</div>
+                                    </div>
+                                </div>
+                                <!-- Button Join -->
+                                <div class="d-flex align-items-center justify-content-center join pt-2">
+                                    <button class="btn-join">
+                                        <a href="/clubs/club/1/join/"
+                                            class="flex-md-order-2 Button--primary Button--small Button">
+                                            <span class="Btn-content">
+                                                <span class="Btn-label"> Join </span>
+                                            </span>
+                                        </a>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 pb-md-4 pt-0.5">
+                        <div class="card d-flex flex-column align-items-center">
+                            <!-- Logo of club -->
+                            <div class="card-img">
+                                <img src="https://icons.iconarchive.com/icons/iconarchive/badge-trophy/512/Badge-Trophy-19-icon.png"
+                                    alt="" />
+                            </div>
+                            <div class="club-name text-center">Club Name</div>
+                            <div class="card-body">
+                                <div class="text-muted text-center mt-auto">
+                                    <div class="info">
+                                        <div class="ID">ID Club: 123456</div>
+                                        <div class="create">Create at: 1/1/2024</div>
+                                        <div class="member_count">Members: 1234</div>
+                                    </div>
+                                </div>
+                                <!-- Button Join -->
+                                <div class="d-flex align-items-center justify-content-center join pt-2">
+                                    <button class="btn-join">
+                                        <a href="/clubs/club/1/join/"
+                                            class="flex-md-order-2 Button--primary Button--small Button">
+                                            <span class="Btn-content">
+                                                <span class="Btn-label"> Join </span>
+                                            </span>
+                                        </a>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End available clubs -->
+             
+        </div>
+        <!-- End content container -->
+    </div>
+</body>
+    <script src="/app/clubs/static/clubs/available-clubs.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</html>

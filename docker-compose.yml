@@ -1,0 +1,184 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        - DEV=true
+    container_name: clubs-app
+    profiles:
+      - slim
+      - dev
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./app:/app
+      - static-clubs-dev:/vol/web
+    command: >
+      sh -c "
+      python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py init_superuser &&
+             python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:13-alpine
+    restart: unless-stopped
+    profiles:
+      - slim
+      - dev
+    volumes:
+      - postgres-clubs-dev:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=devdatabase
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=devpass
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    profiles:
+      - slim
+      - dev
+    ports:
+      - 6379:6379
+
+  celery:
+    build:
+      context: .
+      args:
+        - DEV=true
+    restart: unless-stopped
+    profiles:
+      - slim
+      - dev
+    user: django-user
+    command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+    volumes:
+      - ./app:/app
+      - static-clubs-dev:/vol/web
+    depends_on:
+      - redis
+      - postgres
+      - app
+    env_file:
+      - .env
+
+  celerybeat:
+    build:
+      context: .
+      args:
+        - DEV=true
+    user: django-user
+    restart: unless-stopped
+    profiles:
+      - slim
+      - dev
+    command:
+      [
+        'celery',
+        '-A',
+        'app',
+        'beat',
+        '--loglevel=info',
+        '--scheduler',
+        'django_celery_beat.schedulers:DatabaseScheduler'
+      ]
+    volumes:
+      - ./app:/app
+      - static-clubs-dev:/vol/web
+    depends_on:
+      - redis
+      - postgres
+      - celery
+      - app
+    env_file:
+      - .env
+
+  coverage:
+    image: nginx
+    restart: unless-stopped
+    attach: false
+    profiles:
+      - dev
+    ports:
+      - '8001:80'
+    volumes:
+      - ./app/htmlcov:/usr/share/nginx/html
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: 'mailhog'
+    restart: unless-stopped
+    profiles:
+      - dev
+    attach: false
+    user: root
+    volumes:
+      - mailhog-clubs-dev:/home/maildir
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    depends_on:
+      - app
+    environment:
+      MH_STORAGE: maildir
+      MH_MAILDIR_PATH: /home/maildir
+
+  pgadmin:
+    # Config adapted from: https://stackoverflow.com/a/77519799/10914922
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    profiles:
+      - dev
+    attach: false
+    ports:
+      - '8888:80'
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=changeme
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    user: root
+    depends_on:
+      - postgres
+    entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
+    volumes:
+      - pgadmin-clubs-dev:/var/lib/pgadmin
+    configs:
+      - source: servers.json
+        target: /pgadmin4/servers.json
+      - source: pgpass
+        target: /pgpass
+
+volumes:
+  postgres-clubs-dev:
+  static-clubs-dev:
+  mailhog-clubs-dev:
+  pgadmin-clubs-dev:
+
+configs:
+  pgpass:
+    content: postgres:5432:*:devuser:devpass
+  servers.json:
+    content: |
+      {
+        "Servers": {
+            "1": {
+                "Group": "Servers",
+                "Name": "Docker",
+                "Host": "postgres",
+                "Port": 5432,
+                "MaintenanceDB": "devdatabase",
+                "Username": "devuser",
+                "PassFile": "/pgpass",
+                "SSLMode": "prefer",
+                "Favorite": true
+            }
+        }
+      }

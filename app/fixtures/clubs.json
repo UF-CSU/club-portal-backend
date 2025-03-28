@@ -1,0 +1,652 @@
+[
+  {
+    "pk": 1,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Kautzer-Will",
+      "alias": "RKE",
+      "about": "Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis faucibus accumsan odio. Curabitur convallis. Duis consequat dui nec nisi volutpat eleifend. Donec ut dolor.",
+      "founding_year": 1992,
+      "contact_email": "belgram0@wikispaces.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 2,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Heathcote LLC",
+      "alias": "GEC",
+      "about": "Morbi vel lectus in quam fringilla rhoncus. Mauris enim leo, rhoncus sed, vestibulum sit amet, cursus id, turpis. Integer aliquet, massa id lobortis convallis, tortor risus dapibus augue, vel accumsan tellus nisi eu orci.",
+      "founding_year": 2022,
+      "contact_email": "acurrom1@smh.com.au",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 3,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Bartell LLC",
+      "alias": "RBG",
+      "about": "Nulla ac enim. In tempor, turpis nec euismod scelerisque, quam turpis adipiscing lorem, vitae mattis nibh ligula nec sem. Duis aliquam convallis nunc. Proin at turpis a pede posuere nonummy. Integer non velit.",
+      "founding_year": 2014,
+      "contact_email": "tferrai2@hibu.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 4,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Muller, Adams and Kohler",
+      "alias": "ZBK",
+      "about": "Praesent blandit. Nam nulla.",
+      "founding_year": 2003,
+      "contact_email": "bhuyghe3@joomla.org",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 5,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Trantow-Harvey",
+      "alias": "PGO",
+      "about": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Proin risus. Praesent lectus. Vestibulum quam sapien, varius ut, blandit non, interdum in, ante. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis faucibus accumsan odio.",
+      "founding_year": 2002,
+      "contact_email": "dmussettini4@wsj.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 6,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Dibbert LLC",
+      "alias": "LCI",
+      "about": "Donec posuere metus vitae ipsum. Aliquam non mauris. Morbi non lectus.",
+      "founding_year": 2021,
+      "contact_email": "ecostellow5@dedecms.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 7,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Strosin LLC",
+      "alias": "GSN",
+      "about": "Nam dui. Proin leo odio, porttitor id, consequat in, consequat ut, nulla. Sed accumsan felis. Ut at dolor quis odio consequat varius. Integer ac leo.",
+      "founding_year": 1991,
+      "contact_email": "mferrarese6@eventbrite.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 8,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Yundt-Carroll",
+      "alias": "NMA",
+      "about": "Ut tellus. Nulla ut erat id mauris vulputate elementum. Nullam varius. Nulla facilisi. Cras non velit nec nisi vulputate nonummy.",
+      "founding_year": 2020,
+      "contact_email": "gdingsdale7@livejournal.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 9,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Larkin Group",
+      "alias": "TOX",
+      "about": "Pellentesque ultrices mattis odio. Donec vitae nisi. Nam ultrices, libero non mattis pulvinar, nulla pede ullamcorper augue, a suscipit nulla elit ac nulla.",
+      "founding_year": 2007,
+      "contact_email": "hcrother8@latimes.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 10,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Lynch LLC",
+      "alias": "KUF",
+      "about": "Cras mi pede, malesuada in, imperdiet et, commodo vulputate, justo. In blandit ultrices enim. Lorem ipsum dolor sit amet, consectetuer adipiscing elit.",
+      "founding_year": 2009,
+      "contact_email": "lnorres9@nsw.gov.au",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 11,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Wehner and Sons",
+      "alias": "MNY",
+      "about": "Nunc purus. Phasellus in felis. Donec semper sapien a libero.",
+      "founding_year": 1996,
+      "contact_email": "bcoupara@ezinearticles.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 12,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Johnston-Langworth",
+      "alias": "DTR",
+      "about": "Morbi vel lectus in quam fringilla rhoncus. Mauris enim leo, rhoncus sed, vestibulum sit amet, cursus id, turpis. Integer aliquet, massa id lobortis convallis, tortor risus dapibus augue, vel accumsan tellus nisi eu orci.",
+      "founding_year": 2000,
+      "contact_email": "rdupeyb@java.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 13,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Prohaska, Gleason and Abbott",
+      "alias": "AIC",
+      "about": "Morbi non quam nec dui luctus rutrum. Nulla tellus. In sagittis dui vel nisl.",
+      "founding_year": 1994,
+      "contact_email": "taronsohnc@apple.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 14,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Brown, Shields and O'Keefe",
+      "alias": "LHU",
+      "about": "Morbi odio odio, elementum eu, interdum eu, tincidunt in, leo.",
+      "founding_year": 2016,
+      "contact_email": "rstiegard@hao123.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 15,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Balistreri-Zieme",
+      "alias": "CFQ",
+      "about": "Cras pellentesque volutpat dui. Maecenas tristique, est et tempus semper, est quam pharetra magna, ac consequat metus sapien ut nunc. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Mauris viverra diam vitae quam. Suspendisse potenti.",
+      "founding_year": 1983,
+      "contact_email": "arodrigueze@gov.uk",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 16,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Lueilwitz-Zieme",
+      "alias": "YGK",
+      "about": "In hac habitasse platea dictumst. Morbi vestibulum, velit id pretium iaculis, diam erat fermentum justo, nec condimentum neque sapien placerat ante. Nulla justo.",
+      "founding_year": 2004,
+      "contact_email": "mwhittuckf@infoseek.co.jp",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 17,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Miller-Bartell",
+      "alias": "UZR",
+      "about": "In blandit ultrices enim. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Proin interdum mauris non ligula pellentesque ultrices. Phasellus id sapien in sapien iaculis congue.",
+      "founding_year": 2007,
+      "contact_email": "lleareg@indiegogo.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 18,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Bergstrom, Bode and Koch",
+      "alias": "MWK",
+      "about": "Nullam sit amet turpis elementum ligula vehicula consequat. Morbi a ipsum. Integer a nibh.",
+      "founding_year": 1985,
+      "contact_email": "nantenh@chron.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 19,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Rogahn, Dicki and Christiansen",
+      "alias": "RKD",
+      "about": "Nulla tempus. Vivamus in felis eu sapien cursus vestibulum. Proin eu mi. Nulla ac enim. In tempor, turpis nec euismod scelerisque, quam turpis adipiscing lorem, vitae mattis nibh ligula nec sem.",
+      "founding_year": 2011,
+      "contact_email": "ngergelyi@timesonline.co.uk",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 20,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Hintz and Sons",
+      "alias": "SHB",
+      "about": "Nullam molestie nibh in lectus. Pellentesque at nulla. Suspendisse potenti.",
+      "founding_year": 1999,
+      "contact_email": "danderlj@altervista.org",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 21,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Mayert LLC",
+      "alias": "AXX",
+      "about": "Morbi odio odio, elementum eu, interdum eu, tincidunt in, leo. Maecenas pulvinar lobortis est. Phasellus sit amet erat. Nulla tempus. Vivamus in felis eu sapien cursus vestibulum.",
+      "founding_year": 1989,
+      "contact_email": "jassadk@vinaora.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 22,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Hahn and Sons",
+      "alias": "BNQ",
+      "about": "Duis aliquam convallis nunc. Proin at turpis a pede posuere nonummy. Integer non velit. Donec diam neque, vestibulum eget, vulputate ut, ultrices vel, augue.",
+      "founding_year": 2017,
+      "contact_email": "lpetrushankol@cocolog-nifty.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 23,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Dach-Lueilwitz",
+      "alias": "TLO",
+      "about": "In tempor, turpis nec euismod scelerisque, quam turpis adipiscing lorem, vitae mattis nibh ligula nec sem.",
+      "founding_year": 1980,
+      "contact_email": "rswynem@bing.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 24,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Maggio-Upton",
+      "alias": "LPE",
+      "about": "Suspendisse ornare consequat lectus. In est risus, auctor sed, tristique in, tempus sit amet, sem.",
+      "founding_year": 2002,
+      "contact_email": "fpedersenn@tripadvisor.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 25,
+    "model": "clubs.club",
+    "fields": {
+      "name": "White-Macejkovic",
+      "alias": "WGC",
+      "about": "Nunc purus. Phasellus in felis.",
+      "founding_year": 1985,
+      "contact_email": "emidfordo@odnoklassniki.ru",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 26,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Bogan Inc",
+      "alias": "RVK",
+      "about": "Duis at velit eu est congue elementum.",
+      "founding_year": 2012,
+      "contact_email": "khalshawp@github.io",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 27,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Gottlieb and Sons",
+      "alias": "CGQ",
+      "about": "Morbi porttitor lorem id ligula. Suspendisse ornare consequat lectus.",
+      "founding_year": 1981,
+      "contact_email": "horpyneq@fc2.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 28,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Wilkinson-Rath",
+      "alias": "QGB",
+      "about": "Praesent blandit lacinia erat.",
+      "founding_year": 2008,
+      "contact_email": "cfeedhamr@i2i.jp",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 29,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Kozey Inc",
+      "alias": "POU",
+      "about": "Pellentesque at nulla. Suspendisse potenti. Cras in purus eu magna vulputate luctus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Vivamus vestibulum sagittis sapien.",
+      "founding_year": 2001,
+      "contact_email": "aflawss@goo.ne.jp",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 30,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Williamson, Stiedemann and Pollich",
+      "alias": "UCT",
+      "about": "Nunc rhoncus dui vel sem. Sed sagittis. Nam congue, risus semper porta volutpat, quam pede lobortis ligula, sit amet eleifend pede libero quis orci. Nullam molestie nibh in lectus. Pellentesque at nulla.",
+      "founding_year": 2017,
+      "contact_email": "kloxlyt@xing.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 31,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Farrell-Heathcote",
+      "alias": "AIY",
+      "about": "In est risus, auctor sed, tristique in, tempus sit amet, sem. Fusce consequat. Nulla nisl. Nunc nisl. Duis bibendum, felis sed interdum venenatis, turpis enim blandit mi, in porttitor pede justo eu massa.",
+      "founding_year": 2013,
+      "contact_email": "wtunnochu@wordpress.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 32,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Wuckert, White and Flatley",
+      "alias": "PIU",
+      "about": "Ut tellus.",
+      "founding_year": 2018,
+      "contact_email": "dpaviav@icio.us",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 33,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Larson-Moore",
+      "alias": "PMF",
+      "about": "Suspendisse accumsan tortor quis turpis.",
+      "founding_year": 1986,
+      "contact_email": "rlisettw@hc360.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 34,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Murray, Koss and Hagenes",
+      "alias": "GOB",
+      "about": "In congue. Etiam justo. Etiam pretium iaculis justo. In hac habitasse platea dictumst. Etiam faucibus cursus urna.",
+      "founding_year": 2006,
+      "contact_email": "aewencex@surveymonkey.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 35,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Funk, Sporer and Schinner",
+      "alias": "BYQ",
+      "about": "Duis ac nibh. Fusce lacus purus, aliquet at, feugiat non, pretium quis, lectus. Suspendisse potenti. In eleifend quam a odio.",
+      "founding_year": 2024,
+      "contact_email": "vgulleyy@hugedomains.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 36,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Borer, Huels and Kertzmann",
+      "alias": "ALZ",
+      "about": "Suspendisse potenti. Nullam porttitor lacus at turpis. Donec posuere metus vitae ipsum. Aliquam non mauris.",
+      "founding_year": 2018,
+      "contact_email": "cdampz@vkontakte.ru",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 37,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Oberbrunner, Lubowitz and Rogahn",
+      "alias": "TWT",
+      "about": "Nulla tellus. In sagittis dui vel nisl.",
+      "founding_year": 2007,
+      "contact_email": "isherrell10@netlog.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 38,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Terry, Kutch and Jones",
+      "alias": "BMR",
+      "about": "Morbi quis tortor id nulla ultrices aliquet. Maecenas leo odio, condimentum id, luctus nec, molestie sed, justo.",
+      "founding_year": 1994,
+      "contact_email": "vgerraty11@fastcompany.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 39,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Hermiston and Sons",
+      "alias": "NTO",
+      "about": "Morbi vel lectus in quam fringilla rhoncus. Mauris enim leo, rhoncus sed, vestibulum sit amet, cursus id, turpis. Integer aliquet, massa id lobortis convallis, tortor risus dapibus augue, vel accumsan tellus nisi eu orci.",
+      "founding_year": 2009,
+      "contact_email": "slamacraft12@parallels.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 40,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Harber-Harris",
+      "alias": "LAX",
+      "about": "Nulla tempus. Vivamus in felis eu sapien cursus vestibulum.",
+      "founding_year": 1981,
+      "contact_email": "bhambrick13@go.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 41,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Langosh LLC",
+      "alias": "CND",
+      "about": "Nulla nisl.",
+      "founding_year": 1981,
+      "contact_email": "nkinch14@nytimes.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 42,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Wehner-Hegmann",
+      "alias": "NYW",
+      "about": "Pellentesque at nulla. Suspendisse potenti.",
+      "founding_year": 2010,
+      "contact_email": "mreeds15@whitehouse.gov",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 43,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Schinner and Sons",
+      "alias": "SYH",
+      "about": "Pellentesque viverra pede ac diam. Cras pellentesque volutpat dui. Maecenas tristique, est et tempus semper, est quam pharetra magna, ac consequat metus sapien ut nunc.",
+      "founding_year": 1989,
+      "contact_email": "ijekyll16@mashable.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 44,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Upton LLC",
+      "alias": "YIV",
+      "about": "Integer non velit. Donec diam neque, vestibulum eget, vulputate ut, ultrices vel, augue. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec pharetra, magna vestibulum aliquet ultrices, erat tortor sollicitudin mi, sit amet lobortis sapien sapien non mi. Integer ac neque. Duis bibendum.",
+      "founding_year": 2015,
+      "contact_email": "rgrazier17@abc.net.au",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 45,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Marvin, Bode and Luettgen",
+      "alias": "LIB",
+      "about": "Duis ac nibh. Fusce lacus purus, aliquet at, feugiat non, pretium quis, lectus. Suspendisse potenti. In eleifend quam a odio. In hac habitasse platea dictumst.",
+      "founding_year": 2003,
+      "contact_email": "rholdey18@foxnews.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 46,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Kessler LLC",
+      "alias": "KDL",
+      "about": "Morbi non lectus.",
+      "founding_year": 1990,
+      "contact_email": "ddoxsey19@liveinternet.ru",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 47,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Prosacco, Goodwin and Morar",
+      "alias": "0",
+      "about": "Quisque id justo sit amet sapien dignissim vestibulum. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Nulla dapibus dolor vel est.",
+      "founding_year": 2009,
+      "contact_email": "astack1a@prnewswire.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 48,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Pollich-Vandervort",
+      "alias": "BJW",
+      "about": "Donec odio justo, sollicitudin ut, suscipit a, feugiat et, eros.",
+      "founding_year": 2023,
+      "contact_email": "scasillis1b@163.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 49,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Haag LLC",
+      "alias": "GME",
+      "about": "Etiam faucibus cursus urna. Ut tellus. Nulla ut erat id mauris vulputate elementum.",
+      "founding_year": 2009,
+      "contact_email": "cadelman1c@webnode.com",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  },
+  {
+    "pk": 50,
+    "model": "clubs.club",
+    "fields": {
+      "name": "Stiedemann, Treutel and Hickle",
+      "alias": "NOV",
+      "about": "Nulla ut erat id mauris vulputate elementum.",
+      "founding_year": 2025,
+      "contact_email": "cerangey1d@who.int",
+      "created_at": "2025-03-24T00:00:00Z",
+      "updated_at": "2025-03-25T00:00:00Z"
+    }
+  }
+]
