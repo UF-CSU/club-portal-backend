@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from socket import gethostbyname, gethostname
 

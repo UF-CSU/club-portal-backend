@@ -1,9 +1,10 @@
 from typing import Optional
 
-from clubs.models import Club, ClubMembership, ClubRole
-from core.abstracts.services import ServiceBase
 from django.core import exceptions
 from django.urls import reverse
+
+from clubs.models import Club, ClubMembership, ClubRole
+from core.abstracts.services import ServiceBase
 from events.models import EventAttendance
 from lib.emails import send_html_mail
 from users.models import User
