@@ -10,6 +10,11 @@
   - [Setting up OAuth for dev](#setting-up-oauth-for-dev)
     - [Google](#google)
     - [GitHub](#github)
+  - [Testing OAuth](#testing-oauth)
+  - [OAuth Api Flow](#oauth-api-flow)
+    - [From the user's perspective](#from-the-users-perspective)
+    - [From a developer's perspective](#from-a-developers-perspective)
+  - [Example Client Code](#example-client-code)
 
 ## Auth Flow
 
@@ -71,11 +76,184 @@ You will need to setup an OAuth consent screen in Google Cloud. Use these docs t
 - <https://developers.google.com/workspace/guides/configure-oauth-consent>
 - <https://dev.to/odhiambo/integrate-google-oauth2-social-authentication-into-your-django-web-app-1bk5>
 
+Once you have the consent screen setup, set these environment variables:
+
+```txt
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+```
+
 #### GitHub
 
 Steps to create a GitHub application
 
 1. Create a new application at <https://github.com/settings/applications/new>.
 2. Specify callback URL as <http://localhost:8000/oauth/github/login/callback/>.
-3. Copy Client ID into GITHUB_CLIENT_ID and Secret into GITHUB_CLIENT_SECRET in .env.
-4. Don't select Enable Device Flow.
+3. Don't select Enable Device Flow.
+
+Once you have the GitHub app setup, get the client id and secret and add them to your .env file:
+
+```txt
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
+```
+
+### Testing OAuth
+
+You can test out all of the 3rd party apps available by going to this page: <http://localhost:8000/oauth/3rdparty/>. Clicking on each link will allow you to connect an external account with that service.
+
+### OAuth Api Flow
+
+#### From the user's perspective
+
+1. Starting on club portal, user clicks button to login and/or sign up with service
+2. User is redirected to service's consent page
+3. User accepts consent page
+4. User is redirected back to club portal and is authenticated
+
+#### From a developer's perspective
+
+The terms **CLIENT** represent the front end application, **SERVER** represents the backend application, and **PROVIDER** represents the OAuth provider (like Google, GitHub, etc).
+
+1. **CLIENT**: User clicks oauth button
+2. **CLIENT**: Create temporary form element using JS, and add fields as text/hidden inputs: provider, callback_url, process. Here is an example:
+
+   ```json
+   {
+     "provider": "google",
+     "callback_url": "https://ufclubs.org/oauth-return/",
+     "process": "login"
+   }
+   ```
+
+3. **CLIENT**: Submit form to `/api/oauth/browser/v1/auth/provider/redirect`
+4. **SERVER**: Server responds with a redirect to the oauth service's consent screen, client follows redirect due to form submission
+5. **PROVIDER**: Redirect lands on consent screen, user accepts consent
+6. **PROVIDER**: User is redirected back to server with state identifiers
+7. **SERVER**: Server uses state identifiers to see what user has returned, creates auth session
+8. **SERVER**: User is redirected back to original url specified in `callback_url` field from client with cookie storing session id
+9. **CLIENT**: User returns to frontend, client uses the session cookie to request an API token from the server
+10. **SERVER**: Using session cookie as authentication, creates an API token for the user, gives to client in response
+11. **CLIENT**: Stores the token for all future API requests
+12. **CLIENT**: Redirect user to final location (home page, etc)
+
+### Example Client Code
+
+The following code was adapted from: <https://github.com/ufosc/Jukebox-Frontend/blob/main/src/network/NetworkBase.ts>.
+
+It shows utility functions that could be created to interact with the api, user authentication, and demonstrates how the frontend might implement OAuth.
+
+```ts
+import axios from 'axios'
+
+const CURRENT_URL = `${window.location.protocol}//${window.location.host}`
+
+/**
+ * Handle Authentication Logic
+ */
+class AuthProvider {
+  /**
+   * Initiate standard auth flow.
+   *
+   * Sends a request to the server which returns a user
+   * token. This token will be sent with each api request.
+   */
+  public async loginWithUsername(usernameOrEmail: string, password: string) {
+    const url = 'http://localhost:8000/api/v1/user/token/'
+
+    const res = await axios.post(url, {
+      method: 'POST',
+      data: { username: usernameOrEmail, password },
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    if (!res.success) {
+      console.error('There was an issue getting the auth token:', res)
+      return
+    }
+    localStorage.setItem('clubportal-token', res.data.token)
+
+    return
+  }
+
+  /**
+   * Initiate the oauth flow.
+   *
+   * Creates a new dynamic form, creates hidden fields for each of the
+   * required fields to submit to the server, and submits the form to
+   * the server. This allows the post request to redirect the user
+   * to the server, which will redirect to the consent screen.
+   */
+  public async loginWithOauth(returnPath?: string) {
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action =
+      'http://localhost:8000/api/oauth/browser/v1/auth/provider/redirect'
+
+    const data = {
+      provider: 'google',
+      callback_url: CURRENT_URL + (returnPath ?? '/'),
+      process: 'login'
+    }
+
+    for (const [key, value] of Object.entries(data)) {
+      const input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = key
+      input.value = value
+      form.appendChild(input)
+    }
+    document.body.appendChild(form)
+
+    form.submit()
+  }
+
+  /**
+   * Handle return request from oauth.
+   *
+   * The server returns with a new session id stored as a cookie.
+   * This session id allows us to authenticate with the server
+   * and obtain a user token to use with the REST API.
+   */
+  public async handleOauthReturn() {
+    const url = 'http://localhost:8000/api/v1/user/token/'
+
+    const res = await axios.get(url, {
+      withCredentials: true, // Allows session cookie to be sent with request
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    if (!res.success) {
+      console.error('There was an issue getting the auth token:', res)
+      return
+    }
+
+    localStorage.setItem('clubportal-token', res.data.token)
+  }
+
+  /**
+   * Example API Request
+   *
+   * Demonstrates how to send an API request using the token
+   * obtained from authentication.
+   */
+  public async getResources() {
+    const url = 'http://localhost:8000/api/v1/resource/resources/'
+    const token = localStorage.getItem('clubportal-token')
+
+    const res = await axios.get(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Token ${token}`
+      }
+    })
+
+    if (!res.success) {
+      console.error('There was an error getting resource:', res)
+      return
+    }
+
+    return res.data
+  }
+}
+```
