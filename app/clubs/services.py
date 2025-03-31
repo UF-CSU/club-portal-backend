@@ -1,14 +1,12 @@
 from typing import Optional
 
-from django.core import exceptions, mail
-from django.template.loader import render_to_string
+from django.core import exceptions
 from django.urls import reverse
-from django.utils.html import strip_tags
 
-from app.settings import DEFAULT_FROM_EMAIL
 from clubs.models import Club, ClubMembership, ClubRole
 from core.abstracts.services import ServiceBase
 from events.models import EventAttendance
+from lib.emails import send_html_mail
 from users.models import User
 from utils.helpers import get_full_url
 
@@ -97,20 +95,12 @@ class ClubService(ServiceBase[Club]):
         return EventAttendance.objects.filter(member=member)
 
     def send_email_invite(self, emails: list[str]):
-        """Send email invite to list of emails."""
+        """Send email invite to list of emails separately."""
 
-        html_body = render_to_string(
-            "clubs/email_invite_template.html",
-            context={"invite_url": self.full_join_url},
+        send_html_mail(
+            subject=f"You have been invited to {self.obj.name}",
+            to=emails,
+            html_template="clubs/email_invite_template.html",
+            html_context={"invite_url": self.full_join_url},
+            send_separately=True,
         )
-        text_body = strip_tags(html_body)
-
-        for email in emails:
-            message = mail.EmailMultiAlternatives(
-                from_email=DEFAULT_FROM_EMAIL,
-                subject=f"You have been invited to {self.obj.name}",
-                body=text_body,
-                to=[email],
-            )
-            message.attach_alternative(html_body, "text/html")
-            message.send()
