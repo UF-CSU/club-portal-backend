@@ -1,6 +1,6 @@
 # Club Portal Authentication
 
-- [Auth Flow](#auth-flow)
+- [Authenticating with API](#authenticating-with-api)
 - [Auth for Local Dev Testing](#auth-for-local-dev-testing)
   - [Getting the token](#getting-the-token)
   - [Using the token with Swagger](#using-the-token-with-swagger)
@@ -12,11 +12,11 @@
     - [GitHub](#github)
   - [Testing OAuth](#testing-oauth)
   - [OAuth Api Flow](#oauth-api-flow)
-    - [From the user's perspective](#from-the-users-perspective)
+    - [From a user's perspective](#from-a-users-perspective)
     - [From a developer's perspective](#from-a-developers-perspective)
-  - [Example Client Code](#example-client-code)
+- [Example Client Code](#example-client-code)
 
-## Auth Flow
+## Authenticating with API
 
 In order to make requests to private api routes, you will need to supply a "token" in the Authorization header of the request. The token must be preceded by the word `Token`. In Postman it would look like this for a token value `somelongtoken123`:
 
@@ -25,6 +25,8 @@ _Headers_
 | Key           | Value                  |
 | ------------- | ---------------------- |
 | Authorization | Token somelongtoken123 |
+
+The following sections will describe different ways of obtaining and using this token.
 
 ## Auth for Local Dev Testing
 
@@ -104,7 +106,7 @@ You can test out all of the 3rd party apps available by going to this page: <htt
 
 ### OAuth Api Flow
 
-#### From the user's perspective
+#### From a user's perspective
 
 1. Starting on club portal, user clicks button to login and/or sign up with service
 2. User is redirected to service's consent page
@@ -137,13 +139,14 @@ The terms **CLIENT** represent the front end application, **SERVER** represents 
 11. **CLIENT**: Stores the token for all future API requests
 12. **CLIENT**: Redirect user to final location (home page, etc)
 
-### Example Client Code
+## Example Client Code
 
-The following code was adapted from: <https://github.com/ufosc/Jukebox-Frontend/blob/main/src/network/NetworkBase.ts>.
+The following code was adapted (simplified) from: <https://github.com/ufosc/Jukebox-Frontend/blob/main/src/network/NetworkBase.ts>.
 
-It shows utility functions that could be created to interact with the api, user authentication, and demonstrates how the frontend might implement OAuth.
+It shows utility functions that could be used to interact with the api, user authentication, and demonstrates how the frontend might implement OAuth. This code is just for demonstration purposes and would need a few changes to work in a smooth development/production environment.
 
 ```ts
+// src/AuthProvider.ts
 import axios from 'axios'
 
 const CURRENT_URL = `${window.location.protocol}//${window.location.host}`
