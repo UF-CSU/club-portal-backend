@@ -104,6 +104,7 @@ Running the server in dev mode will start up the following services:
 | --------------- | -------------------------------------------------------- | --------------------------------- |
 | Django Server   | Main development server                                  | <http://localhost:8000/>          |
 | API Docs        | REST API documentation created by Swagger/OpenAPI        | <http://localhost:8000/api/docs/> |
+| OAuth API Docs  | OAuth REST API documentation created by django-allauth   | <http://localhost:8000/api/oauth/openapi.html> |
 | Admin Dashboard | Django's model admin dashboard                           | <http://localhost:8000/admin/>    |
 | Test Coverage   | A detailed view of test coverage                         | <http://localhost:8001/>          |
 | PGAdmin         | Directly view and manage postgres database for debugging | <http://localhost:8888/>          |
