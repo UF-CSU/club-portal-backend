@@ -26,7 +26,7 @@ from analytics.views import redirect_link_view
 from app.settings import DEV
 
 apipatterns = [
-    path("schema/club-manager", SpectacularAPIView.as_view(), name="api-schema"),
+    path("schema/club-portal", SpectacularAPIView.as_view(), name="api-schema"),
     path(
         "docs/",
         SpectacularSwaggerView.as_view(url_name="api-schema"),

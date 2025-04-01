@@ -270,7 +270,7 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 SOCIALACCOUNT_QUERY_EMAIL = True
-
+HEADLESS_SERVE_SPECIFICATION = True
 
 ############################
 # ==  Production Config == #
