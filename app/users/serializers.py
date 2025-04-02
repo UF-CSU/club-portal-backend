@@ -2,10 +2,10 @@
 Serializers for the user API View
 """
 
-from clubs.models import Club, ClubMembership, ClubRole, Team
+from clubs.models import Club, ClubMembership, ClubRole, Team, TeamMembership
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from django.contrib.auth import get_user_model
-from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from querycsv.serializers import CsvModelSerializer
 from rest_framework import serializers
 from users.models import Profile, SocialProfile, User
 
@@ -98,7 +98,7 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
     roles = serializers.SlugRelatedField(
         slug_field="name", queryset=ClubRole.objects.all(), many=True, required=False
     )
-    teams = WritableSlugRelatedField(
+    teams = serializers.SlugRelatedField(
         slug_field="name", queryset=Team.objects.all(), many=True, required=False
     )
 
@@ -109,10 +109,26 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
             self.fields["roles"].queryset = ClubRole.objects.filter(
                 club=self.instance.club
             )
+            self.fields["teams"].queryset = Team.objects.filter(club=self.instance.club)
 
     class Meta:
         model = ClubMembership
         fields = ["club", "roles", "teams"]
+
+    def create(self, validated_data):
+        teams = validated_data.pop("teams", [])
+
+        membership: ClubMembership = super().create(validated_data)
+
+        for team in teams:
+            TeamMembership.objects.create(team=team, user=membership.user)
+
+        return membership
+    
+    def update(self, instance, validated_data):
+        teams = validated_data.pop("teams", [])
+        
+        return super().update(instance, validated_data)
 
 
 class UserSocialNestedCsvSerializer(CsvModelSerializer):

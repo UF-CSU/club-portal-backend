@@ -189,9 +189,13 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
     def update_or_create(self, defaults=None, **kwargs):
         defaults = defaults or {}
         roles = defaults.pop("roles", [])
+        teams = defaults.pop("teams", [])
 
         membership, _ = super().update_or_create(defaults, **kwargs)
         membership.add_roles(*roles)
+
+        for team in teams:
+            TeamMembership.objects.get_or_create(team=team, user=membership.user)
 
         return membership
 
@@ -209,7 +213,7 @@ class ClubMembership(ModelBase):
     roles = models.ManyToManyField(ClubRole, blank=True)
 
     # Foreign Relationships
-    teams: models.QuerySet["Team"]
+    # teams: models.QuerySet["Team"]
 
     # Overrides
     objects: ClassVar[ClubMembershipManager] = ClubMembershipManager()

@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-from clubs.models import Club, ClubMembership, ClubRole
+from clubs.models import Club, ClubMembership, ClubRole, Team
 from clubs.tests.utils import create_test_club
 from lib.faker import fake
 from querycsv.tests.utils import UploadCsvTestsBase
@@ -26,6 +26,8 @@ class UserCsvTests(UploadCsvTestsBase):
         ClubRole.objects.create(club=c1, name="Test Role 2")
         ClubRole.objects.create(club=c2, name="Test Role 3", default=True)
         ClubRole.objects.create(club=c2, name="Test Role 4")
+        t1 = Team.objects.create(club=c2, name="Test Team 1")
+        t2 = Team.objects.create(club=c2, name="Test Team 2")
 
         roles_before = ClubRole.objects.count()
 
@@ -43,6 +45,7 @@ class UserCsvTests(UploadCsvTestsBase):
                 "club_memberships[0].roles": "Test Role 1",
                 "club_memberships[1].club": c2.name,
                 "club_memberships[1].roles": "Test Role 3, Test Role 4",
+                "club_memberships[1].teams": "Test Team 1, Test Team 2",
                 "socials[0].social_type": "linkedin",
                 "socials[0].username": "@example",
                 "socials[1].social_type": "discord",
@@ -56,6 +59,12 @@ class UserCsvTests(UploadCsvTestsBase):
         self.assertEqual(ClubMembership.objects.count(), 3)
         self.assertEqual(ClubRole.objects.count(), roles_before)
         self.assertEqual(SocialProfile.objects.count(), 2)
+        self.assertEqual(Team.objects.count(), 2)
+
+        t1.refresh_from_db()
+        t2.refresh_from_db()
+        self.assertEqual(t1.memberships.count(), 1)
+        self.assertEqual(t2.memberships.count(), 1)
 
     def test_upload_update_user_csv(self):
         """Should be able to upload csv and update users."""

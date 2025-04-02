@@ -11,7 +11,11 @@ from clubs.models import (
     TeamMembership,
     TeamRole,
 )
-from clubs.serializers import ClubCsvSerializer, ClubMembershipCsvSerializer
+from clubs.serializers import (
+    ClubCsvSerializer,
+    ClubMembershipCsvSerializer,
+    TeamCsvSerializer,
+)
 from core.abstracts.admin import ModelAdminBase
 from django.contrib import admin
 
@@ -95,15 +99,19 @@ class TeamRoleInlineAdmin(admin.StackedInline):
     extra = 0
 
 
-class TeamAdmin(admin.ModelAdmin):
+class TeamAdmin(ModelAdminBase):
     """Manage club teams in admin dashboard."""
 
-    list_display = (
-        "__str__",
-        "club",
-        "points",
+    csv_serializer_class = TeamCsvSerializer
+
+    list_display = ("__str__", "club", "points", "members_count")
+    inlines = (
+        TeamRoleInlineAdmin,
+        TeamMembershipInlineAdmin,
     )
-    inlines = (TeamRoleInlineAdmin, TeamMembershipInlineAdmin,)
+
+    def members_count(self, obj):
+        return obj.memberships.count()
 
 
 class ClubMembershipAdmin(ModelAdminBase):
