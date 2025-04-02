@@ -5,6 +5,8 @@ from clubs.models import (
     ClubSocialProfile,
     ClubTag,
     Team,
+    TeamMembership,
+    TeamRole,
 )
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
@@ -68,10 +70,30 @@ class ClubCsvSerializer(CsvModelSerializer):
         fields = "__all__"
 
 
+class TeamMemberNestedCsvSerializer(CsvModelSerializer):
+    """Represents team memberships in csvs."""
+
+    roles = WritableSlugRelatedField(
+        slug_field="name",
+        queryset=TeamRole.objects.none(),
+        many=True,
+        required=False,
+    )
+    roles = serializers.SlugRelatedField(
+        slug_field="name", queryset=TeamRole.objects.none(), many=True, required=False
+    )
+    user = serializers.SlugRelatedField(slug_field="email", queryset=User.objects.all())
+
+    class Meta:
+        model = TeamMembership
+        fields = ["id", "user", "roles"]
+
+
 class TeamCsvSerializer(CsvModelSerializer):
     """Represent teams in csvs."""
 
     club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
+    memberships = TeamMemberNestedCsvSerializer(many=True, required=False)
 
     class Meta:
         model = Team

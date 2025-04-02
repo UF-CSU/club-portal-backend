@@ -124,11 +124,11 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
             TeamMembership.objects.create(team=team, user=membership.user)
 
         return membership
-    
-    def update(self, instance, validated_data):
-        teams = validated_data.pop("teams", [])
-        
-        return super().update(instance, validated_data)
+
+    # def update(self, instance, validated_data):
+    #     teams = validated_data.pop("teams", [])
+
+    #     return super().update(instance, validated_data)
 
 
 class UserSocialNestedCsvSerializer(CsvModelSerializer):
