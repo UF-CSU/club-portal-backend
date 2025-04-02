@@ -1,6 +1,3 @@
-from rest_framework import serializers
-from rest_framework.fields import empty
-
 from clubs.models import (
     Club,
     ClubMembership,
@@ -13,6 +10,8 @@ from clubs.models import (
 )
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from rest_framework import serializers
+from rest_framework.fields import empty
 from users.models import User
 
 
@@ -34,10 +33,21 @@ class ClubMemberNestedSerializer(serializers.ModelSerializer):
         ]
 
 
+class ClubSocialNestedSerializer(CsvModelSerializer):
+    """Represents social profiles for clubs."""
+
+    class Meta:
+        model = ClubSocialProfile
+        fields = ["id", "url", "username", "social_type", "order"]
+
+
 class ClubSerializer(ModelSerializerBase):
     """Convert club model to JSON fields."""
 
     members = ClubMemberNestedSerializer(many=True, read_only=True)
+    socials = ClubSocialNestedSerializer(many=True, read_only=True)
+    # tags = ClubTagNestedSerializer(many=True, read_only=True)
+    # teams = ClubTeamNestedSerializer(many=True, read_only=True)
 
     class Meta:
         model = Club
@@ -45,16 +55,14 @@ class ClubSerializer(ModelSerializerBase):
             *ModelSerializerBase.default_fields,
             "name",
             "logo",
+            "about",
+            "founding_year",
+            "contact_email",
+            # "tags",
             "members",
+            # "teams",
+            "socials"
         ]
-
-
-class ClubSocialNestedSerializer(CsvModelSerializer):
-    """Represents social profiles for clubs in club csvs."""
-
-    class Meta:
-        model = ClubSocialProfile
-        fields = ["id", "url", "username", "social_type", "order"]
 
 
 class ClubCsvSerializer(CsvModelSerializer):
