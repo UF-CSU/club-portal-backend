@@ -120,3 +120,24 @@ tasks:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py shell"
+      
+  down:
+    desc: "Stop containers"
+    cmds:
+      - docker-compose --profile dev down --remove-orphans
+  
+  clean:
+    desc: "Stop containers and remove volumes"
+    cmds:
+      - docker-compose --profile dev down --remove-orphans -v
+  
+  down:slim:
+    desc: "Stop containers"
+    cmds:
+      - docker-compose --profile slim down --remove-orphans
+  
+  clean:slim:
+    desc: "Stop containers and remove volumes"
+    cmds:
+      - docker-compose --profile slim down --remove-orphans -v
+      

@@ -283,7 +283,7 @@ class FlatSerializer(SerializerBase):
 
                 assert (
                     main_field in self.many_nested_fields
-                ), f"Field {main_field} is not a list of nested objects."
+                ), f"Field {main_field} is not a list of nested objects {self.many_nested_fields}."
 
                 if main_field not in parsed.keys():
                     parsed[main_field] = []
