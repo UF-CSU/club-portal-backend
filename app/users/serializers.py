@@ -26,16 +26,23 @@ class UserClubNestedSerializer(serializers.ModelSerializer):
         ]
 
 
+class ProfileNestedSerializer(serializers.ModelSerializer):
+    """Represent user profiles in api."""
+
+    class Meta:
+        model = Profile
+        exclude = ["user", "created_at", "updated_at"]
+
+
 class UserSerializer(ModelSerializerBase):
     """Serialzier for the user object."""
 
     email = serializers.EmailField()
     username = serializers.CharField(required=False)
-    first_name = serializers.CharField(required=False)
-    last_name = serializers.CharField(required=False)
     clubs = UserClubNestedSerializer(
         source="club_memberships", many=True, required=False
     )
+    profile = ProfileNestedSerializer(required=False)
 
     class Meta:
         model = get_user_model()
@@ -43,10 +50,9 @@ class UserSerializer(ModelSerializerBase):
             *ModelSerializerBase.default_fields,
             "username",
             "email",
-            "first_name",
-            "last_name",
             "password",
             "clubs",
+            "profile",
         ]
         # defines characteristics of specific fields
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
@@ -125,11 +131,6 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
             TeamMembership.objects.create(team=team, user=membership.user)
 
         return membership
-
-    # def update(self, instance, validated_data):
-    #     teams = validated_data.pop("teams", [])
-
-    #     return super().update(instance, validated_data)
 
 
 class UserSocialNestedCsvSerializer(CsvModelSerializer):

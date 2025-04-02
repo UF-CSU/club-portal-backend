@@ -13,7 +13,7 @@ from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from users.serializers import OauthDirectorySerializer, UserSerializer
 
 
-class CreateUserView(generics.CreateAPIView):
+class UserViewSet(mixins.RetrieveModelMixin, ViewSetBase):
     """Create a new user in the system."""
 
     serializer_class = UserSerializer
