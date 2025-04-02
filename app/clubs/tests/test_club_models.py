@@ -2,11 +2,10 @@
 Unit tests for generic model functions, validation, etc.
 """
 
-from django.core import exceptions
-
-from clubs.models import Club, ClubMembership, Team, TeamMembership
+from clubs.models import Club, ClubMembership, Team, TeamMembership, TeamRole
 from clubs.tests.utils import CLUB_CREATE_PARAMS, CLUB_UPDATE_PARAMS, create_test_club
 from core.abstracts.tests import TestsBase
+from django.core import exceptions
 from users.tests.utils import create_test_user
 
 
@@ -83,11 +82,18 @@ class ClubTeamTests(TestsBase):
         ClubMembership.objects.create(club=club, user=user)
 
         team = Team.objects.create(name="Example Team", club=club)
+        self.assertEqual(TeamRole.objects.count(), 1)
+        role = team.roles.first()
+
         TeamMembership.objects.create(team=team, user=user)
 
         self.assertEqual(club.teams.count(), 1)
         self.assertEqual(user.team_memberships.count(), 1)
-        self.assertEqual(user.team_memberships.first().team.id, team.id)
+
+        membership: TeamMembership = user.team_memberships.first()
+        self.assertEqual(membership.team.id, team.id)
+        self.assertEqual(membership.roles.count(), 1)
+        self.assertEqual(membership.roles.first().id, role.id)
 
     def test_team_user_must_club_member(self):
         """User can only be assigned to a team if they are a member of that club."""
@@ -122,3 +128,29 @@ class ClubTeamTests(TestsBase):
 
         with self.assertRaises(exceptions.ValidationError):
             TeamMembership.objects.create(team=team, user=user)
+
+    def test_one_default_team_role(self):
+        """Should allow only one default team role."""
+
+        club = create_test_club()
+        team = Team.objects.create(name="Example team", club=club)
+
+        # Sanity check initial role
+        self.assertEqual(team.roles.count(), 1)
+        r1 = team.roles.first()
+        self.assertTrue(r1.default)
+
+        # Create new role
+        r2 = TeamRole.objects.create(team=team, name="Team Admin", default=False)
+        self.assertEqual(team.roles.count(), 2)
+        self.assertFalse(r2.default)
+
+        # Check setting default
+        r2.default = True
+        r2.save()
+
+        r2.refresh_from_db()
+        r1.refresh_from_db()
+
+        self.assertTrue(r2.default)
+        self.assertFalse(r1.default)

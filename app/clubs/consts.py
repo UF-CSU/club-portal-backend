@@ -5,13 +5,13 @@ General constants and initial values for club items.
 from typing import TypedDict
 
 
-class ClubRoleType(TypedDict):
+class RoleType(TypedDict):
     name: str
     default: bool
     permissions: list[str]
 
 
-INITIAL_CLUB_ROLES: list[ClubRoleType] = [
+INITIAL_CLUB_ROLES: list[RoleType] = [
     {
         "name": "Member",
         "default": True,
@@ -33,4 +33,12 @@ INITIAL_CLUB_ROLES: list[ClubRoleType] = [
             "clubs.change_team",
         ],
     },
+]
+
+INITIAL_TEAM_ROLES: list[RoleType] = [
+    {
+        "name": "Member",
+        "default": True,
+        "permissions": [],
+    }
 ]
