@@ -1,7 +1,8 @@
-from clubs.consts import INITIAL_CLUB_ROLES, INITIAL_TEAM_ROLES
-from clubs.models import Club, ClubRole, Team, TeamRole
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+from clubs.consts import INITIAL_CLUB_ROLES, INITIAL_TEAM_ROLES
+from clubs.models import Club, ClubRole, Team, TeamRole
 
 
 @receiver(post_save, sender=Club)

@@ -5,6 +5,12 @@ Club models.
 # from datetime import datetime, timedelta
 from typing import ClassVar, Optional
 
+from django.contrib.auth.models import Permission
+from django.core import exceptions
+from django.core.validators import MinValueValidator
+from django.db import models, transaction
+from django.utils import timezone
+
 from core.abstracts.models import (
     ManagerBase,
     ModelBase,
@@ -13,11 +19,6 @@ from core.abstracts.models import (
     Tag,
     UniqueModel,
 )
-from django.contrib.auth.models import Permission
-from django.core import exceptions
-from django.core.validators import MinValueValidator
-from django.db import models, transaction
-from django.utils import timezone
 from users.models import User
 from utils.models import UploadFilepathFactory
 from utils.permissions import get_permission

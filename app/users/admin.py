@@ -2,12 +2,13 @@
 Users admin config.
 """
 
-from clubs.models import ClubMembership
-from core.abstracts.admin import ModelAdminBase
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+
+from clubs.models import ClubMembership
+from core.abstracts.admin import ModelAdminBase
 from users.models import Profile, SocialProfile, User
 from users.serializers import UserCsvSerializer
 

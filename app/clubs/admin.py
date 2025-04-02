@@ -1,5 +1,7 @@
 from typing import Optional
 
+from django.contrib import admin
+
 from clubs.forms import TeamMembershipForm
 from clubs.models import (
     Club,
@@ -17,7 +19,6 @@ from clubs.serializers import (
     TeamCsvSerializer,
 )
 from core.abstracts.admin import ModelAdminBase
-from django.contrib import admin
 
 
 class ClubMembershipInlineAdmin(admin.StackedInline):

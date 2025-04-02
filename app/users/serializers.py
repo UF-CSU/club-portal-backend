@@ -2,11 +2,12 @@
 Serializers for the user API View
 """
 
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
+
 from clubs.models import Club, ClubMembership, ClubRole, Team, TeamMembership
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
-from django.contrib.auth import get_user_model
 from querycsv.serializers import CsvModelSerializer
-from rest_framework import serializers
 from users.models import Profile, SocialProfile, User
 
 

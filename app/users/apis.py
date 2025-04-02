@@ -4,6 +4,7 @@ URL Patterns for users REST API.
 
 from django.urls import path, reverse_lazy
 from django.views.generic import RedirectView
+
 from users import viewsets
 
 app_name = "api-users"

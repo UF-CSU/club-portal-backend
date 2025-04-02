@@ -2,10 +2,11 @@
 Unit tests for generic model functions, validation, etc.
 """
 
+from django.core import exceptions
+
 from clubs.models import Club, ClubMembership, Team, TeamMembership, TeamRole
 from clubs.tests.utils import CLUB_CREATE_PARAMS, CLUB_UPDATE_PARAMS, create_test_club
 from core.abstracts.tests import TestsBase
-from django.core import exceptions
 from users.tests.utils import create_test_user
 
 
