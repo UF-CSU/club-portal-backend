@@ -2,12 +2,11 @@
 Serializers for the user API View
 """
 
-from django.contrib.auth import get_user_model
-from rest_framework import serializers
-
-from clubs.models import Club, ClubMembership, ClubRole
+from clubs.models import Club, ClubMembership, ClubRole, Team
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
-from querycsv.serializers import CsvModelSerializer
+from django.contrib.auth import get_user_model
+from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from rest_framework import serializers
 from users.models import Profile, SocialProfile, User
 
 
@@ -99,6 +98,9 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
     roles = serializers.SlugRelatedField(
         slug_field="name", queryset=ClubRole.objects.all(), many=True, required=False
     )
+    teams = WritableSlugRelatedField(
+        slug_field="name", queryset=Team.objects.all(), many=True, required=False
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -110,7 +112,7 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
 
     class Meta:
         model = ClubMembership
-        fields = ["club", "roles"]
+        fields = ["club", "roles", "teams"]
 
 
 class UserSocialNestedCsvSerializer(CsvModelSerializer):

@@ -1,7 +1,5 @@
 from typing import Optional
 
-from django.contrib import admin
-
 from clubs.forms import TeamMembershipForm
 from clubs.models import (
     Club,
@@ -11,9 +9,11 @@ from clubs.models import (
     ClubTag,
     Team,
     TeamMembership,
+    TeamRole,
 )
 from clubs.serializers import ClubCsvSerializer, ClubMembershipCsvSerializer
 from core.abstracts.admin import ModelAdminBase
+from django.contrib import admin
 
 
 class ClubMembershipInlineAdmin(admin.StackedInline):
@@ -88,6 +88,13 @@ class TeamMembershipInlineAdmin(admin.TabularInline):
         return super().get_formset(request, obj, **kwargs)
 
 
+class TeamRoleInlineAdmin(admin.StackedInline):
+    """Manage team roles in admin."""
+
+    model = TeamRole
+    extra = 0
+
+
 class TeamAdmin(admin.ModelAdmin):
     """Manage club teams in admin dashboard."""
 
@@ -96,7 +103,7 @@ class TeamAdmin(admin.ModelAdmin):
         "club",
         "points",
     )
-    inlines = (TeamMembershipInlineAdmin,)
+    inlines = (TeamRoleInlineAdmin, TeamMembershipInlineAdmin,)
 
 
 class ClubMembershipAdmin(ModelAdminBase):
