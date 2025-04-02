@@ -65,9 +65,48 @@ class ClubCsvSerializer(CsvModelSerializer):
 
 class ClubMembershipSerializer(ModelSerializerBase):
     """Represents a club membership to use for CRUD operations."""
+    
+    class UserSerializer(ModelSerializerBase):
+        id = serializers.IntegerField(required=False)
+        email = serializers.EmailField(required=False)
+        
+        def validate(self, data):
+            id = data.get("id")
+            email = data.get("email")
+            
+            # Validate user_id and user_email
+            if id is None and email is None:
+                raise exceptions.ValidationError(
+                    "Either user_id or user_email is required!"
+                )
+            
+            if id is not None and email is not None:
+                raise exceptions.ValidationError(
+                    "Either provide user_id or user_email, not both!"
+                )
+            
+            if email is not None:
+                user, created = User.objects.get_or_create(email=email)
 
-    user_email = serializers.EmailField(required=False)
-    user_id = serializers.IntegerField(required=False)
+                # New user was created, send an email to sign up
+                if created:
+                    # TODO: Update this to send_html_mail and fill out fields
+                    send_mail(
+                        subject="Finish Account Creation",
+                        message=f"Finish creating your account...",
+                        from_email="admin@example.com",
+                        recipient_list=[email],
+                    )
+            else:
+                user = User.objects.get_by_id(id)
+            
+            return user
+        
+        class Meta:
+            model = User
+            fields = ['id', 'email']
+
+    user = UserSerializer()
     club_id = serializers.SlugRelatedField(
         slug_field="id", source="club", read_only=True
     )
@@ -76,69 +115,20 @@ class ClubMembershipSerializer(ModelSerializerBase):
         model = ClubMembership
         fields = [
             *ModelSerializerBase.default_fields,
-            "user_email",
-            "user_id",
+            "user",
             "club_id",
             "owner",
             "points",
         ]
     
     def create(self, validated_data):
-        user_id = validated_data.get("user_id")
-        user_email = validated_data.get("user_email")
+        user = validated_data.get("user")
         club = validated_data.get("club")
-        
-        # Validate user_id and user_email
-        if user_id is None and user_email is None:
-            raise exceptions.ValidationError(
-                "Either user_id or user_email is required!"
-            )
-        
-        if user_id is not None and user_email is not None:
-            raise exceptions.ValidationError(
-                "Either provide user_id or user_email, not both!"
-            )
-        
-        # Get user
-        user = None
-        if user_email is not None:
-            user, created = User.objects.get_or_create(email=user_email)
-            
-            # New user was created, send an email to sign up
-            if created:
-                # TODO: Update this to send_html_mail and fill out fields
-                send_mail(
-                    subject="Finish Account Creation",
-                    message=f"Congrats on joining {club.name}! Finish creating your account...",
-                    from_email="admin@example.com",
-                    recipient_list=[user_email],
-                )
-        else:
-            if User.objects.find_by_id(user_id) is None:
-                raise exceptions.ObjectDoesNotExist(
-                    f"User with id {user_id} does not exist!"
-                )
-            user = User.objects.get_by_id(user_id)
-            
-            # User ID is add-only, after initial creation it is read-only
-            if ClubMembership.objects.find(club=club, user=user) is not None:
-                raise exceptions.ValidationError(
-                    "user_id is readonly after initial membership creation!"
-                )
         
         # Create membership
         membership = ClubMembership.objects.create(club=club, user=user)
         
         return membership
-
-    # Default representation does not include user_email, so manually include it ourselves
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        
-        data['user_email'] = User.objects.get_by_id(data['user_id']).email
-
-        return data
-
 
 class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
     """Serialize club memberships for a csv."""
