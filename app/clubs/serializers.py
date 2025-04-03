@@ -9,6 +9,8 @@ from clubs.models import (
     TeamRole,
 )
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
+from django.core import exceptions
+from django.core.mail import send_mail
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -111,10 +113,48 @@ class TeamCsvSerializer(CsvModelSerializer):
 
 class ClubMembershipSerializer(ModelSerializerBase):
     """Represents a club membership to use for CRUD operations."""
+    
+    class UserSerializer(ModelSerializerBase):
+        id = serializers.IntegerField(required=False)
+        email = serializers.EmailField(required=False)
+        
+        def validate(self, data):
+            id = data.get("id")
+            email = data.get("email")
+            
+            # Validate user_id and user_email
+            if id is None and email is None:
+                raise exceptions.ValidationError(
+                    "Either user_id or user_email is required!"
+                )
+            
+            if id is not None and email is not None:
+                raise exceptions.ValidationError(
+                    "Either provide user_id or user_email, not both!"
+                )
+            
+            if email is not None:
+                user, created = User.objects.get_or_create(email=email)
 
-    user_id = serializers.SlugRelatedField(
-        slug_field="id", source="user", queryset=User.objects.all()
-    )
+                # New user was created, send an email to sign up
+                if created:
+                    # TODO: Update this to send_html_mail and fill out fields
+                    send_mail(
+                        subject="Finish Account Creation",
+                        message=f"Finish creating your account...",
+                        from_email="admin@example.com",
+                        recipient_list=[email],
+                    )
+            else:
+                user = User.objects.get_by_id(id)
+            
+            return user
+        
+        class Meta:
+            model = User
+            fields = ['id', 'email']
+
+    user = UserSerializer()
     club_id = serializers.SlugRelatedField(
         slug_field="id", source="club", read_only=True
     )
@@ -123,12 +163,20 @@ class ClubMembershipSerializer(ModelSerializerBase):
         model = ClubMembership
         fields = [
             *ModelSerializerBase.default_fields,
-            "user_id",
+            "user",
             "club_id",
             "owner",
             "points",
         ]
-
+    
+    def create(self, validated_data):
+        user = validated_data.get("user")
+        club = validated_data.get("club")
+        
+        # Create membership
+        membership = ClubMembership.objects.create(club=club, user=user)
+        
+        return membership
 
 class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
     """Serialize club memberships for a csv."""
