@@ -80,34 +80,39 @@ docker-compose run --rm app sh -c "python manage.py test"
 
 If you have Taskfile installed, you can use the following:
 
-| Command                       | Purpose                                              |
-| ----------------------------- | ---------------------------------------------------- |
-| `task setup`                  | Setup local python environment                       |
-| `task dev`                    | Start the server in "dev" mode                       |
-| `task dev:slim`               | Start only essential dev services                    |
-| `task network`                | Starts the server in "network" mode                  |
-| `task test`                   | Run unit tests                                       |
-| `task test -- app_name`       | Run unit tests for a specific app (replace app_name) |
-| `task makemigrations`         | Create database migration files                      |
-| `task makemigrations:dry-run` | Run makemigrations but don't create files            |
-| `task migrate`                | Apply migration files to the database                |
-| `task lint`                   | Check code lint rules with Flake8                    |
-| `task format`                 | Check but don't apply formatting rules               |
-| `task format:fix`             | Format codebase using Black                          |
-| `task shell`                  | Start a new Django interactive shell                 |
+| Command                       | Purpose                                                       |
+| ----------------------------- | ------------------------------------------------------------- |
+| `task setup`                  | Setup local python environment                                |
+| `task dev`                    | Start the server in "dev" mode                                |
+| `task dev:slim`               | Start only essential dev services                             |
+| `task network`                | Starts the server in "network" mode                           |
+| `task test`                   | Run unit tests                                                |
+| `task test -- app_name`       | Run unit tests for a specific app (replace app_name)          |
+| `task makemigrations`         | Create database migration files                               |
+| `task makemigrations:dry-run` | Run makemigrations but don't create files                     |
+| `task migrate`                | Apply migration files to the database                         |
+| `task lint`                   | Check code lint rules with Flake8                             |
+| `task format`                 | Check but don't apply formatting rules                        |
+| `task format:fix`             | Format codebase using Black                                   |
+| `task shell`                  | Start a new Django interactive shell                          |
+| `task down`                   | Stop all docker containers created by `task dev`              |
+| `task clean`                  | Stop containers and remove volumes created by `task dev`      |
+| `task down:slim`              | Stop all docker containers created by `task dev:slim`         |
+| `task clean:slim`             | Stop containers and remove volumes created by `task dev:slim` |
 
 ## Local Dev Links
 
 Running the server in dev mode will start up the following services:
 
-| Service         | Description                                              | Link                              |
-| --------------- | -------------------------------------------------------- | --------------------------------- |
-| Django Server   | Main development server                                  | <http://localhost:8000/>          |
-| API Docs        | REST API documentation created by Swagger/OpenAPI        | <http://localhost:8000/api/docs/> |
-| Admin Dashboard | Django's model admin dashboard                           | <http://localhost:8000/admin/>    |
-| Test Coverage   | A detailed view of test coverage                         | <http://localhost:8001/>          |
-| PGAdmin         | Directly view and manage postgres database for debugging | <http://localhost:8888/>          |
-| MailHog         | Local test email server to view emails sent by django    | <http://localhost:8025/>          |
+| Service         | Description                                              | Link                                           |
+| --------------- | -------------------------------------------------------- | ---------------------------------------------- |
+| Django Server   | Main development server                                  | <http://localhost:8000/>                       |
+| API Docs        | REST API documentation created by Swagger/OpenAPI        | <http://localhost:8000/api/docs/>              |
+| OAuth API Docs  | OAuth REST API documentation created by django-allauth   | <http://localhost:8000/api/oauth/openapi.html> |
+| Admin Dashboard | Django's model admin dashboard                           | <http://localhost:8000/admin/>                 |
+| Test Coverage   | A detailed view of test coverage                         | <http://localhost:8001/>                       |
+| PGAdmin         | Directly view and manage postgres database for debugging | <http://localhost:8888/>                       |
+| MailHog         | Local test email server to view emails sent by django    | <http://localhost:8025/>                       |
 
 ## Admin Dashboard
 

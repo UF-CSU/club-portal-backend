@@ -120,6 +120,8 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         for perm in permissions:
             role.permissions.add(perm)
 
+        return role
+
 
 class ClubRole(ModelBase):
     """Extend permission group to manage club roles."""
@@ -188,9 +190,13 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
     def update_or_create(self, defaults=None, **kwargs):
         defaults = defaults or {}
         roles = defaults.pop("roles", [])
+        teams = defaults.pop("teams", [])
 
         membership, _ = super().update_or_create(defaults, **kwargs)
         membership.add_roles(*roles)
+
+        for team in teams:
+            TeamMembership.objects.get_or_create(team=team, user=membership.user)
 
         return membership
 
@@ -208,7 +214,7 @@ class ClubMembership(ModelBase):
     roles = models.ManyToManyField(ClubRole, blank=True)
 
     # Foreign Relationships
-    teams: models.QuerySet["Team"]
+    # teams: models.QuerySet["Team"]
 
     # Overrides
     objects: ClassVar[ClubMembershipManager] = ClubMembershipManager()
@@ -295,6 +301,7 @@ class Team(ModelBase):
 
     # Foreign Relationships
     memberships: models.QuerySet["TeamMembership"]
+    roles: models.QuerySet["TeamRole"]
 
     # Overrides
     class Meta:
@@ -305,6 +312,105 @@ class Team(ModelBase):
         ]
 
 
+class TeamRoleManager(ManagerBase["TeamRole"]):
+    """Manage queries for team roles."""
+
+    def create(self, team: Team, name: str, default=False, perm_labels=None, **kwargs):
+        """
+        Create new team role.
+
+        Can either assign initial permissions by perm_labels as ``list[str]``, or
+        by permissions as ``list[Permission]``.
+        """
+        perm_labels = perm_labels if perm_labels is not None else []
+        permissions = kwargs.pop("permissions", [])
+
+        role = super().create(team=team, name=name, default=default, **kwargs)
+
+        for perm in perm_labels:
+            perm = get_permission(perm)
+            role.permissions.add(perm)
+
+        for perm in permissions:
+            role.permissions.add(perm)
+
+        return role
+
+
+class TeamRole(ModelBase):
+    """Extend permission group to manage club roles."""
+
+    name = models.CharField(max_length=32)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="roles")
+    default = models.BooleanField(
+        default=False,
+        help_text="New members would be automatically assigned this role.",
+    )
+    permissions = models.ManyToManyField(Permission, blank=True)
+
+    # Overrides
+    objects: ClassVar[TeamRoleManager] = TeamRoleManager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("default", "team"),
+                condition=models.Q(default=True),
+                name="only_one_default_team_role_per_team",
+            ),
+            models.UniqueConstraint(
+                fields=("name", "team"), name="unique_rolename_per_team"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.team})"
+
+    def clean(self):
+        """Validate and sync team roles on save."""
+        if self.default:
+            # Force all other roles to be false
+            self.team.roles.exclude(id=self.id).update(default=False)
+
+        return super().clean()
+
+    def delete(self, *args, **kwargs):
+        """Preconditions for team role deletion."""
+        assert not self.default, "Cannot delete default team role."
+
+        return super().delete(*args, **kwargs)
+
+
+class TeamMembershipManager(ManagerBase["TeamMembership"]):
+    """Manage queries for TeamMemberships."""
+
+    def create(
+        self, team: Team, user: User, roles: Optional[list[ClubRole]] = None, **kwargs
+    ):
+        """Create new team membership."""
+        roles = roles if roles is not None else []
+
+        membership = super().create(team=team, user=user, **kwargs)
+
+        if len(roles) < 1:
+            default_role = team.roles.get(default=True)
+            roles.append(default_role)
+
+        for role in roles:
+            membership.roles.add(role)
+
+        return membership
+
+    def update_or_create(self, defaults=None, **kwargs):
+        defaults = defaults or {}
+        roles = defaults.pop("roles", [])
+
+        membership, _ = super().update_or_create(defaults, **kwargs)
+        membership.add_roles(*roles)
+
+        return membership
+
+
 class TeamMembership(ModelBase):
     """Manage club member's assignment to a team."""
 
@@ -312,8 +418,11 @@ class TeamMembership(ModelBase):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="team_memberships"
     )
+    roles = models.ManyToManyField(TeamRole, blank=True)
 
     # Overrides
+    objects: ClassVar["TeamMembershipManager"] = TeamMembershipManager()
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -330,3 +439,17 @@ class TeamMembership(ModelBase):
             )
 
         return super().clean()
+
+    def add_roles(self, *roles, commit=True):
+        """Add TeamRole to membership."""
+
+        for role in roles:
+            # If there's an issue, reverse all db ops
+            with transaction.atomic():
+                if role in self.roles.all():
+                    continue
+
+                self.roles.add(role)
+
+                if commit:
+                    self.save()

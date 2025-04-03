@@ -9,7 +9,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 from clubs.models import ClubMembership
 from core.abstracts.admin import ModelAdminBase
-from users.models import Profile, User
+from users.models import Profile, SocialProfile, User
 from users.serializers import UserCsvSerializer
 
 
@@ -43,6 +43,13 @@ class CreateUserForm(UserCreationForm):
     class Meta:
         model = User
         fields = UserCreationForm.Meta.fields + ("email",)
+
+
+class SocialProfileInline(admin.StackedInline):
+    """Manage user's social profiles in admin."""
+
+    model = SocialProfile
+    extra = 1
 
 
 class UserAdmin(BaseUserAdmin, ModelAdminBase):
@@ -82,7 +89,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         ),
     )
 
-    inlines = (UserProfileInline, UserClubMembershipInline)
+    inlines = (UserProfileInline, SocialProfileInline, UserClubMembershipInline)
 
 
 admin.site.register(User, UserAdmin)

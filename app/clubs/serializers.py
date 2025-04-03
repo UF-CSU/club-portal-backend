@@ -1,4 +1,13 @@
-from clubs.models import Club, ClubMembership, ClubRole, ClubSocialProfile, ClubTag
+from clubs.models import (
+    Club,
+    ClubMembership,
+    ClubRole,
+    ClubSocialProfile,
+    ClubTag,
+    Team,
+    TeamMembership,
+    TeamRole,
+)
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from django.core import exceptions
 from django.core.mail import send_mail
@@ -26,10 +35,21 @@ class ClubMemberNestedSerializer(serializers.ModelSerializer):
         ]
 
 
+class ClubSocialNestedSerializer(CsvModelSerializer):
+    """Represents social profiles for clubs."""
+
+    class Meta:
+        model = ClubSocialProfile
+        fields = ["id", "url", "username", "social_type", "order"]
+
+
 class ClubSerializer(ModelSerializerBase):
     """Convert club model to JSON fields."""
 
     members = ClubMemberNestedSerializer(many=True, read_only=True)
+    socials = ClubSocialNestedSerializer(many=True, read_only=True)
+    # tags = ClubTagNestedSerializer(many=True, read_only=True)
+    # teams = ClubTeamNestedSerializer(many=True, read_only=True)
 
     class Meta:
         model = Club
@@ -37,16 +57,14 @@ class ClubSerializer(ModelSerializerBase):
             *ModelSerializerBase.default_fields,
             "name",
             "logo",
+            "about",
+            "founding_year",
+            "contact_email",
+            # "tags",
             "members",
+            # "teams",
+            "socials"
         ]
-
-
-class ClubSocialNestedSerializer(CsvModelSerializer):
-    """Represents social profiles for clubs in club csvs."""
-
-    class Meta:
-        model = ClubSocialProfile
-        fields = ["id", "url", "username", "social_type", "order"]
 
 
 class ClubCsvSerializer(CsvModelSerializer):
@@ -60,6 +78,36 @@ class ClubCsvSerializer(CsvModelSerializer):
 
     class Meta:
         model = Club
+        fields = "__all__"
+
+
+class TeamMemberNestedCsvSerializer(CsvModelSerializer):
+    """Represents team memberships in csvs."""
+
+    roles = WritableSlugRelatedField(
+        slug_field="name",
+        queryset=TeamRole.objects.none(),
+        many=True,
+        required=False,
+    )
+    roles = serializers.SlugRelatedField(
+        slug_field="name", queryset=TeamRole.objects.none(), many=True, required=False
+    )
+    user = serializers.SlugRelatedField(slug_field="email", queryset=User.objects.all())
+
+    class Meta:
+        model = TeamMembership
+        fields = ["id", "user", "roles"]
+
+
+class TeamCsvSerializer(CsvModelSerializer):
+    """Represent teams in csvs."""
+
+    club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
+    memberships = TeamMemberNestedCsvSerializer(many=True, required=False)
+
+    class Meta:
+        model = Team
         fields = "__all__"
 
 
