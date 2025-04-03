@@ -1,0 +1,124 @@
+body {
+  margin: 0px;
+}
+.background-1{
+  background: #51A5AE;
+  width: 50vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  justify-items: left;
+  align-content: left;
+}
+
+.background-2{
+  background: #204246;
+  flex-grow: 1;
+}
+
+.background-3{
+  background: #102123;
+  flex-grow: 1;
+}
+.background-0{
+  flex-grow: 1;
+}
+
+.form-body{
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  justify-content: center;
+  align-items: center;
+  width: 50vw;
+  margin: auto;
+  position: relative;
+  
+}
+
+.form-container{
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.input-container{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.formBody-container{
+  width: 100%;
+}
+
+.landing-container{
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
+  height: 100vh;
+}
+
+.sidebar-square{
+  width: 61px;
+  height: 61px;
+  background-color: white;
+}
+
+.sidebar-container{
+  width: 15rem;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #204246;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.sidebar-controls{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  min-height: 280px;
+  max-height: 900px;
+  width: 100%;
+}
+
+.sidebar-option-main{
+  display: flex;
+  flex-direction: row;
+}
+
+.sidebar-icon-container{
+  width: 24px;
+  height: 24px;
+  background-color: white;
+}
+
+.sidebar-control-text-layout{
+  margin-left: 28px;
+}
+
+
+.sidebar-title{
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: row;
+}
+
+.navbar-club{
+  color: #FFF;
+  font-family: Inter;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: 0.72px;
+}
+
+.icon-placeholder{
+  width: 30px;
+  height: 30px;
+  background: #D9D9D9;
+}

@@ -1,0 +1,143 @@
+# Taskfile docs: https://taskfile.dev/
+version: '3'
+
+tasks:
+  setup:
+    desc: 'Run initial setup for the repo using venv'
+    cmds:
+      - cp ./sample.env ./.env
+      - python3 -m venv ./.venv
+      - source ./.venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && pip install -r requirements.dev.txt
+
+  build:
+    desc: 'Build docker image if necessary'
+    sources:
+      - ./Dockerfile
+      - ./requirements*.txt
+    run: when_changed
+    cmds:
+      - docker-compose build
+
+  build:network:
+    sources:
+      - ./Dockerfile
+      - ./requirements*.txt
+    run: when_changed
+    cmds:
+      - docker-compose -f docker-compose.network.yml build
+
+  dev:
+    desc: 'Run the servers config in dev mode'
+    deps:
+      - build
+    cmds:
+      # - docker-compose up
+      - docker-compose --profile dev up
+
+  dev:slim:
+    desc: 'Run only essential services with dev mode'
+    deps:
+      - build
+    cmds:
+      - docker-compose --profile slim up
+
+  network:
+    desc: 'Run server in network mode'
+    deps:
+      - build:network
+    cmds:
+      - docker-compose -f docker-compose.network.yml up
+
+  lint:
+    desc: 'Lint python using Flake8'
+    cmds:
+      - docker-compose run --rm app sh -c "flake8"
+
+  format:
+    desc: 'Check code formatting using Black'
+    cmds:
+      - docker-compose run --rm app sh -c "black --check . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --check --quiet --recursive --exclude "migrations" . && isort --check ."
+
+  format:fix:
+    desc: 'Format code using Black'
+    cmds:
+      - docker-compose run --rm app sh -c "black . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --quiet --recursive --exclude "migrations" . && isort ."
+
+  test:
+    desc: 'Run unit tests'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py test {{.CLI_ARGS}}"
+
+  makemigrations:dry-run:
+    desc: 'Runs makemigrations command with --dry-run in django'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py makemigrations --dry-run"
+
+  makemigrations:
+    desc: 'Create migration files if any models have changed'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py makemigrations"
+
+  migrate:
+    desc: 'Apply migrations to the database.'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py migrate"
+
+  build-docker:clubs:
+    desc: 'Build docker image for clubs server'
+    cmds:
+      - docker buildx build --platform=linux/amd64,linux/arm64 -t ikehunter5/club-manager:latest -f ./Dockerfile .
+
+  push-docker:clubs:
+    desc: 'Push docker image for clubs server'
+    cmds:
+      - docker buildx build --platform=linux/amd64,linux/arm64 -t ikehunter5/club-manager:latest -f ./Dockerfile . --push
+
+  push-docker:proxy:
+    desc: 'Push docker image for clubs proxy server'
+    cmds:
+      - docker buildx build --platform=linux/amd64,linux/arm64 -t ikehunter5/club-manager-proxy:latest ./deploy/proxy --push
+
+  show_urls:
+    desc: 'List available urls in django'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py show_urls"
+
+  shell:
+    desc: 'Open interactive django shell'
+    interactive: true
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py shell"
+      
+  down:
+    desc: "Stop containers"
+    cmds:
+      - docker-compose --profile dev down --remove-orphans
+  
+  clean:
+    desc: "Stop containers and remove volumes"
+    cmds:
+      - docker-compose --profile dev down --remove-orphans -v
+  
+  down:slim:
+    desc: "Stop containers"
+    cmds:
+      - docker-compose --profile slim down --remove-orphans
+  
+  clean:slim:
+    desc: "Stop containers and remove volumes"
+    cmds:
+      - docker-compose --profile slim down --remove-orphans -v
+      

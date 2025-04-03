@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Dashboard - ClubHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> 
+    <link rel="stylesheet" href="../../static/clubs/club-home.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">Club logo/name</div>
+        <div class="nav-links">
+            <a href="#" class="nav-link active">Dashboard</a>
+            <a href="#" class="nav-link">Events</a>
+            <a href="#" class="nav-link">Members</a>
+            <a href="#" class="nav-link">Resources</a>
+        </div>
+        <div class="user-menu">
+            <div class="user-info">
+                <div class="avatar">JD</div>
+                <div class="user-details">
+                    <span class="user-name">John Doe</span>
+                    <span class="user-role">Member</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="welcome-banner">
+        <h1>Welcome back, John!</h1>
+        <p>Your next event: Monthly game night at Reitz Union game room</p>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Your Upcoming Events</h2>
+                <button class="btn">
+                    <i class="fas fa-plus"></i> RSVP to Events
+                </button>
+            </div>
+            <ul class="event-list">
+                <li class="event-item">
+                    <div class="event-header">
+                        <h3>Monthly Social Mixer</h3>
+                        <div class="event-status confirmed">Confirmed</div>
+                    </div>
+                    <span class="event-date"><i class="far fa-calendar"></i> Feb 20, 2025 • 6:00 PM</span>
+                    <span class="event-location"><i class="fas fa-location-dot"></i> Reitz Union G225</span>
+                </li>
+                <li class="event-item">
+                    <div class="event-header">
+                        <h3>Workshop: Leadership Skills</h3>
+                        <div class="event-status pending">RSVP Needed</div>
+                    </div>
+                    <span class="event-date"><i class="far fa-calendar"></i> Feb 25, 2025 • 2:00 PM</span>
+                    <span class="event-location"><i class="fas fa-location-dot"></i> Little Hall 0112</span>
+                </li>
+                <li class="event-item">
+                    <div class="event-header">
+                        <h3>Annual Club Meeting</h3>
+                        <div class="event-status confirmed">Confirmed</div>
+                    </div>
+                    <span class="event-date"><i class="far fa-calendar"></i> Mar 1, 2025 • 10:00 AM</span>
+                    <span class="event-location"><i class="fas fa-location-dot"></i> Carlton Auditorium</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Your Membership</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">15</div>
+                    <div class="stat-label">Events Attended</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">95%</div>
+                    <div class="stat-label">Attendance Rate</div>
+                </div>
+            </div>
+            <div class="card-header">
+                <h2 class="card-title">Add other stats if wanted</h2>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Recent Club Activity</h2>
+                <button class="btn btn-text">View All</button>
+            </div>
+            <ul class="activity-list">
+                <li class="activity-item">
+                    <div class="activity-icon new-member">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h3>New member joined: John Doe</h3>
+                        <p>Say whats up to our newest member!</p>
+                        <span class="activity-date">2 hours ago</span>
+                    </div>
+                </li>
+                <li class="activity-item">
+                    <div class="activity-icon event-update">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h3>Monthly Social Mixer: Location Updated</h3>
+                        <p>information-------------------</p>
+                        <span class="activity-date">5 hours ago</span>
+                    </div>
+                </li>
+                <li class="activity-item">
+                    <div class="activity-icon announcement">
+                        <i class="fas fa-bullhorn"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h3>New Club Policy Announced</h3>
+                        <p>information -------------------</p>
+                        <span class="activity-date">1 day ago</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

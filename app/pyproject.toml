@@ -1,0 +1,56 @@
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+skip = ['migrations']
+
+# Not supported yet
+# [tool.flake8]
+# max-line-length = 120
+# exclude = [
+#     'migrations/*',
+#     '__pycache__',
+#     'manage.py',
+#     'settings.py'
+# ]
+# ignore = ['W503']
+
+[tool.coverage.run]
+source = ['.']
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if __name__ == '.__main__'.:",
+    "if __name__ == \"__main__\":",
+    "if __name__ == \"__main__\":",
+    "if __name__ == '__main__':",
+    "def __str__",
+]
+fail_under = 100
+omit = ['*/migrations/*', '*/tests/*', '*/__init__.py', '*/admin.py', '*/apps.py', '*/urls.py', '*/wsgi.py', '*/settings.py', '*/asgi.py', '*/manage.py',  '*/tests.py', '*/lib/*', '*/mock/*']
+sort = "Cover"

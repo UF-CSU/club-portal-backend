@@ -1,0 +1,50 @@
+.navbar{
+  margin-top: 24px;
+  margin-left: 35px;
+  margin-right: 35px;
+  margin-bottom: 24px;
+  height: 3.5rem;
+  background-color: #51A5AE;
+  width: 1496px;
+  border-radius: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.club-selector-container{
+  display: flex;
+  
+}
+
+.navbar-controls-container{
+  display: flex;
+  width: 620px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-controls-container .search-bar-container{
+  display: flex;
+  width: 435px;
+}
+
+.search-bar-container .input-field{
+  border-radius: 15px;
+  width: 100%;
+  border: none;
+  padding: 12px;
+
+}
+
+
+
+.navbar-controls-container .club-settings{
+  
+}
+
+.navbar-controls-container .account-settings{
+
+}
