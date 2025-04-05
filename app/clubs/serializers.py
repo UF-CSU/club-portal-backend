@@ -1,3 +1,6 @@
+from rest_framework import serializers
+from rest_framework.fields import empty
+
 from clubs.models import (
     Club,
     ClubMembership,
@@ -11,8 +14,6 @@ from clubs.models import (
 from clubs.services import ClubService
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from rest_framework import serializers
-from rest_framework.fields import empty
 from users.models import User
 
 

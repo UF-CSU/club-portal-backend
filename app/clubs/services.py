@@ -1,16 +1,16 @@
 from typing import Optional
 
-from clubs.models import Club, ClubMembership, ClubRole
-from core.abstracts.services import ServiceBase
 from django.core import exceptions
 from django.core.mail import send_mail
 from django.urls import reverse
+
+from app.settings import DEFAULT_FROM_EMAIL
+from clubs.models import Club, ClubMembership, ClubRole
+from core.abstracts.services import ServiceBase
 from events.models import EventAttendance
 from lib.emails import send_html_mail
 from users.models import User
 from utils.helpers import get_full_url
-
-from app.settings import DEFAULT_FROM_EMAIL
 
 
 class ClubService(ServiceBase[Club]):
