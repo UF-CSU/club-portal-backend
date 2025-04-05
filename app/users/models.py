@@ -4,6 +4,7 @@ User Models.
 
 from typing import ClassVar, Optional
 
+from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -11,8 +12,6 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
-from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from utils.models import UploadFilepathFactory
 
 
@@ -73,9 +72,19 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
 
         return user
 
-    def create_random_password(self):
-        """Create and return a random password."""
-        return self.make_random_password()
+    def get_or_create(self, defaults=None, **kwargs):
+        """Return user if they exist, or create a new one if not."""
+
+        query = self.filter(**kwargs)
+        if query.exists() and query.count() == 1:
+            return query.first(), False
+        elif query.count() > 1:
+            raise User.MultipleObjectsReturned(
+                f"Expected 1 user, but returned {query.count()}!"
+            )
+        else:
+            defaults = defaults or {}
+            return self.create(**defaults, **kwargs), True
 
 
 class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
