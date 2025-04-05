@@ -1,8 +1,10 @@
 from typing import Optional
 
 from django.core import exceptions
+from django.core.mail import send_mail
 from django.urls import reverse
 
+from app.settings import DEFAULT_FROM_EMAIL
 from clubs.models import Club, ClubMembership, ClubRole
 from core.abstracts.services import ServiceBase
 from events.models import EventAttendance
@@ -35,7 +37,11 @@ class ClubService(ServiceBase[Club]):
         return get_full_url(self.join_url)
 
     def add_member(
-        self, user: User, roles: Optional[list[ClubRole]] = None, fail_silently=True
+        self,
+        user: User,
+        roles: Optional[list[ClubRole]] = None,
+        send_email=False,
+        fail_silently=True,
     ):
         """Create membership for pre-existing user."""
 
@@ -51,7 +57,17 @@ class ClubService(ServiceBase[Club]):
             return
 
         # Create new membership
-        return ClubMembership.objects.create(club=self.obj, user=user, roles=roles)
+        member = ClubMembership.objects.create(club=self.obj, user=user, roles=roles)
+
+        if send_email:
+            send_mail(
+                f"You have been added to as a member of {self.obj.name}",
+                recipient_list=[user.email],
+                message=f"You have been added as a member of {self.obj}",
+                from_email=DEFAULT_FROM_EMAIL,
+            )
+
+        return member
 
     def set_member_role(self, user: User, role: ClubRole | str):
         """Replace a member's roles with given role."""

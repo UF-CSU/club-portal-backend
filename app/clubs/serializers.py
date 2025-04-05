@@ -1,3 +1,6 @@
+from rest_framework import serializers
+from rest_framework.fields import empty
+
 from clubs.models import (
     Club,
     ClubMembership,
@@ -8,12 +11,9 @@ from clubs.models import (
     TeamMembership,
     TeamRole,
 )
+from clubs.services import ClubService
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
-from django.core import exceptions
-from django.core.mail import send_mail
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from rest_framework import serializers
-from rest_framework.fields import empty
 from users.models import User
 
 
@@ -22,7 +22,7 @@ class ClubMemberNestedSerializer(serializers.ModelSerializer):
 
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
-    owner = serializers.BooleanField(read_only=True)
+    is_owner = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = ClubMembership
@@ -30,7 +30,7 @@ class ClubMemberNestedSerializer(serializers.ModelSerializer):
             *ModelSerializerBase.default_fields,
             "user_id",
             "username",
-            "owner",
+            "is_owner",
             "points",
         ]
 
@@ -63,7 +63,7 @@ class ClubSerializer(ModelSerializerBase):
             # "tags",
             "members",
             # "teams",
-            "socials"
+            "socials",
         ]
 
 
@@ -111,52 +111,42 @@ class TeamCsvSerializer(CsvModelSerializer):
         fields = "__all__"
 
 
+class ClubMemberUserNestedSerializer(ModelSerializerBase):
+    email = serializers.EmailField(
+        required=True,
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+        ]
+        read_only_fields = ["username", "first_name", "last_name"]
+
+    def validate(self, data):
+        email = data.get("email")
+        user, _ = User.objects.get_or_create(email=email)
+
+        return user
+
+    # def create(self, validated_data):
+    #     print("creating new user")
+    #     return super().create(validated_data)
+
+
 class ClubMembershipSerializer(ModelSerializerBase):
     """Represents a club membership to use for CRUD operations."""
-    
-    class UserSerializer(ModelSerializerBase):
-        id = serializers.IntegerField(required=False)
-        email = serializers.EmailField(required=False)
-        
-        def validate(self, data):
-            id = data.get("id")
-            email = data.get("email")
-            
-            # Validate user_id and user_email
-            if id is None and email is None:
-                raise exceptions.ValidationError(
-                    "Either user_id or user_email is required!"
-                )
-            
-            if id is not None and email is not None:
-                raise exceptions.ValidationError(
-                    "Either provide user_id or user_email, not both!"
-                )
-            
-            if email is not None:
-                user, created = User.objects.get_or_create(email=email)
 
-                # New user was created, send an email to sign up
-                if created:
-                    # TODO: Update this to send_html_mail and fill out fields
-                    send_mail(
-                        subject="Finish Account Creation",
-                        message=f"Finish creating your account...",
-                        from_email="admin@example.com",
-                        recipient_list=[email],
-                    )
-            else:
-                user = User.objects.get_by_id(id)
-            
-            return user
-        
-        class Meta:
-            model = User
-            fields = ['id', 'email']
-
-    user = UserSerializer()
+    user = ClubMemberUserNestedSerializer()
     club_id = serializers.SlugRelatedField(
         slug_field="id", source="club", read_only=True
+    )
+    send_email = serializers.BooleanField(
+        default=False, write_only=True, required=False
     )
 
     class Meta:
@@ -165,18 +155,22 @@ class ClubMembershipSerializer(ModelSerializerBase):
             *ModelSerializerBase.default_fields,
             "user",
             "club_id",
-            "owner",
+            "is_owner",
             "points",
+            "send_email",
         ]
-    
+
     def create(self, validated_data):
         user = validated_data.get("user")
         club = validated_data.get("club")
-        
-        # Create membership
-        membership = ClubMembership.objects.create(club=club, user=user)
-        
+        send_email = validated_data.pop("send_email", False)
+
+        membership = ClubService(club).add_member(
+            user, send_email=send_email, fail_silently=False
+        )
+
         return membership
+
 
 class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
     """Serialize club memberships for a csv."""

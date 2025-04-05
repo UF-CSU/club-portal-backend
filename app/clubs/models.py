@@ -209,7 +209,7 @@ class ClubMembership(ModelBase):
         User, related_name="club_memberships", on_delete=models.CASCADE
     )
 
-    owner = models.BooleanField(default=False, blank=True)
+    is_owner = models.BooleanField(default=False, blank=True)
     points = models.IntegerField(default=0, blank=True)
     roles = models.ManyToManyField(ClubRole, blank=True)
 
@@ -227,9 +227,9 @@ class ClubMembership(ModelBase):
             models.UniqueConstraint(
                 fields=(
                     "club",
-                    "owner",
+                    "is_owner",
                 ),
-                condition=models.Q(owner=True),
+                condition=models.Q(is_owner=True),
                 name="only_one_owner_per_club",
             ),
             models.UniqueConstraint(
@@ -252,7 +252,7 @@ class ClubMembership(ModelBase):
                     self.save()
 
     def delete(self, *args, **kwargs):
-        assert self.owner is False, "Cannot delete owner of club."
+        assert self.is_owner is False, "Cannot delete owner of club."
 
         return super().delete(*args, **kwargs)
 
