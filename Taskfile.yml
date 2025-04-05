@@ -121,6 +121,13 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py shell"
       
+  loaddata:
+    desc: "Load all available fixtures/mock data into database"
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py loaddata clubs"
+      
   down:
     desc: "Stop containers"
     cmds:
