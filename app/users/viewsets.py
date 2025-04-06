@@ -2,14 +2,14 @@
 Views for the user API.
 """
 
+from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.urls import reverse_lazy
 from rest_framework import authentication, generics, mixins
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
-
-from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from users.serializers import OauthDirectorySerializer, UserSerializer
 
 
@@ -33,6 +33,11 @@ class AuthTokenView(
     ]
 
     def retrieve(self, request, *args, **kwargs):
+        if request.user.is_anonymous:
+            raise AuthenticationFailed(
+                "Unable to retrieve token for unauthenticated user."
+            )
+
         token, _ = Token.objects.get_or_create(user=request.user)
         return Response({"token": token.key})
 
