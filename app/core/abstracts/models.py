@@ -227,6 +227,10 @@ class SocialType(models.TextChoices):
     FACEBOOK = "facebook", _("Facebook")
     TWITTER = "twitter", _("Twitter (X)")
     LINKEDIN = "linkedin", _("LinkedIn")
+    GITHUB = "github", _("GitHub")
+    WEBSITE = "website", _("Personal Website")
+    BLUESKY = "bluesky", _("BlueSky")
+    OTHER = "other", _("Other")
 
 
 class SocialProfileBase(ModelBase):

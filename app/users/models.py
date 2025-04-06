@@ -9,10 +9,13 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import MaxValueValidator
 
 from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
+from lib.countries import CountryField
 from utils.models import UploadFilepathFactory
 
 
@@ -151,31 +154,37 @@ class Profile(ModelBase):
         User, primary_key=True, related_name="profile", on_delete=models.CASCADE
     )
 
-    phone = models.CharField(max_length=20, blank=True, null=True)
-
-    first_name = models.CharField(max_length=255, blank=True, null=True)
-    middle_name = models.CharField(max_length=255, blank=True, null=True)
-    last_name = models.CharField(max_length=255, blank=True, null=True)
-    title = models.CharField(
-        max_length=255, blank=True, null=True, help_text="Mr/Mrs/Dr/etc"
-    )
-    nickname = models.CharField(max_length=255, blank=True, null=True)
-
-    address_1 = models.CharField(max_length=255, null=True, blank=True)
-    address_2 = models.CharField(max_length=255, null=True, blank=True)
-
-    city = models.CharField(max_length=255, blank=True, null=True)
-    state = models.CharField(max_length=2, blank=True, null=True)
-    zip_code = models.CharField(max_length=10, blank=True, null=True)
-
-    birthday = models.DateField(null=True, blank=True)
-
-    # TODO: Avatar?
     image = models.ImageField(
         upload_to=get_user_profile_filepath,
         default="user/profile.jpeg",
         blank=True,
     )
+
+    phone = models.CharField(max_length=20, blank=True, null=True)
+
+    first_name = models.CharField(max_length=255, blank=True, null=True)
+    middle_name = models.CharField(max_length=255, blank=True, null=True)
+    last_name = models.CharField(max_length=255, blank=True, null=True)
+    prefix = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Mr/Mrs/Dr/etc"
+    )
+    nickname = models.CharField(max_length=255, blank=True, null=True)
+
+    city = models.CharField(max_length=255, blank=True, null=True)
+    state = models.CharField(max_length=2, blank=True, null=True)
+    country = CountryField(null=True, blank=True)
+
+    birthday = models.DateField(null=True, blank=True)
+
+    school_email = models.EmailField(blank=True, null=True)
+    graduation_year = models.IntegerField(
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1900), MaxValueValidator(3000)],
+    )
+    major = models.CharField(blank=True, null=True, max_length=128)
+
+    bio = models.TextField(null=True, blank=True)
 
     @property
     def name(self):
