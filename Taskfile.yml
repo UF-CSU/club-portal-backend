@@ -61,7 +61,7 @@ tasks:
   format:fix:
     desc: 'Format code using Black'
     cmds:
-      - docker-compose run --rm app sh -c "black . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --quiet --recursive --exclude "migrations" . && isort ."
+      - docker-compose run --rm app sh -c "until black --check . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --check --quiet --recursive --exclude 'migrations' . && isort --check .; do black . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --quiet --recursive --exclude 'migrations' . && isort .; done"
 
   test:
     desc: 'Run unit tests'
@@ -120,31 +120,30 @@ tasks:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py shell"
-      
+
   loaddata:
-    desc: "Load all available fixtures/mock data into database"
+    desc: 'Load all available fixtures/mock data into database'
     deps:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py loaddata clubs"
-      
+
   down:
-    desc: "Stop containers"
+    desc: 'Stop containers'
     cmds:
       - docker-compose --profile dev down --remove-orphans
-  
+
   clean:
-    desc: "Stop containers and remove volumes"
+    desc: 'Stop containers and remove volumes'
     cmds:
       - docker-compose --profile dev down --remove-orphans -v
-  
+
   down:slim:
-    desc: "Stop containers"
+    desc: 'Stop containers'
     cmds:
       - docker-compose --profile slim down --remove-orphans
-  
+
   clean:slim:
-    desc: "Stop containers and remove volumes"
+    desc: 'Stop containers and remove volumes'
     cmds:
       - docker-compose --profile slim down --remove-orphans -v
-      

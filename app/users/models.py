@@ -4,7 +4,6 @@ User Models.
 
 from typing import ClassVar, Optional
 
-from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -13,8 +12,10 @@ from django.contrib.auth.models import (
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from lib.countries import CountryField
 from rest_framework.fields import MaxValueValidator
+
+from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
+from lib.countries import CountryField
 from utils.models import UploadFilepathFactory
 
 
