@@ -1,6 +1,3 @@
-from rest_framework import serializers
-from rest_framework.fields import empty
-
 from clubs.models import (
     Club,
     ClubMembership,
@@ -14,7 +11,10 @@ from clubs.models import (
 from clubs.services import ClubService
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from rest_framework import serializers
+from rest_framework.fields import empty
 from users.models import User
+from users.services import UserService
 
 
 class ClubMemberNestedSerializer(serializers.ModelSerializer):
@@ -129,7 +129,11 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
 
     def validate(self, data):
         email = data.get("email")
-        user, _ = User.objects.get_or_create(email=email)
+        user, created = User.objects.get_or_create(email=email)
+        
+        if created:
+            UserService(user).send_password_reset()
+        
 
         return user
 
@@ -161,13 +165,9 @@ class ClubMembershipSerializer(ModelSerializerBase):
         ]
 
     def create(self, validated_data):
-        user = validated_data.get("user")
-        club = validated_data.get("club")
-        send_email = validated_data.pop("send_email", False)
+        club = validated_data.pop("club")
 
-        membership = ClubService(club).add_member(
-            user, send_email=send_email, fail_silently=False
-        )
+        membership = ClubService(club).add_member(**validated_data, fail_silently=False)
 
         return membership
 

@@ -1,12 +1,9 @@
 from typing import Optional
 
-from django.core import exceptions
-from django.core.mail import send_mail
-from django.urls import reverse
-
-from app.settings import DEFAULT_FROM_EMAIL
 from clubs.models import Club, ClubMembership, ClubRole
 from core.abstracts.services import ServiceBase
+from django.core import exceptions
+from django.urls import reverse
 from events.models import EventAttendance
 from lib.emails import send_html_mail
 from users.models import User
@@ -42,6 +39,7 @@ class ClubService(ServiceBase[Club]):
         roles: Optional[list[ClubRole]] = None,
         send_email=False,
         fail_silently=True,
+        **kwargs,
     ):
         """Create membership for pre-existing user."""
 
@@ -57,14 +55,17 @@ class ClubService(ServiceBase[Club]):
             return
 
         # Create new membership
-        member = ClubMembership.objects.create(club=self.obj, user=user, roles=roles)
+        member = ClubMembership.objects.create(
+            club=self.obj, user=user, roles=roles, **kwargs
+        )
+        url = get_full_url(reverse("clubs:accept-invite", args=[user.id]))
 
         if send_email:
-            send_mail(
-                f"You have been added to as a member of {self.obj.name}",
-                recipient_list=[user.email],
-                message=f"You have been added as a member of {self.obj}",
-                from_email=DEFAULT_FROM_EMAIL,
+            send_html_mail(
+                subject=f"You have been added to as a member of {self.obj.name}",
+                to=[user.email],
+                html_template="clubs/email_invite_template.html",
+                html_context={"invite_url": url},
             )
 
         return member

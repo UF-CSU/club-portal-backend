@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from analytics.views import redirect_link_view
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -22,7 +23,6 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from analytics.views import redirect_link_view
 from app.settings import DEV
 
 apipatterns = [
@@ -50,7 +50,7 @@ urlpatterns = [
     path("clubs/", include("clubs.urls")),
     path("events/", include("events.urls")),
     path("dashboard/", include("dashboard.urls")),
-    path("oauth/", include("allauth.urls")),
+    path("oauth/", include("allauth.urls"), name="oauth"),
     path("api/oauth/", include("allauth.headless.urls")),
 ]
 

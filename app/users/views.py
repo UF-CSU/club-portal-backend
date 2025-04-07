@@ -2,16 +2,15 @@
 HTML views.
 """
 
+from clubs.models import Club, ClubMembership
+from clubs.services import ClubService
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import BadRequest, ValidationError
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
-from rest_framework import status
-
-from clubs.models import Club, ClubMembership
-from clubs.services import ClubService
 from events.models import Event
 from events.services import EventService
+from rest_framework import status
 from users.forms import RegisterForm
 from users.services import UserService
 

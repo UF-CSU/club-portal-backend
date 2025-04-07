@@ -13,15 +13,6 @@ from django.urls import reverse_lazy
 from app.settings import LOGIN_URL
 
 
-class AuthFormMixin:
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        for field in form.fields.values():
-            existing = field.widget.attrs.get("class", "")
-            field.widget.attrs["class"] = (existing + " input-field").strip()
-        return form
-
-
 class AuthLoginView(LoginView):
     """
     Wrap default login view.
@@ -53,22 +44,8 @@ class AuthLogoutView(LogoutView):
     next_page = LOGIN_URL
 
 
-# Template for the Password Reset
-class AuthFormView:
-    """Default view for auth forms."""
-
-    template_name = "users/authentication/auth_form.html"
-    extra_context = {"submit_button": "Submit"}
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields["email"].widget.attrs.update({"class": "field-text"})
-        form.fields["email"].widget.attrs.update({"placeholder": "Email Address"})
-        return form
-
-
 # Template for the Email sent to the user requesting the password reset
-class AuthPassResetView(AuthFormView, PasswordResetView):
+class AuthPassResetView(PasswordResetView):
     """
     Wrap default password reset view.
     Extends FormView.
@@ -77,6 +54,7 @@ class AuthPassResetView(AuthFormView, PasswordResetView):
     extra_context = {"submit_button": "Reset Password"}
     success_url = reverse_lazy("users-auth:resetpassword_done")
     email_template_name = "users/authentication/reset_pass_email.html"
+    template_name = "users/authentication/reset_pass_request_form.html"
 
 
 class AuthPassResetDoneView(PasswordResetDoneView):
@@ -88,7 +66,7 @@ class AuthPassResetDoneView(PasswordResetDoneView):
     template_name = "users/authentication/reset_pass_done.html"
 
 
-class AuthPassResetConfirmView(AuthFormView, PasswordResetConfirmView):
+class AuthPassResetConfirmView(PasswordResetConfirmView):
     """
     Wrap default password reset confirm view.
     Extends FormView.
@@ -96,6 +74,7 @@ class AuthPassResetConfirmView(AuthFormView, PasswordResetConfirmView):
 
     extra_context = {"submit_button": "Confirm"}
     success_url = reverse_lazy("users-auth:resetpassword_complete")
+    template_name = "users/authentication/reset_pass_confirm_form.html"
 
 
 class AuthPassResetCompleteView(PasswordResetCompleteView):
@@ -107,7 +86,7 @@ class AuthPassResetCompleteView(PasswordResetCompleteView):
     template_name = "users/authentication/reset_pass_complete.html"
 
 
-class AuthChangePasswordView(AuthFormView, PasswordChangeView):
+class AuthChangePasswordView(PasswordChangeView):
     """
     Wrap default change password view.
     Extends FormView.

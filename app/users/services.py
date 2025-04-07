@@ -1,21 +1,24 @@
+from core.abstracts.services import ServiceBase
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
-
-from app.settings import DEFAULT_AUTH_BACKEND
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from lib.emails import send_html_mail
 from users.models import User
 
+from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND
 
-class UserService:
+
+class UserService(ServiceBase[User]):
     """Manage business logic for users domain."""
-
-    model = User
 
     @classmethod
     def register_user(cls, email: str, password: str, first_name=None, last_name=None):
         """Create a new user in the database."""
 
-        user = cls.model.objects.create_user(
+        user = User.objects.create_user(
             email=email, password=password, first_name=first_name, last_name=last_name
         )
 
@@ -34,9 +37,9 @@ class UserService:
         """Verify user credentials, return user if valid."""
 
         if "@" in username_or_email:
-            user = cls.model.objects.get(profile__email=username_or_email)
+            user = User.objects.get(profile__email=username_or_email)
         else:
-            user = cls.model.objects.get(username=username_or_email)
+            user = User.objects.get(username=username_or_email)
 
         auth_user = authenticate(request, username=user.username, password=password)
 
@@ -44,3 +47,28 @@ class UserService:
             raise ValidationError("Invalid user credentials.")
 
         return user
+
+    def send_password_reset(self):
+        """Send password reset email."""
+
+        user_email = self.obj.email
+
+        protocol, domain = BASE_URL.split("://")
+        domain = domain.split("/")[0]
+
+        context = {
+            "email": user_email,
+            "domain": domain,
+            "site_name": domain,
+            "uid": urlsafe_base64_encode(force_bytes(self.obj.pk)),
+            "user": self.obj,
+            "token": default_token_generator.make_token(self.obj),
+            "protocol": protocol,
+        }
+
+        send_html_mail(
+            subject=f"Password reset on {domain}",
+            html_template="users/authentication/reset_pass_email.html",
+            html_context=context,
+            to=[self.obj.email],
+        )

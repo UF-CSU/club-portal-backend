@@ -43,7 +43,7 @@ def send_html_mail(
             from_email=from_email,
             subject=subject,
             body=text_body,
-            to=[email],
+            to=to,
         )
         message.attach_alternative(html_body, "text/html")
         message.send()
