@@ -1,0 +1,4 @@
+# Redis Chart Docs: https://artifacthub.io/packages/helm/bitnami/redis#parameters
+
+auth:
+  enabled: false

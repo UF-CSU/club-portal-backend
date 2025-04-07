@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load account %}
+{% load socialaccount %}
+
+{% block body %}
+{% user_display user %}
+
+<section>
+  <!-- <a href="{% url 'socialaccount_connections' %}">Connect Social Account</a> -->
+  
+  {% get_social_accounts user as accounts %}
+  Connected Accounts:
+  <ul> 
+    {% for account in accounts %}
+    <li>{{ account }}</li>
+    {% endfor %}
+  </ul>
+  
+  Connect new account:
+  {% get_providers as socialaccount_providers %}
+  <ul>
+    {% for provider in socialaccount_providers %}
+    <li>
+      <a href="{% provider_login_url provider process='connect' %}">{{ provider }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+  
+
+  
+  <p>Please enter your new password twice so we can verify you typed it in correctly.</p>
+
+  <form method="post">
+    {% csrf_token %}
+  <fieldset class="module aligned">
+      <input class="hidden" autocomplete="username" value="{{ form.user.get_username }}">
+      <div class="form-row field-password1">
+          {{ form.new_password1.errors }}
+          <label for="id_new_password1">New password:</label>
+          {{ form.new_password1 }}
+      </div>
+      <div class="form-row field-password2">
+          {{ form.new_password2.errors }}
+          <label for="id_new_password2">Confirm password:</label>
+          {{ form.new_password2 }}
+      </div>
+      <input type="submit" value="Change my password">
+  </fieldset>
+  </form>
+</section>
+
+{% endblock %}

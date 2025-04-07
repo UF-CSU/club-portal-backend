@@ -1,0 +1,65 @@
+{% extends 'base.html' %} {% block body %}
+
+<section>
+  <h1>{{ poll.name }}</h1>
+  <p>{{ poll.description }}</p>
+  <form method="POST">
+    {% csrf_token %}
+    {% for field in poll.fields.all %}
+    <fieldset>
+      <legend for="{{field.question.html_name}}">{{ field.question.label }}</legend>
+      
+      {% if field.question.description %}
+      <p>{{ field.question.description }}</p>
+      {% endif %}
+      
+      {% if field.question.input_type == "text" %}
+        {% if field.question.text_input.text_type == "short" %}
+        <input type="text" id="{{field.question.html_id}}" name="{{field.question.html_name}}">
+        {% elif field.question.text_input.text_type == "long" %}
+        <textarea name="{{field.question.html_name}}" id="{{field.question.html_id}}"></textarea>
+        {% elif field.question.text_input.text_type == "rich" %}
+        <textarea name="{{field.question.html_name}}" id="{{field.question.html_id}}">TODO</textarea>
+        {% endif %}
+      {% elif field.question.input_type == "choice" %}
+        {% if field.question.choice_input.multiple and field.question.choice_input.multiple_choice_type == "select" %}
+        <select name="{{field.question.html_name}}" id="{{field.question.html_id}}" multiple>
+          {% for option in field.question.choice_input.options.all %}
+          <option value="{{option.value}}">{{option.label}}</option>
+          {% endfor %}
+        </select>
+        {% elif field.question.choice_input.multiple and field.question.choice_input.multiple_choice_type == "checkbox" %}
+          {% for option in field.question.choice_input.options.all %}
+          <div>
+            <input type="checkbox" name="{{option.html_name}}" id="{{option.html_id}}" value="{{option.value}}">
+            <label for="{{option.html_id}}">{{option.label}}</label>
+          </div>
+          {% endfor %}
+        {% elif not field.question.choice_input.multiple and field.question.choice_input.single_choice_type == "select" %}
+        <select name="{{field.question.html_name}}" id="{{field.question.html_id}}">
+          {% for option in field.question.choice_input.options.all %}
+          <option value="{{option.value}}">{{option.label}}</option>
+          {% endfor %}
+        </select>
+        {% elif not field.question.choice_input.multiple and field.question.choice_input.single_choice_type == "radio" %}
+        {% for option in field.question.choice_input.options.all %}
+          <div>
+            <input type="radio" name="{{option.html_name}}" id="{{option.html_id}}" value="{{option.value}}">
+            <label for="{{option.html_id}}">{{option.label}}</label>
+          </div>
+          {% endfor %}
+        {% endif %}
+      
+      {% elif field.question.input_type == "range" %}
+      <input type="range" name="{{field.question.html_name}}" id="{{field.question.html_id}}" min="{{field.question.range_input.min_value}}" max="{{field.question.range_input.max_value}}" step="{{field.question.range_input.step}}" value="{{field.question.range_input.initial_value}}">
+      {% elif field.question.input_type == "upload" %}
+      <input type="file" name="{{field.question.html_name}}" id="{{field.question.html_id}}" accept="{{field.question.upload_input.file_types}}" {% if field.question.upload_input.max_files != 1 %}multiple{% endif %} />
+      {% endif %}
+    </fieldset>
+    {% endfor %}
+    
+    <input type="submit" value="Submit">
+  </form>
+</section>
+
+{% endblock %}

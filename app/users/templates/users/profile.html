@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block head %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'user/user_profile.css' %}">
+<script src="{% static 'user/user_profile.js' %}" defer></script>
+{% endblock %}
+
+{% block body %}
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="profile-picture-container">
+      <img src="{% static 'user/profile.jpeg' %}" alt="Profile Picture" class="profile-picture">
+    </div>
+    <h1>My Profile</h1>
+  </div>
+  <div class="profile-info">
+    <div class="profile-item">
+      <span class="field-label">Username</span>
+      <span class="field-value">{{ user.username }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">Email:</span>
+      <span class="field-value">{{ user.email }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">First Name:</span>
+      <span class="field-value">{{ profile.first_name }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">Last Name:</span>
+      <span class="field-value">{{ profile.last_name }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">Phone Number:</span>
+      <span class="field-value">{{ profile.phone }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">Address:</span>
+      <span class="field-value">{{ profile.address_1 }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">City:</span>
+      <span class="field-value">{{ profile.city }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">State:</span>
+      <span class="field-value">{{ profile.state }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">Zip code:</span>
+      <span class="field-value">{{ profile.zip_code }}</span>
+    </div>
+    <div class="profile-item">
+      <span class="field-label">Birthday:</span>
+      <span class="field-value">{{ profile.birthday }}</span>
+    </div>
+    
+  </div>
+
+  <div class="clubs-container">
+    <h3>Clubs & Roles</h3>
+    <ul>
+      {% for membership in clubs %}
+        <li>{{ membership.club.name }} - <strong>{{ membership.get_role_display }}</strong></li>
+      {% empty %}
+        <p>No club memberships.</p>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <button class="edit-button">Edit</button>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'admin/base_site.html' %} {% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-7">
+      <h2>Confirm Upload</h2>
+
+      <ul>
+        <li>Upload Job Id: <strong>{{ upload_job.id }}</strong></li>
+        <li>Object Type: <strong>{{ model_class_name }}</strong></li>
+        <li>
+          Rows Found:
+          <strong>{{ upload_job.spreadsheet.index | length }}</strong>
+        </li>
+        <li>Send Updates To: <strong>{{ upload_job.notify_email }}</strong></li>
+      </ul>
+
+      <h3>Map CSV Headers</h3>
+
+      <p>
+        The table below shows column headers found in the uploaded CSV.
+      </p>
+      <h4>Instructions</h4>
+      <p>
+        The right side of the table gives all available options for fields to map to
+        new/updated {{ model_class_name }} objects. 
+      </p>
+      <ul>
+        <li>
+          Select "PASS" to skip an entire column.
+        </li>
+        <li>
+          All empty field will automatically be skipped
+        </li>
+        <li>
+          If there is an extra column that does not match a field on the {{ model_class_name }} object, 
+          that column will automatically be skipped.
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="row"></div>
+  <div class="row">
+    <form
+      method="post"
+      class="col-8"
+    >
+      {% csrf_token %}{{ formset.management_form }}
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>CSV Header</th>
+            <th>Object Field</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for form in formset %}
+          <tr {% if form.object_field.value == "pass" %} class="table-warning" {% endif %}>
+            <td>{{ form.csv_header }}</td>
+            <td>{{ form.object_field }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button
+        type="submit"
+        class="btn btn-primary"
+      >
+        Submit
+      </button>
+    </form>
+
+   
+  </div>
+  <div class="row">
+    <div class="col-8">
+      
+    </div>
+  </div>
+</div>
+{% endblock %}
