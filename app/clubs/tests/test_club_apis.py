@@ -54,16 +54,17 @@ class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
         self.assertEmailsSent(email_count)
 
     def test_create_club_member_new_user(self):
-        """Should be able to create club member without sending email, will create user."""
+        """Should be able to create club member without sending emails, will create user."""
 
         # Initial setup
         club = create_test_club()
         mem_email = fake.safe_email()
         payload = {
             "club_id": club.id,
-            "user": {"email": mem_email},
+            "user": {"email": mem_email, "send_account_email": False},
             "send_email": False,
             "is_owner": False,
+            "redirect_to": fake.url(),
         }
 
         # Check initial state
@@ -97,6 +98,7 @@ class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
             "user": {"email": user.email},
             "send_email": False,
             "is_owner": False,
+            "redirect_to": fake.url(),
         }
 
         # Check initial state
@@ -126,6 +128,7 @@ class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
             "user": {"email": mem_email},
             "is_owner": True,
             "send_email": True,
+            "redirect_to": fake.url(),
         }
 
         # Check initial state
@@ -137,7 +140,7 @@ class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
         self.assertResCreated(res)
 
         # Validate state
-        self.assertEmailsSent(1)
+        self.assertEmailsSent(2)  # Emails: club invite, setup account
         self.assertEqual(User.objects.filter(email=mem_email).count(), 1)
 
         user = User.objects.filter(email=mem_email).first()

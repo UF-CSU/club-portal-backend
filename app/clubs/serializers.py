@@ -1,3 +1,6 @@
+from rest_framework import serializers
+from rest_framework.fields import empty
+
 from clubs.models import (
     Club,
     ClubMembership,
@@ -11,8 +14,6 @@ from clubs.models import (
 from clubs.services import ClubService
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from rest_framework import serializers
-from rest_framework.fields import empty
 from users.models import User
 from users.services import UserService
 
@@ -115,6 +116,11 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
     email = serializers.EmailField(
         required=True,
     )
+    send_account_email = serializers.BooleanField(
+        default=True,
+        write_only=True,
+        help_text="Send account setup email if user is being created for the first time",
+    )
 
     class Meta:
         model = User
@@ -124,22 +130,19 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
             "username",
             "first_name",
             "last_name",
+            "send_account_email",
         ]
         read_only_fields = ["username", "first_name", "last_name"]
 
     def validate(self, data):
         email = data.get("email")
+        send_account_email = data.pop("send_account_email", True)
         user, created = User.objects.get_or_create(email=email)
-        
-        if created:
-            UserService(user).send_password_reset()
-        
+
+        if created and send_account_email:
+            UserService(user).send_account_setup_link()
 
         return user
-
-    # def create(self, validated_data):
-    #     print("creating new user")
-    #     return super().create(validated_data)
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
@@ -152,6 +155,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
     send_email = serializers.BooleanField(
         default=False, write_only=True, required=False
     )
+    redirect_to = serializers.URLField(write_only=True)
 
     class Meta:
         model = ClubMembership
@@ -161,6 +165,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "club_id",
             "is_owner",
             "points",
+            "redirect_to",
             "send_email",
         ]
 

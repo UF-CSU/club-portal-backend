@@ -76,7 +76,7 @@ class UserService(ServiceBase[User]):
             to=[self.obj.email],
         )
 
-    def send_setup_account_link(self):
+    def send_account_setup_link(self):
         """Send link to user for setting up account."""
 
         url = get_full_url(

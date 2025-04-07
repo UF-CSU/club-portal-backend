@@ -15,7 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from analytics.views import redirect_link_view
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -23,6 +22,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from analytics.views import redirect_link_view
 from app.settings import DEV
 
 apipatterns = [

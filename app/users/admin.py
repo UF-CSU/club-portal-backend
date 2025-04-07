@@ -62,7 +62,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         *BaseUserAdmin.readonly_fields,
         "date_joined",
     )
-    actions = ("send_setup_account_link",)
+    actions = ("send_account_setup_link",)
 
     fieldsets = (
         (None, {"fields": ("username", "email", "password")}),
@@ -94,11 +94,11 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
     inlines = (UserProfileInline, SocialProfileInline, UserClubMembershipInline)
 
     @admin.action
-    def send_setup_account_link(self, request, queryset):
+    def send_account_setup_link(self, request, queryset):
         """Send password reset for each selected user."""
 
         for user in queryset:
-            UserService(user).send_setup_account_link()
+            UserService(user).send_account_setup_link()
 
         return
 

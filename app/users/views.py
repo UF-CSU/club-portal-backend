@@ -117,7 +117,7 @@ def user_points_view(request: HttpRequest):
     return render(request, "users/points.html", context={})
 
 
-def verify_setup_account_view(request: HttpRequest, uidb64: str, token: str):
+def verify_account_setup_view(request: HttpRequest, uidb64: str, token: str):
     """
     Allow users to finish setting up their account.
 
@@ -143,7 +143,7 @@ def verify_setup_account_view(request: HttpRequest, uidb64: str, token: str):
 
 
 @login_required()
-def setup_account_view(request: HttpRequest):
+def account_setup_view(request: HttpRequest):
     """User must authenticate via link first."""
 
     form = SetPasswordForm(request.user)
