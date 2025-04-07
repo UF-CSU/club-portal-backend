@@ -356,7 +356,7 @@ class EventAttendanceLink(Link):
             )
         ]
 
-class EventCancellation(models.Model):
+class EventCancellation(ModelBase):
     event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='cancellation')
     reason = models.TextField(blank=True)
     cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
