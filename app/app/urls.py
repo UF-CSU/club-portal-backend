@@ -50,7 +50,7 @@ urlpatterns = [
     path("clubs/", include("clubs.urls")),
     path("events/", include("events.urls")),
     path("dashboard/", include("dashboard.urls")),
-    path("oauth/", include("allauth.urls")),
+    path("oauth/", include("allauth.urls"), name="oauth"),
     path("api/oauth/", include("allauth.headless.urls")),
 ]
 

@@ -2,10 +2,14 @@
 HTML views.
 """
 
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import BadRequest, ValidationError
 from django.http import HttpRequest
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
 
 from clubs.models import Club, ClubMembership
@@ -13,6 +17,7 @@ from clubs.services import ClubService
 from events.models import Event
 from events.services import EventService
 from users.forms import RegisterForm
+from users.models import User
 from users.services import UserService
 
 
@@ -110,3 +115,37 @@ def user_profile_view(request: HttpRequest):
 def user_points_view(request: HttpRequest):
     """Summary showing the user's points."""
     return render(request, "users/points.html", context={})
+
+
+def verify_account_setup_view(request: HttpRequest, uidb64: str, token: str):
+    """
+    Allow users to finish setting up their account.
+
+    They get this link after their user has been created for the first
+    time by an admin. The user doesn't have a password yet, and does
+    not have any oauth connections - so they are manually authenticated
+    via a "password reset token", so they can "change" (set) their password
+    or connect any oauth accounts.
+    """
+
+    uid = urlsafe_base64_decode(uidb64).decode()
+    user = get_object_or_404(User, pk=uid)
+
+    if default_token_generator.check_token(user, token):
+        if not user.is_active:
+            user.is_active = True
+            user.save()
+
+        login(request, user, backend="core.backend.CustomBackend")
+        return redirect("users:setup_account")
+    else:
+        raise BadRequest("Invalid request")
+
+
+@login_required()
+def account_setup_view(request: HttpRequest):
+    """User must authenticate via link first."""
+
+    form = SetPasswordForm(request.user)
+
+    return render(request, "users/setup_account.html", context={"form": form})

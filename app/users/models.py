@@ -43,10 +43,11 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
 
         if password:
             user.set_password(password)
+            user.is_active = True
         else:
             user.set_unusable_password()
+            user.is_active = False
 
-        user.is_active = True
         user.save(using=self._db)
 
         Profile.objects.create(
@@ -133,6 +134,11 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
             return None
 
         return self.profile.last_name
+
+    @property
+    def can_authenticate(self):
+        """See if this user has a way to authenticate with the server."""
+        return self.has_usable_password() or self.socialaccount_set.count() > 0
 
     # Overrides
     def __str__(self):

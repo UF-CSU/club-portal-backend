@@ -15,6 +15,7 @@ from clubs.services import ClubService
 from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
+from users.services import UserService
 
 
 class ClubMemberNestedSerializer(serializers.ModelSerializer):
@@ -115,6 +116,11 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
     email = serializers.EmailField(
         required=True,
     )
+    send_account_email = serializers.BooleanField(
+        default=True,
+        write_only=True,
+        help_text="Send account setup email if user is being created for the first time",
+    )
 
     class Meta:
         model = User
@@ -124,18 +130,19 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
             "username",
             "first_name",
             "last_name",
+            "send_account_email",
         ]
         read_only_fields = ["username", "first_name", "last_name"]
 
     def validate(self, data):
         email = data.get("email")
-        user, _ = User.objects.get_or_create(email=email)
+        send_account_email = data.pop("send_account_email", True)
+        user, created = User.objects.get_or_create(email=email)
+
+        if created and send_account_email:
+            UserService(user).send_account_setup_link()
 
         return user
-
-    # def create(self, validated_data):
-    #     print("creating new user")
-    #     return super().create(validated_data)
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
@@ -148,6 +155,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
     send_email = serializers.BooleanField(
         default=False, write_only=True, required=False
     )
+    redirect_to = serializers.URLField(write_only=True)
 
     class Meta:
         model = ClubMembership
@@ -157,17 +165,14 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "club_id",
             "is_owner",
             "points",
+            "redirect_to",
             "send_email",
         ]
 
     def create(self, validated_data):
-        user = validated_data.get("user")
-        club = validated_data.get("club")
-        send_email = validated_data.pop("send_email", False)
+        club = validated_data.pop("club")
 
-        membership = ClubService(club).add_member(
-            user, send_email=send_email, fail_silently=False
-        )
+        membership = ClubService(club).add_member(**validated_data, fail_silently=False)
 
         return membership
 
