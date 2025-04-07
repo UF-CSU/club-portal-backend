@@ -2,12 +2,13 @@
 Users admin config.
 """
 
-from clubs.models import ClubMembership
-from core.abstracts.admin import ModelAdminBase
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+
+from clubs.models import ClubMembership
+from core.abstracts.admin import ModelAdminBase
 from users.models import Profile, SocialProfile, User
 from users.serializers import UserCsvSerializer
 from users.services import UserService
@@ -61,7 +62,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         *BaseUserAdmin.readonly_fields,
         "date_joined",
     )
-    actions = ("send_password_reset",)
+    actions = ("send_setup_account_link",)
 
     fieldsets = (
         (None, {"fields": ("username", "email", "password")}),
@@ -93,11 +94,11 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
     inlines = (UserProfileInline, SocialProfileInline, UserClubMembershipInline)
 
     @admin.action
-    def send_password_reset(self, request, queryset):
+    def send_setup_account_link(self, request, queryset):
         """Send password reset for each selected user."""
 
         for user in queryset:
-            UserService(user).send_password_reset(request)
+            UserService(user).send_setup_account_link()
 
         return
 

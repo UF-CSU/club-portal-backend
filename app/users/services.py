@@ -1,14 +1,17 @@
-from core.abstracts.services import ServiceBase
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.http import HttpRequest
+from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+
+from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
+from core.abstracts.services import ServiceBase
 from lib.emails import send_html_mail
 from users.models import User
-
-from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND
+from utils.helpers import get_full_url
 
 
 class UserService(ServiceBase[User]):
@@ -71,4 +74,25 @@ class UserService(ServiceBase[User]):
             html_template="users/authentication/reset_pass_email.html",
             html_context=context,
             to=[self.obj.email],
+        )
+
+    def send_setup_account_link(self):
+        """Send link to user for setting up account."""
+
+        url = get_full_url(
+            reverse(
+                "users:verify_setup_account",
+                kwargs={
+                    "uidb64": urlsafe_base64_encode(force_bytes(self.obj.pk)),
+                    "token": default_token_generator.make_token(self.obj),
+                },
+            )
+        )
+
+        send_mail(
+            "Finish account setup",
+            message=f"Click here: {url}",
+            from_email=DEFAULT_FROM_EMAIL,
+            recipient_list=[self.obj.email],
+            fail_silently=False,
         )

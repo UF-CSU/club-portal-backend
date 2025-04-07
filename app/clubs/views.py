@@ -38,16 +38,16 @@ def available_clubs_view(request: HttpRequest):
     return render(request, "clubs/available_clubs.html")
 
 
-def accept_invite(request: HttpRequest, user_id: int):
-    """Accept invite to club."""
+# def accept_invite(request: HttpRequest, user_id: int):
+#     """Accept invite to club."""
 
-    user = get_object_or_404(User, id=user_id)
-    login(request, user, backend="core.backend.CustomBackend")
+#     user = get_object_or_404(User, id=user_id)
+#     login(request, user, backend="core.backend.CustomBackend")
 
-    if user.can_authenticate:
-        return JsonResponse({"message": "This should redirect to client..."})
-    else:
-        return redirect("users:setupaccount", args=[user_id])
+#     if user.can_authenticate:
+#         return JsonResponse({"message": "This should redirect to client..."})
+#     else:
+#         return redirect("users:setupaccount", args=[user_id])
 
 
 # def setup_account(request: HttpRequest, user_id: int):
