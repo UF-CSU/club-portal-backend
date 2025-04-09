@@ -1,7 +1,9 @@
+from rest_framework import status, viewsets
+from rest_framework.response import Response
+
 from core.abstracts.viewsets import ModelViewSetBase
 from events.models import Event, EventCancellation
-from rest_framework.response import Response  
-from rest_framework import status, viewsets   
+
 from . import models, serializers
 
 
@@ -26,22 +28,23 @@ class EventViewset(ModelViewSetBase):
 
         return super().get_queryset()
 
+
 class EventCancellationViewSet(viewsets.ModelViewSet):
     queryset = EventCancellation.objects.all()
     serializer_class = serializers.EventCancellationSerializer
 
     def create(self, request, *args, **kwargs):
-        event_id = request.data.get('event_id')
-        reason = request.data.get('reason')
-        cancelled_by = request.user  
+        event_id = request.data.get("event_id")
+        reason = request.data.get("reason")
+        cancelled_by = request.user
         event = Event.objects.get(pk=event_id)
-        
+
         if event:
             cancellation = EventCancellation.objects.create(
-                event=event,
-                reason=reason,
-                cancelled_by=cancelled_by
+                event=event, reason=reason, cancelled_by=cancelled_by
             )
             return Response(serializers.EventCancellationSerializer(cancellation).data)
         else:
-            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND
+            )

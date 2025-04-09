@@ -2,8 +2,9 @@ from rest_framework import serializers
 
 from clubs.models import Club
 from core.abstracts.serializers import ModelSerializerBase
-from events.models import Event, EventTag, EventCancellation
+from events.models import Event, EventCancellation, EventTag
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+
 
 class EventSerializer(ModelSerializerBase):
     class Meta:
@@ -44,7 +45,8 @@ class EventCsvSerializer(CsvModelSerializer):
         model = Event
         fields = "__all__"
 
+
 class EventCancellationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventCancellation
-        fields = '__all__'
+        fields = "__all__"
