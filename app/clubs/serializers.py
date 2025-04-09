@@ -111,6 +111,15 @@ class TeamCsvSerializer(CsvModelSerializer):
         model = Team
         fields = "__all__"
 
+    def __init__(self, instance=None, data=empty, **kwargs):
+        super().__init__(instance, data, **kwargs)
+
+        # TODO: Not reached by querycsv
+        if self.instance:
+            self.fields["memberships"].child.fields["roles"].child_relation.queryset = (
+                TeamRole.objects.filter(team=self.instance)
+            )
+
 
 class ClubMemberUserNestedSerializer(ModelSerializerBase):
     email = serializers.EmailField(
