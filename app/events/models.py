@@ -213,6 +213,10 @@ class Event(EventFields):
             and self.end_at.time() == get_default_end_time()
         )
 
+    @property
+    def is_cancelled(self):
+        return hasattr(self, "cancellation")
+
     # Overrides
     objects: ClassVar[EventManager] = EventManager()
 
@@ -351,3 +355,12 @@ class EventAttendanceLink(Link):
                 name="unique_reference_per_event_attendance_link",
             )
         ]
+
+
+class EventCancellation(ModelBase):
+    event = models.OneToOneField(
+        Event, on_delete=models.CASCADE, related_name="cancellation"
+    )
+    reason = models.TextField(blank=True)
+    cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    cancelled_at = models.DateTimeField(auto_now_add=True)

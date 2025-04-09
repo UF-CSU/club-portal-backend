@@ -28,4 +28,9 @@ urlpatterns = [
         views.download_club_calendar,
         name="eventcalendar_club",
     ),
+    path(
+        "events/<int:event_id>/cancel/",
+        views.cancel_event,
+        name="cancel_event",
+    ),
 ]
