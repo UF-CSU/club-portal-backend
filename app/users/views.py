@@ -131,12 +131,18 @@ def verify_account_setup_view(request: HttpRequest, uidb64: str, token: str):
     uid = urlsafe_base64_decode(uidb64).decode()
     user = get_object_or_404(User, pk=uid)
 
+    next = request.GET.get("next", None)
+
     if default_token_generator.check_token(user, token):
         if not user.is_active:
             user.is_active = True
             user.save()
 
         login(request, user, backend="core.backend.CustomBackend")
+
+        if next:
+            return redirect(next)
+
         return redirect("users:setup_account")
     else:
         raise BadRequest("Invalid request")

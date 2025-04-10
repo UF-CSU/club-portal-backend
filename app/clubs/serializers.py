@@ -18,7 +18,7 @@ from users.models import User
 from users.services import UserService
 
 
-class ClubMemberNestedSerializer(serializers.ModelSerializer):
+class ClubMemberNestedSerializer(ModelSerializerBase):
     """Represents a user's membership within a club."""
 
     user_id = serializers.IntegerField(source="user.id", read_only=True)
@@ -36,7 +36,7 @@ class ClubMemberNestedSerializer(serializers.ModelSerializer):
         ]
 
 
-class ClubSocialNestedSerializer(CsvModelSerializer):
+class ClubSocialNestedSerializer(ModelSerializerBase):
     """Represents social profiles for clubs."""
 
     class Meta:
@@ -68,59 +68,6 @@ class ClubSerializer(ModelSerializerBase):
         ]
 
 
-class ClubCsvSerializer(CsvModelSerializer):
-    """Represents clubs in csvs."""
-
-    socials = ClubSocialNestedSerializer(many=True, required=False)
-    logo = ImageUrlField(required=False)
-    tags = WritableSlugRelatedField(
-        many=True, slug_field="name", queryset=ClubTag.objects.all(), required=False
-    )
-
-    class Meta:
-        model = Club
-        fields = "__all__"
-
-
-class TeamMemberNestedCsvSerializer(CsvModelSerializer):
-    """Represents team memberships in csvs."""
-
-    roles = WritableSlugRelatedField(
-        slug_field="name",
-        queryset=TeamRole.objects.none(),
-        many=True,
-        required=False,
-    )
-    roles = serializers.SlugRelatedField(
-        slug_field="name", queryset=TeamRole.objects.none(), many=True, required=False
-    )
-    user = serializers.SlugRelatedField(slug_field="email", queryset=User.objects.all())
-
-    class Meta:
-        model = TeamMembership
-        fields = ["id", "user", "roles"]
-
-
-class TeamCsvSerializer(CsvModelSerializer):
-    """Represent teams in csvs."""
-
-    club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
-    memberships = TeamMemberNestedCsvSerializer(many=True, required=False)
-
-    class Meta:
-        model = Team
-        fields = "__all__"
-
-    def __init__(self, instance=None, data=empty, **kwargs):
-        super().__init__(instance, data, **kwargs)
-
-        # TODO: Not reached by querycsv
-        if self.instance:
-            self.fields["memberships"].child.fields["roles"].child_relation.queryset = (
-                TeamRole.objects.filter(team=self.instance)
-            )
-
-
 class ClubMemberUserNestedSerializer(ModelSerializerBase):
     email = serializers.EmailField(
         required=True,
@@ -129,6 +76,11 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
         default=True,
         write_only=True,
         help_text="Send account setup email if user is being created for the first time",
+    )
+    account_setup_url = serializers.URLField(
+        required=False,
+        write_only=True,
+        help_text="A new user will click a link in their email that will redirect to this url.",
     )
 
     class Meta:
@@ -140,18 +92,39 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
             "first_name",
             "last_name",
             "send_account_email",
+            "account_setup_url",
         ]
         read_only_fields = ["username", "first_name", "last_name"]
 
     def validate(self, data):
         email = data.get("email")
         send_account_email = data.pop("send_account_email", True)
+        account_setup_url = data.pop("account_setup_url", None)
+
         user, created = User.objects.get_or_create(email=email)
 
         if created and send_account_email:
-            UserService(user).send_account_setup_link()
+            UserService(user).send_account_setup_link(next_url=account_setup_url)
 
         return user
+
+
+class ClubMemberTeamNestedSerializer(ModelSerializerBase):
+    """Display a user's team memberships with the club memberships api."""
+
+    roles = serializers.SlugRelatedField(
+        slug_field="name",
+        many=True,
+        queryset=TeamRole.objects.all(),  # TODO: Restrict roles to team only
+    )
+
+    class Meta:
+        model = TeamMembership
+        fields = [
+            "id",
+            "team",
+            "roles",
+        ]
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
@@ -164,7 +137,13 @@ class ClubMembershipSerializer(ModelSerializerBase):
     send_email = serializers.BooleanField(
         default=False, write_only=True, required=False
     )
-    redirect_to = serializers.URLField(write_only=True)
+
+    club_redirect_url = serializers.URLField(
+        required=False,
+        write_only=True,
+        help_text="If the user has an existing account, they will redirect to this url.",
+    )
+    team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
 
     class Meta:
         model = ClubMembership
@@ -174,8 +153,9 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "club_id",
             "is_owner",
             "points",
-            "redirect_to",
+            "club_redirect_url",
             "send_email",
+            "team_memberships",
         ]
 
     def create(self, validated_data):
@@ -184,6 +164,67 @@ class ClubMembershipSerializer(ModelSerializerBase):
         membership = ClubService(club).add_member(**validated_data, fail_silently=False)
 
         return membership
+
+
+class UserNestedSerializer(ModelSerializerBase):
+    """Display a user within memberships."""
+
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all()
+    )  # TODO: Restrict users to club members only
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "display",
+        ]
+        read_only_fields = ["username", "email", "first_name", "last_name", "display"]
+        # extra_kwargs = {"id": {"read_only": False}}
+
+
+class TeamMemberNestedSerializer(ModelSerializerBase):
+    """List members of a specific team."""
+
+    user = UserNestedSerializer()
+    roles = serializers.SlugRelatedField(
+        slug_field="name",
+        many=True,
+        queryset=TeamRole.objects.all(),  # TODO: Restrict roles to team only
+    )
+
+    class Meta:
+        model = TeamMembership
+        exclude = [
+            "team",
+        ]
+
+
+class TeamSerializer(ModelSerializerBase):
+    """Display teams in the api."""
+
+    memberships = TeamMemberNestedSerializer(many=True, required=False)
+
+    class Meta:
+        model = Team
+        exclude = [
+            "club",
+        ]
+
+
+##############################################################
+# CSV SERIALIZERS
+##############################################################
+
+
+class ClubSocialNestedCsvSerializer(CsvModelSerializer, ClubSocialNestedSerializer):
+    """Represents a club's social accounts in a csv."""
+
+    pass
 
 
 class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
@@ -268,3 +309,56 @@ class InviteClubMemberSerializer(serializers.Serializer):
     """Define REST API fields for sending invites to new club members."""
 
     emails = serializers.ListField(child=serializers.EmailField())
+
+
+class ClubCsvSerializer(CsvModelSerializer):
+    """Represents clubs in csvs."""
+
+    socials = ClubSocialNestedCsvSerializer(many=True, required=False)
+    logo = ImageUrlField(required=False)
+    tags = WritableSlugRelatedField(
+        many=True, slug_field="name", queryset=ClubTag.objects.all(), required=False
+    )
+
+    class Meta:
+        model = Club
+        fields = "__all__"
+
+
+class TeamMemberNestedCsvSerializer(CsvModelSerializer):
+    """Represents team memberships in csvs."""
+
+    roles = WritableSlugRelatedField(
+        slug_field="name",
+        queryset=TeamRole.objects.none(),
+        many=True,
+        required=False,
+    )
+    roles = serializers.SlugRelatedField(
+        slug_field="name", queryset=TeamRole.objects.none(), many=True, required=False
+    )
+    user = serializers.SlugRelatedField(slug_field="email", queryset=User.objects.all())
+
+    class Meta:
+        model = TeamMembership
+        fields = ["id", "user", "roles"]
+
+
+class TeamCsvSerializer(CsvModelSerializer):
+    """Represent teams in csvs."""
+
+    club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
+    memberships = TeamMemberNestedCsvSerializer(many=True, required=False)
+
+    class Meta:
+        model = Team
+        fields = "__all__"
+
+    def __init__(self, instance=None, data=empty, **kwargs):
+        super().__init__(instance, data, **kwargs)
+
+        # TODO: Not reached by querycsv
+        if self.instance:
+            self.fields["memberships"].child.fields["roles"].child_relation.queryset = (
+                TeamRole.objects.filter(team=self.instance)
+            )
