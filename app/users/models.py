@@ -140,6 +140,11 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         """See if this user has a way to authenticate with the server."""
         return self.has_usable_password() or self.socialaccount_set.count() > 0
 
+    @property
+    def display(self):
+        """Display name."""
+        return self.profile.display
+
     # Overrides
     def __str__(self):
         return self.username
@@ -189,18 +194,28 @@ class Profile(ModelBase):
         validators=[MinValueValidator(1900), MaxValueValidator(3000)],
     )
     major = models.CharField(blank=True, null=True, max_length=128)
-
     bio = models.TextField(null=True, blank=True)
+
+    display = models.CharField(
+        blank=True,
+        max_length=128,
+        null=True,
+        help_text="Name to use when displaying the user.",
+    )
 
     @property
     def name(self):
-        return f"{self.first_name or ''} {self.last_name or ''}".strip()
+        return f"{self.prefix or ''} {self.first_name or ''} {self.last_name or ''}".strip()
 
     # Dynamic Properties
     @property
     def email(self):
         return self.user.email
 
+    def __str__(self):
+        return self.display
+
+    # Overrides
     class Meta:
         _is_unique_nonempty_phone = models.Q(
             models.Q(phone__isnull=False) & ~models.Q(phone__exact="")
@@ -221,6 +236,15 @@ class Profile(ModelBase):
                 fields=("phone",), name="phone_idx", condition=_is_unique_nonempty_phone
             )
         ]
+
+    def save(self, *args, **kwargs):
+        if self.display is None or self.display.strip() == "":
+            if self.name is not None and len(self.name) > 0:
+                self.display = self.name
+            else:
+                self.display = self.user.email.split("@")[0]
+
+        return super().save(*args, **kwargs)
 
 
 class SocialProfile(SocialProfileBase):

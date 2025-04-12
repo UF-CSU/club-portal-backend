@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
@@ -5,7 +7,7 @@ from django.core.mail import send_mail
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
+from django.utils.http import urlencode, urlsafe_base64_encode
 
 from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
 from core.abstracts.services import ServiceBase
@@ -76,7 +78,7 @@ class UserService(ServiceBase[User]):
             to=[self.obj.email],
         )
 
-    def send_account_setup_link(self):
+    def send_account_setup_link(self, next_url: Optional[str] = None):
         """Send link to user for setting up account."""
 
         url = get_full_url(
@@ -88,6 +90,9 @@ class UserService(ServiceBase[User]):
                 },
             )
         )
+
+        if next_url:
+            url += "?" + urlencode({"next": next_url})
 
         send_mail(
             "Finish account setup",

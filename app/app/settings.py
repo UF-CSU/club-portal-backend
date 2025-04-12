@@ -272,6 +272,10 @@ SOCIALACCOUNT_PROVIDERS = {
 SOCIALACCOUNT_QUERY_EMAIL = True
 HEADLESS_SERVE_SPECIFICATION = True
 
+# Enable to force email verification
+# ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
 ############################
 # ==  Production Config == #
 ############################

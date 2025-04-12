@@ -38,7 +38,7 @@ class ClubService(ServiceBase[Club]):
         self,
         user: User,
         roles: Optional[list[ClubRole]] = None,
-        redirect_to=None,
+        club_redirect_url=None,
         send_email=False,
         fail_silently=True,
         **kwargs,
@@ -60,7 +60,7 @@ class ClubService(ServiceBase[Club]):
         member = ClubMembership.objects.create(
             club=self.obj, user=user, roles=roles, **kwargs
         )
-        url = redirect_to or get_full_url(reverse("clubs:home", args=[user.id]))
+        url = club_redirect_url or get_full_url(reverse("clubs:home", args=[user.id]))
 
         if send_email:
             send_html_mail(

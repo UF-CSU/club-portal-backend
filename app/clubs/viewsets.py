@@ -4,11 +4,12 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from clubs.models import Club, ClubMembership
+from clubs.models import Club, ClubMembership, Team
 from clubs.serializers import (
     ClubMembershipSerializer,
     ClubSerializer,
     InviteClubMemberSerializer,
+    TeamSerializer,
 )
 from clubs.services import ClubService
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
@@ -34,6 +35,25 @@ class ClubMembershipViewSet(ModelViewSetBase):
         return super().get_queryset()
 
     def perform_create(self, serializer: ClubMembershipSerializer):
+        club_id = self.kwargs.get("club_id", None)
+        club = Club.objects.get(id=club_id)
+
+        serializer.save(club=club)
+
+
+class TeamViewSet(ModelViewSetBase):
+    """CRUD Api routes for Team objects."""
+
+    serializer_class = TeamSerializer
+    queryset = Team.objects.all()
+
+    def get_queryset(self):
+        club_id = self.kwargs.get("club_id", None)
+        self.queryset = Team.objects.filter(club__id=club_id)
+
+        return super().get_queryset()
+
+    def perform_create(self, serializer: TeamSerializer):
         club_id = self.kwargs.get("club_id", None)
         club = Club.objects.get(id=club_id)
 
