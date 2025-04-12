@@ -9,8 +9,6 @@
   - [Prerequisites](#prerequisites)
   - [Setup](#setup)
   - [Running the Dev Server](#running-the-dev-server)
-    - [With TaskFile](#with-taskfile)
-    - [Without Taskfile](#without-taskfile)
 - [Taskfile Commands](#taskfile-commands)
 - [Local Dev Links](#local-dev-links)
 - [Admin Dashboard](#admin-dashboard)

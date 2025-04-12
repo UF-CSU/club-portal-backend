@@ -105,7 +105,7 @@ Django abstracts away the actual email service that is used, so the API/interfac
 
 Make sure your `.env` file has the following variables set:
 
-```txt
+```properties
 DJANGO_DEFAULT_FROM_EMAIL="admin@example.com"
 DJANGO_EMAIL_HOST="mailhog"
 DJANGO_EMAIL_HOST_USER=""
@@ -126,7 +126,7 @@ Refer to SendGrid's QuickStart documentation for creating an account and getting
 
 Once you have the API Key (for example: "example-apikey"), set the email environment variables:
 
-```txt
+```properties
 SENDGRID_API_KEY="example-apikey"
 
 DJANGO_DEFAULT_FROM_EMAIL="admin@example.com"

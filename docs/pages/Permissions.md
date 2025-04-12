@@ -1,4 +1,4 @@
-# Club Manager Permissions Structure
+# Permissions Structure
 
 ## Django Default Permissions
 

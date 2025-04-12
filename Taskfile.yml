@@ -147,3 +147,13 @@ tasks:
     desc: 'Stop containers and remove volumes'
     cmds:
       - docker-compose --profile slim down --remove-orphans -v
+
+  ###################################
+  # Sphinx Docs
+  ###################################
+  build:docs:
+    desc: 'Generate html for Sphinx documentation'
+    deps:
+      - build
+    cmds:
+      - docker-compose --profile slim run --rm app sh -c "rm -rf /docs/_build/ && sphinx-build /docs /docs/_build"
