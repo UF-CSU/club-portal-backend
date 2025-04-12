@@ -38,6 +38,7 @@ def download_club_calendar(request: HttpRequest, club_id: int):
     club_name = re.sub(r"\s+", "_", club.name)
     return FileResponse(file, as_attachment=True, filename=f"{club_name}.ics")
 
+
 @login_required()
 def cancel_event(request: HttpRequest, event_id: int):
     """Cancels an event with an optional reason."""
