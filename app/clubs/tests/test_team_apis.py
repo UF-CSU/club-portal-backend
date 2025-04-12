@@ -6,7 +6,7 @@ from core.abstracts.tests import AuthApiTestsBase
 
 
 def teams_list_url(club_id):
-    return reverse("api-clubs:teams-list", kwargs={"club_id": club_id})
+    return reverse("api-clubs:team-list", kwargs={"club_id": club_id})
 
 
 class TeamPrivateApiTests(AuthApiTestsBase):

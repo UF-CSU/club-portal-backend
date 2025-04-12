@@ -3,13 +3,15 @@ Club models.
 """
 
 # from datetime import datetime, timedelta
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Union
 
 from django.contrib.auth.models import Permission
 from django.core import exceptions
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.text import slugify
+from rest_framework.authtoken.models import Token
 
 from core.abstracts.models import (
     ManagerBase,
@@ -19,9 +21,10 @@ from core.abstracts.models import (
     Tag,
     UniqueModel,
 )
-from users.models import User
+from users.models import User, UserAgent
+from utils.helpers import get_import_path
 from utils.models import UploadFilepathFactory
-from utils.permissions import get_permission
+from utils.permissions import get_permission, parse_permissions
 
 
 class ClubTag(Tag):
@@ -453,3 +456,101 @@ class TeamMembership(ModelBase):
 
                 if commit:
                     self.save()
+
+
+class ClubApiKeyManager(ManagerBase["ClubApiKey"]):
+    """Manage queries and operations for club api tokens."""
+
+    def create(
+        self,
+        club: Club,
+        name: str,
+        description: Optional[str] = None,
+        permissions: Optional[list[Union[str, int, "Permission"]]] = None,
+        **kwargs,
+    ):
+        """
+        Create new api key for a club.
+
+        Can either assign initial permissions by perm_labels as ``list[str]``, or
+        by permissions as ``list[Permission]``.
+        """
+        username = f"agent-c{club.id}-" + slugify(name)
+        user_agent = UserAgent.objects.create(username=username)
+
+        perm_objs = parse_permissions(permissions, fail_silently=False)
+
+        key = super().create(
+            club=club,
+            user_agent=user_agent,
+            name=name,
+            description=description,
+            **kwargs,
+        )
+
+        for perm in perm_objs:
+            key.permissions.add(perm)
+
+        return key
+
+
+class ClubApiKey(ModelBase):
+    """
+    Allow external systems to make authorized api requests.
+
+    Named "ApiKey" to not conflict with "Token" verbage used by DRF.
+    """
+
+    club = models.ForeignKey(Club, on_delete=models.CASCADE)
+    user_agent = models.OneToOneField(UserAgent, on_delete=models.PROTECT)
+
+    name = models.CharField(max_length=32)
+    description = models.TextField(null=True, blank=True)
+
+    permissions = models.ManyToManyField(
+        Permission, blank=True, help_text="Allowed permissions for this club only."
+    )
+
+    objects: ClassVar[ClubApiKeyManager] = ClubApiKeyManager()
+
+    @property
+    def secret(self):
+        """Property accessor for the secret."""
+
+        return self.get_secret()
+
+    # Overrides
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_apikey_name_per_club", fields=("name", "club")
+            )
+        ]
+
+    def delete(self, using=None, keep_parents=None):
+        """Delete self and clean up related models."""
+
+        user_agent = self.user_agent
+        res = super().delete(using, keep_parents)
+
+        Token.objects.filter(user=user_agent).delete()
+        user_agent.delete()
+
+        new_res = (
+            res[0] + 2,
+            {**res[1], get_import_path(Token): 1, get_import_path(UserAgent): 1},
+        )
+
+        return new_res
+
+    # Methods
+    def get_token(self):
+        """Get API token to use in requests."""
+
+        token, _ = Token.objects.get_or_create(user=self.user_agent)
+        return token
+
+    def get_secret(self):
+        """Get secret string."""
+
+        return self.get_token().key

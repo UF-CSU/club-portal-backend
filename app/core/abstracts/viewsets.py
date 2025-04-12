@@ -14,3 +14,8 @@ class ViewSetBase(GenericViewSet):
 
 class ModelViewSetBase(ModelViewSet, ViewSetBase):
     """Base viewset for model CRUD operations."""
+
+    # Enable permissions checking in API
+    # permission_classes = ViewSetBase.permission_classes + [
+    #     permissions.DjangoModelPermissions
+    # ]

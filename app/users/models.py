@@ -99,8 +99,8 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
-    email = models.EmailField(max_length=32, unique=True)
-    username = models.CharField(max_length=32, unique=True, blank=True)
+    email = models.EmailField(max_length=64, unique=True, null=True, blank=True)
+    username = models.CharField(max_length=64, unique=True, blank=True)
     password = models.CharField(_("password"), max_length=128, blank=True)
 
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
@@ -251,3 +251,28 @@ class SocialProfile(SocialProfileBase):
     """A user's social media links."""
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="socials")
+
+
+class UserAgentManager(BaseUserManager):
+    """Manage user agent objects."""
+
+    def create(self, username: str, **kwargs):
+        return super().create(username=username, **kwargs)
+
+
+class UserAgent(User):
+    """
+    Non-person user of the system.
+
+    This can be used to represent requests made by external clients
+    that don't necessarily represent an individual person.
+    """
+
+    # password = None
+    # email = None
+
+    objects: ClassVar[UserAgentManager] = UserAgentManager()
+
+    @property
+    def can_authenticate(self):
+        return False

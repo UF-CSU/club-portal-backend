@@ -176,6 +176,8 @@ class AuthViewsTestsBase(ViewTestsBase):
     def setUp(self):
         super().setUp()
         self.user = create_test_adminuser()
+        self.user.is_superuser = True
+        self.user.save()
 
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)

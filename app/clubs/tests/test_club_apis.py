@@ -5,7 +5,9 @@ Unit tests focused around REST APIs for the Clubs Service.
 from typing import Optional
 
 from django.urls import reverse
+from rest_framework.test import APIClient
 
+from clubs.models import ClubApiKey
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import ApiTestsBase, AuthApiTestsBase, EmailTestsBase
 from lib.faker import fake
@@ -18,7 +20,15 @@ def club_invite_url(club_id: int):
 
 
 def club_members_list_url(club_id: Optional[int] = None):
-    return reverse("api-clubs:club-members-list", args=[club_id])
+    return reverse("api-clubs:clubmember-list", args=[club_id])
+
+
+def club_detail_url(club_id: int):
+    return reverse("api-clubs:club-detail", args=[club_id])
+
+
+def club_apikey_list_url(club_id: int):
+    return reverse("api-clubs:apikey-list", args=[club_id])
 
 
 class ClubsApiPublicTests(ApiTestsBase):
@@ -35,6 +45,27 @@ class ClubsApiPublicTests(ApiTestsBase):
 
         res = self.client.post(url, payload)
         self.assertResUnauthorized(res)
+
+    def test_using_apikey(self):
+        """A request should be able to be made using an API Key."""
+
+        club = create_test_club()
+
+        # TODO: Implement key permissions checking in backend
+        key = ClubApiKey.objects.create(
+            club=club,
+            name="Test Key",
+            permissions=["clubs.view_club", "clubs.view_clubmembership"],
+        )
+
+        self.client = APIClient()
+        self.client.force_authenticate(user=key.user_agent)
+
+        url = club_detail_url(club.id)
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # TODO: Check for club fields
 
 
 class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
@@ -150,3 +181,26 @@ class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
             f"User {user} as a password (hash): {user.password}",
         )
         self.assertEqual(user.club_memberships.count(), 1)
+
+    def test_create_club_api_key(self):
+        """Should be able to create an api key for a club."""
+
+        club = create_test_club()
+        url = club_apikey_list_url(club.id)
+
+        payload = {
+            "name": "Test Key",
+            "description": "Lorem ipsum dolor sit amet.",
+            "permissions": [
+                "clubs.view_club",
+                "clubs.view_clubmembership",
+            ],
+        }
+        res = self.client.post(url, payload)
+        self.assertResCreated(res)
+        res_body = res.json()
+
+        self.assertEqual(ClubApiKey.objects.count(), 1)
+        key = ClubApiKey.objects.first()
+
+        self.assertEqual(res_body["secret"], key.get_secret())

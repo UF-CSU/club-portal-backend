@@ -3,6 +3,7 @@ from rest_framework.fields import empty
 
 from clubs.models import (
     Club,
+    ClubApiKey,
     ClubMembership,
     ClubRole,
     ClubSocialProfile,
@@ -12,7 +13,11 @@ from clubs.models import (
     TeamRole,
 )
 from clubs.services import ClubService
-from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
+from core.abstracts.serializers import (
+    ImageUrlField,
+    ModelSerializerBase,
+    PermissionRelatedField,
+)
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 from users.services import UserService
@@ -214,6 +219,35 @@ class TeamSerializer(ModelSerializerBase):
         exclude = [
             "club",
         ]
+
+
+class ClubApiKeySerializer(ModelSerializerBase):
+    """Display club api tokens in api."""
+
+    permissions = PermissionRelatedField(many=True)
+    club_id = serializers.PrimaryKeyRelatedField(source="club", read_only=True)
+
+    class Meta:
+        model = ClubApiKey
+        fields = [
+            "id",
+            "club_id",
+            "name",
+            "description",
+            "permissions",
+        ]
+
+    def create(self, validated_data):
+        club = validated_data.pop("club")
+
+        return ClubApiKey.objects.create(club, **validated_data)
+
+
+class ClubApiSecretSerializer(ClubApiKeySerializer):
+    """Extend the club api key serializer to also provide a secret."""
+
+    class Meta(ClubApiKeySerializer.Meta):
+        fields = ClubApiKeySerializer.Meta.fields + ["secret"]
 
 
 ##############################################################

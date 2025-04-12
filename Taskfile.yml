@@ -14,9 +14,10 @@ tasks:
     sources:
       - ./Dockerfile
       - ./requirements*.txt
+    # method: timestamp
     run: when_changed
     cmds:
-      - docker-compose build
+      - docker-compose --profile dev build
 
   build:network:
     sources:
