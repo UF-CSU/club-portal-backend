@@ -29,7 +29,7 @@ class EventViewset(ModelViewSetBase):
         return super().get_queryset()
 
 
-class EventCancellationViewSet(viewsets.ModelViewSet):
+class EventCancellationViewSet(ModelViewSetBase):
     queryset = EventCancellation.objects.all()
     serializer_class = serializers.EventCancellationSerializer
 
