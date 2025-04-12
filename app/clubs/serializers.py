@@ -224,8 +224,6 @@ class TeamSerializer(ModelSerializerBase):
 class ClubSocialNestedCsvSerializer(CsvModelSerializer, ClubSocialNestedSerializer):
     """Represents a club's social accounts in a csv."""
 
-    pass
-
 
 class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
     """Serialize club memberships for a csv."""

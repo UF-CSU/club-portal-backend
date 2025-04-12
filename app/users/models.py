@@ -238,11 +238,11 @@ class Profile(ModelBase):
         ]
 
     def save(self, *args, **kwargs):
-        if self.display_name is None or self.display_name.strip() == "":
+        if self.display is None or self.display.strip() == "":
             if self.name is not None and len(self.name) > 0:
-                self.display_name = self.name
+                self.display = self.name
             else:
-                self.display_name = self.user.email.split("@")[0]
+                self.display = self.user.email.split("@")[0]
 
         return super().save(*args, **kwargs)
 
