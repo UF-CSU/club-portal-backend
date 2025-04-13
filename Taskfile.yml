@@ -170,6 +170,11 @@ tasks:
     cmds:
       - docker-compose --profile slim build
       - task: build:docs:internal
+  
+  dev:docs:
+    desc: 'Auto generate docs html on changes, requires sphinx-autobuild pip package'
+    cmds:
+      - sphinx-autobuild -a ./docs ./docs/_build --host localhost --port 8010
 
   push:docs:
     desc: 'Push docs to AWS S3 bucket'
