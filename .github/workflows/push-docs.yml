@@ -37,6 +37,8 @@ jobs:
       - name: Build static files
         run: |
           echo "S3_STORAGE_BUCKET_NAME=${S3_STORAGE_BUCKET_NAME}" >> .env
-          sudo task push:docs
+          sudo chmod -R 777 ./docs/ 
+          
+          task push:docs
         env:
           S3_STORAGE_BUCKET_NAME: ${{ secrets.S3_STORAGE_BUCKET_NAME }}
