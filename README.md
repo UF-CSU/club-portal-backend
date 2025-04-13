@@ -9,8 +9,6 @@
   - [Prerequisites](#prerequisites)
   - [Setup](#setup)
   - [Running the Dev Server](#running-the-dev-server)
-    - [With TaskFile](#with-taskfile)
-    - [Without Taskfile](#without-taskfile)
 - [Taskfile Commands](#taskfile-commands)
 - [Local Dev Links](#local-dev-links)
 - [Admin Dashboard](#admin-dashboard)
@@ -106,15 +104,16 @@ If you have Taskfile installed, you can use the following:
 
 Running the server in dev mode will start up the following services:
 
-| Service         | Description                                              | Link                                           |
-| --------------- | -------------------------------------------------------- | ---------------------------------------------- |
-| Django Server   | Main development server                                  | <http://localhost:8000/>                       |
-| API Docs        | REST API documentation created by Swagger/OpenAPI        | <http://localhost:8000/api/docs/>              |
-| OAuth API Docs  | OAuth REST API documentation created by django-allauth   | <http://localhost:8000/api/oauth/openapi.html> |
-| Admin Dashboard | Django's model admin dashboard                           | <http://localhost:8000/admin/>                 |
-| Test Coverage   | A detailed view of test coverage                         | <http://localhost:8001/>                       |
-| PGAdmin         | Directly view and manage postgres database for debugging | <http://localhost:8888/>                       |
-| MailHog         | Local test email server to view emails sent by django    | <http://localhost:8025/>                       |
+| Service            | Description                                              | Link                                           |
+| ------------------ | -------------------------------------------------------- | ---------------------------------------------- |
+| Django Server      | Main development server                                  | <http://localhost:8000/>                       |
+| API Docs           | REST API documentation created by Swagger/OpenAPI        | <http://localhost:8000/api/docs/>              |
+| OAuth API Docs     | OAuth REST API documentation created by django-allauth   | <http://localhost:8000/api/oauth/openapi.html> |
+| Admin Dashboard    | Django's model admin dashboard                           | <http://localhost:8000/admin/>                 |
+| Documentation Site | Browseable documentation site for the project            | <http://localhost:8001/>                       |
+| Test Coverage      | A detailed view of test coverage                         | <http://localhost:8002/>                       |
+| PGAdmin            | Directly view and manage postgres database for debugging | <http://localhost:8888/>                       |
+| MailHog            | Local test email server to view emails sent by django    | <http://localhost:8025/>                       |
 
 ## Admin Dashboard
 

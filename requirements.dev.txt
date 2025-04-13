@@ -9,3 +9,9 @@ django-debug-toolbar>=4.4.6,<4.5
 django-browser-reload>=1.17.0,<1.18
 
 faker>=33.0.0,<33.1.0
+
+# Documentation
+sphinx>=8.2.3,<8.3
+myst-parser>=4.0.1,<4.1
+sphinx-rtd-theme>=3.0.2,<3.1
+sphinx-book-theme>=1.1.4,<1.2   

@@ -4,8 +4,10 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from clubs.models import Club, ClubMembership, Team
+from clubs.models import Club, ClubApiKey, ClubMembership, Team
 from clubs.serializers import (
+    ClubApiKeySerializer,
+    ClubApiSecretSerializer,
     ClubMembershipSerializer,
     ClubSerializer,
     InviteClubMemberSerializer,
@@ -78,3 +80,30 @@ class InviteClubMemberView(GenericAPIView):
         ClubService(club).send_email_invite(emails)
 
         return Response(status=status.HTTP_202_ACCEPTED)
+
+
+class ClubApiKeyViewSet(ModelViewSetBase):
+    """Api routes for managing club api keys."""
+
+    serializer_class = ClubApiKeySerializer
+    queryset = ClubApiKey.objects.none()
+
+    def get_queryset(self):
+        club_id = self.kwargs.get("club_id")
+        self.queryset = ClubApiKey.objects.filter(club__id=club_id)
+
+        return super().get_queryset()
+
+    def perform_create(self, serializer):
+        club_id = self.kwargs.get("club_id", None)
+        club = Club.objects.get(id=club_id)
+
+        serializer.save(club=club)
+
+    def get_serializer_class(self):
+        # When the key is being created, allow users to see the secret
+        if self.action == "create":
+            return ClubApiSecretSerializer
+
+        # Otherwise, the secret should not be visible
+        return super().get_serializer_class()

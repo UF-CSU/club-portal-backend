@@ -3,12 +3,15 @@ from time import sleep
 from typing import Type
 
 import requests
+from django.contrib.auth.models import Permission
 from django.core import validators
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from utils.permissions import get_perm_label, get_permission
 
 
 class FieldType(Enum):
@@ -310,4 +313,16 @@ class ImageUrlField(serializers.Field):
         return file
 
 
-image_serializer = serializers.ImageField, serializers.URLField
+class PermissionRelatedField(serializers.RelatedField):
+    """Display permissions in JSON."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("queryset", Permission.objects.all())
+
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data: str):
+        return get_permission(data)
+
+    def to_representation(self, obj: Permission):
+        return get_perm_label(obj)

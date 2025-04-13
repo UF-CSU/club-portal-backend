@@ -1,19 +1,14 @@
-# Club Portal Authentication
+# API Authentication
 
 - [Authenticating with API](#authenticating-with-api)
 - [Auth for Local Dev Testing](#auth-for-local-dev-testing)
   - [Getting the token](#getting-the-token)
   - [Using the token with Swagger](#using-the-token-with-swagger)
-    - [Header injections and Swagger](#header-injections-and-swagger)
   - [Using the token with Postman](#using-the-token-with-postman)
 - [OAuth](#oauth)
   - [Setting up OAuth for dev](#setting-up-oauth-for-dev)
-    - [Google](#google)
-    - [GitHub](#github)
   - [Testing OAuth](#testing-oauth)
   - [OAuth Api Flow](#oauth-api-flow)
-    - [From a user's perspective](#from-a-users-perspective)
-    - [From a developer's perspective](#from-a-developers-perspective)
 - [Example Client Code](#example-client-code)
 
 ## Authenticating with API
@@ -80,7 +75,7 @@ You will need to setup an OAuth consent screen in Google Cloud. Use these docs t
 
 Once you have the consent screen setup, set these environment variables:
 
-```txt
+```properties
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
 ```
@@ -95,7 +90,7 @@ Steps to create a GitHub application
 
 Once you have the GitHub app setup, get the client id and secret and add them to your .env file:
 
-```txt
+```properties
 GITHUB_CLIENT_ID=""
 GITHUB_CLIENT_SECRET=""
 ```

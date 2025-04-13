@@ -8,3 +8,9 @@ Authentication in Django:
 
 - <https://testdriven.io/blog/django-spa-auth/>
 - <https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Server-side/Django/Authentication>
+
+Documentation:
+
+- Sphinx: <https://www.sphinx-doc.org/en/master/index.html>
+- Read the Docs theme (Sphinx): <https://sphinx-rtd-theme.readthedocs.io/en/latest/>
+- Markdown/Pygments Lexers: <https://pygments.org/docs/lexers/#lexers-for-configuration-file-formats>

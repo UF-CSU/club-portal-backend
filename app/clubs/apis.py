@@ -8,9 +8,12 @@ router.register("clubs", viewsets.ClubViewSet, basename="club")
 router.register(
     r"clubs/(?P<club_id>.+)/members",
     viewsets.ClubMembershipViewSet,
-    basename="club-members",
+    basename="clubmember",
 )
-router.register("clubs/(?P<club_id>.+)/teams", viewsets.TeamViewSet, basename="teams")
+router.register("clubs/(?P<club_id>.+)/teams", viewsets.TeamViewSet, basename="team")
+router.register(
+    "clubs/(?P<club_id>.+)/apikeys", viewsets.ClubApiKeyViewSet, basename="apikey"
+)
 
 app_name = "api-clubs"
 

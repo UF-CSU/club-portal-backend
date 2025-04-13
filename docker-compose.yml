@@ -13,6 +13,7 @@ services:
       - '8000:8000'
     volumes:
       - ./app:/app
+      - ./docs:/docs
       - static-clubs-dev:/vol/web
     command: >
       sh -c "
@@ -100,7 +101,7 @@ services:
     env_file:
       - .env
 
-  coverage:
+  docs:
     image: nginx
     restart: unless-stopped
     attach: false
@@ -108,6 +109,17 @@ services:
       - dev
     ports:
       - '8001:80'
+    volumes:
+      - ./docs/_build:/usr/share/nginx/html
+
+  coverage:
+    image: nginx
+    restart: unless-stopped
+    attach: false
+    profiles:
+      - dev
+    ports:
+      - '8002:80'
     volumes:
       - ./app/htmlcov:/usr/share/nginx/html
 
