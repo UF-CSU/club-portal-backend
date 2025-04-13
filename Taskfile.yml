@@ -1,6 +1,8 @@
 # Taskfile docs: https://taskfile.dev/
 version: '3'
 
+dotenv: ['.env', '{{.HOME}}/.env']
+
 tasks:
   setup:
     desc: 'Run initial setup for the repo using venv'
@@ -14,10 +16,11 @@ tasks:
     sources:
       - ./Dockerfile
       - ./requirements*.txt
-    # method: timestamp
+      - ./docs/pages/*
     run: when_changed
     cmds:
       - docker-compose --profile dev build
+      - task: build:docs:internal
 
   build:network:
     sources:
@@ -152,9 +155,25 @@ tasks:
   ###################################
   # Sphinx Docs
   ###################################
-  build:docs:
-    desc: 'Generate html for Sphinx documentation'
-    deps:
-      - build
+  build:docs:internal:
+    desc: 'Build docs files, needs the docker image to already be build'
+    internal: true
     cmds:
       - docker-compose --profile slim run --rm app sh -c "rm -rf /docs/_build/ && sphinx-build /docs /docs/_build"
+
+  build:docs:
+    desc: 'Generate html for Sphinx documentation'
+    sources:
+      - ./Dockerfile
+      - ./requirements*.txt
+      - ./docs/pages/*
+    cmds:
+      - docker-compose --profile slim build
+      - task: build:docs:internal
+
+  push:docs:
+    desc: 'Push docs to AWS S3 bucket'
+    deps:
+      - build:docs
+    cmds:
+      - aws s3 cp ./docs/_build/ "s3://$S3_STORAGE_BUCKET_NAME/docs/" --recursive

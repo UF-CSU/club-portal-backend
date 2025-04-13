@@ -118,6 +118,7 @@ services:
       - static-clubs-network:/vol/web
     environment:
       - SERVER_URI=club-app-network:9000
+      - DOCS_URI=${PROXY_DOCS_URI:-''}
 
 volumes:
   postgres-clubs-network:
