@@ -1,5 +1,5 @@
 name: Push Docs to S3
-on:
+on:   
   pull_request:
     types: [closed]
     branches:
@@ -30,9 +30,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Build static files
+      - name: Build and push static files
         run: |
           echo "S3_STORAGE_BUCKET_NAME=${S3_STORAGE_BUCKET_NAME}" >> .env
+          sudo chmod -R 777 ./docs/ 
+          
           task push:docs
         env:
           S3_STORAGE_BUCKET_NAME: ${{ secrets.S3_STORAGE_BUCKET_NAME }}
