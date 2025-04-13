@@ -113,6 +113,11 @@ class ApiTestsBase(TestsBase):
 
         self.assertStatusCode(response, status.HTTP_401_UNAUTHORIZED, **kwargs)
 
+    def assertResForbidden(self, response: HttpResponse, **kwargs):
+        """Client response should be 403."""
+
+        self.assertStatusCode(response, status.HTTP_403_FORBIDDEN, **kwargs)
+
 
 class AuthApiTestsBase(ApiTestsBase):
     """Testing utilities for apis where authentication is required."""
@@ -120,6 +125,8 @@ class AuthApiTestsBase(ApiTestsBase):
     def setUp(self):
         super().setUp()
         self.user = create_test_adminuser()
+        self.user.is_superuser = True
+        self.user.save()
 
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)

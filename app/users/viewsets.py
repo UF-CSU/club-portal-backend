@@ -3,7 +3,7 @@ Views for the user API.
 """
 
 from django.urls import reverse_lazy
-from rest_framework import authentication, generics, mixins
+from rest_framework import authentication, generics, mixins, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import AuthenticationFailed
@@ -48,7 +48,7 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
     serializer_class = UserSerializer
     authentication_classes = ModelViewSetBase.authentication_classes
-    permission_classes = ModelViewSetBase.permission_classes
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         """Retrieve and return the authenticated user."""

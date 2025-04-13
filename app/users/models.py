@@ -18,6 +18,12 @@ from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, Uni
 from lib.countries import CountryField
 from utils.models import UploadFilepathFactory
 
+# class UserType(enum):
+#     """The type of user object."""
+
+#     NORMAL = "normal"
+#     AGENT = "agent"
+
 
 class UserManager(BaseUserManager, ManagerBase["User"]):
     """Manager for users."""
@@ -145,6 +151,10 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         """Display name."""
         return self.profile.display
 
+    @property
+    def is_useragent(self):
+        return False
+
     # Overrides
     def __str__(self):
         return self.username
@@ -256,8 +266,14 @@ class SocialProfile(SocialProfileBase):
 class UserAgentManager(BaseUserManager):
     """Manage user agent objects."""
 
-    def create(self, username: str, **kwargs):
-        return super().create(username=username, **kwargs)
+    def create(self, username: str, apikey_type: "KeyType", **kwargs):
+        return super().create(username=username, apikey_type=apikey_type, **kwargs)
+
+
+class KeyType(models.TextChoices):
+    """What type of api key is attached to the user agent."""
+
+    CLUB = "club", _("Club Api Key")
 
 
 class UserAgent(User):
@@ -268,11 +284,18 @@ class UserAgent(User):
     that don't necessarily represent an individual person.
     """
 
-    # password = None
-    # email = None
+    apikey_type = models.CharField(choices=KeyType.choices)
 
+    # Foreign Relationships
+    club_apikey: Optional[models.Model]
+
+    # Overrides
     objects: ClassVar[UserAgentManager] = UserAgentManager()
 
     @property
     def can_authenticate(self):
         return False
+
+    @property
+    def is_useragent(self):
+        return True

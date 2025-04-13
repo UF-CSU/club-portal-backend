@@ -51,7 +51,6 @@ class ClubsApiPublicTests(ApiTestsBase):
 
         club = create_test_club()
 
-        # TODO: Implement key permissions checking in backend
         key = ClubApiKey.objects.create(
             club=club,
             name="Test Key",
@@ -65,7 +64,12 @@ class ClubsApiPublicTests(ApiTestsBase):
         res = self.client.get(url)
         self.assertResOk(res)
 
-        # TODO: Check for club fields
+        # Check permission denied for other club
+        club2 = create_test_club()
+
+        url2 = club_detail_url(club2.id)
+        res = self.client.get(url2)
+        self.assertResForbidden(res)
 
 
 class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
