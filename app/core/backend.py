@@ -35,7 +35,6 @@ class CustomBackend(ModelBackend):
 
     def has_perm(self, user_obj, perm, obj=None):
         """Runs when checking any user's permissions."""
-        # from clubs.models import Club
 
         if user_obj.is_superuser:
             return True
@@ -48,9 +47,21 @@ class CustomBackend(ModelBackend):
                 obj, "club"
             ), 'Club scoped objects must have a "club" attribute.'
 
-            club_perms = self.get_club_permissions(user_obj, obj.club, obj)
-            perm = get_permission(perm, obj)
+            if user_obj.is_useragent and user_obj.apikey_type == "club":
+                key = user_obj.club_apikey
 
-            return perm in club_perms
+                # Auto return false if not correct club
+                if not key.club.id == obj.club.id:
+                    return False
+
+                # Otherwise, check if the permission is assigned to the key
+                perm = get_permission(perm, obj)
+                return perm in key.permissions.all()
+
+            else:
+                club_perms = self.get_club_permissions(user_obj, obj.club, obj)
+                perm = get_permission(perm, obj)
+
+                return perm in club_perms
 
         return super().has_perm(user_obj, perm, obj)

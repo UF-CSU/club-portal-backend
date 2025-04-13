@@ -21,7 +21,7 @@ from core.abstracts.models import (
     Tag,
     UniqueModel,
 )
-from users.models import User, UserAgent
+from users.models import KeyType, User, UserAgent
 from utils.helpers import get_import_path
 from utils.models import UploadFilepathFactory
 from utils.permissions import get_permission, parse_permissions
@@ -476,7 +476,9 @@ class ClubApiKeyManager(ManagerBase["ClubApiKey"]):
         by permissions as ``list[Permission]``.
         """
         username = f"agent-c{club.id}-" + slugify(name)
-        user_agent = UserAgent.objects.create(username=username)
+        user_agent = UserAgent.objects.create(
+            username=username, apikey_type=KeyType.CLUB
+        )
 
         perm_objs = parse_permissions(permissions, fail_silently=False)
 
@@ -502,7 +504,9 @@ class ClubApiKey(ModelBase):
     """
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE)
-    user_agent = models.OneToOneField(UserAgent, on_delete=models.PROTECT)
+    user_agent = models.OneToOneField(
+        UserAgent, on_delete=models.PROTECT, related_name="club_apikey"
+    )
 
     name = models.CharField(max_length=32)
     description = models.TextField(null=True, blank=True)

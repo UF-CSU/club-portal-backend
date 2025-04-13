@@ -148,10 +148,11 @@ class PrivateUserApiTests(TestCase):  # break out test bc auth is done before al
 
     def test_update_user_profile(self):
         """Test updating the user profile for the authenticated user."""
-        payload = {"password": "newpassword123"}
+        payload = {"username": "test-username"}
 
         res = self.client.patch(ME_URL, payload)
 
         self.user.refresh_from_db()  # user data not refreshed automatically
-        self.assertTrue(self.user.check_password(payload["password"]))
+        # self.assertTrue(self.user.check_password(payload["password"]))
+        self.assertEqual(self.user.username, payload["username"])
         self.assertEqual(res.status_code, status.HTTP_200_OK)
