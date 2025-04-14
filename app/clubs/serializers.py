@@ -149,6 +149,12 @@ class ClubMembershipSerializer(ModelSerializerBase):
         help_text="If the user has an existing account, they will redirect to this url.",
     )
     team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
+    roles = serializers.SlugRelatedField(
+        slug_field="name",
+        queryset=ClubRole.objects.none(),
+        many=True,
+        required=False
+    )
 
     class Meta:
         model = ClubMembership
@@ -161,7 +167,32 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "club_redirect_url",
             "send_email",
             "team_memberships",
+            "roles"
         ]
+    
+    def __init__(self, instance=None, data=empty, **kwargs):
+        super().__init__(instance, data, **kwargs)
+        self.club = None
+
+        if instance is not None:
+            self.club = instance.club
+
+        elif data is not empty:
+            self.club = data.get("club", None)
+
+        if self.club is None:
+            return
+
+        if isinstance(self.club, int) or isinstance(self.club, str):
+            self.club = Club.objects.get(id=self.club)
+
+        # Restrict roles queryset to only include current club
+        self.fields["roles"].child_relation.queryset = ClubRole.objects.filter(
+            club__id=self.club.id
+        )
+
+        # Used to get or create a new role
+        self.fields["roles"].child_relation.extra_kwargs = {"club": self.club}
 
     def create(self, validated_data):
         club = validated_data.pop("club")
