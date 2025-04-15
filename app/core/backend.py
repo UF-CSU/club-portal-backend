@@ -25,6 +25,7 @@ class CustomBackend(ModelBackend):
     def get_club_permissions(self, user_obj, club, obj=None):
         """Get list of permissions user has with a club."""
 
+        # TODO: Optimize this query
         perm_ids = list(
             user_obj.club_memberships.filter(club=club).values_list(
                 "roles__permissions__id", flat=True
@@ -35,9 +36,24 @@ class CustomBackend(ModelBackend):
 
     def has_perm(self, user_obj, perm, obj=None):
         """Runs when checking any user's permissions."""
+        # TODO: Optimize/cache this process, too many queries being made
 
         if user_obj.is_superuser:
             return True
+
+        # Check if user has this permission at all for any club.
+        # Need this because DRF checks perms without an object
+        # before checking perms on a specific object.
+        if obj is None:
+            perm_ids = set(
+                user_obj.club_memberships.all().values_list(
+                    "roles__permissions__id", flat=True
+                )
+            )
+            perms = Permission.objects.filter(id__in=perm_ids).distinct()
+
+            if get_permission(perm) in perms:
+                return True
 
         if not hasattr(obj, "scope"):
             return super().has_perm(user_obj, perm, obj)

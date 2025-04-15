@@ -8,6 +8,7 @@ coverage>=7.4.1,<7.5
 Pillow>=10.2.0,<11.2
 sendgrid>=6.11.0,<6.12
 typing_extensions>=4.12.2,<4.13
+django-filter>=23.5,<23.6
 
 # csv files
 pandas>=2.2.3,<2.3

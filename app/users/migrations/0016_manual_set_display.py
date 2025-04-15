@@ -9,6 +9,9 @@ def migrate_set_user_display(apps, schema_editor):
     User = apps.get_model("users", "User")
 
     for user in User.objects.all():
+        if getattr(user, "profile", None) is None:
+            continue
+
         profile = user.profile
         if profile.display is None or profile.display.strip() == "":
             name = f"{profile.prefix or ''} {profile.first_name or ''} {profile.last_name or ''}".strip()
