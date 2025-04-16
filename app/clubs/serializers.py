@@ -149,11 +149,11 @@ class ClubMembershipSerializer(ModelSerializerBase):
         help_text="If the user has an existing account, they will redirect to this url.",
     )
     team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
-    roles = serializers.SlugRelatedField(
+    roles = WritableSlugRelatedField(
         slug_field="name",
         queryset=ClubRole.objects.none(),
         many=True,
-        required=False
+        required=False,
     )
 
     class Meta:
