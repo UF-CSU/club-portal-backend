@@ -117,10 +117,11 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
 class ClubMemberTeamNestedSerializer(ModelSerializerBase):
     """Display a user's team memberships with the club memberships api."""
 
-    roles = serializers.SlugRelatedField(
+    roles = WritableSlugRelatedField(
         slug_field="name",
+        queryset=TeamRole.objects.none(),
         many=True,
-        queryset=TeamRole.objects.all(),  # TODO: Restrict roles to team only
+        required=False,
     )
 
     class Meta:
@@ -130,6 +131,30 @@ class ClubMemberTeamNestedSerializer(ModelSerializerBase):
             "team",
             "roles",
         ]
+    
+    def __init__(self, instance=None, data=empty, **kwargs):
+        super().__init__(instance, data, **kwargs)
+        self.team = None
+
+        if instance is not None:
+            self.team = instance.team
+
+        elif data is not empty:
+            self.team = data.get("team", None)
+
+        if self.team is None:
+            return
+
+        if isinstance(self.team, int) or isinstance(self.team, str):
+            self.team = Team.objects.get(id=self.team)
+
+        # Restrict roles queryset to only include current team
+        self.fields["roles"].child_relation.queryset = TeamRole.objects.filter(
+            team__id=self.team.id
+        )
+
+        # Used to get or create a new role
+        self.fields["roles"].child_relation.extra_kwargs = {"team": self.team}
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
