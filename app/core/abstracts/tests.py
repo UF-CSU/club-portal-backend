@@ -118,6 +118,11 @@ class ApiTestsBase(TestsBase):
 
         self.assertStatusCode(response, status.HTTP_403_FORBIDDEN, **kwargs)
 
+    def assertResNotFound(self, response: HttpResponse, **kwargs):
+        """Client response should be 404."""
+
+        self.assertStatusCode(response, status.HTTP_404_NOT_FOUND, **kwargs)
+
 
 class AuthApiTestsBase(ApiTestsBase):
     """Testing utilities for apis where authentication is required."""

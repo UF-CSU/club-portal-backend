@@ -15,7 +15,13 @@ class ViewSetBase(GenericViewSet):
 
 
 class ObjectViewPermissions(permissions.DjangoObjectPermissions):
-    """Check object permissions via api."""
+    """
+    Check object permissions via api.
+
+    Simply provides a wrapper around DRF's DjangoObjectPermissions class
+    to allow for easy view/editing of additional permissions per each
+    http method type.
+    """
 
     perms_map = {
         "GET": [],
@@ -26,14 +32,6 @@ class ObjectViewPermissions(permissions.DjangoObjectPermissions):
         "PATCH": ["%(app_label)s.change_%(model_name)s"],
         "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
-
-    def has_object_permission(self, request, view, obj):
-        action = getattr(view, "action", None)
-
-        if action == "retrieve":
-            self.perms_map["GET"] += ["%(app_label)s.view_%(model_name)s"]
-
-        return super().has_object_permission(request, view, obj)
 
 
 class ModelViewSetBase(ModelViewSet, ViewSetBase):

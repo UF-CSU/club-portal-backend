@@ -7,8 +7,9 @@ from typing import Optional
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from clubs.models import ClubApiKey
-from clubs.tests.utils import create_test_club
+from clubs.models import ClubApiKey, ClubRole
+from clubs.services import ClubService
+from clubs.tests.utils import create_test_club, create_test_clubs
 from core.abstracts.tests import ApiTestsBase, AuthApiTestsBase, EmailTestsBase
 from lib.faker import fake
 from users.models import User
@@ -29,6 +30,10 @@ def club_detail_url(club_id: int):
 
 def club_apikey_list_url(club_id: int):
     return reverse("api-clubs:apikey-list", args=[club_id])
+
+
+def club_list_url():
+    return reverse("api-clubs:club-list")
 
 
 class ClubsApiPublicTests(ApiTestsBase):
@@ -208,3 +213,142 @@ class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
         key = ClubApiKey.objects.first()
 
         self.assertEqual(res_body["secret"], key.get_secret())
+
+
+class ClubsApiPermsTests(ApiTestsBase):
+    """Test permissions handling in API."""
+
+    CLUBS_COUNT = 5
+
+    def setUp(self):
+        super().setUp()
+
+        self.user = create_test_user()
+        self.clubs = create_test_clubs(self.CLUBS_COUNT)
+
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_get_assigned_clubs(self):
+        """User should only get assigned clubs."""
+
+        url = club_list_url()
+
+        # Should be able to preview all clubs
+        res = self.client.get(url)
+        self.assertResOk(res)
+        data = res.json()
+
+        self.assertLength(data, self.CLUBS_COUNT)
+
+        # No clubs returned, not member of any
+        url2 = url + "?has_membership=true"
+        res = self.client.get(url2)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertLength(data, 0)
+
+        svc = ClubService(self.clubs[0])
+        svc.add_member(self.user)
+
+        # Now has membership, 1 club returns
+        res = self.client.get(url2)
+        self.assertResOk(res)
+        data = res.json()
+
+        self.assertLength(data, 1)
+
+        resClub = data[0]
+        self.assertEqual(resClub["id"], svc.obj.id)
+        self.assertNotIn("members", resClub.keys())
+
+    def test_get_assigned_club_detail(self):
+        """User should only be able to get a club's details if assigned."""
+
+        c1 = self.clubs[0]
+        c2 = self.clubs[1]
+
+        url1 = club_detail_url(c1.id)
+        url2 = club_detail_url(club_id=c2.id)
+
+        # Permission denied
+        res = self.client.get(url1)
+        self.assertResForbidden(res)
+
+        # Permission denied
+        res = self.client.get(url2)
+        self.assertResForbidden(res)
+
+        svc = ClubService(c1)
+        svc.add_member(self.user)
+
+        # Accepted, has proper role permissions
+        res = self.client.get(url1)
+        self.assertResOk(res)
+
+        # Permission denied, not proper role for this club
+        res = self.client.get(url2)
+        self.assertResForbidden(res)
+
+    def test_update_assigned_club(self):
+        """A user should only be able to update a club if has proper permissions."""
+
+        c1 = self.clubs[0]
+        c2 = self.clubs[1]
+
+        url1 = club_detail_url(c1.id)
+        url2 = club_detail_url(c2.id)
+
+        payload = {"name": "Updated name", "about": fake.paragraph()}
+
+        # Initially denied, not member of club
+        res = self.client.patch(url1, payload)
+        self.assertResForbidden(res)
+
+        svc = ClubService(c1)
+        svc.add_member(self.user)
+
+        # Denied, does not have permission
+        res = self.client.patch(url1, payload)
+        self.assertResForbidden(res)
+
+        role = ClubRole.objects.create(
+            c1, name="Editor", perm_labels=["clubs.change_club", "clubs.view_club"]
+        )
+        svc.add_member_role(self.user, role)
+
+        # Accepted
+        res = self.client.patch(url1, payload)
+        self.assertResOk(res)
+
+        c1.refresh_from_db()
+        self.assertEqual(c1.name, payload["name"])
+        self.assertEqual(c1.about, payload["about"])
+
+        # Rejected, not member of other club
+        payload["name"] += "2"
+        res = self.client.patch(url2, payload)
+        self.assertResForbidden(res)
+
+    def test_get_club_members(self):
+        """User should only get members of clubs they are assigned to, and have perms to view."""
+
+        club = self.clubs[0]
+        svc = ClubService(club)
+        svc.add_member(self.user)
+
+        url = club_members_list_url(club.id)
+
+        # Denied, does not have proper permissions
+        res = self.client.get(url)
+        self.assertResForbidden(res)
+
+        role = ClubRole.objects.create(
+            club, name="Member Viewer", perm_labels=["clubs.view_clubmembership"]
+        )
+        svc.add_member_role(self.user, role)
+
+        # Accepted, has permission
+        res = self.client.get(url)
+        self.assertResForbidden(res)

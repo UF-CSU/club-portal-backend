@@ -23,6 +23,23 @@ class ClubViewSet(ModelViewSetBase):
     serializer_class = ClubSerializer
     queryset = Club.objects.all()
 
+    def check_object_permissions(self, request, obj):
+        if not request.user.has_perm("clubs.view_club", obj):
+            self.permission_denied(request)
+
+        return super().check_object_permissions(request, obj)
+
+    def filter_queryset(self, queryset):
+        qs = super().filter_queryset(queryset)
+
+        has_membership = self.request.GET.get("has_membership", False)
+
+        if has_membership:
+            club_ids = self.request.user.clubs.values_list("id", flat=True)
+            return qs.filter(id__in=club_ids)
+
+        return qs
+
 
 class ClubMembershipViewSet(ModelViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
@@ -41,6 +58,17 @@ class ClubMembershipViewSet(ModelViewSetBase):
         club = Club.objects.get(id=club_id)
 
         serializer.save(club=club)
+
+    def check_permissions(self, request):
+        club_id = self.kwargs.get("club_id", None)
+        club = Club.objects.get(id=club_id)
+
+        if not request.user.has_perm(
+            "clubs.view_club", club
+        ) or not request.user.has_perm("clubs.view_clubmembership", club):
+            self.permission_denied(request)
+
+        return super().check_permissions(request)
 
 
 class TeamViewSet(ModelViewSetBase):
@@ -106,4 +134,5 @@ class ClubApiKeyViewSet(ModelViewSetBase):
             return ClubApiSecretSerializer
 
         # Otherwise, the secret should not be visible
+        return super().get_serializer_class()
         return super().get_serializer_class()
