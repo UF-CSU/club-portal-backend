@@ -39,6 +39,7 @@ def download_club_calendar(request: HttpRequest, club_id: int):
     return FileResponse(file, as_attachment=True, filename=f"{club_name}.ics")
 
 
+@login_required()
 def cancel_event(request: HttpRequest, event_id: int):
     """Cancels an event with an optional reason."""
     event = get_object_or_404(Event, id=event_id)
