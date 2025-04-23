@@ -79,6 +79,9 @@ class FlatListField(FlatField):
     sub_key: Optional[str]
     generic_key: str
 
+    list_pattern = r"\[(\d+|n)\]"
+    """Selects all instances of square bracket syntax for lists."""
+
     def __init__(self, key, value, field_types):
         super().__init__(key, value, field_types)
 
@@ -89,7 +92,7 @@ class FlatListField(FlatField):
         return "FlatListField"
 
     def __eq__(self, value):
-        return value == self.key or re.sub(r"\[(\d+|n)\]", "[n]", value) == self.key
+        return value == self.key or re.sub(self.list_pattern, "[n]", value) == self.key
 
     def _set_list_values(self):
         matches = re.match(r"([a-z0-9_-]+)\[(\d+|n)\]\.?(.*)?", self.key)

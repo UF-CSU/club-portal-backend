@@ -363,7 +363,9 @@ class TeamMemberNestedCsvSerializer(CsvModelSerializer):
     roles = serializers.SlugRelatedField(
         slug_field="name", queryset=TeamRole.objects.none(), many=True, required=False
     )
-    user = serializers.SlugRelatedField(slug_field="email", queryset=User.objects.all())
+    user = serializers.SlugRelatedField(
+        slug_field="email", queryset=User.objects.all(), help_text="User's email"
+    )
 
     class Meta:
         model = TeamMembership
@@ -385,7 +387,30 @@ class TeamCsvSerializer(CsvModelSerializer):
     def initialize_instance(self, data=None):
         super().initialize_instance(data)
 
-        if self.instance:
-            self.fields["members"].child.fields["roles"].child_relation.queryset = (
-                TeamRole.objects.filter(team=self.instance)
-            )
+        # This serializer will never run .create(), instead it will
+        # always update since nested roles are dependent on a team existing.
+        # To achieve this, an instance is created here before validation.
+        if not self.instance:
+            # Only need name and club, other fields will be applied at update
+            club = self.get_fields()["club"].to_internal_value(data.get("club"))
+            name = data.get("name")
+
+            # Run a quick validation check before creating team
+            self.run_validators({"name": name, "club": club})
+
+            # Then manually set the instance to the new team
+            self.instance = Team.objects.create(name=name, club=club)
+
+        members = data.get("members", [])
+        roles = set()
+
+        for member in members:
+            mem_roles = member.get("roles", [])
+            roles.update(mem_roles)
+
+        for role in roles:
+            TeamRole.objects.get_or_create(team=self.instance, name=role)
+
+        self.fields["members"].child.fields["roles"].child_relation.queryset = (
+            TeamRole.objects.filter(team=self.instance)
+        )

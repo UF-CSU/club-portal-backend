@@ -416,12 +416,11 @@ class TeamMembershipManager(ManagerBase["TeamMembership"]):
 
         membership = self.filter_one(**defaults)
         if not membership:
-            membership = self.create(**{**defaults, **kwargs})
+            membership = self.create(roles=roles, **{**defaults, **kwargs})
         else:
             self.filter(id=membership.id).update(**kwargs)
             membership.refresh_from_db()
-
-        membership.add_roles(*roles)
+            membership.add_roles(*roles)
 
         return membership
 

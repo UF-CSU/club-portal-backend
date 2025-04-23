@@ -80,6 +80,22 @@ class ClubTagAdmin(ModelAdminBase):
     """Manage club tags in admin dashboard."""
 
 
+class ClubMembershipAdmin(ModelAdminBase):
+    """Manage club memberships in admin."""
+
+    csv_serializer_class = ClubMembershipCsvSerializer
+
+    list_display = (
+        "__str__",
+        "club",
+        "club_roles",
+        "created_at",
+    )
+
+    def club_roles(self, obj):
+        return ", ".join(str(role) for role in list(obj.roles.all()))
+
+
 class TeamMembershipInlineAdmin(admin.TabularInline):
     """Manage user assignments to a team."""
 
@@ -90,7 +106,18 @@ class TeamMembershipInlineAdmin(admin.TabularInline):
     def get_formset(self, request, obj=None, **kwargs):
         if obj:
             self.form.parent_model = obj
-        return super().get_formset(request, obj, **kwargs)
+        formset = super().get_formset(request, obj, **kwargs)
+
+        # Restrict roles to ones owned by club
+        try:
+            roles_qs = formset.form.base_fields["roles"].queryset
+            formset.form.base_fields["roles"].queryset = roles_qs.filter(
+                team__id=obj.id
+            )
+        except Exception as e:
+            print("Unable to override membership field in admin:", e)
+
+        return formset
 
 
 class TeamRoleInlineAdmin(admin.StackedInline):
@@ -113,22 +140,6 @@ class TeamAdmin(ModelAdminBase):
 
     def members_count(self, obj):
         return obj.memberships.count()
-
-
-class ClubMembershipAdmin(ModelAdminBase):
-    """Manage club memberships in admin."""
-
-    csv_serializer_class = ClubMembershipCsvSerializer
-
-    list_display = (
-        "__str__",
-        "club",
-        "club_roles",
-        "created_at",
-    )
-
-    def club_roles(self, obj):
-        return ", ".join(str(role) for role in list(obj.roles.all()))
 
 
 admin.site.register(Club, ClubAdmin)
