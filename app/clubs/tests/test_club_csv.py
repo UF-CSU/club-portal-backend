@@ -44,8 +44,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
         }
 
         serializer = self.serializer_class(data=payload, flat=True)
-        self.assertIsNotNone(serializer.instance)
         self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertIsNotNone(serializer.instance)
 
     def test_create_club_from_csv(self):
         """Uploading a csv for a club should create club."""

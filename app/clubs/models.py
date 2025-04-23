@@ -393,11 +393,17 @@ class TeamMembershipManager(ManagerBase["TeamMembership"]):
         """Create new team membership."""
         roles = roles if roles is not None else []
 
+        if not user.club_memberships.filter(club__id=team.club.id).exists():
+            ClubMembership.objects.create(team.club, user)
+
         membership = super().create(team=team, user=user, **kwargs)
 
         if len(roles) < 1:
-            default_role = team.roles.get(default=True)
-            roles.append(default_role)
+            try:
+                default_role = team.roles.get(default=True)
+                roles.append(default_role)
+            except Exception:
+                pass
 
         for role in roles:
             membership.roles.add(role)
@@ -408,7 +414,13 @@ class TeamMembershipManager(ManagerBase["TeamMembership"]):
         defaults = defaults or {}
         roles = defaults.pop("roles", [])
 
-        membership, _ = super().update_or_create(defaults, **kwargs)
+        membership = self.filter_one(**defaults)
+        if not membership:
+            membership = self.create(**{**defaults, **kwargs})
+        else:
+            self.filter(id=membership.id).update(**kwargs)
+            membership.refresh_from_db()
+
         membership.add_roles(*roles)
 
         return membership

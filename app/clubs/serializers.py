@@ -360,12 +360,6 @@ class ClubCsvSerializer(CsvModelSerializer):
 class TeamMemberNestedCsvSerializer(CsvModelSerializer):
     """Represents team memberships in csvs."""
 
-    roles = WritableSlugRelatedField(
-        slug_field="name",
-        queryset=TeamRole.objects.none(),
-        many=True,
-        required=False,
-    )
     roles = serializers.SlugRelatedField(
         slug_field="name", queryset=TeamRole.objects.none(), many=True, required=False
     )
@@ -380,17 +374,18 @@ class TeamCsvSerializer(CsvModelSerializer):
     """Represent teams in csvs."""
 
     club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
-    memberships = TeamMemberNestedCsvSerializer(many=True, required=False)
+    members = TeamMemberNestedCsvSerializer(
+        many=True, required=False, source="memberships"
+    )
 
     class Meta:
         model = Team
         fields = "__all__"
 
-    def __init__(self, instance=None, data=empty, **kwargs):
-        super().__init__(instance, data, **kwargs)
+    def initialize_instance(self, data=None):
+        super().initialize_instance(data)
 
-        # TODO: Not reached by querycsv
         if self.instance:
-            self.fields["memberships"].child.fields["roles"].child_relation.queryset = (
+            self.fields["members"].child.fields["roles"].child_relation.queryset = (
                 TeamRole.objects.filter(team=self.instance)
             )

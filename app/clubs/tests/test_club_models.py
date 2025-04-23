@@ -128,8 +128,13 @@ class ClubTeamTests(TestsBase):
 
         team = Team.objects.create(name="Example Team", club=club)
 
-        with self.assertRaises(exceptions.ValidationError):
-            TeamMembership.objects.create(team=team, user=user).save()
+        # with self.assertRaises(exceptions.ValidationError):
+        #     TeamMembership.objects.create(team=team, user=user).save()
+
+        # Changed to add club membership instead
+        TeamMembership.objects.create(team=team, user=user).save()
+        self.assertEqual(user.club_memberships.count(), 1)
+        self.assertEqual(team.memberships.count(), 1)
 
     def test_unique_team_per_club(self):
         """Should not allow duplicate team names per club."""
