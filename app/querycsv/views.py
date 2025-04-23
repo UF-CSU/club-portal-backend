@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Type
 
 from django.http import HttpRequest
@@ -8,6 +9,7 @@ from django.template.response import TemplateResponse
 from core.abstracts.serializers import ModelSerializerBase
 from querycsv.forms import CsvHeaderMappingFormSet, CsvUploadForm
 from querycsv.models import QueryCsvUploadJob
+from querycsv.serializers import FlatListField
 from querycsv.services import QueryCsvService
 from querycsv.signals import send_process_csv_job_signal
 
@@ -115,8 +117,11 @@ class QueryCsvViewSet:
 
             for header in job.csv_headers:
                 cleaned_header = header.strip().lower().replace(" ", "_")
-                # if cleaned_header in self.serializer.all_field_names:
-                if cleaned_header in self.service.flat_fields.keys():
+                cleaned_header = re.sub(
+                    FlatListField.list_pattern, "[n]", cleaned_header
+                )
+
+                if cleaned_header in self.service.flat_fields.values():
                     initial_mapping = {
                         "csv_header": header,
                         "object_field": cleaned_header,

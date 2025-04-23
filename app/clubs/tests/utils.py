@@ -2,7 +2,7 @@ import uuid
 
 from django.urls import reverse
 
-from clubs.models import Club, Team
+from clubs.models import Club, Team, TeamRole
 from lib.faker import fake
 
 CLUB_CREATE_PARAMS = {
@@ -35,12 +35,17 @@ def create_test_clubs(count=5, **kwargs):
     return Club.objects.filter(id__in=ids).all()
 
 
-def create_test_team(club: Club, **kwargs):
+def create_test_team(club: Club, clear_roles=False, **kwargs):
     """Create valid team for unit tests."""
 
     payload = {"name": kwargs.pop("name", f"Team {uuid.uuid4()}"), **kwargs}
 
-    return Team.objects.create(club=club, **payload)
+    team = Team.objects.create(club=club, **payload)
+
+    if clear_roles:
+        TeamRole.objects.filter(team=team).delete()
+
+    return team
 
 
 def join_club_url(club_id: int):

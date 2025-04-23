@@ -106,7 +106,7 @@ class ManagerBase(models.Manager, Generic[T]):
     def update_or_create(
         self, defaults: MutableMapping[str, Any] | None = None, **kwargs
     ) -> tuple[T, bool]:
-        return super().update_or_create(defaults, **kwargs)
+        return super(ManagerBase, self).update_or_create(defaults, **kwargs)
 
     def all(self) -> models.QuerySet[T]:
         return super().all()

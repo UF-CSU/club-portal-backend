@@ -46,6 +46,8 @@ class FlatField:
 
         if FieldType.LIST in self.field_types and not isinstance(value, list):
             return str_to_list(value)
+        elif isinstance(value, str) and value.isdigit():
+            return int(value)
 
         return value
 
@@ -77,6 +79,9 @@ class FlatListField(FlatField):
     sub_key: Optional[str]
     generic_key: str
 
+    list_pattern = r"\[(\d+|n)\]"
+    """Selects all instances of square bracket syntax for lists."""
+
     def __init__(self, key, value, field_types):
         super().__init__(key, value, field_types)
 
@@ -87,7 +92,7 @@ class FlatListField(FlatField):
         return "FlatListField"
 
     def __eq__(self, value):
-        return value == self.key or re.sub(r"\[(\d+|n)\]", "[n]", value) == self.key
+        return value == self.key or re.sub(self.list_pattern, "[n]", value) == self.key
 
     def _set_list_values(self):
         matches = re.match(r"([a-z0-9_-]+)\[(\d+|n)\]\.?(.*)?", self.key)
@@ -342,18 +347,48 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         # Try to expand out fields before processing
         data = self.flat_to_json(data)
 
-        # Initialize rest of serializer first, needed if data is flat
+        # Then initialize rest of serializer
         super().__init__(data=data, **kwargs)
 
-        # Allow create_or_update functionality
-        try:
-            if instance is None and data is not None and data is not empty:
-                ModelClass = self.model_class
-                search_fields = {}
-                search_query = None
+    def initialize_instance(self, data=empty) -> None:
+        """
+        Set self.instance using data.
 
-                for field in self.unique_fields:
-                    value = data.get(field, None)
+        Allow create_or_update functionality by searching for existing models
+        with the same unique fields. By default, the serializer would fail
+        at the validation stage if an instance exists, but this allows the
+        serialzier to select that instance for update instead.
+        """
+
+        if data is empty or not data or self.instance is not None:
+            return
+
+        try:
+            ModelClass = self.model_class
+            search_query = None
+
+            for field in self.unique_fields:
+                value = data.get(field, None)
+
+                # Remove leading/trailing spaces before processing
+                if value is None or value == "":
+                    continue
+                elif isinstance(value, str):
+                    value = value.strip()
+
+                if search_query is None:
+                    search_query = models.Q(**{field: value})
+                else:
+                    search_query = search_query | models.Q(**{field: value})
+
+            for field_1, field_2 in self.unique_together_fields:
+                values = {
+                    field_1: data.get(field_1, None),
+                    field_2: data.get(field_2, None),
+                }
+
+                for f in [field_1, field_2]:
+                    value = values[f]
 
                     # Remove leading/trailing spaces before processing
                     if value is None or value == "":
@@ -361,23 +396,33 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     elif isinstance(value, str):
                         value = value.strip()
 
-                    search_fields[field] = value
+                    if f in self.related_fields:
+                        values[f] = self.get_fields()[f].to_internal_value(values[f])
 
-                    if search_query is None:
-                        search_query = models.Q(**{field: value})
-                    else:
-                        search_query = search_query | models.Q(**{field: value})
+                query = models.Q(**{field_1: values[field_1]}) & models.Q(
+                    **{field_2: values[field_2]}
+                )
 
-                query = ModelClass.objects.filter(search_query)
-                if query.exists():
-                    instance = query.first()
-            else:
-                self.instance = instance
+                if search_query is None:
+                    search_query = query
+                else:
+                    search_query = search_query | query
+
+            query = ModelClass.objects.filter(search_query)
+            if query.exists():
+                self.instance = query.first()
 
         except Exception:
             pass
 
-        self.instance = instance
+    def to_internal_value(self, data):
+        # Why run initialization here?
+        # This is one of the internal methods that is called first when running
+        # `.is_valid()`, so this fixes any uniqueness issues that would have otherwise
+        # have been raised by the validators.
+
+        self.initialize_instance(data)
+        return super().to_internal_value(data)
 
     def _parse_m2m_value(self, value, field):
         """Parses m2m values for create/update methods."""
@@ -446,6 +491,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
         reverse_many = {}
         reverse_one = {}
 
+        # TODO: Save nested serializers, pass parent if a child serializer
         for field_name, relation_info in info.relations.items():
             if (
                 relation_info.to_many
