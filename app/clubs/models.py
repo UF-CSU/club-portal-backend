@@ -420,7 +420,9 @@ class TeamMembershipManager(ManagerBase["TeamMembership"]):
         else:
             self.filter(id=membership.id).update(**kwargs)
             membership.refresh_from_db()
-            membership.add_roles(*roles)
+
+            if len(roles) > 0:
+                membership.roles.set(roles, clear=True)
 
         return membership
 
