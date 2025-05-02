@@ -42,3 +42,10 @@ def create_test_event(
         EventHost.objects.create(event=event, club=host)
 
     return event
+
+
+def create_test_events(count=5, **kwargs):
+    """Create multiple mock events."""
+
+    event_ids = [create_test_event(**kwargs).id for _ in range(count)]
+    return Event.objects.filter(id__in=event_ids).all()

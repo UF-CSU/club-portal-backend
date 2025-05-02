@@ -2,26 +2,38 @@ from rest_framework import serializers
 
 from clubs.models import Club
 from core.abstracts.serializers import ModelSerializerBase
-from events.models import Event, EventCancellation, EventTag
+from events.models import Event, EventCancellation, EventHost, EventTag
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 
 
+class EventHostNestedSerializer(ModelSerializerBase):
+    """JSON representation for hosts inside events."""
+
+    class Meta:
+        model = EventHost
+        fields = ["club_id", "primary"]
+
+
 class EventSerializer(ModelSerializerBase):
+    """JSON representation for events."""
+
+    hosts = EventHostNestedSerializer(many=True)
+
     class Meta:
         model = Event
         fields = [
-            *ModelSerializerBase.default_fields,
+            "id",
             "name",
             "description",
             "location",
             "start_at",
             "end_at",
             "tags",
-            "clubs",
-            "primary_club",
             "attendance_links",
             "hosts",
             "all_day",
+            "created_at",
+            "updated_at",
         ]
 
 

@@ -2,14 +2,14 @@ from django.urls import reverse
 
 from clubs.models import Club, Team
 from clubs.tests.utils import create_test_clubs, create_test_team
-from core.abstracts.tests import AuthApiTestsBase
+from core.abstracts.tests import PrivateApiTestsBase
 
 
 def teams_list_url(club_id):
     return reverse("api-clubs:team-list", kwargs={"club_id": club_id})
 
 
-class TeamPrivateApiTests(AuthApiTestsBase):
+class TeamPrivateApiTests(PrivateApiTestsBase):
     """Private routes for club teams."""
 
     def test_get_teams(self):

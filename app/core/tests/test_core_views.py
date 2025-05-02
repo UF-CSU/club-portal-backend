@@ -2,10 +2,10 @@
 Tests for core views and health checks.
 """
 
-from core.abstracts.tests import ApiTestsBase
+from core.abstracts.tests import PublicApiTestsBase
 
 
-class CoreViewTests(ApiTestsBase):
+class CoreViewTests(PublicApiTestsBase):
     """Test the Core views."""
 
     def test_health_check(self):
