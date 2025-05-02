@@ -71,7 +71,7 @@ class TestsBase(TestCase):
         return super().assertListEqual(list1, list2, msg)
 
 
-class ApiTestsBase(TestsBase):
+class PublicApiTestsBase(TestsBase):
     """Abstract testing utilities for api testing."""
 
     def setUp(self):
@@ -124,7 +124,7 @@ class ApiTestsBase(TestsBase):
         self.assertStatusCode(response, status.HTTP_404_NOT_FOUND, **kwargs)
 
 
-class AuthApiTestsBase(ApiTestsBase):
+class PrivateApiTestsBase(PublicApiTestsBase):
     """Testing utilities for apis where authentication is required."""
 
     def setUp(self):
@@ -137,7 +137,7 @@ class AuthApiTestsBase(ApiTestsBase):
         self.client.force_authenticate(user=self.user)
 
 
-class ViewTestsBase(ApiTestsBase):
+class ViewTestsBase(PublicApiTestsBase):
     """Abstract testing utilities for app views."""
 
     def assertRenders(

@@ -1,9 +1,12 @@
 import uuid
+from typing import Optional
 
 from django.urls import reverse
 
 from clubs.models import Club, Team, TeamRole
+from clubs.services import ClubService
 from lib.faker import fake
+from users.models import User
 
 CLUB_CREATE_PARAMS = {
     "name": "Test Club",
@@ -11,7 +14,7 @@ CLUB_CREATE_PARAMS = {
 CLUB_UPDATE_PARAMS = {"name": "Updated Club"}
 
 
-def create_test_club(name=None, **kwargs):
+def create_test_club(name=None, members: Optional[list[User]] = None, **kwargs):
     """Create unique club for unit tests."""
     if name is None:
         name = f"Test Club {uuid.uuid4()}"
@@ -25,7 +28,15 @@ def create_test_club(name=None, **kwargs):
 
         alias = new_alias
 
-    return Club.objects.create(name=name, alias=alias, **kwargs)
+    club = Club.objects.create(name=name, alias=alias, **kwargs)
+
+    members = members or []
+    svc = ClubService(club)
+
+    for member in members:
+        svc.add_member(member)
+
+    return club
 
 
 def create_test_clubs(count=5, **kwargs):

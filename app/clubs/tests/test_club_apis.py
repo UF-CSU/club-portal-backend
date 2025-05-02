@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 from clubs.models import ClubApiKey, ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import create_test_club, create_test_clubs
-from core.abstracts.tests import ApiTestsBase, AuthApiTestsBase, EmailTestsBase
+from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
 from lib.faker import fake
 from users.models import User
 from users.tests.utils import create_test_user
@@ -36,7 +36,7 @@ def club_list_url():
     return reverse("api-clubs:club-list")
 
 
-class ClubsApiPublicTests(ApiTestsBase):
+class ClubsApiPublicTests(PublicApiTestsBase):
     """Tests for public routes on clubs api."""
 
     def test_invite_login_required(self):
@@ -77,7 +77,7 @@ class ClubsApiPublicTests(ApiTestsBase):
         self.assertResForbidden(res)
 
 
-class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
+class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
     """Tests for club api routes."""
 
     def test_send_email_invites_api(self):
@@ -215,7 +215,7 @@ class ClubsApiPrivateTests(AuthApiTestsBase, EmailTestsBase):
         self.assertEqual(res_body["secret"], key.get_secret())
 
 
-class ClubsApiPermsTests(ApiTestsBase):
+class ClubsApiPermsTests(PublicApiTestsBase):
     """Test permissions handling in API."""
 
     CLUBS_COUNT = 5

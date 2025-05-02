@@ -38,8 +38,8 @@ class ClubService(ServiceBase[Club]):
         self,
         user: User,
         roles: Optional[list[ClubRole]] = None,
-        club_redirect_url=None,
         send_email=False,
+        club_redirect_url=None,
         fail_silently=True,
         **kwargs,
     ):
