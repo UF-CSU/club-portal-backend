@@ -136,6 +136,7 @@ class ClubRole(ModelBase):
         help_text="New members would be automatically assigned this role.",
     )
     permissions = models.ManyToManyField(Permission, blank=True)
+    # is_admin = models.BooleanField(default=False, blank=True)
 
     # Overrides
     objects: ClassVar[ClubRoleManager] = ClubRoleManager()
@@ -213,6 +214,7 @@ class ClubMembership(ModelBase):
     )
 
     is_owner = models.BooleanField(default=False, blank=True)
+    is_admin = models.BooleanField(default=False, blank=True)
     points = models.IntegerField(default=0, blank=True)
     roles = models.ManyToManyField(ClubRole, blank=True)
 
@@ -261,6 +263,9 @@ class ClubMembership(ModelBase):
 
     def clean(self):
         """Validate membership model."""
+        if self.is_owner and not self.is_admin:
+            self.is_admin = True
+
         if not self.pk:
             return super().clean()
 

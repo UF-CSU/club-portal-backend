@@ -29,6 +29,12 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     is_owner = serializers.BooleanField(read_only=True)
+    roles = serializers.SlugRelatedField(
+        slug_field="name",
+        many=True,
+        queryset=ClubRole.objects.all(),  # TODO: Restrict roles to club only
+        required=False,
+    )
 
     class Meta:
         model = ClubMembership
@@ -38,6 +44,7 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
             "username",
             "is_owner",
             "points",
+            "roles",
         ]
 
 
@@ -149,6 +156,12 @@ class ClubMembershipSerializer(ModelSerializerBase):
         help_text="If the user has an existing account, they will redirect to this url.",
     )
     team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
+    roles = serializers.SlugRelatedField(
+        slug_field="name",
+        many=True,
+        queryset=ClubRole.objects.all(),  # TODO: Restrict roles to club only
+        required=False,
+    )
 
     class Meta:
         model = ClubMembership
@@ -160,7 +173,9 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "points",
             "club_redirect_url",
             "send_email",
+            "is_admin",
             "team_memberships",
+            "roles",
         ]
 
     def create(self, validated_data):
@@ -251,7 +266,7 @@ class ClubApiSecretSerializer(ClubApiKeySerializer):
 
 
 ##############################################################
-# CSV SERIALIZERS
+# MARK: CSV SERIALIZERS
 ##############################################################
 
 
