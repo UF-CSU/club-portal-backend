@@ -11,7 +11,7 @@ from django.db import models
 from core.mock.models import BusterTag
 from core.mock.serializers import BusterTagNestedSerializer
 from lib.faker import fake
-from querycsv.models import QueryCsvUploadJob
+from querycsv.models import CsvUploadStatus, FieldMappingType, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
 from querycsv.tests.utils import (
     CsvDataM2MTestsBase,
@@ -190,6 +190,52 @@ class UploadCsvTests(UploadCsvTestsBase):
 
         self.assertNotEqual(obj.unique_name, payload["unique_name"])
 
+    def test_upload_bad_unique_fields(self):
+        """Uploading a csv with missmatched unique fields should not add buster."""
+
+        payload = [
+            {
+                "name": fake.title(),
+                "unique_name": uuid.uuid4().__str__(),
+                "unique_email": fake.safe_email(),
+            },
+            {
+                "name": fake.title(),
+                "unique_name": uuid.uuid4().__str__(),
+                "unique_email": fake.safe_email(),
+            },
+        ]
+
+        # Situation 1: Missmatched unique fields, raise error
+        # Example: unique_email matches, but unique_name does not
+        self.repo.create(
+            name=fake.title(),
+            unique_name=uuid.uuid4(),
+            unique_email=payload[0]["unique_email"],
+        )
+
+        # Situation 2: Search one unique field, update the other
+        # Examle: unique_name matches, but unique_email does not exist in the database
+        self.repo.create(
+            name=fake.title(),
+            unique_name=payload[1]["unique_name"],
+        )
+
+        success, failed = self.assertUploadPayload(payload, validate_res=False)
+        self.assertEqual(self.repo.count(), 2)
+        self.assertLength(success, 1)
+        self.assertLength(failed, 1)
+
+    def test_handles_parsing_error(self):
+        """Should safely handle an error that doesn't relate to the serializer."""
+
+        # Error strategy: unknown extension and file not found
+        self.filepath = self.filepath.replace(".csv", ".abc")
+
+        success, failed = self.service.upload_csv(self.filepath)
+        self.assertIsInstance(failed, Exception)
+        self.assertLength(success, 0)
+
 
 class UploadCsvJobTests(UploadCsvTestsBase):
     """Tests for uploading with QSCsv Model."""
@@ -236,6 +282,25 @@ class UploadCsvJobTests(UploadCsvTestsBase):
         # Validate database
         self.assertObjectsExist(pre_queryset=objects_before)
         self.assertObjectsHaveFields(expected_objects=objects_before)
+
+    def test_failed_job(self):
+        """Should correctly handle a failed job."""
+
+        self.initialize_csv_data()
+
+        job = QueryCsvUploadJob.objects.create(
+            serializer_class=self.serializer_class, filepath=self.filepath
+        )
+        # Error strategy: invalid field mapping
+        job.custom_field_mappings = {"fields": ["Some invalid input"]}
+        job.save()
+
+        success, failed = self.assertUploadJob(job, validate_res=False)
+        self.assertIsInstance(failed, Exception)
+        self.assertLength(success, 0)
+        self.assertEqual(job.status, CsvUploadStatus.FAILED)
+        self.assertIsNotNone(job.error)
+        self.assertFalse(job.report)
 
 
 class UploadCsvM2OFieldsTests(UploadCsvTestsBase, CsvDataM2OTestsBase):
@@ -503,3 +568,50 @@ class UploadCsvNestedFieldsTests(UploadCsvTestsBase):
         self.assertTrue(nested_obj.exists())
         nested_obj = nested_obj.first()
         self.assertEqual(nested_obj.color, payload["many_tags_nested[1].color"])
+
+    def test_upload_csv_mapping(self):
+        """Should upload csv payload with mapping."""
+
+        payload = {
+            "buster": fake.title(),
+            "tag_name": fake.title(),
+            "tag_color": fake.color(),
+        }
+        mappings: list[FieldMappingType] = [
+            {"column_name": "buster", "field_name": "name"},
+            {"column_name": "tag_name", "field_name": "many_tags_nested[0].name"},
+            {"column_name": "tag_color", "field_name": "many_tags_nested[0].color"},
+        ]
+
+        self.assertUploadPayload([payload], custom_field_maps=mappings)
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload["buster"])
+
+        self.assertEqual(self.nested_repo.count(), 1)
+        nested_obj = self.nested_repo.filter(name=payload["tag_name"])
+        self.assertTrue(nested_obj.exists())
+        nested_obj = nested_obj.first()
+        self.assertEqual(nested_obj.color, payload["tag_color"])
+
+    # def test_upload_csv_with_n_field(self):
+    #     """Should upload csv payload including an "n-field"."""
+
+    #     payload = {
+    #         "name": fake.title(),
+    #         "many_tags_nested[n].name": fake.title(),
+    #         "many_tags_nested[n].color": fake.color(),
+    #     }
+
+    #     self.assertUploadPayload([payload])
+
+    #     self.assertEqual(self.repo.count(), 1)
+    #     obj = self.repo.first()
+    #     self.assertEqual(obj.name, payload["name"])
+
+    #     self.assertEqual(self.nested_repo.count(), 1)
+    #     nested_obj = self.nested_repo.filter(name=payload["many_tags_nested[n].name"])
+    #     self.assertTrue(nested_obj.exists())
+    #     nested_obj = nested_obj.first()
+    #     self.assertEqual(nested_obj.color, payload["many_tags_nested[n].color"])

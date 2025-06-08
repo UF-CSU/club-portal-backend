@@ -174,16 +174,27 @@ class ModelSerializerBase(serializers.ModelSerializer):
         return self.Meta.model
 
     @property
+    def pk_field(self) -> str:
+        """Get the field name used as the primary key (usually id)."""
+
+        for field in self.model_class._meta.get_fields():
+            if getattr(field, "primary_key", False):
+                return field.name
+
+        raise Exception(
+            f"Model {self.model_class.__name__} does not have a primary key!"
+        )
+
+    @property
     def unique_fields(self) -> list[str]:
         """Get list of all fields that can be used to unique identify models."""
 
         model_fields = self.model_class._meta.get_fields()
         unique_fields = [
-            field
+            field.name
             for field in model_fields
             if getattr(field, "primary_key", False) or getattr(field, "_unique", False)
         ]
-        unique_fields = [field.name for field in unique_fields]
 
         return [field for field in self.readable_fields if field in unique_fields]
 

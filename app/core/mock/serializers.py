@@ -61,6 +61,7 @@ class BusterCsvSerializer(CsvModelSerializer):
             "updated_at",
             "name",
             "unique_name",
+            "unique_email",
             "image",
             "one_tag_nested",
             "one_tag_str",

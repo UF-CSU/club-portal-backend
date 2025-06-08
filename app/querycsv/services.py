@@ -4,14 +4,17 @@ from typing import Literal, Optional, OrderedDict, Type, TypedDict
 
 import pandas as pd
 from django.db import models
+from django.utils import timezone
 
 from core.abstracts.serializers import ModelSerializerBase
 from lib.spreadsheets import read_spreadsheet
 from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
-from querycsv.models import QueryCsvUploadJob
+from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.serializers import CsvModelSerializer
 from utils.files import get_media_path
 from utils.helpers import str_to_list
+from utils.logging import print_error
+from utils.models import save_file_to_model
 
 
 class FieldMappingType(TypedDict):
@@ -48,8 +51,48 @@ class QueryCsvService:
 
         assert job.serializer is not None, "Upload job must container serializer."
 
+        # Start processing job
+        job.status = CsvUploadStatus.PROCESSING
+        job.save()
+
         svc = cls(serializer_class=job.serializer_class)
-        return svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
+        success, failed = svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
+
+        # Set final job status
+        if not isinstance(failed, list):
+            # Break circuit if failed
+            job.status = CsvUploadStatus.FAILED
+            job.error = failed
+            job.save()
+
+            return success, failed
+        elif len(failed) > 0:
+            job.status = CsvUploadStatus.CONTAINS_ERRORS
+        else:
+            job.status = CsvUploadStatus.SUCCESS
+
+        job.success_count = len(success)
+        job.failed_count = len(failed)
+
+        job.save()
+
+        # Create report
+        report_file_path = get_media_path(
+            QUERYCSV_MEDIA_SUBDIR + f"reports/{job.model_class.__name__}/",
+            fileprefix=str(timezone.now().strftime("%d-%m-%Y_%H:%M:%S")),
+            fileext="xlsx",
+        )
+
+        success_report = pd.json_normalize(success)
+        failed_report = pd.json_normalize(failed)
+
+        with pd.ExcelWriter(report_file_path) as writer:
+            success_report.to_excel(writer, sheet_name="Successful", index=False)
+            failed_report.to_excel(writer, sheet_name="Failed", index=False)
+
+        save_file_to_model(job, report_file_path, field="report")
+
+        return success, failed
 
     @classmethod
     def queryset_to_csv(
@@ -122,105 +165,123 @@ class QueryCsvService:
         Upload: Given path to csv, create/update models and
         return successful and failed objects.
         """
+        try:
 
-        # Start by importing csv
-        df = read_spreadsheet(path)
+            # Start by importing csv
+            df = read_spreadsheet(path)
 
-        # Update df values with header associations
-        if custom_field_maps:
-            generic_list_keys = []  # Used for determining index when ambiguous
+            # Update df values with header associations
+            if custom_field_maps:
+                generic_list_keys = []  # Used for determining index when ambiguous
 
-            for mapping in custom_field_maps:
-                map_field_name = mapping["field_name"]
-                column_name = mapping["column_name"]
+                for mapping in custom_field_maps:
+                    map_field_name = mapping["field_name"]
+                    column_name = mapping["column_name"]
 
-                if (
-                    map_field_name not in self.flat_fields.keys()
-                    and map_field_name not in self.actions
-                ):
-                    continue  # Safely skip invalid mappings
+                    if (
+                        map_field_name not in self.flat_fields.values()
+                        and map_field_name not in self.actions
+                    ):
+                        continue  # Safely skip invalid mappings
 
-                elif map_field_name == self.Actions.SKIP.value:
-                    df.drop(columns=column_name, inplace=True)
+                    elif map_field_name == self.Actions.SKIP.value:
+                        df.drop(columns=column_name, inplace=True)
 
-                    continue
+                        continue
 
-                field = self.flat_fields[map_field_name]
+                    field = self.serializer.get_flat_field(map_field_name)
 
-                if not field.is_list_item:
-                    # Default field logic
+                    if not field.is_list_item:
+                        # Default field logic
+                        df.rename(
+                            columns={column_name: map_field_name},
+                            inplace=True,
+                        )
+                        continue
+
+                    #######################################################
+                    # Handle list items.
+                    #
+                    # Mappings can come in as field[n].subfield, or field[0].subfield.
+                    # If the mapping uses n for the index, then the n will be the "nth" occurance
+                    # of that field, starting at 0.
+                    #
+                    # At this point, all "field" (FlatListField) values are index=None,
+                    # n-mappings will all be assigned indexes.
+                    #######################################################
+
+                    # Determine type
+                    numbers = re.findall(r"\d+", mapping["column_name"])
+                    assert (
+                        len(numbers) <= 1
+                    ), "List items can only contain 0 or 1 numbers (multi digit allowed)."
+
+                    if len(numbers) == 1:
+                        # Number was provided in spreadsheet
+                        index = numbers[0]
+                    else:
+                        # Number was not provided in spreadsheet, get index of field
+                        index = len(
+                            [
+                                key
+                                for key in generic_list_keys
+                                if key == field.generic_key
+                            ]
+                        )
+
+                    field.set_index(index)
+                    generic_list_keys.append(field.generic_key)
+
                     df.rename(
-                        columns={column_name: map_field_name},
-                        inplace=True,
+                        columns={mapping["column_name"]: str(field)}, inplace=True
                     )
+
+            # # Convert n-mappings to numbered lists
+            # for i, col in enumerate(list(df.columns)):
+            #     pass
+
+            # Normalize & clean fields before conversion to dict
+            for field_name, field_type in self.serializer.get_flat_fields().items():
+                if field_name not in list(df.columns):
                     continue
 
-                #######################################################
-                # Handle list items.
-                #
-                # Mappings can come in as field[n].subfield, or field[0].subfield.
-                # If the mapping uses n for the index, then the n will be the "nth" occurance
-                # of that field, starting at 0.
-                #
-                # At this point, all "field" (FlatListField) values are index=None,
-                # n-mappings will all be assigned indexes.
-                #######################################################
-
-                # Determine type
-                numbers = re.findall(r"\d+", mapping["column_name"])
-                assert (
-                    len(numbers) <= 1
-                ), "List items can only contain 0 or 1 numbers (multi digit allowed)."
-
-                if len(numbers) == 1:
-                    # Number was provided in spreadsheet
-                    index = numbers[0]
+                if field_type.is_list_item:
+                    df[field_name] = df[field_name].map(
+                        lambda val: [
+                            item for item in str_to_list(val) if str(item) != ""
+                        ]
+                    )
                 else:
-                    # Number was not provided in spreadsheet, get index of field
-                    index = len(
-                        [key for key in generic_list_keys if key == field.generic_key]
+                    df[field_name] = df[field_name].map(
+                        lambda val: val if val != "" else None
                     )
 
-                field.set_index(index)
-                generic_list_keys.append(field.generic_key)
+            # Convert df to list of dicts, drop null fields
+            upload_data = df.to_dict("records")
+            filtered_data = [
+                {k: v for k, v in record.items() if v is not None}
+                for record in upload_data
+            ]
 
-                df.rename(columns={mapping["column_name"]: str(field)}, inplace=True)
+            # Finally, save data if valid
+            success = []
+            errors = []
 
-        # Normalize & clean fields before conversion to dict
-        for field_name, field_type in self.serializer.get_flat_fields().items():
-            if field_name not in list(df.columns):
-                continue
+            # Note: string stripping is done in the serializer
+            serializers = [
+                self.serializer_class(data=data, flat=True) for data in filtered_data
+            ]
 
-            if field_type.is_list_item:
-                df[field_name] = df[field_name].map(
-                    lambda val: [item for item in str_to_list(val) if str(item) != ""]
-                )
-            else:
-                df[field_name] = df[field_name].map(
-                    lambda val: val if val != "" else None
-                )
+            for serializer in serializers:
+                if serializer.is_valid():
+                    serializer.save()
+                    success.append(serializer.data)
+                else:
+                    report = {**serializer.data, "errors": {**serializer.errors}}
+                    errors.append(report)
 
-        # Convert df to list of dicts, drop null fields
-        upload_data = df.to_dict("records")
-        filtered_data = [
-            {k: v for k, v in record.items() if v is not None} for record in upload_data
-        ]
+            return success, errors
 
-        # Finally, save data if valid
-        success = []
-        errors = []
-
-        # Note: string stripping is done in the serializer
-        serializers = [
-            self.serializer_class(data=data, flat=True) for data in filtered_data
-        ]
-
-        for serializer in serializers:
-            if serializer.is_valid():
-                serializer.save()
-                success.append(serializer.data)
-            else:
-                report = {**serializer.data, "errors": {**serializer.errors}}
-                errors.append(report)
-
-        return success, errors
+        except Exception as e:
+            print_error()
+            return [], e

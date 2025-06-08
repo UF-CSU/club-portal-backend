@@ -27,6 +27,7 @@ class FlatField:
         self.key = key
         self.help_text = value.help_text
         self.field_types = field_types
+        self.field_instance = value
 
     def __str__(self):
         return self.key
@@ -48,6 +49,11 @@ class FlatField:
             return str_to_list(value)
         elif isinstance(value, str) and value.isdigit():
             return int(value)
+        elif isinstance(self.field_instance, serializers.IntegerField) and (
+            str(value).strip() != ""
+        ):
+            # Pandas usually returns floats inside strings, massage this to int
+            return int(float(value))
 
         return value
 
@@ -255,6 +261,7 @@ class FlatSerializer(SerializerBase):
 
         # For each field, convert flattened syntax to JSON representation
         for key, value in record.items():
+            # For listed objects, n-mappings must be already converted to numbers
             list_objs_res = re.match(r"([a-z0-9_-]+)\[([0-9]+)\]\.?(.*)?", key)
             nested_obj_res = re.match(r"([a-z0-9_-]+)\.(.*)", key)
 
@@ -367,6 +374,13 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
             ModelClass = self.model_class
             search_query = None
 
+            # Check pk if pk value exists, short circuiting if it does
+            pk_value = data.get(self.pk_field, None)
+            if pk_value is not None:
+                self.instance = ModelClass.objects.get(id=pk_value)
+                return
+
+            # Find object containing all unique fields (AND)
             for field in self.unique_fields:
                 value = data.get(field, None)
 
@@ -376,11 +390,15 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 elif isinstance(value, str):
                     value = value.strip()
 
-                if search_query is None:
-                    search_query = models.Q(**{field: value})
-                else:
-                    search_query = search_query | models.Q(**{field: value})
+                # The value must exist and match, or be None
+                query = models.Q(**{field: value}) | models.Q(**{field: None})
 
+                if search_query is None:
+                    search_query = query
+                else:
+                    search_query = search_query & query
+
+            # Find object containing all sets of unique_together fields (AND)
             for field_1, field_2 in self.unique_together_fields:
                 values = {
                     field_1: data.get(field_1, None),
@@ -399,14 +417,28 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     if f in self.related_fields:
                         values[f] = self.get_fields()[f].to_internal_value(values[f])
 
-                query = models.Q(**{field_1: values[field_1]}) & models.Q(
+                # TODO: Test query functionality
+                query_all_fields = models.Q(**{field_1: values[field_1]}) & models.Q(
                     **{field_2: values[field_2]}
+                )
+                query_field_1 = models.Q(**{field_1: values[field_1]}) & models.Q(
+                    **{field_2: None}
+                )
+                query_field_2 = models.Q(**{field_1: None}) & models.Q(
+                    **{field_2: values[field_2]}
+                )
+                query_no_fields = models.Q(**{field_1: None}) & models.Q(
+                    **{field_2: None}
+                )
+
+                query = (
+                    query_all_fields | query_field_1 | query_field_2 | query_no_fields
                 )
 
                 if search_query is None:
                     search_query = query
                 else:
-                    search_query = search_query | query
+                    search_query = search_query & query
 
             query = ModelClass.objects.filter(search_query)
             if query.exists():

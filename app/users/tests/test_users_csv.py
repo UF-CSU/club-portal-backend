@@ -82,6 +82,7 @@ class UserCsvTests(UploadCsvTestsBase):
 
         u1 = create_test_user(email=fake.safe_email())
         u2 = create_test_user(email=fake.safe_email())
+        u3 = create_test_user(email=fake.safe_email())
 
         payload = [
             {
@@ -89,6 +90,7 @@ class UserCsvTests(UploadCsvTestsBase):
                 "club_memberships[0].club": c1.name,
             },
             {
+                "id": u2.id,  # Id is needed if updating a unique value
                 "email": u2.email,
                 "username": fake.user_name(),
                 "profile.first_name": fake.first_name(),
@@ -102,10 +104,20 @@ class UserCsvTests(UploadCsvTestsBase):
                 "socials[1].social_type": "discord",
                 "socials[1].username": "@somediscord",
             },
+            {
+                "email": u3.email,
+                "username": fake.user_name(),  # This will raise an error, cannot update unique field without id
+                "profile.first_name": fake.first_name(),
+                "profile.last_name": fake.last_name(),
+                "club_memberships[0].club": c1.name,
+            },
         ]
 
-        self.assertUploadPayload(payload)
-        self.assertEqual(User.objects.count(), 2)
+        success, failed = self.assertUploadPayload(payload, validate_res=False)
+        self.assertLength(success, 2, failed)
+        self.assertLength(failed, 1, failed)
+
+        self.assertEqual(User.objects.count(), 3)
         self.assertEqual(Club.objects.count(), 2)
         self.assertEqual(ClubMembership.objects.count(), 3)
         self.assertEqual(ClubRole.objects.count(), roles_before)
@@ -148,7 +160,6 @@ class UserCsvTests(UploadCsvTestsBase):
 
         payload = {
             "email": user.email,
-            "username": "NewUsername",
             "profile.first_name": fake.first_name(),
             "profile.last_name": fake.last_name(),
             "profile.image": "https://example.com/image.png",
