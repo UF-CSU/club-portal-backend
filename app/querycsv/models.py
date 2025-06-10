@@ -84,11 +84,17 @@ class QueryCsvUploadJob(ModelBase):
     )
     notify_email = models.EmailField(null=True, blank=True)
     report = models.FileField(
-        upload_to=QUERYCSV_MEDIA_SUBDIR + "reports/", null=True, blank=True
+        upload_to=QUERYCSV_MEDIA_SUBDIR + "reports/",
+        null=True,
+        blank=True,
+        editable=False,
     )
     custom_field_mappings = models.JSONField(
         blank=True, help_text="Key value pairs, column name => model field"
     )
+    error = models.CharField(null=True, blank=True, editable=False)
+    success_count = models.PositiveIntegerField(null=True, blank=True, editable=False)
+    failed_count = models.PositiveIntegerField(null=True, blank=True, editable=False)
 
     # Overrides
     objects: ClassVar[QueryCsvUploadJobManager] = QueryCsvUploadJobManager()
@@ -103,6 +109,9 @@ class QueryCsvUploadJob(ModelBase):
         if self.filepath:
             return f'Upload for "{self.object_type}" objects, {self.row_count} rows'
         return f'Upload for "{self.object_type}" objects'
+
+    class Meta:
+        verbose_name = "CSV Upload"
 
     # Dynamic properties
     @property

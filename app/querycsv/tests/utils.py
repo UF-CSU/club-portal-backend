@@ -15,6 +15,7 @@ from core.abstracts.tests import TestsBase
 from core.mock.models import Buster, BusterTag
 from core.mock.serializers import BusterCsvSerializer
 from lib.faker import fake
+from querycsv.models import CsvUploadStatus, FieldMappingType, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
 from utils.files import get_media_path
 from utils.helpers import clean_list
@@ -387,6 +388,7 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
                     or key in self.serializer.nested_fields
                     or key in self.serializer.readonly_fields
                     or value is None
+                    or value == ""
                     or key not in self.model_class.get_fields_list()
                 ):
                     continue
@@ -557,14 +559,43 @@ class UploadCsvTestsBase(CsvDataTestsBase):
         self.repo.all().delete()
         self.assertNoObjects()
 
-    def assertUploadPayload(self, payload: list[dict], *args, **kwargs):
+    def assertUploadPayload(
+        self,
+        payload: list[dict],
+        custom_field_maps: list[FieldMappingType] | None = None,
+        validate_res=True,
+        **kwargs,
+    ):
         """Given a list of flattened dicts, will convert to csv and upload."""
 
         self.data_to_csv(payload)
 
-        success, failed = self.service.upload_csv(self.filepath, *args, **kwargs)
+        success, failed = self.service.upload_csv(
+            self.filepath, custom_field_maps=custom_field_maps, **kwargs
+        )
+
+        if not validate_res:
+            return success, failed
+
         self.assertLength(success, len(payload), failed)
         self.assertLength(failed, 0)
+
+        return success, failed
+
+    def assertUploadJob(self, job: QueryCsvUploadJob, validate_res=True):
+        """Should successfully upload and process a job."""
+
+        success, failed = self.service.upload_from_job(job)
+
+        if not validate_res:
+            return success, failed
+
+        job.refresh_from_db()
+
+        self.assertLength(failed, 0)
+        self.assertEqual(job.status, CsvUploadStatus.SUCCESS)
+        self.assertIsNotNone(job.report)
+        self.assertIsNone(job.error)
 
     def assertObjectsExist(self, pre_queryset: list, msg=None):
         """Objects represented in queryset should exist in the database."""
@@ -594,6 +625,7 @@ class UploadCsvTestsBase(CsvDataTestsBase):
                 and k not in self.serializer.any_related_fields
                 and k in self.model_class.get_fields_list()
                 and v is not None
+                and v != ""
             }
 
             # Extra parsing for query

@@ -23,6 +23,7 @@ class Buster(ModelBase):
 
     name = models.CharField()
     unique_name = models.CharField(unique=True, default=uuid.uuid4)
+    unique_email = models.EmailField(unique=True, null=True, blank=True)
     one_tag = models.ForeignKey(
         BusterTag, on_delete=models.SET_NULL, null=True, blank=True
     )
