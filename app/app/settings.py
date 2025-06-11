@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "drf_spectacular",
+    "drf_standardized_errors",
     "django_filters",
     "allauth",
     "allauth.headless",
@@ -198,11 +199,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Django Rest Framework
 REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "core.views.api_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_standardized_errors.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
 }
-
+DRF_STANDARDIZED_ERRORS = {"ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True}
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Club Portal API",
