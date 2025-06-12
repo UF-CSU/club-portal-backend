@@ -10,6 +10,13 @@ router.register(
     viewsets.ClubMembershipViewSet,
     basename="clubmember",
 )
+
+router.register(
+    r"clubs/(?P<club_id>.+)/members/person",
+    viewsets.ClubMemberViewSet,
+    basename="clubmembership",
+)
+
 router.register("clubs/(?P<club_id>.+)/teams", viewsets.TeamViewSet, basename="team")
 router.register(
     "clubs/(?P<club_id>.+)/apikeys", viewsets.ClubApiKeyViewSet, basename="apikey"
