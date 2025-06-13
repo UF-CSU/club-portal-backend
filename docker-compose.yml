@@ -24,7 +24,7 @@ services:
     env_file:
       - .env
     environment:
-      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8080}
+      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8000}
     depends_on:
       - postgres
       - redis
