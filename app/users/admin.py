@@ -58,14 +58,11 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
     csv_serializer_class = UserCsvSerializer
 
-    readonly_fields = (
-        *BaseUserAdmin.readonly_fields,
-        "date_joined",
-    )
+    readonly_fields = (*BaseUserAdmin.readonly_fields, "date_joined", "profile_image")
     actions = ("send_account_setup_link",)
 
     fieldsets = (
-        (None, {"fields": ("username", "email", "password")}),
+        (None, {"fields": ("username", "email", "password", "profile_image")}),
         (
             "Permissions",
             {
@@ -92,6 +89,9 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
     )
 
     inlines = (UserProfileInline, SocialProfileInline, UserClubMembershipInline)
+
+    def profile_image(self, obj):
+        return self.as_image(obj.profile.image)
 
     @admin.action
     def send_account_setup_link(self, request, queryset):
