@@ -23,6 +23,8 @@ services:
              python manage.py runserver 0.0.0.0:8000"
     env_file:
       - .env
+    environment:
+      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8080}
     depends_on:
       - postgres
       - redis

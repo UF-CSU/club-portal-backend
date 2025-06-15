@@ -31,7 +31,7 @@ class Link(ModelBase):
     club = models.ForeignKey(
         "clubs.Club", on_delete=models.CASCADE, related_name="links"
     )
-    target_url = models.CharField()
+    target_url = models.URLField(help_text="The final url we want to track clicks to.")
     display_name = models.CharField(null=True, blank=True)
     # pings = models.IntegerField(default=0)
 
