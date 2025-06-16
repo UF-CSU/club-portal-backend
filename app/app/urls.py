@@ -36,6 +36,7 @@ apipatterns = [
     path("club/", include("clubs.apis")),
     path("club/poll/", include("clubs.polls.apis")),
     path("event/", include("events.apis")),
+    path("analytics/", include("analytics.apis"))
 ]
 
 urlpatterns = [
@@ -52,6 +53,7 @@ urlpatterns = [
     path("dashboard/", include("dashboard.urls")),
     path("oauth/", include("allauth.urls"), name="oauth"),
     path("api/oauth/", include("allauth.headless.urls")),
+    path("analytics/", include("analytics.urls"))
 ]
 
 if DEV:

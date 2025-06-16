@@ -112,6 +112,9 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
 
+    is_verified = models.BooleanField(default=False)
+    is_onboarded = models.BooleanField(default=False)
+
     clubs = models.ManyToManyField(
         "clubs.Club", through="clubs.ClubMembership", blank=True
     )

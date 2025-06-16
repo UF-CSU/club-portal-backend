@@ -1,8 +1,10 @@
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
+import querycsv
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
+from rest_framework import mixins
 
 from clubs.models import Club, ClubApiKey, ClubMembership, Team
 from clubs.serializers import (
@@ -69,6 +71,30 @@ class ClubMembershipViewSet(ModelViewSetBase):
             self.permission_denied(request)
 
         return super().check_permissions(request)
+
+class ClubMemberViewSet(ViewSetBase, mixins.RetrieveModelMixin,) :
+    """CRUD Api routes for ClubMembership for a specific Club given specific User."""
+
+    serializer_class = ClubMembershipSerializer
+    queryset = ClubMembership.objects.all()
+
+    lookup_field = "user_id"
+
+    def get_object(self):
+        club_id = self.kwargs.get("club_id", None)
+        user_id = self.kwargs.get("user_id", None)
+
+        if user_id is not None:
+            try:
+                user_id = int(user_id)
+                club_id = int(club_id)
+            except ValueError:
+
+                return self.queryset.none()
+        
+        self.queryset = self.queryset.filter(club__id=club_id, user__id=user_id)
+        
+        return get_object_or_404(self.queryset)
 
 
 class TeamViewSet(ModelViewSetBase):
