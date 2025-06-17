@@ -7,13 +7,17 @@
 
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
-  - [Setup](#setup)
-  - [Running the Dev Server](#running-the-dev-server)
+  - [Quick Start](#quick-start)
+  - [Dev Setup](#dev-setup)
+  - [Running the Server](#running-the-server)
+- [Admin Dashboard](#admin-dashboard)
+- [Usage](#usage)
+  - [REST API](#rest-api)
+- [Server "Modes"](#server-modes)
 - [Taskfile Commands](#taskfile-commands)
 - [Local Dev Links](#local-dev-links)
-- [Admin Dashboard](#admin-dashboard)
-- [Server "Modes"](#server-modes)
 - [Contributing](#contributing)
+  - [Pull Requests](#pull-requests)
 
 ## Getting Started
 
@@ -28,7 +32,21 @@ Optional:
 - Taskfile for managing commands and local tasks: <https://taskfile.dev/installation/>
 - Anaconda for managing Python virtual environments: <https://www.anaconda.com/download>
 
-### Setup
+### Quick Start
+
+If you have docker installed, run these commands:
+
+```sh
+# Pull the repo from github
+git clone https://github.com/UF-CSU/club-portal-backend.git
+cd ./club-portal-backend
+
+# Setup and start the server
+cp sample.env .env
+docker-compose --profile dev up --build
+```
+
+### Dev Setup
 
 To setup your vscode environment, you will need to create a python virtual environment and install the packages found in `requirements.txt` and `requirements.dev.txt`.
 
@@ -40,7 +58,7 @@ task setup
 
 _This command is still being ironed out, and may not work for certain environments_
 
-### Running the Dev Server
+### Running the Server
 
 #### With TaskFile
 
@@ -52,6 +70,31 @@ task dev
 
 This will build the docker containers and spin up the dev servers.
 
+You can add mock data (located in `app/fixtures/`) with this command:
+
+```sh
+task loaddata
+```
+
+And you can run unit tests with:
+
+```sh
+task test
+```
+
+If you make changes to the database, make sure to create a migration file and apply that migration file to the database:
+
+```sh
+task makemigrations
+task migrate
+```
+
+Finally, to stop all docker container and clear the database:
+
+```sh
+task clean
+```
+
 #### Without Taskfile
 
 You can manually start up the docker containers with the following commands:
@@ -59,13 +102,26 @@ You can manually start up the docker containers with the following commands:
 ```sh
 # Setup env variables and build docker images
 cp sample.env .env
-docker-compose build
+docker-compose --profile dev build
 ```
 
 After building the docker image, you can run this to start the servers:
 
 ```sh
-docker-compose up
+docker-compose --profile dev up
+```
+
+To load mock data:
+
+```sh
+docker-compose run --rm app sh -c "python manage.py loaddata fixtures/*"
+```
+
+To make migration files and apply them to the database:
+
+```sh
+docker-compose run --rm app sh -c "python manage.py makemigrations"
+docker-compose run --rm app sh -c "python manage.py migrate"
 ```
 
 To run unit tests:
@@ -73,6 +129,60 @@ To run unit tests:
 ```sh
 docker-compose run --rm app sh -c "python manage.py test"
 ```
+
+And finally, to clean up all the docker containers and clear the database:
+
+```sh
+docker-compose --profile dev down --remove-orphans -v
+```
+
+## Admin Dashboard
+
+You can log into the admin dashboard by going to the route `/admin` and using the following credentials:
+
+- Username: `admin@example.com`
+- Password: `changeme`
+
+These defaults are set via environment variables:
+
+```txt
+DJANGO_SUPERUSER_EMAIL="admin@example.com"
+DJANGO_SUPERUSER_PASS="changeme"
+```
+
+If you want to change these values, copy the sample.env file to a new `.env` file and change the values. If you already created an admin with the other credentials, then another one won't be created automatically. To get another one to be created automatically, remove the database and restart the app with this command:
+
+```sh
+docker-compose down --remove-orphans -v
+docker-compose up
+```
+
+If you want to create a new admin without removing the old database, run this command:
+
+```sh
+docker-compose run --rm app sh -c "python manage.py createsuperuser --no-input"
+```
+
+## Usage
+
+For more detailed info, look at the docs in [`docs/pages/`](./docs/pages), or visit <http://localhost:8001/> if you have the server running.
+
+### REST API
+
+1. Go to <http://localhost:8000/api/v1/docs/#/user/user_token_create>
+2. Use `admin@example.com` as the username and `changeme` as the password (unless you have overridden it) and submit a POST request to the user token route.
+3. Use this token to access the rest of the api.
+
+## Server "Modes"
+
+You can run the project in multiple different environments, which are referred to as "modes".
+
+| Mode       | Purpose                                                                          |
+| ---------- | -------------------------------------------------------------------------------- |
+| Dev        | Main development mode, uses mock data in leu of making requests to microservices |
+| Network    | Does not use mock data, connects to any needed microservices                     |
+| Test       | Slimmer version of dev mode for unit testing                                     |
+| Production | When the project is run in a cloud environment and receiving traffic             |
 
 ## Taskfile Commands
 
@@ -102,7 +212,7 @@ If you have Taskfile installed, you can use the following:
 
 ## Local Dev Links
 
-Running the server in dev mode will start up the following services:
+Running the server in `dev` mode will start up the following services:
 
 | Service            | Description                                              | Link                                           |
 | ------------------ | -------------------------------------------------------- | ---------------------------------------------- |
@@ -115,43 +225,18 @@ Running the server in dev mode will start up the following services:
 | PGAdmin            | Directly view and manage postgres database for debugging | <http://localhost:8888/>                       |
 | MailHog            | Local test email server to view emails sent by django    | <http://localhost:8025/>                       |
 
-## Admin Dashboard
-
-You can log into the admin dashboard by going to the route `/admin` and using the following credentials:
-
-- Username: `admin@example.com`
-- Password: `changeme`
-
-These defaults are set via environment variables:
-
-```txt
-DJANGO_SUPERUSER_EMAIL="admin@example.com"
-DJANGO_SUPERUSER_PASS="changeme"
-```
-
-If you want to change these values, copy the sample.env file to a new `.env` file and change the values. If you already created an admin with the other credentials, then another one won't be created automatically. To get another one to be created automatically, remove the database and restart the app with this command:
+All of these servers are started up with the "dev" profile in docker compose, if you want to run only essential services you can run:
 
 ```sh
-docker-compose down --remove-orphans -v
-docker-compose up
+task dev:slim
 ```
 
-If you want to create a new admin without removing the old database, run this command:
+Or, without taskfile:
 
 ```sh
-docker-compose run --rm app sh -c "python manage.py createsuperuser --no-input"
+docker-compose --profile slim build
+docker-compose --profile slim up
 ```
-
-## Server "Modes"
-
-You can run the project in multiple different environments, which are referred to as "modes".
-
-| Mode       | Purpose                                                                          |
-| ---------- | -------------------------------------------------------------------------------- |
-| Dev        | Main development mode, uses mock data in leu of making requests to microservices |
-| Network    | Does not use mock data, connects to any needed microservices                     |
-| Test       | Slimmer version of dev mode for unit testing                                     |
-| Production | When the project is run in a cloud environment and receiving traffic             |
 
 ## Contributing
 
@@ -160,3 +245,25 @@ To contribute to the project, you can work on any issues not claimed by anyone. 
 It is recommended to open smaller pull requests (PRs) that have completed features, compared to larger PRs with a set of different/similar features. This is to reduce merge conflicts and make sure everyone has the updated code.
 
 For more information about contributing, view [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+### Pull Requests
+
+When submitting a pull request (PR), it will be rejected if the unit tests fail. It is recommended to format your code before making a PR, but it's not required (code can still be merged into main if it fails the linting tests).
+
+To run unit tests:
+
+```sh
+task test
+```
+
+Check linting:
+
+```sh
+task lint
+```
+
+Format code:
+
+```sh
+task format:fix
+```
