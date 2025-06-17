@@ -62,6 +62,7 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
             last_name=last_name,
             phone=phone,
         )
+        user.save(using=self._db)  # Set default profile image, etc
 
         return user
 
@@ -132,17 +133,25 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     # Dynamic Properties
     @property
     def first_name(self):
-        if not self.profile:
+        if self.profile is None:
             return None
 
         return self.profile.first_name
 
+    @first_name.setter
+    def first_name(self, value):
+        Profile.objects.update_or_create(defaults={"user": self}, first_name=value)
+
     @property
     def last_name(self):
-        if not self.profile:
+        if self.profile is None:
             return None
 
         return self.profile.last_name
+
+    @last_name.setter
+    def last_name(self, value):
+        Profile.objects.update_or_create(defaults={"user": self}, last_name=value)
 
     @property
     def can_authenticate(self):
@@ -180,7 +189,7 @@ class Profile(ModelBase):
 
     image = models.ImageField(
         upload_to=get_user_profile_filepath,
-        default="user/profile.jpeg",
+        null=True,
         blank=True,
     )
 

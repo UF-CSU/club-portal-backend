@@ -51,6 +51,16 @@ class AdminBase:
 
         return mark_safe(f'<a href="{url}" target="_blank">{text}</a>')
 
+    def as_image(self, image: models.ImageField):
+        if not image:
+            return None
+
+        return mark_safe(
+            "<svg width='90' height='90' style='background-color:white'>"
+            f"<image  xlink:href={image.url} width='100%'>"
+            "</svg>"
+        )
+
 
 class ModelAdminBase(AdminBase, admin.ModelAdmin):
     """Base class for all model admins."""

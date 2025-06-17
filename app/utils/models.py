@@ -66,7 +66,7 @@ class ReverseOneToOneOrNoneDescriptor(ReverseOneToOneDescriptor):
     def __get__(self, instance, cls=None):
         try:
             return super(ReverseOneToOneOrNoneDescriptor, self).__get__(
-                instance=instance, cls=cls
+                instance, cls
             )
         except ObjectDoesNotExist:
             return None

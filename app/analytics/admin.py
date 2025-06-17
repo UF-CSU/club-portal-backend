@@ -3,10 +3,11 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from analytics.models import Link, LinkVisit, QRCode
+from core.abstracts.admin import ModelAdminBase
 from utils.admin import other_info_fields
 
 
-class QRCodeAdmin(admin.ModelAdmin):
+class QRCodeAdmin(ModelAdminBase):
     """Admin config for QR Codes."""
 
     readonly_fields = (
@@ -31,14 +32,7 @@ class QRCodeAdmin(admin.ModelAdmin):
     )
 
     def preview(self, obj):
-        if not obj.image:
-            return None
-
-        return mark_safe(
-            "<svg width='90' height='90' style='background-color:white'>"
-            f"<image  xlink:href={obj.image.url} width='100%'>"
-            "</svg>"
-        )
+        return self.as_image(obj.image)
 
 
 class LinkVisitInlineAdmin(admin.StackedInline):
