@@ -9,7 +9,7 @@ WORKDIR /app
 USER root
 
 # default to production
-ARG DEV=false
+ARG DEV=true
 
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \

@@ -11,9 +11,11 @@ router = DefaultRouter()
 
 router.register("links", viewsets.LinkViewSet, basename="link")
 
+router.register("qrcode", viewsets.QrViewSet, basename="qrcode")
+
 app_name = "api-links"
 
 urlpatterns = [
-    path("links/", include(router.urls),),
+    path("", include(router.urls)),
 
 ]
