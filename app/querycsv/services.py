@@ -29,7 +29,11 @@ class QueryCsvService:
         SKIP = "SKIP"
         CF = "CUSTOM_FIELD"
 
-    def __init__(self, serializer_class: Type[CsvModelSerializer]):
+    def __init__(
+        self,
+        serializer_class: Type[CsvModelSerializer],
+        job: Optional[QueryCsvUploadJob] = None,
+    ):
         self.serializer_class = serializer_class
         self.serializer = serializer_class()
         self.model_name = self.serializer.model_class.__name__
@@ -44,6 +48,7 @@ class QueryCsvService:
         self.flat_fields = self.serializer.get_flat_fields()
 
         self.actions = [action.value for action in self.Actions]
+        self.job = job
 
     @classmethod
     def upload_from_job(cls, job: QueryCsvUploadJob):
@@ -55,7 +60,7 @@ class QueryCsvService:
         job.status = CsvUploadStatus.PROCESSING
         job.save()
 
-        svc = cls(serializer_class=job.serializer_class)
+        svc = cls(serializer_class=job.serializer_class, job=job)
         success, failed = svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
 
         # Set final job status
@@ -102,6 +107,14 @@ class QueryCsvService:
 
         service = cls(serializer_class=serializer_class)
         return service.download_csv(queryset)
+
+    def _log_job_msg(self, msg: str):
+        if self.job:
+            self.job.add_log(msg)
+
+    def _log_job_kwarg(self, key: str, value: str):
+        if self.job:
+            self.job.add_log(value, key=key)
 
     def download_csv(self, queryset: models.QuerySet) -> str:
         """Download: Convert queryset to csv, return path to csv."""
@@ -166,17 +179,25 @@ class QueryCsvService:
         return successful and failed objects.
         """
         try:
+            if self.job:
+                self.job.start_clock()
 
             # Start by importing csv
             df = read_spreadsheet(path)
+            self._log_job_msg(
+                "Finished reading spreadsheet, processing field mappings..."
+            )
+
+            # Strip leading/trailing spaces from column names
+            df.columns = df.columns.str.strip()
 
             # Update df values with header associations
             if custom_field_maps:
                 generic_list_keys = []  # Used for determining index when ambiguous
 
                 for mapping in custom_field_maps:
-                    map_field_name = mapping["field_name"]
-                    column_name = mapping["column_name"]
+                    map_field_name = mapping["field_name"].strip()
+                    column_name = mapping["column_name"].strip()
 
                     if (
                         map_field_name not in self.flat_fields.values()
@@ -211,7 +232,7 @@ class QueryCsvService:
                     #######################################################
 
                     # Determine type
-                    numbers = re.findall(r"\d+", mapping["column_name"])
+                    numbers = re.findall(r"\d+", column_name)
                     assert (
                         len(numbers) <= 1
                     ), "List items can only contain 0 or 1 numbers (multi digit allowed)."
@@ -232,13 +253,9 @@ class QueryCsvService:
                     field.set_index(index)
                     generic_list_keys.append(field.generic_key)
 
-                    df.rename(
-                        columns={mapping["column_name"]: str(field)}, inplace=True
-                    )
+                    df.rename(columns={column_name: str(field)}, inplace=True)
 
-            # # Convert n-mappings to numbered lists
-            # for i, col in enumerate(list(df.columns)):
-            #     pass
+            self._log_job_msg("Cleaning csv data and standardizing fields...")
 
             # Normalize & clean fields before conversion to dict
             for field_name, field_type in self.serializer.get_flat_fields().items():
@@ -267,18 +284,27 @@ class QueryCsvService:
             success = []
             errors = []
 
+            self._log_job_msg("Unflattening csv data...")
+
             # Note: string stripping is done in the serializer
             serializers = [
                 self.serializer_class(data=data, flat=True) for data in filtered_data
             ]
 
-            for serializer in serializers:
+            self._log_job_msg("Starting database update process...")
+
+            for i, serializer in enumerate(serializers):
                 if serializer.is_valid():
                     serializer.save()
                     success.append(serializer.data)
                 else:
                     report = {**serializer.data, "errors": {**serializer.errors}}
                     errors.append(report)
+
+                self._log_job_kwarg(key="processed", value=str(i + 1))
+
+            if self.job:
+                self.job.end_clock()
 
             return success, errors
 

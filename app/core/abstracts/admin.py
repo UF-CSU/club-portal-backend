@@ -1,3 +1,4 @@
+import json
 import logging
 from functools import update_wrapper
 from typing import Literal, Optional
@@ -10,6 +11,9 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.urls.resolvers import URLPattern
 from django.utils.safestring import mark_safe
+from pygments.formatters import HtmlFormatter
+from pygments import highlight
+from pygments.lexers import JsonLexer
 
 from querycsv.serializers import CsvModelSerializer
 from querycsv.services import QueryCsvService
@@ -60,6 +64,29 @@ class AdminBase:
             f"<image  xlink:href={image.url} width='100%'>"
             "</svg>"
         )
+
+    def as_json(self, obj):
+        """
+        Convert obj to html json format.
+
+        Reference: https://daniel.feldroy.com/posts/pretty-formatting-json-django-admin
+        """
+
+        if obj is None:
+            return None
+
+        if isinstance(obj, dict) or isinstance(obj, list):
+            obj = json.dumps(obj)
+
+        response = json.dumps(json.loads(obj), indent=2)
+
+        formatter = HtmlFormatter()
+
+        response = highlight(response, JsonLexer(), formatter)
+        response = response.replace("\\n", "<br>")
+        style = "<style>" + formatter.get_style_defs() + "</style><br>"
+
+        return mark_safe(style + response)
 
 
 class ModelAdminBase(AdminBase, admin.ModelAdmin):

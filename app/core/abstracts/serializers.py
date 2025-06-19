@@ -8,6 +8,7 @@ from django.core import validators
 from django.core.files import File
 from django.core.files.temp import NamedTemporaryFile
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -28,19 +29,19 @@ class SerializerBase(serializers.Serializer):
 
     datetime_format = "%Y-%m-%d %H:%M:%S"
 
-    @property
+    @cached_property
     def all_fields(self) -> list[str]:
         """Get list of all fields in serializer."""
 
         return [key for key in self.get_fields().keys()]
 
-    @property
+    @cached_property
     def readable_fields(self) -> list[str]:
         """Get list of all fields in serializer that can be read."""
 
         return self.all_fields
 
-    @property
+    @cached_property
     def writable_fields(self) -> list[str]:
         """Get list of all fields that can be written to."""
 
@@ -48,7 +49,7 @@ class SerializerBase(serializers.Serializer):
             key for key, value in self.get_fields().items() if value.read_only is False
         ]
 
-    @property
+    @cached_property
     def readonly_fields(self) -> list[str]:
         """Get list of all fields that can only be read, not written."""
 
@@ -56,7 +57,7 @@ class SerializerBase(serializers.Serializer):
             key for key, value in self.get_fields().items() if value.read_only is True
         ]
 
-    @property
+    @cached_property
     def required_fields(self) -> list[str]:
         """Get list of all fields that must be written to on object creation."""
 
@@ -66,7 +67,7 @@ class SerializerBase(serializers.Serializer):
             if value.required is True and value.read_only is False
         ]
 
-    @property
+    @cached_property
     def image_fields(self) -> list[str]:
         """List of fields that are of type ImageField."""
 
@@ -76,7 +77,7 @@ class SerializerBase(serializers.Serializer):
             if isinstance(value, serializers.ImageField)
         ]
 
-    @property
+    @cached_property
     def many_related_fields(self) -> list[str]:
         """List of fields that inherit RelatedField, and are many=True."""
 
@@ -86,7 +87,7 @@ class SerializerBase(serializers.Serializer):
             if isinstance(value, serializers.ManyRelatedField)
         ]
 
-    @property
+    @cached_property
     def list_fields(self) -> list[str]:
         """List of fields that represent a list of items."""
 
@@ -103,7 +104,7 @@ class SerializerBase(serializers.Serializer):
             )
         )
 
-    @property
+    @cached_property
     def nested_fields(self):
         """List of fields that are nested serializers."""
 
@@ -114,7 +115,7 @@ class SerializerBase(serializers.Serializer):
             and not (hasattr(value, "many") and value.many)
         ]
 
-    @property
+    @cached_property
     def many_nested_fields(self):
         """List of fields that are nested serializers with many=True."""
         return [
@@ -169,11 +170,11 @@ class ModelSerializerBase(serializers.ModelSerializer):
     class Meta:
         model = None
 
-    @property
+    @cached_property
     def model_class(self) -> Type[models.Model]:
         return self.Meta.model
 
-    @property
+    @cached_property
     def pk_field(self) -> str:
         """Get the field name used as the primary key (usually id)."""
 
@@ -185,7 +186,7 @@ class ModelSerializerBase(serializers.ModelSerializer):
             f"Model {self.model_class.__name__} does not have a primary key!"
         )
 
-    @property
+    @cached_property
     def unique_fields(self) -> list[str]:
         """Get list of all fields that can be used to unique identify models."""
 
@@ -198,7 +199,7 @@ class ModelSerializerBase(serializers.ModelSerializer):
 
         return [field for field in self.readable_fields if field in unique_fields]
 
-    @property
+    @cached_property
     def related_fields(self) -> list[str]:
         """List of fields that inherit RelatedField, representing foreign key relations."""
 
@@ -208,7 +209,7 @@ class ModelSerializerBase(serializers.ModelSerializer):
             if isinstance(value, serializers.RelatedField)
         ]
 
-    @property
+    @cached_property
     def many_related_fields(self) -> list[str]:
         """List of fields that inherit ManyRelatedField, representing M2M relations."""
 
@@ -218,13 +219,13 @@ class ModelSerializerBase(serializers.ModelSerializer):
             if isinstance(value, serializers.ManyRelatedField)
         ]
 
-    @property
+    @cached_property
     def any_related_fields(self) -> list[str]:
         """List of fields that are single or many related."""
 
         return self.related_fields + self.many_related_fields
 
-    @property
+    @cached_property
     def unique_together_fields(self):
         """List of tuples of fields that must be unique together."""
 
