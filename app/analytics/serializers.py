@@ -2,13 +2,12 @@
 Serializers for the analytics API View
 """
 
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from clubs.models import Club, ClubMembership, ClubRole, Team, TeamMembership
-from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
-from querycsv.serializers import CsvModelSerializer
-from analytics.models import Link, LinkManager, LinkVisit, QRCode
-from django.shortcuts import get_object_or_404
+from analytics.models import Link, QRCode
+from clubs.models import Club
+
 
 class LinkClubNestedSerializer(serializers.ModelSerializer):
     """Represents nested club info for users."""
@@ -24,20 +23,18 @@ class LinkClubNestedSerializer(serializers.ModelSerializer):
             "name",
         ]
 
-class LinkSerializer(serializers.ModelSerializer): 
+
+class LinkSerializer(serializers.ModelSerializer):
     """Represents link info"""
 
     target_url = serializers.CharField(required=True)
     display_name = serializers.CharField(allow_null=True, allow_blank=True)
 
-    club = LinkClubNestedSerializer(
-        many=False, read_only=True
-    )
+    club = LinkClubNestedSerializer(many=False, read_only=True)
 
     club_id = serializers.IntegerField(write_only=True, required=True)
 
     link_visits = serializers.IntegerField(read_only=True)
-    
 
     class Meta:
         model = Link
@@ -55,7 +52,7 @@ class LinkSerializer(serializers.ModelSerializer):
         club = get_object_or_404(Club, id=club_id)
         link = Link.objects.create(club=club, **validated_data)
         return link
-    
+
 
 class QrLinkNestedSerializer(serializers.ModelSerializer):
     """Represents Nested links within QR info"""
@@ -69,7 +66,7 @@ class QrLinkNestedSerializer(serializers.ModelSerializer):
             "id",
             "target_url",
         ]
-    
+
 
 class QrSerializer(serializers.ModelSerializer):
     """Represents QR info"""
@@ -94,31 +91,30 @@ class QrSerializer(serializers.ModelSerializer):
             "size",
             "width",
         ]
-    
+
     def get_url(self, obj):
         # Assumes QRCode.url property returns the tracking URL
         try:
             return obj.url
         except Exception:
             return None
-        
+
     def get_width(self, obj):
         try:
             return obj.width
         except Exception:
             return None
-        
+
     def get_size(self, obj):
         try:
             return obj.size
         except Exception:
             return None
-    
+
     def create(self, validated_data):
         link_id = validated_data.pop("link_id")
 
-        image = validated_data.pop('image', None)
-
+        image = validated_data.pop("image", None)
 
         link = get_object_or_404(Link, pk=link_id)
         qrcode = QRCode.objects.create(link=link)
@@ -137,8 +133,4 @@ class QrSerializer(serializers.ModelSerializer):
 
         qrcode.save()
 
-
         return qrcode
-        
-    
-

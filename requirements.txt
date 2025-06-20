@@ -35,5 +35,7 @@ django-celery-beat>=2.7.0,<2.8
 # ICS files
 icalendar>=6.1.0,<6.2
 
+# JSON Lexer for admin
+Pygments>=2.18.0,<2.19
 
 
