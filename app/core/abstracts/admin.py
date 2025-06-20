@@ -11,8 +11,8 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.urls.resolvers import URLPattern
 from django.utils.safestring import mark_safe
-from pygments.formatters import HtmlFormatter
 from pygments import highlight
+from pygments.formatters import HtmlFormatter
 from pygments.lexers import JsonLexer
 
 from querycsv.serializers import CsvModelSerializer

@@ -223,7 +223,7 @@ class QueryCsvUploadJob(ModelBase):
     def add_field_mapping(self, column_name: str, field_name: str, commit=True):
         """Add custom field mapping."""
 
-        if self.spreadsheet:
+        if self.spreadsheet is not None:
             column_options = list(self.spreadsheet.columns)
 
             assert (
