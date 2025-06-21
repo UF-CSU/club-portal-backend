@@ -58,6 +58,14 @@ class SerializerBase(serializers.Serializer):
         ]
 
     @cached_property
+    def writeonly_fields(self) -> list[str]:
+        """Get a list of all fields that can only be written to."""
+
+        return [
+            key for key, value in self.get_fields().items() if value.write_only is True
+        ]
+
+    @cached_property
     def required_fields(self) -> list[str]:
         """Get list of all fields that must be written to on object creation."""
 
