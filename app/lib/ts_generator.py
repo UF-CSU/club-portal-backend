@@ -80,7 +80,7 @@ FIELD_TPL = "  %(property)s: %(type)s;\n"
 OPTIONAL_FIELD_TPL = "  %(property)s?: %(type)s;\n"
 READONLY_FIELD_TPL = "  readonly %(property)s: %(type)s;\n"
 
-FIELD_DOC_TPL = "\n  /** %s */\n"
+FIELD_DOC_TPL = "  /** %s */\n"
 
 
 class TypeGenerator:
@@ -117,80 +117,104 @@ class TypeGenerator:
 
         return field_type
 
-    def _generate_field(
-        self, tpl: str, property: str, field_type: str, doc: Optional[str] = None
+    def _get_indent(self, indent_level: int):
+        return "  " * indent_level
+
+    def _generate_prop(
+        self,
+        tpl: str,
+        property: str,
+        prop_type: str,
+        doc: Optional[str] = None,
+        indent_level=0,
     ):
         """Generate a TS field depending on tpl value."""
 
         generated = ""
+        indent = self._get_indent(indent_level)
+        # generated += "\n"
 
         if doc:
-            generated += FIELD_DOC_TPL % (doc,)
+            generated += indent + FIELD_DOC_TPL % (doc,)
 
-        generated += tpl % {
+        generated += indent + tpl % {
             "property": property,
-            "type": field_type,
+            "type": prop_type,
         }
 
         return generated
 
-    def _generate_required_field(
-        self, property: str, field_type: str, doc: Optional[str] = None
-    ):
+    def _generate_required_prop(self, property: str, prop_type: str, **kwargs):
         """Generate a required TS field."""
+        return self._generate_prop(FIELD_TPL, property, prop_type, **kwargs)
 
-        return self._generate_field(FIELD_TPL, property, field_type, doc=doc)
-
-    def _generate_optional_field(
-        self, property: str, field_type: str, doc: Optional[str] = None
-    ):
+    def _generate_optional_prop(self, property: str, prop_type: str, **kwargs):
         """Generate a optional TS field."""
+        return self._generate_prop(OPTIONAL_FIELD_TPL, property, prop_type, **kwargs)
 
-        return self._generate_field(OPTIONAL_FIELD_TPL, property, field_type, doc=doc)
-
-    def _generate_readonly_field(
-        self, property: str, field_type: str, doc: Optional[str] = None
-    ):
+    def _generate_readonly_prop(self, property: str, prop_type: str, **kwargs):
         """Generate a readonly TS field."""
+        return self._generate_prop(READONLY_FIELD_TPL, property, prop_type, **kwargs)
 
-        return self._generate_field(READONLY_FIELD_TPL, property, field_type, doc=doc)
+    def _props_factory(
+        self,
+        all_fields: dict[str | serializers.Field],
+        show_nonnull: bool,
+        force_optional: bool,
+        indent_level=0,
+    ):
+        """Create function for generating props."""
 
-    def _generate_fields(
+        def gen_prop(prop_name, prop_type=None, required=True, readonly=False):
+            field = all_fields[prop_name]
+            kwargs = {
+                "property": prop_name,
+                "prop_type": prop_type or self._get_field_type(field),
+                "doc": getattr(field, "help_text", None),
+                "indent_level": indent_level,
+            }
+
+            if not readonly and show_nonnull and not getattr(field, "allow_null", True):
+                field_prop = self._generate_required_prop(**kwargs)
+            elif not readonly and (force_optional or not required):
+                field_prop = self._generate_optional_prop(**kwargs)
+            elif not readonly:
+                field_prop = self._generate_required_prop(**kwargs)
+            else:
+                field_prop = self._generate_readonly_prop(**kwargs)
+
+            return field_prop
+
+        return gen_prop
+
+    def _generate_props(
         self,
         serializer: SerializerBase,
-        all_optional=False,
+        force_optional=False,
         skip_readonly=False,
         skip_pk=True,
-        allow_null=False,
+        show_nonnull=True,
         indent_level=0,
     ):
         """Generate a list of fields for given serializer."""
 
         all_fields = serializer.get_fields()
         properties = []
-        indent = "  " * indent_level
+        indent = self._get_indent(indent_level)
 
-        def gen_field(field_name, field_type=None, required=True, readonly=False):
-            field = all_fields[field_name]
-            field_type = field_type or self._get_field_type(field)
-
-            if not readonly and not allow_null and not field.allow_null:
-                field_prop = self._generate_required_field(field_name, field_type)
-            elif not readonly and (all_optional or not required):
-                field_prop = self._generate_optional_field(field_name, field_type)
-            elif not readonly:
-                field_prop = self._generate_required_field(field_name, field_type)
-            else:
-                field_prop = self._generate_readonly_field(field_name, field_type)
-
-            return indent + field_prop
+        gen_prop = self._props_factory(
+            all_fields,
+            show_nonnull=show_nonnull,
+            indent_level=indent_level,
+            force_optional=force_optional,
+        )
 
         # Generate required fields
         for field_name in serializer.required_fields:
             if field_name not in serializer.simple_fields:
                 continue
 
-            field_prop = gen_field(field_name, required=True)
+            field_prop = gen_prop(field_name, required=True)
             properties.append(field_prop)
 
         # Generate optional fields
@@ -198,7 +222,7 @@ class TypeGenerator:
             if field_name not in serializer.simple_fields:
                 continue
 
-            field_prop = gen_field(field_name, required=False)
+            field_prop = gen_prop(field_name, required=False)
             properties.append(field_prop)
 
         # Generate single value list fields
@@ -212,9 +236,9 @@ class TypeGenerator:
             else:
                 field_type = "string[]"
 
-            field_prop = gen_field(
+            field_prop = gen_prop(
                 field_name,
-                field_type=field_type,
+                prop_type=field_type,
                 required=(field_name in serializer.required_fields),
             )
             properties.append(field_prop)
@@ -223,9 +247,9 @@ class TypeGenerator:
         for field_name in serializer.nested_fields:
             field = all_fields[field_name]
 
-            nested_properties = self._generate_fields(
+            nested_properties = self._generate_props(
                 field,
-                all_optional=all_optional,
+                force_optional=force_optional,
                 indent_level=indent_level + 1,
             )
 
@@ -233,7 +257,7 @@ class TypeGenerator:
             if len(nested_properties) < 1:
                 continue
 
-            if field_name in serializer.required_fields and not all_optional:
+            if field_name in serializer.required_fields and not force_optional:
                 properties.append(indent + "  %s: {\n" % (field_name,))
             else:
                 properties.append(indent + "  %s?: {\n" % (field_name,))
@@ -245,9 +269,9 @@ class TypeGenerator:
         for field_name in serializer.many_nested_fields:
             field = all_fields[field_name]
 
-            nested_properties = self._generate_fields(
+            nested_properties = self._generate_props(
                 field.child,
-                all_optional=all_optional,
+                force_optional=force_optional,
                 skip_readonly=skip_readonly,
                 indent_level=indent_level + 1,
             )
@@ -256,7 +280,7 @@ class TypeGenerator:
             if len(nested_properties) < 1:
                 continue
 
-            if field_name in serializer.required_fields and not all_optional:
+            if field_name in serializer.required_fields and not force_optional:
                 properties.append(indent + "  %s: {\n" % (field_name,))
             else:
                 properties.append(indent + "  %s?: {\n" % (field_name,))
@@ -286,17 +310,15 @@ class TypeGenerator:
                             "return", "any"
                         )
                         field_type = PYTHON_TYPES.get(field_type_class, "any")
-                        field_prop = gen_field(
-                            field_name, field_type=field_type, readonly=True
+                        field_prop = gen_prop(
+                            field_name, prop_type=field_type, readonly=True
                         )
                     except Exception as e:
                         field_type = "unknown"
-                        field_prop = gen_field(
-                            field_name, readonly=True
-                        )
+                        field_prop = gen_prop(field_name, readonly=True)
                         print(e)
                 else:
-                    field_prop = gen_field(field_name, readonly=True)
+                    field_prop = gen_prop(field_name, readonly=True)
 
                 properties.append(field_prop)
 
@@ -326,21 +348,21 @@ class TypeGenerator:
             all_fields = serializer.get_fields()
 
             # Set pk field as the first field
-            idoc += self._generate_readonly_field(
+            idoc += self._generate_readonly_prop(
                 serializer.pk_field,
                 self._get_field_type(all_fields[serializer.pk_field]),
                 doc="Primary key",
             )
 
-            main_fields = self._generate_fields(serializer)
-            create_fields = self._generate_fields(
-                serializer, skip_readonly=True, allow_null=True
+            main_fields = self._generate_props(serializer)
+            create_fields = self._generate_props(
+                serializer, skip_readonly=True, show_nonnull=False
             )
-            update_fields = self._generate_fields(
+            update_fields = self._generate_props(
                 serializer,
-                all_optional=True,
+                force_optional=True,
                 skip_readonly=True,
-                allow_null=True,
+                show_nonnull=False,
             )
 
             idoc += "".join(main_fields)
