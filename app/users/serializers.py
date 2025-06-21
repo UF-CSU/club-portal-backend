@@ -6,12 +6,16 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from clubs.models import Club, ClubMembership, ClubRole, Team, TeamMembership
-from core.abstracts.serializers import ImageUrlField, ModelSerializerBase
+from core.abstracts.serializers import (
+    ImageUrlField,
+    ModelSerializer,
+    ModelSerializerBase,
+)
 from querycsv.serializers import CsvModelSerializer
 from users.models import Profile, SocialProfile, User
 
 
-class UserClubNestedSerializer(serializers.ModelSerializer):
+class UserClubNestedSerializer(ModelSerializerBase):
     """Represents nested club info for users."""
 
     id = serializers.IntegerField(source="club.id", read_only=True)
@@ -26,7 +30,7 @@ class UserClubNestedSerializer(serializers.ModelSerializer):
         ]
 
 
-class ProfileNestedSerializer(serializers.ModelSerializer):
+class ProfileNestedSerializer(ModelSerializerBase):
     """Represent user profiles in api."""
 
     class Meta:
@@ -34,8 +38,8 @@ class ProfileNestedSerializer(serializers.ModelSerializer):
         exclude = ["user", "created_at", "updated_at"]
 
 
-class UserSerializer(ModelSerializerBase):
-    """Serialzier for the user object."""
+class UserSerializer(ModelSerializer):
+    """Represents a person in the system who can authenticate."""
 
     email = serializers.EmailField()
     username = serializers.CharField(required=False)

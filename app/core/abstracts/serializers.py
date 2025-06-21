@@ -58,13 +58,31 @@ class SerializerBase(serializers.Serializer):
         ]
 
     @cached_property
+    def writeonly_fields(self) -> list[str]:
+        """Get a list of all fields that can only be written to."""
+
+        return [
+            key for key, value in self.get_fields().items() if value.write_only is True
+        ]
+
+    @cached_property
     def required_fields(self) -> list[str]:
         """Get list of all fields that must be written to on object creation."""
 
         return [
             key
-            for key, value in self.fields.items()
+            for key, value in self.get_fields().items()
             if value.required is True and value.read_only is False
+        ]
+
+    @cached_property
+    def optional_fields(self) -> list[str]:
+        """Get list of all fields are not required for object creation."""
+
+        return [
+            key
+            for key, value in self.get_fields().items()
+            if value.required is False and value.read_only is False
         ]
 
     @cached_property
@@ -73,9 +91,42 @@ class SerializerBase(serializers.Serializer):
 
         return [
             key
-            for key, value in self.fields.items()
+            for key, value in self.get_fields().items()
             if isinstance(value, serializers.ImageField)
         ]
+
+    @cached_property
+    def simple_fields(self) -> list[str]:
+        """List of all fields that are not lists or nested objects."""
+
+        exclude_fields = (
+            self.many_related_fields
+            + self.list_fields
+            + self.nested_fields
+            + self.many_nested_fields
+        )
+
+        return [
+            field_name
+            for field_name in self.all_fields
+            if field_name not in exclude_fields
+        ]
+
+    @cached_property
+    def simple_list_fields(self) -> list[str]:
+        """List of all fields that are a list of a single flat value."""
+
+        return list(
+            set(
+                [
+                    key
+                    for key, value in self.get_fields().items()
+                    if isinstance(value, serializers.ListField)
+                    # or getattr(value, "many", False)
+                ]
+                + self.many_related_fields
+            )
+        )
 
     @cached_property
     def many_related_fields(self) -> list[str]:
@@ -83,7 +134,7 @@ class SerializerBase(serializers.Serializer):
 
         return [
             key
-            for key, value in self.fields.items()
+            for key, value in self.get_fields().items()
             if isinstance(value, serializers.ManyRelatedField)
         ]
 
@@ -95,7 +146,7 @@ class SerializerBase(serializers.Serializer):
             set(
                 [
                     key
-                    for key, value in self.fields.items()
+                    for key, value in self.get_fields().items()
                     if isinstance(value, serializers.ListField)
                     or getattr(value, "many", False)
                 ]
@@ -125,6 +176,15 @@ class SerializerBase(serializers.Serializer):
             and (hasattr(value, "many") and value.many)
         ]
 
+    @cached_property
+    def all_nested_fields(self):
+        """List of fields that are nested serializers, whether many=True or False."""
+
+        return self.nested_fields + self.many_nested_fields
+
+    def get_fields(self) -> dict[str, serializers.Field | serializers.BaseSerializer]:
+        return super().get_fields()
+
     def get_field_types(self, field_name: str, serializer=None) -> list[FieldType]:
         """Get ``FieldType`` for a given field."""
         serializer = serializer if serializer is not None else self
@@ -152,39 +212,32 @@ class SerializerBase(serializers.Serializer):
         return field_types
 
 
-class ModelSerializerBase(serializers.ModelSerializer):
+class ModelSerializerBase(SerializerBase, serializers.ModelSerializer):
     """Default functionality for model serializer."""
 
     datetime_format = SerializerBase.datetime_format
-
-    id = serializers.IntegerField(label="ID", read_only=True)
-    created_at = serializers.DateTimeField(
-        format=datetime_format, read_only=True, required=False, allow_null=True
-    )
-    updated_at = serializers.DateTimeField(
-        format=datetime_format, read_only=True, required=False, allow_null=True
-    )
 
     default_fields = ["id", "created_at", "updated_at"]
 
     class Meta:
         model = None
 
-    @cached_property
+    @property
     def model_class(self) -> Type[models.Model]:
         return self.Meta.model
 
     @cached_property
-    def pk_field(self) -> str:
+    def pk_field(self) -> str | None:
         """Get the field name used as the primary key (usually id)."""
 
         for field in self.model_class._meta.get_fields():
-            if getattr(field, "primary_key", False):
+            if getattr(field, "primary_key", False) and field.name in self.all_fields:
                 return field.name
 
-        raise Exception(
-            f"Model {self.model_class.__name__} does not have a primary key!"
-        )
+        return None
+        # raise Exception(
+        #     f"Model {self.model_class.__name__} does not have a primary key!"
+        # )
 
     @cached_property
     def unique_fields(self) -> list[str]:
@@ -240,6 +293,16 @@ class ModelSerializerBase(serializers.ModelSerializer):
 
 class ModelSerializer(ModelSerializerBase):
     """Base fields for model serializer."""
+
+    datetime_format = SerializerBase.datetime_format
+
+    id = serializers.IntegerField(label="ID", read_only=True)
+    created_at = serializers.DateTimeField(
+        format=datetime_format, read_only=True, required=False, allow_null=True
+    )
+    updated_at = serializers.DateTimeField(
+        format=datetime_format, read_only=True, required=False, allow_null=True
+    )
 
     class Meta:
         fields = "__all__"

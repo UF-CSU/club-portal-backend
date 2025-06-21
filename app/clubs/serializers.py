@@ -57,9 +57,11 @@ class ClubSocialNestedSerializer(ModelSerializerBase):
 
 
 class ClubSerializer(ModelSerializerBase):
-    """Convert club model to JSON fields."""
+    """Represents a Club object with all fields."""
 
-    members = ClubMemberNestedSerializer(many=True, read_only=True)
+    members = ClubMemberNestedSerializer(
+        many=True, read_only=True, help_text="List of club members"
+    )
     socials = ClubSocialNestedSerializer(many=True, read_only=True)
     # tags = ClubTagNestedSerializer(many=True, read_only=True)
     # teams = ClubTeamNestedSerializer(many=True, read_only=True)
@@ -81,6 +83,7 @@ class ClubSerializer(ModelSerializerBase):
 
 
 class ClubMemberUserNestedSerializer(ModelSerializerBase):
+    id = serializers.IntegerField(required=False, read_only=True)
     email = serializers.EmailField(
         required=True,
     )
@@ -106,7 +109,7 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
             "send_account_email",
             "account_setup_url",
         ]
-        read_only_fields = ["username", "first_name", "last_name"]
+        read_only_fields = ["id", "username", "first_name", "last_name"]
 
     def validate(self, data):
         email = data.get("email")
@@ -140,7 +143,7 @@ class ClubMemberTeamNestedSerializer(ModelSerializerBase):
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
-    """Represents a club membership to use for CRUD operations."""
+    """Connects a User to a Club with some additional fields."""
 
     user = ClubMemberUserNestedSerializer()
     club_id = serializers.SlugRelatedField(
@@ -225,7 +228,7 @@ class TeamMemberNestedSerializer(ModelSerializerBase):
 
 
 class TeamSerializer(ModelSerializerBase):
-    """Display teams in the api."""
+    """Represents a sub group of users within a club."""
 
     memberships = TeamMemberNestedSerializer(many=True, required=False)
 

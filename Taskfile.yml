@@ -132,6 +132,13 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py loaddata fixtures/*"
 
+  generate_types:
+    desc: 'Generate TypeScript types from serializers.'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py generate_types"
+
   down:
     desc: 'Stop containers'
     cmds:
@@ -170,7 +177,7 @@ tasks:
     cmds:
       - docker-compose --profile slim build
       - task: build:docs:internal
-  
+
   dev:docs:
     desc: 'Auto generate docs html on changes, requires sphinx-autobuild pip package'
     cmds:
