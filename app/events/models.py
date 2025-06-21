@@ -207,7 +207,7 @@ class Event(EventFields):
         return self.primary_club
 
     @property
-    def all_day(self):
+    def all_day(self) -> bool:
         return (
             self.start_at.time() == get_default_start_time()
             and self.end_at.time() == get_default_end_time()

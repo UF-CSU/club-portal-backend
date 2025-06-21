@@ -59,7 +59,9 @@ class ClubSocialNestedSerializer(ModelSerializerBase):
 class ClubSerializer(ModelSerializerBase):
     """Convert club model to JSON fields."""
 
-    members = ClubMemberNestedSerializer(many=True, read_only=True)
+    members = ClubMemberNestedSerializer(
+        many=True, read_only=True, help_text="List of club members"
+    )  # FIXME: Remove
     socials = ClubSocialNestedSerializer(many=True, read_only=True)
     # tags = ClubTagNestedSerializer(many=True, read_only=True)
     # teams = ClubTeamNestedSerializer(many=True, read_only=True)
