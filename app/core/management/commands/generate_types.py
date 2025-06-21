@@ -2,9 +2,9 @@ import logging
 
 from django.core.management import BaseCommand
 
-from clubs.serializers import ClubMembershipSerializer, ClubSerializer
+from clubs.serializers import ClubMembershipSerializer, ClubSerializer, TeamSerializer
 from events.serializers import EventSerializer
-from lib.ts_generator import TypeGenerator
+from lib.serializer_typegen import TypeGenerator
 from users.serializers import UserSerializer
 
 FILE_OUT = "generated/club-portal.d.ts"
@@ -19,6 +19,7 @@ class Command(BaseCommand):
         target_serializers = [
             ClubSerializer,
             ClubMembershipSerializer,
+            TeamSerializer,
             UserSerializer,
             EventSerializer,
         ]

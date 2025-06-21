@@ -227,16 +227,17 @@ class ModelSerializerBase(SerializerBase, serializers.ModelSerializer):
         return self.Meta.model
 
     @cached_property
-    def pk_field(self) -> str:
+    def pk_field(self) -> str | None:
         """Get the field name used as the primary key (usually id)."""
 
         for field in self.model_class._meta.get_fields():
-            if getattr(field, "primary_key", False):
+            if getattr(field, "primary_key", False) and field.name in self.all_fields:
                 return field.name
 
-        raise Exception(
-            f"Model {self.model_class.__name__} does not have a primary key!"
-        )
+        return None
+        # raise Exception(
+        #     f"Model {self.model_class.__name__} does not have a primary key!"
+        # )
 
     @cached_property
     def unique_fields(self) -> list[str]:

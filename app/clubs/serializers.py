@@ -83,6 +83,7 @@ class ClubSerializer(ModelSerializerBase):
 
 
 class ClubMemberUserNestedSerializer(ModelSerializerBase):
+    id = serializers.IntegerField(required=False, read_only=True)
     email = serializers.EmailField(
         required=True,
     )
@@ -108,7 +109,7 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
             "send_account_email",
             "account_setup_url",
         ]
-        read_only_fields = ["username", "first_name", "last_name"]
+        read_only_fields = ["id", "username", "first_name", "last_name"]
 
     def validate(self, data):
         email = data.get("email")

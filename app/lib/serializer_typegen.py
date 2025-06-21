@@ -1,3 +1,6 @@
+"""
+Convert DRF Serializer to TypeScript Types.
+"""
 import os
 import typing
 from datetime import date, datetime, time, timedelta
@@ -6,11 +9,12 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Literal, Optional, Type
 from uuid import UUID
 
+from django.db import models
 from rest_framework import serializers
 
 from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 
-DRF_FIELD_TYPES = {
+DRF_FIELD_TO_TS_MAP = {
     serializers.IntegerField: "number",
     serializers.BooleanField: "boolean",
     serializers.CharField: "string",
@@ -32,7 +36,12 @@ DRF_FIELD_TYPES = {
     serializers.PrimaryKeyRelatedField: "number",
 }
 
-PYTHON_TYPES = {
+DJANGO_FIELD_TO_TS_MAP = {
+    k: DRF_FIELD_TO_TS_MAP.get(v)
+    for k, v in serializers.ModelSerializer.serializer_field_mapping.items()
+}
+
+PYTHON_TYPE_TO_TS_MAP = {
     str: "string",
     float: "number",
     bool: "boolean",
@@ -113,13 +122,60 @@ class TypeGenerator:
             else "a"
         )
 
-    def _get_field_type(self, field, is_list=False):
+    def _get_field_type(self, field, is_list=False, using=DRF_FIELD_TO_TS_MAP):
         """Return TS type for given field."""
 
-        field_type = DRF_FIELD_TYPES.get(type(field), None) or "any"
+        if not isinstance(field, type):
+            field = type(field)
+
+        field_type = using.get(field, None) or "any"
 
         if is_list:
             field_type += "[]"
+
+        return field_type
+
+    def _get_field_type_from_model(
+        self,
+        field_name,
+        field: (
+            serializers.ReadOnlyField
+            | serializers.ManyRelatedField
+            | serializers.SlugRelatedField
+        ),
+        serializer: SerializerBase,
+        is_list=False,
+    ):
+        """Get the type for the field by going to the model."""
+
+        model_field: models.Field | property = getattr(
+            serializer.model_class, field.source or field_name
+        )
+        field_type = "any"
+
+        if isinstance(field, serializers.ManyRelatedField):
+            # Coerce type away from ManyToManyDescriptor
+            model_field: models.ManyToManyField = (
+                getattr(model_field, "field", None) or model_field
+            )
+            # Get actual field on serializer
+            field = field.child_relation
+            is_list = True
+
+        if isinstance(field, serializers.ReadOnlyField):
+            field_type_class = model_field.fget.__annotations__.get("return", "any")
+            field_type = self._get_field_type(
+                field_type_class, is_list=is_list, using=PYTHON_TYPE_TO_TS_MAP
+            )
+        elif isinstance(field, serializers.SlugRelatedField):
+            # getattr returns DeferredAttribute, which has a "field" attribute with actual field
+            model_field = getattr(model_field.related_model, field.slug_field).field
+            field_type = self._get_field_type(
+                model_field, is_list=is_list, using=DJANGO_FIELD_TO_TS_MAP
+            )
+
+        else:
+            raise Exception(f"Invalid related field type: {type(field)}")
 
         return field_type
 
@@ -138,7 +194,6 @@ class TypeGenerator:
 
         generated = ""
         indent = self._get_indent(indent_level)
-        # generated += "\n"
 
         if doc:
             generated += indent + FIELD_DOC_TPL % (doc,)
@@ -171,13 +226,16 @@ class TypeGenerator:
     ):
         """Create function for generating props."""
 
-        def gen_prop(prop_name, prop_type=None, required=True, readonly=False):
+        def gen_prop(
+            prop_name, prop_type=None, required=True, readonly=False, **kwargs
+        ):
             field = all_fields[prop_name]
             kwargs = {
                 "property": prop_name,
                 "prop_type": prop_type or self._get_field_type(field),
-                "doc": getattr(field, "help_text", None),
+                "doc": kwargs.pop("doc", None) or getattr(field, "help_text", None),
                 "indent_level": indent_level,
+                **kwargs,
             }
 
             if (
@@ -225,15 +283,25 @@ class TypeGenerator:
                 force_optional = True
                 ignore_fields += serializer.readonly_fields
 
-        if hasattr(serializer, "pk_field"):
-            ignore_fields.append(serializer.pk_field)
-
         gen_prop = self._props_factory(
             all_fields,
             ignore_nonnull=ignore_nonnull,
             indent_level=indent_level,
             force_optional=force_optional,
         )
+
+        # Set pk field as the first field
+        if (
+            getattr(serializer, "pk_field", None) is not None
+            and serializer.pk_field not in ignore_fields
+        ):
+            # Only show pk as readonly if top level, and/or in read mode
+            readonly = indent_level == 0 or indent_level > 0 and mode == "read"
+            field_prop = gen_prop(
+                serializer.pk_field, readonly=readonly, doc="Primary key"
+            )
+            properties.append(field_prop)
+            ignore_fields.append(serializer.pk_field)  # No on else should handle it
 
         # Generate required fields
         for field_name in serializer.required_fields:
@@ -264,8 +332,14 @@ class TypeGenerator:
 
             field = all_fields[field_name]
 
-            if isinstance(field, serializers.ManyRelatedField):
+            if isinstance(field, serializers.ManyRelatedField) and not isinstance(
+                field.child_relation, serializers.SlugRelatedField
+            ):
                 field_type = self._get_field_type(field.child_relation, is_list=True)
+            elif isinstance(field, serializers.ManyRelatedField):
+                field_type = self._get_field_type_from_model(
+                    field_name, field, serializer, is_list=True
+                )
             elif getattr(field, "child", None) is not None:
                 field_type = self._get_field_type(field.child, is_list=True)
             else:
@@ -342,13 +416,9 @@ class TypeGenerator:
                 # type directly from the model (if possible)
 
                 try:
-                    model_field = getattr(
-                        serializer.model_class, field.source or field_name
+                    field_type = self._get_field_type_from_model(
+                        field_name, field, serializer
                     )
-                    field_type_class = model_field.fget.__annotations__.get(
-                        "return", "any"
-                    )
-                    field_type = PYTHON_TYPES.get(field_type_class, "any")
                     field_prop = gen_prop(
                         field_name, prop_type=field_type, readonly=True
                     )
@@ -387,14 +457,7 @@ class TypeGenerator:
                 "model": interface_name,
             }
 
-            all_fields = serializer.get_fields()
-
-            # Set pk field as the first field
-            idoc += self._generate_readonly_prop(
-                serializer.pk_field,
-                self._get_field_type(all_fields[serializer.pk_field]),
-                doc="Primary key",
-            )
+            # all_fields = serializer.get_fields()
 
             main_fields = self._generate_props(serializer, mode="read")
             create_fields = self._generate_props(serializer, mode="create")
