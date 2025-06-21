@@ -1,6 +1,7 @@
 """
 Convert DRF Serializer to TypeScript Types.
 """
+
 import os
 import typing
 from datetime import date, datetime, time, timedelta
