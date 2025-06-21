@@ -50,8 +50,7 @@ class ClubViewTests(ViewTestsBase):
         register_res = self.client.post(
             url,
             {
-                "first_name": "John",
-                "last_name": "Doe",
+                "name": "John Doe",
                 "email": "user@example.com",
                 "password": "123AbcTest",
                 "confirm_password": "123AbcTest",

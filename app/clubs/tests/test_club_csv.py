@@ -162,7 +162,7 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
         payload = [
             {
                 "club": self.club.id,
-                "user_email": fake.safe_email(),
+                "user.email": fake.safe_email(),
                 "roles": ["Member", "New Role"],
             }
             for _ in range(self.dataset_size)
@@ -178,7 +178,7 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
         self.assertEqual(memberships.count(), self.dataset_size, failed)
 
         for expected in payload:
-            self.assertTrue(User.objects.filter(email=expected["user_email"]).exists())
+            self.assertTrue(User.objects.filter(email=expected["user.email"]).exists())
 
             for role in expected["roles"]:
                 self.assertTrue(
@@ -187,6 +187,6 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
 
             self.assertTrue(
                 self.repo.filter(
-                    club=expected["club"], user__email=expected["user_email"]
+                    club=expected["club"], user__email=expected["user.email"]
                 ).exists()
             )

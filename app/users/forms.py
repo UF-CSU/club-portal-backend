@@ -44,17 +44,10 @@ class LoginForm(AuthForm):
 class RegisterForm(AuthForm):
     """New members can create accounts with the system."""
 
-    first_name = forms.CharField(
-        label="first_name",
-        widget=forms.TextInput(
-            attrs={"class": "field-text", "placeholder": "First Name"}
-        ),
-    )
-    last_name = forms.CharField(
-        label="last_name",
-        widget=forms.TextInput(
-            attrs={"class": "field-text", "placeholder": "Last Name"}
-        ),
+    name = forms.CharField(
+        label="name",
+        widget=forms.TextInput(attrs={"class": "field-text", "placeholder": "Name"}),
+        required=False,
     )
     email = forms.EmailField(
         label="email",
@@ -70,8 +63,7 @@ class RegisterForm(AuthForm):
 
     field_order = [
         "email",
-        "first_name",
-        "last_name",
+        "name",
         "password",
         "confirm_password",
         "club",

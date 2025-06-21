@@ -20,12 +20,10 @@ class UserService(ServiceBase[User]):
     """Manage business logic for users domain."""
 
     @classmethod
-    def register_user(cls, email: str, password: str, first_name=None, last_name=None):
+    def register_user(cls, email: str, password: str, name=None):
         """Create a new user in the database."""
 
-        user = User.objects.create_user(
-            email=email, password=password, first_name=first_name, last_name=last_name
-        )
+        user = User.objects.create_user(email=email, password=password, name=name)
 
         return user
 

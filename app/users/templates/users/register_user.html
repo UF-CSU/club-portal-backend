@@ -23,17 +23,11 @@
         <!---Not sure how to handle club or event fields yet-->
         {% if field.name == "club" or field.name == "event" %}
             <div></div>
-        {% elif field.name == "first_name" %}
+        {% elif field.name == "name" %}
         <div class="input-field input-center">
             <div class="input-name-field">
                 {{ field }}
             </div>
-
-        {% elif field.name == "last_name" %}
-            <div class="input-name-field">
-                {{ field }}
-            </div>
-        </div>
         {% else %}
             <div class="input-field">
                 {{ field }}
