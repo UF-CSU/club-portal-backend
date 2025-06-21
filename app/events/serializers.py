@@ -15,7 +15,7 @@ class EventHostNestedSerializer(ModelSerializerBase):
 
 
 class EventSerializer(ModelSerializerBase):
-    """JSON representation for events."""
+    """Represents a calendar event for a single or multiple clubs."""
 
     hosts = EventHostNestedSerializer(many=True)
 

@@ -57,7 +57,7 @@ class ClubSocialNestedSerializer(ModelSerializerBase):
 
 
 class ClubSerializer(ModelSerializerBase):
-    """Convert club model to JSON fields."""
+    """Represents a Club object with all fields."""
 
     members = ClubMemberNestedSerializer(
         many=True, read_only=True, help_text="List of club members"
@@ -143,7 +143,7 @@ class ClubMemberTeamNestedSerializer(ModelSerializerBase):
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
-    """Represents a club membership to use for CRUD operations."""
+    """Connects a User to a Club with some additional fields."""
 
     user = ClubMemberUserNestedSerializer()
     club_id = serializers.SlugRelatedField(
@@ -228,7 +228,7 @@ class TeamMemberNestedSerializer(ModelSerializerBase):
 
 
 class TeamSerializer(ModelSerializerBase):
-    """Display teams in the api."""
+    """Represents a sub group of users within a club."""
 
     memberships = TeamMemberNestedSerializer(many=True, required=False)
 

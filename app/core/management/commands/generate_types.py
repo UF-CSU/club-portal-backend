@@ -20,8 +20,8 @@ class Command(BaseCommand):
             ClubSerializer,
             ClubMembershipSerializer,
             TeamSerializer,
-            UserSerializer,
             EventSerializer,
+            UserSerializer,
         ]
 
         tg = TypeGenerator(target_serializers)

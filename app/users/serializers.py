@@ -39,7 +39,7 @@ class ProfileNestedSerializer(ModelSerializerBase):
 
 
 class UserSerializer(ModelSerializer):
-    """Serialzier for the user object."""
+    """Represents a person in the system who can authenticate."""
 
     email = serializers.EmailField()
     username = serializers.CharField(required=False)
