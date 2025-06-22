@@ -10,6 +10,8 @@ from django.core.files.temp import NamedTemporaryFile
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from utils.permissions import get_perm_label, get_permission
@@ -388,6 +390,7 @@ class ImageUrlField(serializers.Field):
         return file
 
 
+@extend_schema_field(OpenApiTypes.STR)
 class PermissionRelatedField(serializers.RelatedField):
     """Display permissions in JSON."""
 

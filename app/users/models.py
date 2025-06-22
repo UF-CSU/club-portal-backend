@@ -2,6 +2,8 @@
 User Models.
 """
 
+import random
+import string
 from typing import ClassVar, Optional
 
 from django.contrib.auth.models import (
@@ -11,6 +13,7 @@ from django.contrib.auth.models import (
 )
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import MaxValueValidator
 
@@ -111,7 +114,6 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
 
-    is_verified = models.BooleanField(default=False)
     is_onboarded = models.BooleanField(default=False)
 
     clubs = models.ManyToManyField(
@@ -127,11 +129,16 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     club_memberships: models.QuerySet
     team_memberships: models.QuerySet
     socials: models.QuerySet["SocialProfile"]
+    verified_emails: models.QuerySet["VerifiedEmail"]
 
     # Dynamic Properties
     @property
-    def name(self):
+    def name(self) -> str:
         return self.profile.name
+
+    @property
+    def is_email_verified(self):
+        return self.verified_emails.filter(email=self.email).exists()
 
     @property
     def can_authenticate(self):
@@ -190,6 +197,10 @@ class Profile(ModelBase):
     @property
     def email(self):
         return self.user.email
+
+    @property
+    def is_school_email_verified(self):
+        return self.user.verified_emails.filter(email=self.school_email).exists()
 
     def __str__(self):
         return self.name or self.user.username
@@ -259,3 +270,49 @@ class UserAgent(User):
     @property
     def is_useragent(self):
         return True
+
+
+def generate_verification_code():
+    """Get a unique verification code."""
+    characters = string.ascii_uppercase + string.digits
+
+    # Keep regenerating code until unique
+    while True:
+        code = "".join(random.choices(characters, k=6))
+
+        if not EmailVerificationCode.objects.filter(code=code).exists():
+            return code
+
+
+def generate_verification_expiry():
+    """Generate expiration time for verification code."""
+
+    return timezone.now() + timezone.timedelta(minutes=15)
+
+
+class EmailVerificationCode(ModelBase):
+    """Store and track code used for email verification."""
+
+    code = models.CharField(
+        unique=True,
+        max_length=6,
+        default=generate_verification_code,
+        # editable=False,
+    )
+    email = models.EmailField()
+    expires_at = models.DateTimeField(
+        default=generate_verification_expiry, editable=False
+    )
+
+    @property
+    def is_expired(self):
+        return self.expires_at < timezone.now()
+
+
+class VerifiedEmail(ModelBase):
+    """User has verified this email."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="verified_emails"
+    )
+    email = models.EmailField(editable=False, unique=True)

@@ -12,7 +12,7 @@ from core.abstracts.serializers import (
     ModelSerializerBase,
 )
 from querycsv.serializers import CsvModelSerializer
-from users.models import Profile, SocialProfile, User
+from users.models import EmailVerificationCode, Profile, SocialProfile, User
 
 
 class UserClubNestedSerializer(ModelSerializerBase):
@@ -33,6 +33,8 @@ class UserClubNestedSerializer(ModelSerializerBase):
 class ProfileNestedSerializer(ModelSerializerBase):
     """Represent user profiles in api."""
 
+    is_school_email_verified = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Profile
         exclude = ["user", "created_at", "updated_at"]
@@ -47,6 +49,7 @@ class UserSerializer(ModelSerializer):
         source="club_memberships", many=True, required=False
     )
     profile = ProfileNestedSerializer(required=False)
+    is_email_verified = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = get_user_model()
@@ -57,6 +60,8 @@ class UserSerializer(ModelSerializer):
             "password",
             "clubs",
             "profile",
+            "is_onboarded",
+            "is_email_verified",
         ]
         # defines characteristics of specific fields
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
@@ -68,16 +73,18 @@ class UserSerializer(ModelSerializer):
 
     def update(self, instance, validated_data):  # override update method
         """Update and return user"""
-        # instance: model instance being updated
 
-        password = validated_data.pop(
-            "password", None
-        )  # get password from data, remove from dict. optional field
-        user = super().update(instance, validated_data)  # users base update method
+        password = validated_data.pop("password", None)
+        profile_data = validated_data.pop("profile", None)
+        user = super().update(instance, validated_data)
 
         if password:
             user.set_password(password)
             user.save()
+
+        if profile_data:
+            Profile.objects.get_or_create(user=user)  # ensure one exists first
+            Profile.objects.filter(user=user).update(**profile_data)
 
         return user
 
@@ -86,6 +93,32 @@ class OauthDirectorySerializer(serializers.Serializer):
     """Display available OAuth api routes."""
 
     google = serializers.CharField()
+
+
+class EmailVerificationRequestSerializer(ModelSerializerBase):
+    """Verification codes to verify a user owns an email."""
+
+    class Meta:
+        model = EmailVerificationCode
+        fields = ["email", "expires_at", "created_at"]
+        extra_kwargs = {"email": {"write_only": True}}
+
+
+class CheckEmailVerificationRequestSerializer(ModelSerializerBase):
+    """Check verification codes sent to a user's email."""
+
+    success = serializers.BooleanField(read_only=True)
+    code = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = EmailVerificationCode
+        fields = ["email", "code", "success"]
+        extra_kwargs = {"email": {"write_only": True}}
+
+
+#######################################
+# === CSV Serializers =============== #
+#######################################
 
 
 class UserProfileNestedCsvSerialzier(CsvModelSerializer):

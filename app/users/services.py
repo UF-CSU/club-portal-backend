@@ -2,8 +2,10 @@ from typing import Optional
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import BadRequest, ValidationError
 from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.db import models
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -12,7 +14,7 @@ from django.utils.http import urlencode, urlsafe_base64_encode
 from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
 from core.abstracts.services import ServiceBase
 from lib.emails import send_html_mail
-from users.models import User
+from users.models import EmailVerificationCode, User, VerifiedEmail
 from utils.helpers import get_full_url
 
 
@@ -99,3 +101,58 @@ class UserService(ServiceBase[User]):
             recipient_list=[self.obj.email],
             fail_silently=False,
         )
+
+    def send_verification_code(self, email: str):
+        """Send verification code to email."""
+
+        validate_email(email)
+
+        if self.obj.verified_emails.filter(email=email).exists():
+            raise BadRequest(f"Email {email} is already verified for user.")
+        elif VerifiedEmail.objects.filter(email=email).exclude(user=self.obj).exists():
+            raise BadRequest(f"Email {email} is already verified by another user.")
+        elif (
+            User.objects.filter(
+                models.Q(email=email) | models.Q(profile__school_email=email)
+            )
+            .exclude(id=self.obj.id)
+            .exists()
+        ):
+            raise BadRequest(f"Email {email} is already taken.")
+
+        verification = EmailVerificationCode.objects.create(email=email)
+
+        print("code:", verification.code)
+
+        send_mail(
+            subject="Verification Code",
+            message=f"Verification code: {verification.code}",
+            from_email=DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+        )
+
+    def check_verification_code(self, email: str, code: str, raise_exception=True):
+        """Verify code sent to email."""
+
+        verification = EmailVerificationCode.objects.filter(
+            email=email, code__exact=code
+        )
+
+        if not verification.exists():
+            if raise_exception:
+                raise BadRequest("Invalid verification code.")
+            else:
+                return False
+
+        verification = verification.first()
+        if verification.is_expired:
+            if raise_exception:
+                raise BadRequest("Verification code expired.")
+            else:
+                return False
+
+        # Verification was successful, clean up previous codes
+        EmailVerificationCode.objects.filter(email=email).delete()
+        VerifiedEmail.objects.create(email=email, user=self.obj)
+
+        return True

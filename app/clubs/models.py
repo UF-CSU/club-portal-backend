@@ -553,7 +553,7 @@ class ClubApiKey(ModelBase):
     objects: ClassVar[ClubApiKeyManager] = ClubApiKeyManager()
 
     @property
-    def secret(self):
+    def secret(self) -> str:
         """Property accessor for the secret."""
 
         return self.get_secret()

@@ -95,32 +95,30 @@ class PublicApiTestsBase(TestsBase):
 
     def assertResOk(self, response: HttpResponse, **kwargs):
         """Client response should be 200."""
-
         self.assertStatusCode(response, status.HTTP_200_OK, **kwargs)
 
     def assertResCreated(self, response: HttpResponse, **kwargs):
         """Client response should be 201."""
-
         self.assertStatusCode(response, status.HTTP_201_CREATED, **kwargs)
 
     def assertResAccepted(self, response: HttpResponse, **kwargs):
         """Client response should be 202."""
-
         self.assertStatusCode(response, status.HTTP_202_ACCEPTED, **kwargs)
+
+    def assertResBadRequest(self, response: HttpResponse, **kwargs):
+        """Client response should be 400"""
+        self.assertStatusCode(response, status.HTTP_400_BAD_REQUEST, **kwargs)
 
     def assertResUnauthorized(self, response: HttpResponse, **kwargs):
         """Client response should be 401."""
-
         self.assertStatusCode(response, status.HTTP_401_UNAUTHORIZED, **kwargs)
 
     def assertResForbidden(self, response: HttpResponse, **kwargs):
         """Client response should be 403."""
-
         self.assertStatusCode(response, status.HTTP_403_FORBIDDEN, **kwargs)
 
     def assertResNotFound(self, response: HttpResponse, **kwargs):
         """Client response should be 404."""
-
         self.assertStatusCode(response, status.HTTP_404_NOT_FOUND, **kwargs)
 
 
@@ -212,6 +210,7 @@ class EmailTestsBase(TestsBase):
             # Get all html attachments, most likely just one, and use them as body
             if isinstance(email, mail.EmailMultiAlternatives):
                 bodies = [alt[0] for alt in email.alternatives if alt[1] == "text/html"]
-                body = "\n".join(bodies)
+                if len(bodies) > 0:
+                    body = "\n".join(bodies)
 
             self.assertIn(substring, body)
