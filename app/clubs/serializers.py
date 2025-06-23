@@ -5,6 +5,7 @@ from clubs.models import (
     Club,
     ClubApiKey,
     ClubMembership,
+    ClubPhoto,
     ClubRole,
     ClubSocialProfile,
     ClubTag,
@@ -47,6 +48,12 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
             "roles",
         ]
 
+class ClubPhotoNestedSerializer(ModelSerializerBase):
+    """Represents photos for clubs."""
+
+    class Meta:
+        model = ClubPhoto
+        fields = [*ModelSerializerBase.default_fields, "id", "photo", "order"]
 
 class ClubSocialNestedSerializer(ModelSerializerBase):
     """Represents social profiles for clubs."""
@@ -62,6 +69,7 @@ class ClubSerializer(ModelSerializerBase):
     members = ClubMemberNestedSerializer(
         many=True, read_only=True, help_text="List of club members"
     )
+    photos = ClubPhotoNestedSerializer(many=True, read_only=True)
     socials = ClubSocialNestedSerializer(many=True, read_only=True)
     # tags = ClubTagNestedSerializer(many=True, read_only=True)
     # teams = ClubTeamNestedSerializer(many=True, read_only=True)
@@ -72,6 +80,7 @@ class ClubSerializer(ModelSerializerBase):
             *ModelSerializerBase.default_fields,
             "name",
             "logo",
+            "banner",
             "about",
             "founding_year",
             "contact_email",
@@ -79,6 +88,7 @@ class ClubSerializer(ModelSerializerBase):
             "members",
             # "teams",
             "socials",
+            "photos",
         ]
 
 
