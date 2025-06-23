@@ -18,6 +18,7 @@ from core.abstracts.serializers import (
     ImageUrlField,
     ModelSerializerBase,
     PermissionRelatedField,
+    SerializerBase,
 )
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
@@ -272,6 +273,14 @@ class ClubApiSecretSerializer(ClubApiKeySerializer):
 
     class Meta(ClubApiKeySerializer.Meta):
         fields = ClubApiKeySerializer.Meta.fields + ["secret"]
+
+
+class JoinClubsSerializer(SerializerBase):
+    """Allow authenticated user to join multiple clubs."""
+
+    clubs = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(queryset=Club.objects.all())
+    )
 
 
 ##############################################################
