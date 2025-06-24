@@ -405,6 +405,7 @@ if DEV:
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
+    logging.disable(logging.NOTSET)
 
 
 if TESTING:

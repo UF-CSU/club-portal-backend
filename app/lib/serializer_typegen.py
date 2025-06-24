@@ -99,14 +99,31 @@ READONLY_FIELD_TPL = "  readonly %(property)s: %(type)s;\n"
 
 FIELD_DOC_TPL = "  /** %s */\n"
 
+SEPARATOR_TPL = """/*
+ * ===============================================================
+ * %s
+ * ===============================================================
+ */"""
+
 
 class TypeGenerator:
     """Create TypeScript interfaces from a list of serializers."""
 
-    def __init__(self, serializer_classes: list[Type[ModelSerializerBase]]):
+    def __init__(
+        self,
+        serializer_classes: list[Type[ModelSerializerBase]],
+        readonly_serializer_classes: Optional[list[Type[ModelSerializerBase]]] = None,
+    ):
 
         self.types_doc = ""
         self.serializer_classes = serializer_classes
+        self.readonly_serializer_classes = readonly_serializer_classes
+
+    @property
+    def types_generated(self):
+        return (len(self.serializer_classes) * 3) + len(
+            self.readonly_serializer_classes
+        )
 
     def _get_model_article(self, model_name: str):
         """Get a/an depending on a model's name."""
@@ -435,49 +452,68 @@ class TypeGenerator:
 
         return properties
 
+    def _generate_interface(
+        self,
+        serializer_class: Type[ModelSerializerBase],
+        mode: Literal["create", "read", "update"],
+    ):
+        """Create TS Interface from serializer."""
+
+        serializer = serializer_class()
+        interface_name = serializer_class.__name__.replace("Serializer", "")
+        model_article = self._get_model_article(interface_name)
+        idoc = ""
+
+        match mode:
+            case "read":
+                idoc = INTERFACE_TPL % {
+                    "doc": serializer.__doc__,
+                    "model": interface_name,
+                }
+            case "create":
+                idoc = CREATE_INTERFACE_TPL % {
+                    "article": model_article,
+                    "model": interface_name,
+                }
+            case "update":
+                idoc = UPDATE_INTERFACE_TPL % {
+                    "article": model_article,
+                    "model": interface_name,
+                }
+            case _:
+                raise Exception(f"Unknown mode: {mode}")
+
+        properties = self._generate_props(serializer, mode=mode)
+
+        idoc += "".join(properties)
+        idoc += "}\n"
+
+        return idoc
+
     def generate_docs(self, filepath: str):
         """Convert serializers to typescript interfaces."""
 
         self.types_doc += FILE_DOC_TPL % datetime.now()
 
         for serializer_class in self.serializer_classes:
-            serializer = serializer_class()
-            # interface_name = serializer.model_class.__name__
-            interface_name = serializer_class.__name__.replace("Serializer", "")
-            model_article = self._get_model_article(interface_name)
+            idoc_read = self._generate_interface(serializer_class, mode="read")
+            idoc_create = self._generate_interface(serializer_class, mode="create")
+            idoc_update = self._generate_interface(serializer_class, mode="update")
 
-            idoc = INTERFACE_TPL % {
-                "doc": serializer.__doc__,
-                "model": interface_name,
-            }
-            idoc_create = CREATE_INTERFACE_TPL % {
-                "article": model_article,
-                "model": interface_name,
-            }
-            idoc_update = UPDATE_INTERFACE_TPL % {
-                "article": model_article,
-                "model": interface_name,
-            }
-
-            # all_fields = serializer.get_fields()
-
-            main_fields = self._generate_props(serializer, mode="read")
-            create_fields = self._generate_props(serializer, mode="create")
-            update_fields = self._generate_props(serializer, mode="update")
-
-            idoc += "".join(main_fields)
-            idoc_create += "".join(create_fields)
-            idoc_update += "".join(update_fields)
-
-            idoc += "}\n"
-            idoc_create += "}\n"
-            idoc_update += "}\n"
-
-            self.types_doc += idoc
+            self.types_doc += idoc_read
             self.types_doc += "\n"
             self.types_doc += idoc_create
             self.types_doc += "\n"
             self.types_doc += idoc_update
+            self.types_doc += "\n"
+
+        if self.readonly_serializer_classes:
+            self.types_doc += SEPARATOR_TPL % ("Read Only Types")
+
+        for serializer_class in self.readonly_serializer_classes:
+
+            idoc = self._generate_interface(serializer_class, mode="read")
+            self.types_doc += idoc
             self.types_doc += "\n"
 
         directory = "/".join(filepath.split("/")[:-1])
