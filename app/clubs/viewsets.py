@@ -194,7 +194,6 @@ class JoinClubsViewSet(GenericAPIView):
     def post(self, request):
         """Submit request to join clubs."""
 
-        print("request:", request)
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 

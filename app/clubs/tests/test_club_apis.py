@@ -266,7 +266,7 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         self.assertEqual(self.user.club_memberships.count(), len(payload["clubs"]))
 
         for id in payload["clubs"]:
-            self.assertTrue(self.user.club_memberships.filter(id=id).exists())
+            self.assertTrue(self.user.club_memberships.filter(club__id=id).exists())
 
 
 class ClubsApiPermsTests(PublicApiTestsBase):

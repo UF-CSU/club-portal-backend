@@ -2,6 +2,8 @@
 Import/upload data tests.
 """
 
+import json
+import os
 import uuid
 from unittest.mock import Mock, patch
 
@@ -235,6 +237,86 @@ class UploadCsvTests(UploadCsvTestsBase):
         success, failed = self.service.upload_csv(self.filepath)
         self.assertIsInstance(failed, Exception)
         self.assertLength(success, 0)
+
+
+class UploadJsonTests(UploadCsvTestsBase):
+    """Test uploading json files."""
+
+    def test_upload_json_many_str(self):
+        """Should be able to upload json file."""
+
+        filepath = self.get_unique_filepath(ext="json")
+        payload = [
+            {
+                "name": fake.title(),
+                "unique_name": uuid.uuid4().__str__(),
+                "many_tags_str": ["tag1", "tag2"],
+            }
+        ]
+
+        dir = os.path.dirname(filepath)
+        os.makedirs(dir, exist_ok=True)
+
+        with open(filepath, mode="w+") as f:
+            json.dump(payload, f, indent=4)
+
+        success, failed = self.service.upload_csv(path=filepath)
+        self.assertEqual(len(success), 1, failed)
+        self.assertEqual(len(failed), 0)
+        self.assertEqual(self.repo.count(), 1)
+
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload[0]["name"])
+        self.assertEqual(obj.unique_name, payload[0]["unique_name"])
+        self.assertEqual(obj.many_tags.count(), 2)
+
+        self.assertTrue(obj.many_tags.filter(name="tag1").exists())
+        self.assertTrue(obj.many_tags.filter(name="tag2").exists())
+
+    def test_upload_json_many_nested(self):
+        """Should be able to upload json file."""
+
+        filepath = self.get_unique_filepath(ext="json")
+        payload = [
+            {
+                "name": fake.title(),
+                "unique_name": uuid.uuid4().__str__(),
+                "many_tags_nested": [
+                    {
+                        "name": fake.title(),
+                        "color": fake.color(),
+                    },
+                    {
+                        "name": fake.title(),
+                        "color": fake.color(),
+                    },
+                    {
+                        "name": fake.title(),
+                        "color": fake.color(),
+                    },
+                ],
+            }
+        ]
+
+        dir = os.path.dirname(filepath)
+        os.makedirs(dir, exist_ok=True)
+
+        with open(filepath, mode="w+") as f:
+            json.dump(payload, f, indent=4)
+
+        success, failed = self.service.upload_csv(path=filepath)
+        self.assertEqual(len(success), 1, failed)
+        self.assertEqual(len(failed), 0)
+        self.assertEqual(self.repo.count(), 1)
+
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload[0]["name"])
+        self.assertEqual(obj.unique_name, payload[0]["unique_name"])
+        self.assertEqual(obj.many_tags.count(), 3)
+
+        for tag_data in payload[0]["many_tags_nested"]:
+            tag = BusterTag.objects.get(name=tag_data["name"])
+            self.assertEqual(tag.color, tag_data["color"])
 
 
 class UploadCsvJobTests(UploadCsvTestsBase):

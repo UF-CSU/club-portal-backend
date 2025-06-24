@@ -122,8 +122,6 @@ class UserService(ServiceBase[User]):
 
         verification = EmailVerificationCode.objects.create(email=email)
 
-        print("code:", verification.code)
-
         send_mail(
             subject="Verification Code",
             message=f"Verification code: {verification.code}",

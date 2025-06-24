@@ -11,7 +11,7 @@ from lib.spreadsheets import read_spreadsheet
 from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
 from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.serializers import CsvModelSerializer
-from utils.files import get_media_path
+from utils.files import get_file_path, get_media_path
 from utils.helpers import str_to_list
 from utils.logging import print_error
 from utils.models import save_file_to_model
@@ -50,6 +50,12 @@ class QueryCsvService:
         self.actions = [action.value for action in self.Actions]
         self.job = job
 
+        # Calculate all available fields for forms
+        all_fields = list(self.serializer.get_fields().keys())
+        flat_fields = list(self.serializer.get_flat_fields().keys())
+        self.available_fields = list(set(flat_fields + all_fields))
+        self.available_fields.sort()
+
     @classmethod
     def upload_from_job(cls, job: QueryCsvUploadJob):
         """Upload csv using predefined job."""
@@ -61,7 +67,9 @@ class QueryCsvService:
         job.save()
 
         svc = cls(serializer_class=job.serializer_class, job=job)
-        success, failed = svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
+        success, failed = svc.upload_csv(
+            get_file_path(job.file), custom_field_maps=job.custom_fields
+        )
 
         # Set final job status
         if not isinstance(failed, list):
@@ -265,7 +273,11 @@ class QueryCsvService:
                 if field_type.is_list_item:
                     df[field_name] = df[field_name].map(
                         lambda val: [
-                            item for item in str_to_list(val) if str(item) != ""
+                            (
+                                (item for item in str_to_list(val) if str(item) != "")
+                                if isinstance(val, str)
+                                else val
+                            )
                         ]
                     )
                 else:

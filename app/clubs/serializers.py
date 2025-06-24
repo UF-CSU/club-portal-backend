@@ -49,12 +49,14 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
             "roles",
         ]
 
+
 class ClubPhotoNestedSerializer(ModelSerializerBase):
     """Represents photos for clubs."""
 
     class Meta:
         model = ClubPhoto
         fields = [*ModelSerializerBase.default_fields, "id", "photo", "order"]
+
 
 class ClubSocialNestedSerializer(ModelSerializerBase):
     """Represents social profiles for clubs."""
@@ -90,6 +92,7 @@ class ClubSerializer(ModelSerializerBase):
             # "teams",
             "socials",
             "photos",
+            "alias",
         ]
 
 

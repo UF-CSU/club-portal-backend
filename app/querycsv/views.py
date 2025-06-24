@@ -121,7 +121,7 @@ class QueryCsvViewSet:
                     FlatListField.list_pattern, "[n]", cleaned_header
                 )
 
-                if cleaned_header in self.service.flat_fields.values():
+                if cleaned_header in self.service.available_fields:
                     initial_mapping = {
                         "csv_header": header,
                         "object_field": cleaned_header,

@@ -105,10 +105,10 @@ class CsvDataTestsBase(TestsBase):
 
         return obj
 
-    def get_unique_filepath(self):
+    def get_unique_filepath(self, ext="csv"):
         return get_media_path(
-            nested_path="tests/csv-data/uploads/",
-            filename=f"{uuid.uuid4()}.csv",
+            nested_path="tests/querydata/uploads/",
+            filename=f"{uuid.uuid4()}.{ext}",
             create_path=True,
         )
 

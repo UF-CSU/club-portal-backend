@@ -130,7 +130,7 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
                 {
                     "url": "%s:%s_%s_upload"
                     % (self.admin_name, self.opts.app_label, self.opts.model_name),
-                    "label": "Upload CSV",
+                    "label": "Upload Data",
                 },
             )
 

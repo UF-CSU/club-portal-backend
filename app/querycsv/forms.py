@@ -2,13 +2,14 @@ from django import forms
 
 from querycsv.consts import EXTRA_QUERYCSV_FIELDS
 from querycsv.models import QueryCsvUploadJob
+from querycsv.services import QueryCsvService
 
 
 class CsvUploadForm(forms.Form):
     """Form used to upload csv and create/update objects."""
 
     file = forms.FileField(
-        label="Select CSV or Excel Spreadsheet to upload.",
+        label="Select CSV or JSON file to upload.",
         widget=forms.FileInput(attrs={"class": "form-control"}),
     )
 
@@ -38,9 +39,11 @@ class CsvHeaderMappingFormSet(forms.formset_factory(CsvHeaderMappingForm, extra=
     """Custom FormSet for defining csv header mappings."""
 
     def __init__(self, *args, upload_job: QueryCsvUploadJob, **kwargs):
+        svc = QueryCsvService(upload_job.serializer_class)
+
         kwargs["form_kwargs"] = {
             **kwargs.get("form_kwargs", {}),
-            "available_fields": upload_job.serializer_class().get_flat_fields().keys(),
+            "available_fields": svc.available_fields,
         }
 
         super().__init__(*args, **kwargs)
