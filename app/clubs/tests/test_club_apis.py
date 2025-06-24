@@ -234,7 +234,7 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         res_body = res.json()
 
         #Check if there is only 3 clubs returned
-        self.assertEqual(len(res_body), 3)
+        self.assertLength(len(res_body), 3)
 
 
 
