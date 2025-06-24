@@ -11,11 +11,11 @@ class EventHostNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = EventHost
-        fields = ["club_id", "primary"]
+        fields = ["club", "primary"]
 
 
 class EventSerializer(ModelSerializerBase):
-    """JSON representation for events."""
+    """Represents a calendar event for a single or multiple clubs."""
 
     hosts = EventHostNestedSerializer(many=True)
 

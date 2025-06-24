@@ -52,9 +52,11 @@ class Club(UniqueModel):
 
     scope = Scope.CLUB
     get_logo_filepath = UploadFilepathFactory("clubs/logos/")
+    get_banner_filepath = UploadFilepathFactory("clubs/banners/")
 
     name = models.CharField(max_length=64, unique=True)
     logo = models.ImageField(upload_to=get_logo_filepath, blank=True, null=True)
+    banner = models.ImageField(upload_to=get_banner_filepath, blank=True, null=True)
 
     alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     about = models.TextField(blank=True, null=True)
@@ -71,6 +73,7 @@ class Club(UniqueModel):
     teams: models.QuerySet["Team"]
     roles: models.QuerySet["ClubRole"]
     socials: models.QuerySet["ClubSocialProfile"]
+    images: models.QuerySet["ClubPhoto"]
 
     # Overrides
     @property
@@ -94,6 +97,20 @@ class Club(UniqueModel):
 
         return super().save(*args, **kwargs)
 
+class ClubPhoto(ModelBase):
+    """Photos for club carousel"""
+
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="photos")
+    photo = models.ImageField(upload_to="club_photos/")
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "club"],
+                name="unique_order_per_club"
+            ),
+        ]
 
 class ClubSocialProfile(SocialProfileBase):
     """Saves social media profile info for clubs."""

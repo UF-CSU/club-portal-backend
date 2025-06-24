@@ -205,6 +205,7 @@ If you have Taskfile installed, you can use the following:
 | `task shell`                  | Start a new Django interactive shell                             |
 | `task show_urls`              | Show all available urls for the server, and their reverse labels |
 | `task loaddata`               | Load all available fixtures/mock data into database              |
+| `task generate_types`         | Create TypeScript interfaces for serializers                    |
 | `task down`                   | Stop all docker containers created by `task dev`                 |
 | `task clean`                  | Stop containers and remove volumes created by `task dev`         |
 | `task down:slim`              | Stop all docker containers created by `task dev:slim`            |

@@ -48,5 +48,5 @@ class EventPrivateApiTests(PrivateApiTestsBase):
 
         for event in data:
             clubs = event["hosts"]
-            matches = [club for club in clubs if club["club_id"] == c1.id]
+            matches = [club for club in clubs if club["club"] == c1.id]
             self.assertLength(matches, 1)
