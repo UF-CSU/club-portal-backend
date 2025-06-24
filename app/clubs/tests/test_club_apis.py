@@ -35,6 +35,8 @@ def club_apikey_list_url(club_id: int):
 def club_list_url():
     return reverse("api-clubs:club-list")
 
+def club_list_url_member():
+    return reverse("api-clubs:club-list")
 
 class ClubsApiPublicTests(PublicApiTestsBase):
     """Tests for public routes on clubs api."""
@@ -213,6 +215,28 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         key = ClubApiKey.objects.first()
 
         self.assertEqual(res_body["secret"], key.get_secret())
+
+    def test_get_member_clubs(self):
+        """User should only get clubs they are a member of"""
+
+        user1 = create_test_user()
+        user2 = create_test_user()
+
+        club1 = create_test_club("Club 1", members=[user1])
+        club2 = create_test_club("Club 2", members=[user1])
+        club3 = create_test_club("Club 3", members=[user1])
+        club4 = create_test_club("Club 4", members=[])
+        club5 = create_test_club("Club 5", members=[])
+
+        url = club_list_url_member()
+        res = self.client.get(url)
+
+        res_body = res.json()
+
+        #Check if there is only 3 clubs returned
+        self.assertEqual(len(res_body), 3)
+
+
 
 
 class ClubsApiPermsTests(PublicApiTestsBase):
