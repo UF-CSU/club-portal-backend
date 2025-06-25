@@ -47,9 +47,15 @@ class ClubViewSet(ModelViewSetBase):
         user = request.user
         
         if not user or not user.is_authenticated:
-            self.permission_denied(request)
+            if self.action == 'list':
+                return qs.none()
+            else:
+                self.permission_denied(self.request)
 
-        return user.clubs
+        if self.action == 'list':
+            return user.clubs.all()
+        else:
+            return qs
 
 
 

@@ -219,14 +219,26 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
     def test_get_member_clubs(self):
         """User should only get clubs they are a member of"""
 
+        CLUBS_COUNT = 5
+
         user1 = create_test_user()
         user2 = create_test_user()
+        self.clubs = create_test_clubs(CLUBS_COUNT)
 
-        club1 = create_test_club("Club 1", members=[user1])
-        club2 = create_test_club("Club 2", members=[user1])
-        club3 = create_test_club("Club 3", members=[user1])
-        club4 = create_test_club("Club 4", members=[])
-        club5 = create_test_club("Club 5", members=[])
+        c1 = self.clubs[0]
+        c2 = self.clubs[1]
+        c3 = self.clubs[2]
+        c4 = self.clubs[3]
+        c5 = self.clubs[4]
+
+        svc = ClubService(c1)
+        svc.add_member(self.user)
+
+        svc = ClubService(c2)
+        svc.add_member(self.user)
+
+        svc = ClubService(c3)
+        svc.add_member(self.user)
 
         url = club_list_url_member()
         res = self.client.get(url)
@@ -234,7 +246,7 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         res_body = res.json()
 
         #Check if there is only 3 clubs returned
-        self.assertLength(len(res_body), 3)
+        self.assertLength(res_body, 3)
 
 
 
@@ -263,7 +275,8 @@ class ClubsApiPermsTests(PublicApiTestsBase):
         self.assertResOk(res)
         data = res.json()
 
-        self.assertLength(data, self.CLUBS_COUNT)
+        #Since user is not member of any club, should be zero
+        self.assertLength(data, 0)
 
         # No clubs returned, not member of any
         url2 = url + "?has_membership=true"
