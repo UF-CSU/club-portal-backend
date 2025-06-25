@@ -223,15 +223,15 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
 
         CLUBS_COUNT = 5
 
-        user1 = create_test_user()
-        user2 = create_test_user()
+        create_test_user()
+        create_test_user()
         self.clubs = create_test_clubs(CLUBS_COUNT)
 
         c1 = self.clubs[0]
         c2 = self.clubs[1]
         c3 = self.clubs[2]
-        c4 = self.clubs[3]
-        c5 = self.clubs[4]
+        self.clubs[3]
+        self.clubs[4]
 
         svc = ClubService(c1)
         svc.add_member(self.user)
