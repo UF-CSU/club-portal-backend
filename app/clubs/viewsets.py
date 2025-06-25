@@ -40,6 +40,24 @@ class ClubViewSet(ModelViewSetBase):
 
         return qs
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        request = self.request
+        user = request.user
+        
+        if not user or not user.is_authenticated:
+            if self.action == 'list':
+                return qs.none()
+            else:
+                self.permission_denied(self.request)
+
+        if self.action == 'list':
+            return user.clubs.all()
+        else:
+            return qs
+
+
 
 class ClubMembershipViewSet(ModelViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
