@@ -1,11 +1,7 @@
-import logging
-
 from django.core.management import BaseCommand
 
-from clubs.serializers import ClubMembershipSerializer, ClubSerializer, TeamSerializer
-from events.serializers import EventSerializer
+from core.typegen import SERIALIZERS_CREATE_READ_UPDATE, SERIALIZERS_READONLY
 from lib.serializer_typegen import TypeGenerator
-from users.serializers import UserSerializer
 
 FILE_OUT = "generated/club-portal.d.ts"
 
@@ -16,15 +12,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Entrypoint for command."""
 
-        target_serializers = [
-            ClubSerializer,
-            ClubMembershipSerializer,
-            TeamSerializer,
-            EventSerializer,
-            UserSerializer,
-        ]
-
-        tg = TypeGenerator(target_serializers)
+        tg = TypeGenerator(
+            SERIALIZERS_CREATE_READ_UPDATE,
+            readonly_serializer_classes=SERIALIZERS_READONLY,
+        )
         tg.generate_docs(FILE_OUT)
 
-        logging.info(f"Generated {len(target_serializers)} types in {FILE_OUT}")
+        print(f"Generated {tg.types_generated} types in {FILE_OUT}")

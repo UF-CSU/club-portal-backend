@@ -18,6 +18,7 @@ from core.abstracts.serializers import (
     ImageUrlField,
     ModelSerializerBase,
     PermissionRelatedField,
+    SerializerBase,
 )
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
@@ -48,12 +49,14 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
             "roles",
         ]
 
+
 class ClubPhotoNestedSerializer(ModelSerializerBase):
     """Represents photos for clubs."""
 
     class Meta:
         model = ClubPhoto
         fields = [*ModelSerializerBase.default_fields, "id", "photo", "order"]
+
 
 class ClubSocialNestedSerializer(ModelSerializerBase):
     """Represents social profiles for clubs."""
@@ -89,6 +92,7 @@ class ClubSerializer(ModelSerializerBase):
             # "teams",
             "socials",
             "photos",
+            "alias",
         ]
 
 
@@ -114,12 +118,11 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
             "id",
             "email",
             "username",
-            "first_name",
-            "last_name",
+            "name",
             "send_account_email",
             "account_setup_url",
         ]
-        read_only_fields = ["id", "username", "first_name", "last_name"]
+        read_only_fields = ["id", "username", "name"]
 
     def validate(self, data):
         email = data.get("email")
@@ -212,12 +215,9 @@ class UserNestedSerializer(ModelSerializerBase):
             "id",
             "username",
             "email",
-            "first_name",
-            "last_name",
-            "display",
+            "name",
         ]
-        read_only_fields = ["username", "email", "first_name", "last_name", "display"]
-        # extra_kwargs = {"id": {"read_only": False}}
+        read_only_fields = ["username", "email", "name"]
 
 
 class TeamMemberNestedSerializer(ModelSerializerBase):
@@ -278,6 +278,14 @@ class ClubApiSecretSerializer(ClubApiKeySerializer):
         fields = ClubApiKeySerializer.Meta.fields + ["secret"]
 
 
+class JoinClubsSerializer(SerializerBase):
+    """Allow authenticated user to join multiple clubs."""
+
+    clubs = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(queryset=Club.objects.all())
+    )
+
+
 ##############################################################
 # MARK: CSV SERIALIZERS
 ##############################################################
@@ -287,19 +295,23 @@ class ClubSocialNestedCsvSerializer(CsvModelSerializer, ClubSocialNestedSerializ
     """Represents a club's social accounts in a csv."""
 
 
+class UserNestedCsvSerializer(CsvModelSerializer, UserNestedSerializer):
+    """Represents a user in a csv."""
+
+    id = serializers.CharField(required=False)
+    email = serializers.EmailField(required=True)
+    username = serializers.CharField(required=False)
+    name = serializers.CharField(required=False)
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "username", "name"]
+
+
 class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
     """Serialize club memberships for a csv."""
 
-    # user_id = PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
-    user_email = WritableSlugRelatedField(
-        source="user", slug_field="email", queryset=User.objects.all(), required=True
-    )
-    user_id = serializers.CharField(source="user.id", required=False)
-    user_username = serializers.CharField(source="user.username", required=False)
-
-    # TODO: Allow csv to update user first and last name, likely need to implement as nested object
-    user_first_name = serializers.CharField(source="user.first_name", required=False)
-    user_last_name = serializers.CharField(source="user.last_name", required=False)
+    user = UserNestedCsvSerializer(required=True)
 
     roles = WritableSlugRelatedField(
         slug_field="name",
@@ -339,11 +351,7 @@ class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
             "club",
             "points",
             "roles",
-            "user_email",
-            "user_id",
-            "user_username",
-            "user_first_name",
-            "user_last_name",
+            "user",
         ]
 
     def create(self, validated_data):

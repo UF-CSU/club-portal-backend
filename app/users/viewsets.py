@@ -2,22 +2,33 @@
 Views for the user API.
 """
 
+from django.core.exceptions import BadRequest
+from django.http import HttpRequest
 from django.urls import reverse_lazy
-from rest_framework import authentication, generics, mixins, permissions
+from rest_framework import authentication, generics, mixins, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.decorators import action
+from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
-from users.serializers import OauthDirectorySerializer, UserSerializer
+from users.models import User
+from users.serializers import (
+    CheckEmailVerificationRequestSerializer,
+    EmailVerificationRequestSerializer,
+    OauthDirectorySerializer,
+    UserSerializer,
+)
+from users.services import UserService
 
 
 class UserViewSet(mixins.RetrieveModelMixin, ViewSetBase):
     """Create a new user in the system."""
 
     serializer_class = UserSerializer
+    queryset = User.objects.all()
 
 
 class AuthTokenView(
@@ -70,3 +81,38 @@ class OauthDirectoryView(generics.RetrieveAPIView):
         return {
             "google": reverse_lazy("headless:app:socialaccount:redirect_to_provider")
         }
+
+
+class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
+    """Send and check email verification codes."""
+
+    serializer_class = EmailVerificationRequestSerializer
+
+    def perform_create(self, serializer: serializer_class):
+
+        UserService(self.request.user).send_verification_code(
+            serializer.validated_data.get("email")
+        )
+        return serializer.data
+
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=CheckEmailVerificationRequestSerializer,
+    )
+    def check(self, request: HttpRequest):
+        """Allow user to check verification code."""
+
+        serializer = CheckEmailVerificationRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            UserService(self.request.user).check_verification_code(
+                email=serializer.validated_data.get("email"),
+                code=serializer.validated_data.get("code"),
+                raise_exception=True,
+            )
+        except BadRequest as e:
+            raise ParseError(e, code="verification_error")
+
+        return Response({"success": True}, status=status.HTTP_201_CREATED)

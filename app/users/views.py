@@ -37,8 +37,7 @@ def register_user_view(request: HttpRequest):
         if form.is_valid():
             data = form.cleaned_data
             form_data = {
-                "first_name": data.get("first_name", None),
-                "last_name": data.get("last_name", None),
+                "name": data.get("name", None),
                 "email": data.get("email", None),
                 "password": data.get("password", None),
             }

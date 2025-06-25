@@ -8,9 +8,15 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase
+from lib.faker import fake
+from users.models import EmailVerificationCode
+
 # CREATE_USER_URL = reverse("api-users:create")  # user as app, create as endpoint
 LOGIN_TOKEN_URL = reverse("api-users:login")
 ME_URL = reverse("api-users:me")
+VERIFY_URL = reverse("api-users:verification-list")
+CHECK_VERIFY_URL = reverse("api-users:verification-check")
 
 
 def create_user(**params):
@@ -110,18 +116,16 @@ class PublicUserApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class PrivateUserApiTests(TestCase):  # break out test bc auth is done before all tests
+class PrivateUserApiTests(PrivateApiTestsBase, EmailTestsBase):
     """Test API requests that require authentication"""
 
-    def setUp(self):
-        self.user = create_user(
-            email="test@example.com",
-            password="testpass123",
-        )
-        self.client = APIClient()
-        self.client.force_authenticate(
-            user=self.user
-        )  # force all requests to be authenticated
+    # def setUp(self):
+    #     self.user = create_user(
+    #         email="test@example.com",
+    #         password="testpass123",
+    #     )
+    #     self.client = APIClient()
+    #     self.client.force_authenticate(user=self.user)
 
     def test_retrieve_profile_success(self):
         """Test retrieving profile for logged in user."""
@@ -130,21 +134,12 @@ class PrivateUserApiTests(TestCase):  # break out test bc auth is done before al
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertIn("email", res.data.keys())
         self.assertEqual(res.data["email"], self.user.email)
-        # self.assertEqual(
-        #     res.data,
-        #     {
-        #         "email": self.user.email,
-        #     },
-        # )
 
     def test_post_me_not_allowed(self):
         """Test POST is not allowed for the me endpoint"""
         # can only modify data with this endpoint, cannot create
         res = self.client.post(ME_URL, {})
-
-        self.assertEqual(
-            res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED
-        )  # post should only be used with create_user api
+        self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_update_user_profile(self):
         """Test updating the user profile for the authenticated user."""
@@ -152,7 +147,38 @@ class PrivateUserApiTests(TestCase):  # break out test bc auth is done before al
 
         res = self.client.patch(ME_URL, payload)
 
-        self.user.refresh_from_db()  # user data not refreshed automatically
-        # self.assertTrue(self.user.check_password(payload["password"]))
+        self.user.refresh_from_db()
         self.assertEqual(self.user.username, payload["username"])
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_verify_user_email(self):
+        """Should verify a user's email."""
+
+        # Should request verification
+        payload = {
+            "email": self.user.email,
+        }
+        res = self.client.post(VERIFY_URL, payload)
+        self.assertResCreated(res)
+
+        self.assertEmailsSent(1)
+        self.assertEqual(EmailVerificationCode.objects.count(), 1)
+        vc = EmailVerificationCode.objects.first()
+        self.assertInEmailBodies(vc.code)
+
+        # Should unsuccessfully check wrong email
+        payload = {
+            "email": fake.email(),
+            "code": vc.code,
+        }
+        res = self.client.post(CHECK_VERIFY_URL, payload)
+        self.assertResBadRequest(res)
+
+        # Should successfully check right email
+        payload["email"] = self.user.email
+        res = self.client.post(CHECK_VERIFY_URL, payload)
+        self.assertResCreated(res)
+
+        # Should reject duplicate request
+        res = self.client.post(CHECK_VERIFY_URL, payload)
+        self.assertResBadRequest(res)

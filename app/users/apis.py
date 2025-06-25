@@ -10,6 +10,9 @@ from users import viewsets
 
 router = DefaultRouter()
 router.register("users", viewsets.UserViewSet, basename="user")
+router.register(
+    "verification", viewsets.EmailVerificationViewSet, basename="verification"
+)
 
 app_name = "api-users"
 

@@ -97,6 +97,7 @@ class Club(UniqueModel):
 
         return super().save(*args, **kwargs)
 
+
 class ClubPhoto(ModelBase):
     """Photos for club carousel"""
 
@@ -107,10 +108,10 @@ class ClubPhoto(ModelBase):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["order", "club"],
-                name="unique_order_per_club"
+                fields=["order", "club"], name="unique_order_per_club"
             ),
         ]
+
 
 class ClubSocialProfile(SocialProfileBase):
     """Saves social media profile info for clubs."""
@@ -553,7 +554,7 @@ class ClubApiKey(ModelBase):
     objects: ClassVar[ClubApiKeyManager] = ClubApiKeyManager()
 
     @property
-    def secret(self):
+    def secret(self) -> str:
         """Property accessor for the secret."""
 
         return self.get_secret()

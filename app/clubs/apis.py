@@ -25,6 +25,7 @@ router.register(
 app_name = "api-clubs"
 
 urlpatterns = [
+    path("clubs/join/", viewsets.JoinClubsViewSet.as_view(), name="join"),
     path("", include(router.urls)),
     path(
         "clubs/<int:id>/invite/", viewsets.InviteClubMemberView.as_view(), name="invite"

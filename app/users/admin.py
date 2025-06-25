@@ -58,7 +58,14 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
     csv_serializer_class = UserCsvSerializer
 
-    readonly_fields = (*BaseUserAdmin.readonly_fields, "date_joined", "profile_image")
+    list_display = ("username", "email", "name", "is_staff")
+    search_fields = ("username", "name", "email")
+
+    readonly_fields = (
+        *BaseUserAdmin.readonly_fields,
+        "date_joined",
+        "profile_image",
+    )
     actions = ("send_account_setup_link",)
 
     fieldsets = (
@@ -70,6 +77,8 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
                     "is_active",
                     "is_staff",
                     "is_superuser",
+                    "is_verified",
+                    "is_onboarded",
                     "groups",
                     "user_permissions",
                 )

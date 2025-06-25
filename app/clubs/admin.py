@@ -5,8 +5,8 @@ from django.contrib import admin
 from clubs.forms import TeamMembershipForm
 from clubs.models import (
     Club,
-    ClubPhoto,
     ClubMembership,
+    ClubPhoto,
     ClubRole,
     ClubSocialProfile,
     ClubTag,
@@ -50,11 +50,13 @@ class ClubRoleInlineAdmin(admin.StackedInline):
     model = ClubRole
     extra = 0
 
+
 class ClubPhotoInlineAdmin(admin.TabularInline):
     """Manage club carousel photos in admin."""
 
     model = ClubPhoto
     extra = 0
+
 
 class ClubSocialInlineAdmin(admin.TabularInline):
     """Manage links to club social media in admin."""
@@ -68,7 +70,12 @@ class ClubAdmin(ModelAdminBase):
 
     csv_serializer_class = ClubCsvSerializer
 
-    inlines = (ClubRoleInlineAdmin, ClubMembershipInlineAdmin, ClubSocialInlineAdmin, ClubPhotoInlineAdmin)
+    inlines = (
+        ClubRoleInlineAdmin,
+        ClubMembershipInlineAdmin,
+        ClubSocialInlineAdmin,
+        ClubPhotoInlineAdmin,
+    )
     filter_horizontal = ("tags",)
     list_display = (
         "name",

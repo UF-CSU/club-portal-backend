@@ -1,3 +1,8 @@
+import json
+import os
+
+from django.utils import timezone
+
 from clubs.models import Club, ClubMembership, ClubRole, ClubSocialProfile
 from clubs.serializers import ClubCsvSerializer, ClubMembershipCsvSerializer
 from clubs.tests.utils import create_test_club
@@ -139,6 +144,66 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
         self.assertEqual(s2.first().social_type, payload["socials[1].social_type"])
         self.assertEqual(s2.first().url, payload["socials[1].url"])
 
+    def test_upload_club_json(self):
+        """Should upload clubs from json."""
+
+        payload = [
+            {
+                "OrganizationName": "Computing Student Union",
+                "Acronym": "CSU",
+                "OrganizationDescription": fake.paragraph(),
+                "DateCreated": (
+                    timezone.now() - timezone.timedelta(days=365 * 2)
+                ).isoformat(),
+                "LastUpdated": (
+                    timezone.now() - timezone.timedelta(days=365 * 1)
+                ).isoformat(),
+                "OrganizationState": True,
+                "OrganizationTypeName": "Example Type",
+                "SupportingInstitution": fake.title(),
+                "ElectionMonth": "November",
+                "CurrentlyRegistering": True,
+            }
+        ]
+
+        mappings = [
+            {"column_name": "OrganizationName", "field_name": "name"},
+            {"column_name": "Acronym", "field_name": "alias"},
+            {"column_name": "OrganizationDescription", "field_name": "about"},
+            {"column_name": "DateCreated", "field_name": "SKIP"},
+            {"column_name": "LastUpdated", "field_name": "SKIP"},
+            {"column_name": "OrganizationState", "field_name": "SKIP"},
+            {"column_name": "OrganizationTypeName", "field_name": "SKIP"},
+            {"column_name": "SupportingInstitution", "field_name": "SKIP"},
+            {"column_name": "ElectionMonth", "field_name": "SKIP"},
+            {"column_name": "CurrentlyRegistering", "field_name": "SKIP"},
+        ]
+
+        filepath = self.get_unique_filepath(ext="json")
+        dir = os.path.dirname(filepath)
+        os.makedirs(dir, exist_ok=True)
+
+        with open(filepath, mode="w+") as f:
+            json.dump(payload, f, indent=4)
+
+        success, failed = self.service.upload_csv(
+            path=filepath, custom_field_maps=mappings
+        )
+        self.assertEqual(len(success), 1, failed)
+        self.assertEqual(len(failed), 0)
+        self.assertEqual(self.repo.count(), 1)
+
+        # self.assertUploadPayload(
+        #     payload=payload,
+        #     custom_field_maps=mappings,
+        # )
+
+        self.assertEqual(self.repo.count(), 1)
+        obj = self.repo.first()
+        self.assertEqual(obj.name, payload[0]["OrganizationName"])
+        self.assertEqual(obj.alias, payload[0]["Acronym"])
+        self.assertEqual(obj.about, payload[0]["OrganizationDescription"])
+
 
 class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
     """Test upload csv functionality for club memberships."""
@@ -162,7 +227,7 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
         payload = [
             {
                 "club": self.club.id,
-                "user_email": fake.safe_email(),
+                "user.email": fake.safe_email(),
                 "roles": ["Member", "New Role"],
             }
             for _ in range(self.dataset_size)
@@ -178,7 +243,7 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
         self.assertEqual(memberships.count(), self.dataset_size, failed)
 
         for expected in payload:
-            self.assertTrue(User.objects.filter(email=expected["user_email"]).exists())
+            self.assertTrue(User.objects.filter(email=expected["user.email"]).exists())
 
             for role in expected["roles"]:
                 self.assertTrue(
@@ -187,6 +252,6 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
 
             self.assertTrue(
                 self.repo.filter(
-                    club=expected["club"], user__email=expected["user_email"]
+                    club=expected["club"], user__email=expected["user.email"]
                 ).exists()
             )

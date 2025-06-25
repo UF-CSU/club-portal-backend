@@ -11,6 +11,7 @@ from clubs.serializers import (
     ClubMembershipSerializer,
     ClubSerializer,
     InviteClubMemberSerializer,
+    JoinClubsSerializer,
     TeamSerializer,
 )
 from clubs.services import ClubService
@@ -45,18 +46,17 @@ class ClubViewSet(ModelViewSetBase):
 
         request = self.request
         user = request.user
-        
+
         if not user or not user.is_authenticated:
-            if self.action == 'list':
+            if self.action == "list":
                 return qs.none()
             else:
                 self.permission_denied(self.request)
 
-        if self.action == 'list':
+        if self.action == "list":
             return user.clubs.all()
         else:
             return qs
-
 
 
 class ClubMembershipViewSet(ModelViewSetBase):
@@ -181,4 +181,24 @@ class ClubApiKeyViewSet(ModelViewSetBase):
 
         # Otherwise, the secret should not be visible
         return super().get_serializer_class()
-        return super().get_serializer_class()
+
+
+class JoinClubsViewSet(GenericAPIView):
+    """Allow authenticated user to join multiple clubs."""
+
+    serializer_class = JoinClubsSerializer
+    authentication_classes = ViewSetBase.authentication_classes
+    permission_classes = []
+
+    def post(self, request):
+        """Submit request to join clubs."""
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        clubs = serializer.validated_data.get("clubs")
+
+        for club in clubs:
+            ClubService(club).add_member(request.user)
+
+        return Response(serializer.data)

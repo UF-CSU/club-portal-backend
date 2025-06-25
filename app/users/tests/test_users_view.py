@@ -13,8 +13,7 @@ class UserRegisterViewTests(ViewTestsBase):
     """Tests for user registration form."""
 
     user_payload = {
-        "first_name": "John",
-        "last_name": "Doe",
+        "name": "John Doe",
         "email": "john@example.com",
         "password": "abc123@Example",
         "confirm_password": "abc123@Example",
@@ -28,8 +27,7 @@ class UserRegisterViewTests(ViewTestsBase):
 
     def assertUserFields(self, user: User, fields: dict):
         """Check name, email, and password fields for user."""
-        self.assertEqual(user.profile.first_name, fields["first_name"])
-        self.assertEqual(user.profile.last_name, fields["last_name"])
+        self.assertEqual(user.profile.name, fields["name"])
         self.assertEqual(user.profile.email, fields["email"])
         self.assertEqual(user.username, fields["email"])
         self.assertTrue(user.check_password(fields["password"]))

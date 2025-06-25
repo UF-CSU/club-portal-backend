@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -404,6 +405,7 @@ if DEV:
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
+    logging.disable(logging.NOTSET)
 
 
 if TESTING:
@@ -412,6 +414,8 @@ if TESTING:
 
     # Force disable notifications
     EMAIL_HOST_PASSWORD = None
+    # Suppress logs in test mode
+    logging.disable(logging.ERROR)
 
 if DEV or TESTING:
     # Allow for migrations during dev mode

@@ -39,8 +39,7 @@ class UserCsvTests(UploadCsvTestsBase):
             {
                 "email": fake.safe_email(),
                 "username": fake.user_name(),
-                "profile.first_name": fake.first_name(),
-                "profile.last_name": fake.last_name(),
+                "profile.name": fake.name(),
                 "club_memberships[0].club": c1.name,
                 "club_memberships[0].roles": "Test Role 1",
                 "club_memberships[1].club": c2.name,
@@ -93,8 +92,7 @@ class UserCsvTests(UploadCsvTestsBase):
                 "id": u2.id,  # Id is needed if updating a unique value
                 "email": u2.email,
                 "username": fake.user_name(),
-                "profile.first_name": fake.first_name(),
-                "profile.last_name": fake.last_name(),
+                "profile.name": fake.name(),
                 "club_memberships[0].club": c1.name,
                 "club_memberships[0].roles": "Test Role 1",
                 "club_memberships[1].club": c2.name,
@@ -107,8 +105,7 @@ class UserCsvTests(UploadCsvTestsBase):
             {
                 "email": u3.email,
                 "username": fake.user_name(),  # This will raise an error, cannot update unique field without id
-                "profile.first_name": fake.first_name(),
-                "profile.last_name": fake.last_name(),
+                "profile.name": fake.name(),
                 "club_memberships[0].club": c1.name,
             },
         ]
@@ -160,8 +157,7 @@ class UserCsvTests(UploadCsvTestsBase):
 
         payload = {
             "email": user.email,
-            "profile.first_name": fake.first_name(),
-            "profile.last_name": fake.last_name(),
+            "profile.name": fake.name(),
             "profile.image": "https://example.com/image.png",
             "club_memberships[0].club": c1.name,
             "club_memberships[1].club": c2.name,

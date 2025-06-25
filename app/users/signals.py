@@ -42,13 +42,9 @@ def on_save_user(sender, instance: User, created=False, **kwargs):
     draw = ImageDraw.Draw(img)
 
     initials = ""
-    if instance.profile.first_name is not None and len(instance.profile.first_name) > 0:
-        initials += instance.first_name[0]
-
-    if instance.profile.last_name is not None and len(instance.profile.last_name) > 0:
-        initials += instance.last_name[0]
-
-    if initials == "":
+    if instance.profile.name is not None and len(instance.profile.name) > 0:
+        initials = "".join([word[0] for word in instance.profile.name.split(" ", 3)])
+    else:
         initials = instance.email[0]
 
     draw.text((150, 150), initials, fill="white", font_size=150, anchor="mm")

@@ -32,11 +32,13 @@ def club_apikey_list_url(club_id: int):
     return reverse("api-clubs:apikey-list", args=[club_id])
 
 
-def club_list_url():
-    return reverse("api-clubs:club-list")
+CLUBS_LIST_URL = reverse("api-clubs:club-list")
+CLUBS_JOIN_URL = reverse("api-clubs:join")
+
 
 def club_list_url_member():
     return reverse("api-clubs:club-list")
+
 
 class ClubsApiPublicTests(PublicApiTestsBase):
     """Tests for public routes on clubs api."""
@@ -221,15 +223,15 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
 
         CLUBS_COUNT = 5
 
-        user1 = create_test_user()
-        user2 = create_test_user()
+        create_test_user()
+        create_test_user()
         self.clubs = create_test_clubs(CLUBS_COUNT)
 
         c1 = self.clubs[0]
         c2 = self.clubs[1]
         c3 = self.clubs[2]
-        c4 = self.clubs[3]
-        c5 = self.clubs[4]
+        self.clubs[3]
+        self.clubs[4]
 
         svc = ClubService(c1)
         svc.add_member(self.user)
@@ -245,10 +247,26 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
 
         res_body = res.json()
 
-        #Check if there is only 3 clubs returned
+        # Check if there is only 3 clubs returned
         self.assertLength(res_body, 3)
 
+    def test_join_clubs(self):
+        """User should be able to join multiple clubs."""
 
+        clubs = create_test_clubs(5)
+        payload = {
+            "clubs": [club.id for club in clubs[0:2]],
+        }
+        self.assertEqual(self.user.club_memberships.count(), 0)
+
+        url = CLUBS_JOIN_URL
+        self.client.post(url, payload, format="json")
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.club_memberships.count(), len(payload["clubs"]))
+
+        for id in payload["clubs"]:
+            self.assertTrue(self.user.club_memberships.filter(club__id=id).exists())
 
 
 class ClubsApiPermsTests(PublicApiTestsBase):
@@ -268,14 +286,14 @@ class ClubsApiPermsTests(PublicApiTestsBase):
     def test_get_assigned_clubs(self):
         """User should only get assigned clubs."""
 
-        url = club_list_url()
+        url = CLUBS_LIST_URL
 
         # Should be able to preview all clubs
         res = self.client.get(url)
         self.assertResOk(res)
         data = res.json()
 
-        #Since user is not member of any club, should be zero
+        # Since user is not member of any club, should be zero
         self.assertLength(data, 0)
 
         # No clubs returned, not member of any

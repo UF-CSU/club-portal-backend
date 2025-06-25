@@ -2,6 +2,8 @@
 User Models.
 """
 
+import random
+import string
 from typing import ClassVar, Optional
 
 from django.contrib.auth.models import (
@@ -11,6 +13,7 @@ from django.contrib.auth.models import (
 )
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import MaxValueValidator
 
@@ -41,8 +44,7 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
         if username is None:
             username = email
 
-        first_name = extra_fields.pop("first_name", None)
-        last_name = extra_fields.pop("last_name", None)
+        name = extra_fields.pop("name", None)
         phone = extra_fields.pop("phone", None)
 
         user: User = self.model(username=username, email=email, **extra_fields)
@@ -58,8 +60,7 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
 
         Profile.objects.create(
             user=user,
-            first_name=first_name,
-            last_name=last_name,
+            name=name,
             phone=phone,
         )
         user.save(using=self._db)  # Set default profile image, etc
@@ -113,7 +114,6 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
 
-    is_verified = models.BooleanField(default=False)
     is_onboarded = models.BooleanField(default=False)
 
     clubs = models.ManyToManyField(
@@ -129,39 +129,21 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     club_memberships: models.QuerySet
     team_memberships: models.QuerySet
     socials: models.QuerySet["SocialProfile"]
+    verified_emails: models.QuerySet["VerifiedEmail"]
 
     # Dynamic Properties
     @property
-    def first_name(self):
-        if self.profile is None:
-            return None
-
-        return self.profile.first_name
-
-    @first_name.setter
-    def first_name(self, value):
-        Profile.objects.update_or_create(defaults={"user": self}, first_name=value)
+    def name(self) -> str:
+        return self.profile.name
 
     @property
-    def last_name(self):
-        if self.profile is None:
-            return None
-
-        return self.profile.last_name
-
-    @last_name.setter
-    def last_name(self, value):
-        Profile.objects.update_or_create(defaults={"user": self}, last_name=value)
+    def is_email_verified(self):
+        return self.verified_emails.filter(email=self.email).exists()
 
     @property
     def can_authenticate(self):
         """See if this user has a way to authenticate with the server."""
         return self.has_usable_password() or self.socialaccount_set.count() > 0
-
-    @property
-    def display(self):
-        """Display name."""
-        return self.profile.display
 
     @property
     def is_useragent(self):
@@ -194,14 +176,7 @@ class Profile(ModelBase):
     )
 
     phone = models.CharField(max_length=20, blank=True, null=True)
-
-    first_name = models.CharField(max_length=255, blank=True, null=True)
-    middle_name = models.CharField(max_length=255, blank=True, null=True)
-    last_name = models.CharField(max_length=255, blank=True, null=True)
-    prefix = models.CharField(
-        max_length=255, blank=True, null=True, help_text="Mr/Mrs/Dr/etc"
-    )
-    nickname = models.CharField(max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
 
     city = models.CharField(max_length=255, blank=True, null=True)
     state = models.CharField(max_length=2, blank=True, null=True)
@@ -218,24 +193,17 @@ class Profile(ModelBase):
     major = models.CharField(blank=True, null=True, max_length=128)
     bio = models.TextField(null=True, blank=True)
 
-    display = models.CharField(
-        blank=True,
-        max_length=128,
-        null=True,
-        help_text="Name to use when displaying the user.",
-    )
-
-    @property
-    def name(self):
-        return f"{self.prefix or ''} {self.first_name or ''} {self.last_name or ''}".strip()
-
     # Dynamic Properties
     @property
     def email(self):
         return self.user.email
 
+    @property
+    def is_school_email_verified(self):
+        return self.user.verified_emails.filter(email=self.school_email).exists()
+
     def __str__(self):
-        return self.display
+        return self.name or self.user.username
 
     # Overrides
     class Meta:
@@ -258,15 +226,6 @@ class Profile(ModelBase):
                 fields=("phone",), name="phone_idx", condition=_is_unique_nonempty_phone
             )
         ]
-
-    def save(self, *args, **kwargs):
-        if self.display is None or self.display.strip() == "":
-            if self.name is not None and len(self.name) > 0:
-                self.display = self.name
-            else:
-                self.display = self.user.email.split("@")[0]
-
-        return super().save(*args, **kwargs)
 
 
 class SocialProfile(SocialProfileBase):
@@ -311,3 +270,49 @@ class UserAgent(User):
     @property
     def is_useragent(self):
         return True
+
+
+def generate_verification_code():
+    """Get a unique verification code."""
+    characters = string.ascii_uppercase + string.digits
+
+    # Keep regenerating code until unique
+    while True:
+        code = "".join(random.choices(characters, k=6))
+
+        if not EmailVerificationCode.objects.filter(code=code).exists():
+            return code
+
+
+def generate_verification_expiry():
+    """Generate expiration time for verification code."""
+
+    return timezone.now() + timezone.timedelta(minutes=15)
+
+
+class EmailVerificationCode(ModelBase):
+    """Store and track code used for email verification."""
+
+    code = models.CharField(
+        unique=True,
+        max_length=6,
+        default=generate_verification_code,
+        # editable=False,
+    )
+    email = models.EmailField()
+    expires_at = models.DateTimeField(
+        default=generate_verification_expiry, editable=False
+    )
+
+    @property
+    def is_expired(self):
+        return self.expires_at < timezone.now()
+
+
+class VerifiedEmail(ModelBase):
+    """User has verified this email."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="verified_emails"
+    )
+    email = models.EmailField(editable=False, unique=True)
