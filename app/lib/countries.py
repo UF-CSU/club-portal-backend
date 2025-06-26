@@ -6,7 +6,6 @@ Source: https://djangosnippets.org/snippets/494/
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-# http://xml.coverpages.org/country3166.html
 COUNTRIES = (
     ("AD", _("Andorra")),
     ("AE", _("United Arab Emirates")),
@@ -49,7 +48,7 @@ COUNTRIES = (
     ("CG", _("Congo")),
     ("CH", _("Switzerland")),
     ("CI", _("Ivory Coast")),
-    ("CK", _("Cook Iislands")),
+    ("CK", _("Cook Islands")),
     ("CL", _("Chile")),
     ("CM", _("Cameroon")),
     ("CN", _("China")),
