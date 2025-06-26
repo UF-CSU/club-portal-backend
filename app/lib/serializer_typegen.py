@@ -3,6 +3,7 @@ Convert DRF Serializer to TypeScript Types.
 """
 
 import os
+import re
 import typing
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
@@ -61,6 +62,8 @@ PYTHON_TYPE_TO_TS_MAP = {
     None: "unknown",
 }
 
+TAB = "    "
+
 FILE_DOC_TPL = """/**
  * Club Portal Type Definitions
  *
@@ -93,17 +96,20 @@ UPDATE_INTERFACE_TPL = """
 declare interface I%(model)sUpdate {
 """
 
-FIELD_TPL = "  %(property)s: %(type)s;\n"
-OPTIONAL_FIELD_TPL = "  %(property)s?: %(type)s | null;\n"
-READONLY_FIELD_TPL = "  readonly %(property)s: %(type)s;\n"
+FIELD_TPL = TAB + "%(property)s: %(type)s;\n"
+OPTIONAL_FIELD_TPL = TAB + "%(property)s?: %(type)s | null;\n"
+READONLY_FIELD_TPL = TAB + "readonly %(property)s: %(type)s;\n"
 
-FIELD_DOC_TPL = "  /** %s */\n"
+FIELD_DOC_TPL = TAB + "/** %s */\n"
 
 SEPARATOR_TPL = """/*
  * ===============================================================
  * %s
  * ===============================================================
  */"""
+
+ENUM_TPL = "export enum %(name)s {\n"
+ENUM_FIELD_TPL = TAB + "%(field)s = '%(value)s',\n"
 
 
 class TypeGenerator:
@@ -118,6 +124,11 @@ class TypeGenerator:
         self.types_doc = ""
         self.serializer_classes = serializer_classes
         self.readonly_serializer_classes = readonly_serializer_classes
+        self.enums: dict[str, dict[str, str]] = {}
+        """Emuns to generate: enum_name => { value => label }"""
+
+        self.types_file_name = "club-portal.d.ts"
+        self.enums_file_name = "club-portal-enums.ts"
 
     @property
     def types_generated(self):
@@ -141,9 +152,12 @@ class TypeGenerator:
             else "a"
         )
 
-    def _get_field_type(self, field, is_list=False, using=DRF_FIELD_TO_TS_MAP):
-        """Return TS type for given field."""
-
+    def _get_prop_type(
+        self,
+        field,
+        is_list=False,
+        using=DRF_FIELD_TO_TS_MAP,
+    ):
         if not isinstance(field, type):
             field = type(field)
 
@@ -154,7 +168,23 @@ class TypeGenerator:
 
         return field_type
 
-    def _get_field_type_from_model(
+    def _get_prop_type_from_field(
+        self,
+        field: serializers.Field,
+        prop_name: str,
+        is_list=False,
+    ):
+        """Get TS type for serializer field."""
+
+        if isinstance(field, serializers.ChoiceField):
+            return self._get_prop_choice_type(prop_name=prop_name, field=field)
+
+        else:
+            return self._get_prop_type(
+                field, is_list=is_list, using=DRF_FIELD_TO_TS_MAP
+            )
+
+    def _get_prop_type_from_model(
         self,
         field_name,
         field: (
@@ -183,13 +213,13 @@ class TypeGenerator:
 
         if isinstance(field, serializers.ReadOnlyField):
             field_type_class = model_field.fget.__annotations__.get("return", "any")
-            field_type = self._get_field_type(
+            field_type = self._get_prop_type(
                 field_type_class, is_list=is_list, using=PYTHON_TYPE_TO_TS_MAP
             )
         elif isinstance(field, serializers.SlugRelatedField):
             # getattr returns DeferredAttribute, which has a "field" attribute with actual field
             model_field = getattr(model_field.related_model, field.slug_field).field
-            field_type = self._get_field_type(
+            field_type = self._get_prop_type(
                 model_field, is_list=is_list, using=DJANGO_FIELD_TO_TS_MAP
             )
 
@@ -198,8 +228,23 @@ class TypeGenerator:
 
         return field_type
 
+    def _get_prop_choice_type(self, prop_name: str, field: serializers.ChoiceField):
+        """Returns either string literal union or enum."""
+
+        if len(field.choices.keys()) > 20:
+            # Return enum type
+            enum_pre = prop_name.capitalize().replace("type", "").replace("_", "")
+            enum_name = f"{enum_pre}Type"
+            if enum_name not in self.enums.keys():
+                self.enums[enum_name] = field.choices
+
+            return f"import('./{self.enums_file_name}').{enum_name}"
+        else:
+            # Return string literal union type
+            return " | ".join([f"'{key}'" for key in field.choices.keys()])
+
     def _get_indent(self, indent_level: int):
-        return "  " * indent_level
+        return TAB * indent_level
 
     def _generate_prop(
         self,
@@ -224,18 +269,6 @@ class TypeGenerator:
 
         return generated
 
-    def _generate_required_prop(self, property: str, prop_type: str, **kwargs):
-        """Generate a required TS field."""
-        return self._generate_prop(FIELD_TPL, property, prop_type, **kwargs)
-
-    def _generate_optional_prop(self, property: str, prop_type: str, **kwargs):
-        """Generate a optional TS field."""
-        return self._generate_prop(OPTIONAL_FIELD_TPL, property, prop_type, **kwargs)
-
-    def _generate_readonly_prop(self, property: str, prop_type: str, **kwargs):
-        """Generate a readonly TS field."""
-        return self._generate_prop(READONLY_FIELD_TPL, property, prop_type, **kwargs)
-
     def _props_factory(
         self,
         all_fields: dict[str | serializers.Field],
@@ -251,7 +284,8 @@ class TypeGenerator:
             field = all_fields[prop_name]
             kwargs = {
                 "property": prop_name,
-                "prop_type": prop_type or self._get_field_type(field),
+                "prop_type": prop_type
+                or self._get_prop_type_from_field(field, prop_name),
                 "doc": kwargs.pop("doc", None) or getattr(field, "help_text", None),
                 "indent_level": indent_level,
                 **kwargs,
@@ -262,13 +296,13 @@ class TypeGenerator:
                 and not ignore_nonnull
                 and not getattr(field, "allow_null", True)
             ):
-                field_prop = self._generate_required_prop(**kwargs)
+                field_prop = self._generate_prop(FIELD_TPL, **kwargs)
             elif not readonly and (force_optional or not required):
-                field_prop = self._generate_optional_prop(**kwargs)
+                field_prop = self._generate_prop(OPTIONAL_FIELD_TPL, **kwargs)
             elif not readonly:
-                field_prop = self._generate_required_prop(**kwargs)
+                field_prop = self._generate_prop(FIELD_TPL, **kwargs)
             else:
-                field_prop = self._generate_readonly_prop(**kwargs)
+                field_prop = self._generate_prop(READONLY_FIELD_TPL, **kwargs)
 
             return field_prop
 
@@ -279,7 +313,7 @@ class TypeGenerator:
         serializer: SerializerBase,
         mode: Literal["read", "create", "update"],
         indent_level=0,
-    ):
+    ) -> list[str]:
         """Generate a list of fields for given serializer."""
 
         all_fields = serializer.get_fields()
@@ -354,13 +388,13 @@ class TypeGenerator:
             if isinstance(field, serializers.ManyRelatedField) and not isinstance(
                 field.child_relation, serializers.SlugRelatedField
             ):
-                field_type = self._get_field_type(field.child_relation, is_list=True)
+                field_type = self._get_prop_type(field.child_relation, is_list=True)
             elif isinstance(field, serializers.ManyRelatedField):
-                field_type = self._get_field_type_from_model(
+                field_type = self._get_prop_type_from_model(
                     field_name, field, serializer, is_list=True
                 )
             elif getattr(field, "child", None) is not None:
-                field_type = self._get_field_type(field.child, is_list=True)
+                field_type = self._get_prop_type(field.child, is_list=True)
             else:
                 field_type = "string[]"
 
@@ -389,12 +423,12 @@ class TypeGenerator:
                 continue
 
             if field_name in serializer.required_fields and not force_optional:
-                properties.append(indent + "  %s: {\n" % (field_name,))
+                properties.append(indent + TAB + "%s: {\n" % (field_name,))
             else:
-                properties.append(indent + "  %s?: {\n" % (field_name,))
+                properties.append(indent + TAB + "%s?: {\n" % (field_name,))
 
             properties += nested_properties
-            properties.append(indent + "  }\n")
+            properties.append(indent + TAB + "}\n")
 
         # Generate nested list fields
         for field_name in serializer.many_nested_fields:
@@ -413,12 +447,12 @@ class TypeGenerator:
                 continue
 
             if field_name in serializer.required_fields and not force_optional:
-                properties.append(indent + "  %s: {\n" % (field_name,))
+                properties.append(indent + TAB + "%s: {\n" % (field_name,))
             else:
-                properties.append(indent + "  %s?: {\n" % (field_name,))
+                properties.append(indent + TAB + "%s?: {\n" % (field_name,))
 
             properties += nested_properties
-            properties.append(indent + "  }[]\n")
+            properties.append(indent + TAB + "}[]\n")
 
         # Generate read only fields
         for field_name in serializer.readonly_fields:
@@ -435,7 +469,7 @@ class TypeGenerator:
                 # type directly from the model (if possible)
 
                 try:
-                    field_type = self._get_field_type_from_model(
+                    field_type = self._get_prop_type_from_model(
                         field_name, field, serializer
                     )
                     field_prop = gen_prop(
@@ -443,7 +477,9 @@ class TypeGenerator:
                     )
                 except Exception as e:
                     field_type = "unknown"
-                    field_prop = gen_prop(field_name, readonly=True)
+                    field_prop = gen_prop(
+                        field_name, prop_type=field_type, readonly=True
+                    )
                     print(e)
             else:
                 field_prop = gen_prop(field_name, readonly=True)
@@ -490,7 +526,7 @@ class TypeGenerator:
 
         return idoc
 
-    def generate_docs(self, filepath: str):
+    def generate_docs(self, dirpath: str):
         """Convert serializers to typescript interfaces."""
 
         self.types_doc += FILE_DOC_TPL % datetime.now()
@@ -516,8 +552,35 @@ class TypeGenerator:
             self.types_doc += idoc
             self.types_doc += "\n"
 
-        directory = "/".join(filepath.split("/")[:-1])
-        os.makedirs(directory, exist_ok=True)
+        self.enums_doc = ""
+        for enum_name, enum_dict in self.enums.items():
+            self.enums_doc += ENUM_TPL % {"name": enum_name}
 
-        with open(filepath, "w+") as f:
+            for value, label in enum_dict.items():
+                field = label.replace(" ", "_").upper()
+                field = re.sub(r"[^a-zA-Z0-9_]", "", field)
+                # After replacements, some underscores get pushed together
+                field = field.replace("__", "_")
+                self.enums_doc += ENUM_FIELD_TPL % {
+                    "field": field,
+                    "value": value,
+                }
+            self.enums_doc += "}\n"
+            self.enums_doc += "\n"
+
+        os.makedirs(dirpath, exist_ok=True)
+
+        types_filepath = dirpath + self.types_file_name
+
+        with open(types_filepath, "w+") as f:
             f.write(self.types_doc)
+
+        enum_filepath = dirpath + self.enums_file_name
+
+        with open(enum_filepath, "w+") as f:
+            f.write(self.enums_doc)
+
+        index_filepath = dirpath + "index.ts"
+
+        with open(index_filepath, "w+") as f:
+            f.write(f"export * from './{self.enums_file_name}'")

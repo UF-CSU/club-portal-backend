@@ -3,7 +3,7 @@ from django.core.management import BaseCommand
 from core.typegen import SERIALIZERS_CREATE_READ_UPDATE, SERIALIZERS_READONLY
 from lib.serializer_typegen import TypeGenerator
 
-FILE_OUT = "generated/club-portal.d.ts"
+FILE_OUT = "generated/"
 
 
 class Command(BaseCommand):
