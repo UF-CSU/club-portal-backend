@@ -99,13 +99,12 @@ class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
     class Meta:
         model = Club
-        field = [
+        fields = [
             "name",
             "logo",
             "banner",
             "about",
             "founding_year",
-            "about",
         ]
 
 
