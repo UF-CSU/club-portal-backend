@@ -95,6 +95,19 @@ class ClubSerializer(ModelSerializerBase):
             "alias",
         ]
 
+class ClubPreviewSerializer(ModelSerializerBase):
+    """Preview club info for unauthorized users"""
+    class Meta:
+        model = Club
+        field = [
+            "name",
+            "logo",
+            "banner",
+            "about",
+            "founding_year",
+            "about",
+        ]
+
 
 class ClubMemberUserNestedSerializer(ModelSerializerBase):
     id = serializers.IntegerField(required=False, read_only=True)

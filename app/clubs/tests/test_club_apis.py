@@ -80,6 +80,16 @@ class ClubsApiPublicTests(PublicApiTestsBase):
         res = self.client.get(url2)
         self.assertResForbidden(res)
 
+    def test_public_can_list_club_previews(self):
+        response = self.client.get("/api/v1/club/club-previews/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.json(), list)
+        if response.json():
+            club = response.json()[0]
+            self.assertIn("name", club)
+            self.assertIn("about", club)
+            self.assertIn("logo", club)
+
 
 class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
     """Tests for club api routes."""

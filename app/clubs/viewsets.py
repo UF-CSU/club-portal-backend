@@ -10,6 +10,7 @@ from clubs.serializers import (
     ClubApiSecretSerializer,
     ClubMembershipSerializer,
     ClubSerializer,
+    ClubPreviewSerializer,
     InviteClubMemberSerializer,
     JoinClubsSerializer,
     TeamSerializer,
@@ -58,7 +59,10 @@ class ClubViewSet(ModelViewSetBase):
         else:
             return qs
 
-
+class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, generics.GenericViewSet):
+    queryset = Club.objects.all()
+    serializer_class = ClubPreviewSerializer
+    
 class ClubMembershipViewSet(ModelViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
 
