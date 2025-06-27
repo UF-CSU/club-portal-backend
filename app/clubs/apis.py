@@ -22,6 +22,8 @@ router.register(
     "clubs/(?P<club_id>.+)/apikeys", viewsets.ClubApiKeyViewSet, basename="apikey"
 )
 
+router.register("club-previews", viewsets.ClubPreviewViewSet, basename="clubpreview")
+
 app_name = "api-clubs"
 
 urlpatterns = [

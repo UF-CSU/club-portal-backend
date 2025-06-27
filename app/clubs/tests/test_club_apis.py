@@ -80,6 +80,22 @@ class ClubsApiPublicTests(PublicApiTestsBase):
         res = self.client.get(url2)
         self.assertResForbidden(res)
 
+    def test_public_can_list_club_previews(self):
+        """Public users should be able to list club previews without authentication."""
+
+        url = reverse("api-clubs:clubpreview-list")
+        res = self.client.get(url)
+
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertIsInstance(data, list)
+
+        expected_fields = ["name", "logo", "banner", "about", "founding_year"]
+        for club in data:
+            for field in expected_fields:
+                self.assertIn(field, club, f"Club missing expected field: {field}")
+
 
 class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
     """Tests for club api routes."""

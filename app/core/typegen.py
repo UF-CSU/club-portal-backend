@@ -3,7 +3,7 @@ Define settings for how automated TypeScript generation
 should function.
 """
 
-from clubs.serializers import ClubMembershipSerializer, ClubSerializer, TeamSerializer
+from clubs.serializers import ClubMembershipSerializer, ClubPreviewSerializer, ClubSerializer, TeamSerializer
 from events.serializers import EventSerializer
 from users.serializers import UserSerializer
 
@@ -22,7 +22,9 @@ List of serializers to create interfaces for:
 - Updating object
 """
 
-SERIALIZERS_READONLY = []
+SERIALIZERS_READONLY = [
+    ClubPreviewSerializer,
+]
 """
 List of serializers to create base interface for only.
 """

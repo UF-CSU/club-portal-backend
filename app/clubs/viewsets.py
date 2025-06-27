@@ -2,7 +2,9 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status
 from rest_framework.generics import GenericAPIView
+from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
+
 
 from clubs.models import Club, ClubApiKey, ClubMembership, Team
 from clubs.serializers import (
@@ -10,6 +12,7 @@ from clubs.serializers import (
     ClubApiSecretSerializer,
     ClubMembershipSerializer,
     ClubSerializer,
+    ClubPreviewSerializer,
     InviteClubMemberSerializer,
     JoinClubsSerializer,
     TeamSerializer,
@@ -58,7 +61,10 @@ class ClubViewSet(ModelViewSetBase):
         else:
             return qs
 
-
+class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+    queryset = Club.objects.all()
+    serializer_class = ClubPreviewSerializer
+    
 class ClubMembershipViewSet(ModelViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
 
