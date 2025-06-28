@@ -95,11 +95,14 @@ class ClubSerializer(ModelSerializerBase):
             "alias",
         ]
 
+
 class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
+
     class Meta:
         model = Club
         fields = [
+            "id",
             "name",
             "logo",
             "banner",
