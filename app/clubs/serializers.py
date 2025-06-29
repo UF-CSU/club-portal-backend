@@ -106,6 +106,8 @@ class ClubSerializer(ModelSerializerBase):
 class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
 
+    tags = ClubTagSerializer(many=True, read_only=True)
+
     class Meta:
         model = Club
         fields = [

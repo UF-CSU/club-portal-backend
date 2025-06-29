@@ -19,7 +19,6 @@ SERIALIZERS_CREATE_READ_UPDATE = [
     TeamSerializer,
     EventSerializer,
     UserSerializer,
-    ClubTagSerializer,
 ]
 """
 List of serializers to create interfaces for:
@@ -30,6 +29,7 @@ List of serializers to create interfaces for:
 """
 
 SERIALIZERS_READONLY = [
+    ClubTagSerializer,
     ClubPreviewSerializer,
 ]
 """
