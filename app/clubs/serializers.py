@@ -115,6 +115,8 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "banner",
             "about",
             "founding_year",
+            "tags",
+            "member_count",
         ]
 
 
