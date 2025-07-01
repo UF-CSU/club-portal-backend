@@ -175,6 +175,13 @@ class Event(EventFields):
 
     scope = Scope.CLUB
 
+    start_date = models.DateField(
+        default=date.today
+    )
+    end_date = models.DateField(
+        null=True, blank=True
+    )
+    
     start_at = models.DateTimeField(null=True, blank=True)
     end_at = models.DateTimeField(null=True, blank=True)
     recurring_event = models.ForeignKey(
@@ -254,6 +261,23 @@ class Event(EventFields):
         for club in clubs:
             self.add_host(club)
 
+    def save(self, *args, **kwargs):
+
+        if self.end_date is None and self.start_date is not None:
+            self.end_date = self.start_date
+
+        if self.start_at is None and self.start_date:
+            start_dt = datetime.combine(self.start_date, time.min)
+            
+            self.start_at = start_dt
+        
+        if self.end_at is None and self.end_date:
+            end_dt = datetime.combine(self.end_date, time.max)
+            
+            self.end_at = end_dt
+        
+        super().save(*args, **kwargs)
+
 
 class EventHost(ModelBase):
     """Attach clubs to events."""
@@ -287,7 +311,7 @@ class EventAttendance(ModelBase):
     """
 
     event = models.ForeignKey(
-        Event, on_delete=models.CASCADE, related_name="user_attendance"
+        Event, on_delete=models.CASCADE, related_name="user_attendance", blank=True, null=True
     )
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="event_attendance"

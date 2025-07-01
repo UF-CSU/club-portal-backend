@@ -26,6 +26,8 @@ class EventSerializer(ModelSerializerBase):
             "name",
             "description",
             "location",
+            "start_date",
+            "end_date",
             "start_at",
             "end_at",
             "tags",
@@ -35,6 +37,24 @@ class EventSerializer(ModelSerializerBase):
             "created_at",
             "updated_at",
         ]
+
+    def create(self, validated_data):
+        hosts_data = validated_data.pop('hosts', [])
+        attendance_links_data = validated_data.pop('attendance_links', [])
+
+        event = Event.objects.create(**validated_data)
+
+        for host in hosts_data:
+            EventHost.objects.create(
+                event=event,
+                club=host['club'],
+                primary=host.get('primary', False)
+            )
+
+        event.attendance_links.set(attendance_links_data)
+
+        return event
+        
 
 
 class EventCsvSerializer(CsvModelSerializer):
