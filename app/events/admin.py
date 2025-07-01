@@ -46,10 +46,24 @@ class EventAttendanceInlineAdmin(admin.TabularInline):
         return False
 
 
+# class EventAttendanceLinkForm(forms.ModelForm):
+#     """Manage event links in admin."""
+
+#     class Meta:
+#         model = EventAttendanceLink
+#         fields = "__all__"
+
+#     def save(self, commit=True):
+
+#         print("clean:", self.cleaned_data)
+#         return super().save(commit)
+
+
 class EventAttendenceLinkInlineAdmin(admin.StackedInline):
     """List event links in event admin."""
 
     model = EventAttendanceLink
+    # form = EventAttendanceLinkForm
     readonly_fields = (
         "target_url",
         "club",
@@ -88,6 +102,14 @@ class EventAdmin(ModelAdminBase):
         EventAttendanceInlineAdmin,
     )
     filter_horizontal = ("tags",)
+    actions = ("sync_attendance_links",)
+
+    @admin.action(description="Sync Attendence Links")
+    def sync_attendance_links(self, request, queryset):
+        """For all events, sync attendance links."""
+
+        for event in queryset:
+            EventService(event).sync_hosts_attendance_links()
 
 
 admin.site.register(Event, EventAdmin)

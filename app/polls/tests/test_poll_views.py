@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from clubs.polls.models import (
+from polls.models import (
     ChoiceInput,
     Poll,
     PollField,

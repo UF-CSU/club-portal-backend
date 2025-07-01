@@ -55,7 +55,7 @@ class ClubPhotoNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = ClubPhoto
-        fields = [*ModelSerializerBase.default_fields, "id", "photo", "order"]
+        fields = ["id", "photo", "order"]
 
 
 class ClubSocialNestedSerializer(ModelSerializerBase):
@@ -66,16 +66,23 @@ class ClubSocialNestedSerializer(ModelSerializerBase):
         fields = ["id", "url", "username", "social_type", "order"]
 
 
+class ClubTagSerializer(ModelSerializerBase):
+    """Represents tags for clubs."""
+
+    class Meta:
+        model = ClubTag
+        fields = ["id", "name", "color", "order"]
+
+
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
-    members = ClubMemberNestedSerializer(
-        many=True, read_only=True, help_text="List of club members"
-    )
     photos = ClubPhotoNestedSerializer(many=True, read_only=True)
     socials = ClubSocialNestedSerializer(many=True, read_only=True)
-    # tags = ClubTagNestedSerializer(many=True, read_only=True)
+    tags = ClubTagSerializer(many=True, read_only=True)
     # teams = ClubTeamNestedSerializer(many=True, read_only=True)
+
+    member_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Club
@@ -87,8 +94,8 @@ class ClubSerializer(ModelSerializerBase):
             "about",
             "founding_year",
             "contact_email",
-            # "tags",
-            "members",
+            "tags",
+            "member_count",
             # "teams",
             "socials",
             "photos",
@@ -99,6 +106,8 @@ class ClubSerializer(ModelSerializerBase):
 class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
 
+    tags = ClubTagSerializer(many=True, read_only=True)
+
     class Meta:
         model = Club
         fields = [
@@ -108,6 +117,8 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "banner",
             "about",
             "founding_year",
+            "tags",
+            "member_count",
         ]
 
 

@@ -4,7 +4,7 @@ Convert poll models to json objects.
 
 from rest_framework import serializers
 
-from clubs.polls import models
+from polls import models
 from core.abstracts.serializers import (
     ModelSerializer,
     ModelSerializerBase,
