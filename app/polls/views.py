@@ -1,7 +1,7 @@
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
-from clubs.polls.models import Poll, PollSubmission
+from polls.models import Poll, PollSubmission
 
 
 def show_poll_view(request: HttpRequest, poll_id: int):

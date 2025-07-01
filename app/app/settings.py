@@ -83,8 +83,8 @@ INSTALLED_APPS = [
     "querycsv",
     "analytics",
     "clubs",
-    "clubs.polls",
     "events",
+    "polls",
 ]
 
 MIDDLEWARE = [
