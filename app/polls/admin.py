@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
-from clubs.polls.models import (
+from polls.models import (
     ChoiceInput,
     ChoiceInputOption,
     Poll,
