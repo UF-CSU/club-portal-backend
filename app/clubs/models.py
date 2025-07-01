@@ -75,13 +75,17 @@ class Club(UniqueModel):
     teams: models.QuerySet["Team"]
     roles: models.QuerySet["ClubRole"]
     socials: models.QuerySet["ClubSocialProfile"]
-    images: models.QuerySet["ClubPhoto"]
+    photos: models.QuerySet["ClubPhoto"]
 
     # Overrides
     @property
     def club(self):
         """Used for permissions checking."""
         return self
+    
+    @property
+    def member_count(self):
+        return self.memberships.count
 
     class Meta:
         permissions = [("preview_club", "Can view a set of limited fields for a club.")]
