@@ -7,15 +7,15 @@ from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.db import models
 from django.http import HttpRequest
-from django.urls import reverse
+from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_bytes
-from django.utils.http import urlencode, urlsafe_base64_encode
+from django.utils.http import urlencode, urlsafe_base64_decode, urlsafe_base64_encode
 
 from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
 from core.abstracts.services import ServiceBase
 from lib.emails import send_html_mail
 from users.models import EmailVerificationCode, User, VerifiedEmail
-from utils.helpers import get_full_url
+from utils.helpers import get_client_url
 
 
 class UserService(ServiceBase[User]):
@@ -81,14 +81,10 @@ class UserService(ServiceBase[User]):
     def send_account_setup_link(self, next_url: Optional[str] = None):
         """Send link to user for setting up account."""
 
-        url = get_full_url(
-            reverse(
-                "users:verify_setup_account",
-                kwargs={
-                    "uidb64": urlsafe_base64_encode(force_bytes(self.obj.pk)),
-                    "token": default_token_generator.make_token(self.obj),
-                },
-            )
+        url = get_client_url(
+            "account-setup/"
+            f"?uidb64={urlsafe_base64_encode(force_bytes(self.obj.pk))}"
+            f"&code={default_token_generator.make_token(self.obj)}"
         )
 
         if next_url:
@@ -101,6 +97,22 @@ class UserService(ServiceBase[User]):
             recipient_list=[self.obj.email],
             fail_silently=False,
         )
+
+    @classmethod
+    def verify_account_setup_token(cls, uidb64: str, code: str, set_user_active=True):
+        """Verify a user id and token pair."""
+
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = get_object_or_404(User, pk=uid)
+
+        if not default_token_generator.check_token(user, code):
+            raise BadRequest("Invalid request")
+
+        if not user.is_active and set_user_active:
+            user.is_active = True
+            user.save()
+
+        return user
 
     def send_verification_code(self, email: str):
         """Send verification code to email."""

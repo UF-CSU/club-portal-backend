@@ -114,7 +114,7 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
 
-    is_onboarded = models.BooleanField(default=False)
+    # is_onboarded = models.BooleanField(default=False)
 
     clubs = models.ManyToManyField(
         "clubs.Club", through="clubs.ClubMembership", blank=True
@@ -141,13 +141,21 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         return self.verified_emails.filter(email=self.email).exists()
 
     @property
-    def can_authenticate(self):
+    def can_authenticate(self) -> bool:
         """See if this user has a way to authenticate with the server."""
         return self.has_usable_password() or self.socialaccount_set.count() > 0
 
     @property
     def is_useragent(self):
         return False
+
+    @property
+    def is_onboarded(self) -> bool:
+        return (
+            self.club_memberships.count() > 0
+            and self.profile is not None
+            and self.profile.name is not None
+        )
 
     # Overrides
     def __str__(self):
@@ -316,3 +324,6 @@ class VerifiedEmail(ModelBase):
         User, on_delete=models.CASCADE, related_name="verified_emails"
     )
     email = models.EmailField(editable=False, unique=True)
+
+    def __str__(self):
+        return self.email

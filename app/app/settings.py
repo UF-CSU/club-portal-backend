@@ -54,6 +54,7 @@ ALLOWED_HOSTS.extend([os.environ.get("DJANGO_BASE_URL")])
 
 BASE_URL = os.environ.get("DJANGO_BASE_URL", "")
 ALLOWED_HOSTS.extend([BASE_URL])
+CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:5173")
 
 
 # Application definition
@@ -200,6 +201,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Django Rest Framework
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
     "DEFAULT_SCHEMA_CLASS": "drf_standardized_errors.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],

@@ -5,7 +5,7 @@ from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.module_loading import import_string
 
-from app.settings import BASE_URL
+from app.settings import BASE_URL, CLIENT_URL
 
 
 def reverse_query(viewname, query=None, **kwargs):
@@ -39,6 +39,12 @@ def get_full_url(path: str):
     """Get full url of a sub path using root domain."""
 
     return urljoin(BASE_URL, path)
+
+
+def get_client_url(path: str):
+    """Get the full url for the main client side."""
+
+    return urljoin(CLIENT_URL, path)
 
 
 def get_import_path(symbol):
