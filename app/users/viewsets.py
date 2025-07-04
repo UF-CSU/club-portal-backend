@@ -2,6 +2,7 @@
 Views for the user API.
 """
 
+from allauth.socialaccount.models import SocialAccount
 from django.core.exceptions import BadRequest
 from django.http import HttpRequest
 from django.urls import reverse_lazy
@@ -20,6 +21,7 @@ from users.serializers import (
     CheckEmailVerificationRequestSerializer,
     EmailVerificationRequestSerializer,
     OauthDirectorySerializer,
+    SocialProviderSerializer,
     UserSerializer,
 )
 from users.services import UserService
@@ -121,3 +123,12 @@ class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
             raise ParseError(e, code="verification_error")
 
         return Response({"success": True}, status=status.HTTP_201_CREATED)
+
+
+class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
+    """Display social account providers for a user."""
+
+    serializer_class = SocialProviderSerializer
+
+    def get_queryset(self):
+        return SocialAccount.objects.filter(user=self.request.user)

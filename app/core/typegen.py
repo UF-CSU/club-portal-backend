@@ -12,7 +12,7 @@ from clubs.serializers import (
 )
 from events.serializers import EventSerializer
 from polls.serializers import PollSerializer
-from users.serializers import UserSerializer
+from users.serializers import SocialProviderSerializer, UserSerializer
 
 SERIALIZERS_CREATE_READ_UPDATE = [
     ClubSerializer,
@@ -33,6 +33,7 @@ List of serializers to create interfaces for:
 SERIALIZERS_READONLY = [
     ClubTagSerializer,
     ClubPreviewSerializer,
+    SocialProviderSerializer,
 ]
 """
 List of serializers to create base interface for only.

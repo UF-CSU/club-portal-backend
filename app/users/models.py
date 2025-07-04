@@ -324,3 +324,6 @@ class VerifiedEmail(ModelBase):
         User, on_delete=models.CASCADE, related_name="verified_emails"
     )
     email = models.EmailField(editable=False, unique=True)
+
+    def __str__(self):
+        return self.email

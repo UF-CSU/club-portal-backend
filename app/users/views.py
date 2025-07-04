@@ -9,6 +9,7 @@ from django.core.exceptions import BadRequest, ValidationError
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 
 from clubs.models import Club, ClubMembership
 from clubs.services import ClubService
@@ -124,13 +125,21 @@ def verify_account_setup_view(request: HttpRequest, uidb64: str, token: str):
     or connect any oauth accounts.
     """
 
-    user = UserService.verify_account_setup_token(uidb64, token)
     next = request.GET.get("next", None)
+
+    try:
+        user = UserService.verify_account_setup_token(uidb64, token)
+        auth_token, _ = Token.objects.get_or_create(user=user)
+    except Exception as e:
+        if next:
+            return redirect(next + f"?error={str(e)}")
+        else:
+            raise e
 
     login(request, user, backend="core.backend.CustomBackend")
 
     if next:
-        return redirect(next)
+        return redirect(next + f"?token={auth_token}")
 
     return redirect("users:setup_account")
 

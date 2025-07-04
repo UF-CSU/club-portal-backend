@@ -2,6 +2,7 @@
 Serializers for the user API View
 """
 
+from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -116,6 +117,14 @@ class CheckEmailVerificationRequestSerializer(ModelSerializerBase):
         model = EmailVerificationCode
         fields = ["email", "code", "success"]
         extra_kwargs = {"email": {"write_only": True}}
+
+
+class SocialProviderSerializer(ModelSerializerBase):
+    """Display a list of social providers for user."""
+
+    class Meta:
+        model = SocialAccount
+        fields = ["id", "provider", "uid", "last_login", "date_joined"]
 
 
 #######################################

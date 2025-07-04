@@ -81,15 +81,6 @@ class UserService(ServiceBase[User]):
     def send_account_setup_link(self, next_url: Optional[str] = None):
         """Send link to user for setting up account."""
 
-        # url = get_full_url(
-        #     reverse(
-        #         "users:verify_setup_account",
-        #         kwargs={
-        #             "uidb64": urlsafe_base64_encode(force_bytes(self.obj.pk)),
-        #             "token": default_token_generator.make_token(self.obj),
-        #         },
-        #     )
-        # )
         url = get_client_url(
             "account-setup/"
             f"?uidb64={urlsafe_base64_encode(force_bytes(self.obj.pk))}"

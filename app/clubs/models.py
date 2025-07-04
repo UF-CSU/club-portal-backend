@@ -82,7 +82,7 @@ class Club(UniqueModel):
     def club(self):
         """Used for permissions checking."""
         return self
-    
+
     @property
     def member_count(self):
         return self.memberships.count
