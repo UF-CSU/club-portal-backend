@@ -5,12 +5,13 @@ should function.
 
 from clubs.serializers import (
     ClubMembershipSerializer,
-    ClubSerializer,
-    TeamSerializer,
     ClubPreviewSerializer,
+    ClubSerializer,
     ClubTagSerializer,
+    TeamSerializer,
 )
 from events.serializers import EventSerializer
+from polls.serializers import PollSerializer
 from users.serializers import UserSerializer
 
 SERIALIZERS_CREATE_READ_UPDATE = [
@@ -19,6 +20,7 @@ SERIALIZERS_CREATE_READ_UPDATE = [
     TeamSerializer,
     EventSerializer,
     UserSerializer,
+    PollSerializer,
 ]
 """
 List of serializers to create interfaces for:

@@ -50,6 +50,7 @@ class UserSerializer(ModelSerializer):
     )
     profile = ProfileNestedSerializer(required=False)
     is_email_verified = serializers.BooleanField(read_only=True)
+    can_authenticate = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = get_user_model()
@@ -62,6 +63,7 @@ class UserSerializer(ModelSerializer):
             "profile",
             "is_onboarded",
             "is_email_verified",
+            "can_authenticate",
         ]
         # defines characteristics of specific fields
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}

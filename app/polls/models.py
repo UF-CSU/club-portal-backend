@@ -436,6 +436,7 @@ class PollSubmission(ModelBase):
         blank=True,
     )
     data = models.JSONField(null=True, blank=True)
+    data2 = models.JSONField(null=True, blank=True)
 
     def __str__(self):
         return f"Submission from {self.user or 'anonymous'}"
