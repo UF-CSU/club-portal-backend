@@ -5,19 +5,17 @@ HTML views.
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import SetPasswordForm
-from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import BadRequest, ValidationError
 from django.http import HttpRequest
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.http import urlsafe_base64_decode
+from django.shortcuts import redirect, render
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 
 from clubs.models import Club, ClubMembership
 from clubs.services import ClubService
 from events.models import Event
 from events.services import EventService
 from users.forms import RegisterForm
-from users.models import User
 from users.services import UserService
 
 
@@ -127,24 +125,23 @@ def verify_account_setup_view(request: HttpRequest, uidb64: str, token: str):
     or connect any oauth accounts.
     """
 
-    uid = urlsafe_base64_decode(uidb64).decode()
-    user = get_object_or_404(User, pk=uid)
-
     next = request.GET.get("next", None)
 
-    if default_token_generator.check_token(user, token):
-        if not user.is_active:
-            user.is_active = True
-            user.save()
-
-        login(request, user, backend="core.backend.CustomBackend")
-
+    try:
+        user = UserService.verify_account_setup_token(uidb64, token)
+        auth_token, _ = Token.objects.get_or_create(user=user)
+    except Exception as e:
         if next:
-            return redirect(next)
+            return redirect(next + f"?error={str(e)}")
+        else:
+            raise e
 
-        return redirect("users:setup_account")
-    else:
-        raise BadRequest("Invalid request")
+    login(request, user, backend="core.backend.CustomBackend")
+
+    if next:
+        return redirect(next + f"?token={auth_token}")
+
+    return redirect("users:setup_account")
 
 
 @login_required()
