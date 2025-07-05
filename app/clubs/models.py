@@ -517,16 +517,18 @@ class ClubApiKeyManager(ManagerBase["ClubApiKey"]):
         Can either assign initial permissions by perm_labels as ``list[str]``, or
         by permissions as ``list[Permission]``.
         """
-        username = f"agent-c{club.id}-" + slugify(name)
-        user_agent = UserAgent.objects.create(
-            username=username, apikey_type=KeyType.CLUB
-        )
+        print("kwargs:", kwargs)
+        # username = f"agent-c{club.id}-" + slugify(name)
+        # user_agent = UserAgent.objects.create(
+        #     username=username, apikey_type=KeyType.CLUB
+        # )
+        print("reached!")
 
         perm_objs = parse_permissions(permissions, fail_silently=False)
 
         key = super().create(
             club=club,
-            user_agent=user_agent,
+            # user_agent=user_agent,
             name=name,
             description=description,
             **kwargs,
@@ -547,7 +549,7 @@ class ClubApiKey(ModelBase):
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE)
     user_agent = models.OneToOneField(
-        UserAgent, on_delete=models.PROTECT, related_name="club_apikey"
+        UserAgent, on_delete=models.PROTECT, related_name="club_apikey", blank=True
     )
 
     name = models.CharField(max_length=32)
@@ -567,11 +569,20 @@ class ClubApiKey(ModelBase):
 
     # Overrides
     class Meta:
+        verbose_name = "Api Key"
         constraints = [
             models.UniqueConstraint(
                 name="unique_apikey_name_per_club", fields=("name", "club")
             )
         ]
+
+    def save(self, *args, **kwargs):
+        if self.user_agent_id is None:
+            username = f"agent-c{self.club.id}-" + slugify(self.name)
+            self.user_agent = UserAgent.objects.create(
+                username=username, apikey_type=KeyType.CLUB
+            )
+        return super().save(*args, **kwargs)
 
     def delete(self, using=None, keep_parents=None):
         """Delete self and clean up related models."""

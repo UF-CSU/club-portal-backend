@@ -5,6 +5,7 @@ from django.contrib import admin
 from clubs.forms import TeamMembershipForm
 from clubs.models import (
     Club,
+    ClubApiKey,
     ClubMembership,
     ClubPhoto,
     ClubRole,
@@ -155,9 +156,26 @@ class TeamAdmin(ModelAdminBase):
         return obj.memberships.count()
 
 
+class ApiKeyAdmin(ModelAdminBase):
+    """Manage API Keys in admin."""
+
+    readonly_fields = (
+        "user_agent",
+        "secret",
+    )
+
+    list_display = (
+        "__str__",
+        "id",
+        "club",
+        "created_at",
+    )
+
+
 admin.site.register(Club, ClubAdmin)
 admin.site.register(ClubTag, ClubTagAdmin)
 admin.site.register(Team, TeamAdmin)
 admin.site.register(ClubMembership, ClubMembershipAdmin)
 admin.site.register(ClubSocialProfile)
 admin.site.register(ClubPhoto)
+admin.site.register(ClubApiKey, ApiKeyAdmin)
