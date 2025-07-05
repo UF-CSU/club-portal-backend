@@ -56,7 +56,7 @@ class Club(UniqueModel):
     get_logo_filepath = UploadFilepathFactory("clubs/logos/")
     get_banner_filepath = UploadFilepathFactory("clubs/banners/")
 
-    name = models.CharField(max_length=64, unique=True)
+    name = models.TextField(unique=True)
     logo = models.ImageField(upload_to=get_logo_filepath, blank=True, null=True)
     banner = models.ImageField(upload_to=get_banner_filepath, blank=True, null=True)
 
@@ -72,15 +72,17 @@ class Club(UniqueModel):
 
     organization_id = models.IntegerField(null=True, blank=True)
     organization_guid = models.TextField(null=True, blank=True)
-    acronym = models.TextField(null=True, blank=True)
-    date_created = models.TextField(null=True, blank=True)
-    last_updated = models.TextField(null=True, blank=True)
-    organization_state = models.TextField(null=True, blank=True)
+    # 200, as some goofballs put their full and very long name as the acronym
+    acronym = models.CharField(max_length=200, null=True, blank=True)
+    date_created = models.CharField(max_length=64, null=True, blank=True)
+    last_updated = models.CharField(max_length=64, null=True, blank=True)
+    organization_state = models.CharField(max_length=10, null=True, blank=True)
     organization_typename = models.TextField(null=True, blank=True)
     supporting_institution = models.TextField(null=True, blank=True)
     organization_url = models.TextField(null=True, blank=True)
     category_ids = models.TextField(null=True, blank=True)
     member_count = models.IntegerField(null=True, blank=True)
+    instagram_followers = models.IntegerField(null=True, blank=True)
 
     # Relationships
     memberships: models.QuerySet["ClubMembership"]

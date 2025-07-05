@@ -114,11 +114,10 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "id",
             "name",
             "logo",
-            "banner",
-            "about",
             "founding_year",
+            "date_created",
+            "instagram_followers",
             "tags",
-            "member_count",
         ]
 
 
