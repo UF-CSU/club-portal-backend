@@ -60,7 +60,7 @@ class Club(UniqueModel):
     logo = models.ImageField(upload_to=get_logo_filepath, blank=True, null=True)
     banner = models.ImageField(upload_to=get_banner_filepath, blank=True, null=True)
 
-    alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
+    alias = models.CharField(max_length=7, null=True, blank=True)
     about = models.TextField(blank=True, null=True)
     founding_year = models.IntegerField(
         default=get_default_founding_year,
@@ -69,6 +69,18 @@ class Club(UniqueModel):
     contact_email = models.EmailField(null=True, blank=True)
 
     tags = models.ManyToManyField(ClubTag, blank=True)
+
+    organization_id = models.IntegerField(null=True, blank=True)
+    organization_guid = models.TextField(null=True, blank=True)
+    acronym = models.TextField(null=True, blank=True)
+    date_created = models.TextField(null=True, blank=True)
+    last_updated = models.TextField(null=True, blank=True)
+    organization_state = models.TextField(null=True, blank=True)
+    organization_typename = models.TextField(null=True, blank=True)
+    supporting_institution = models.TextField(null=True, blank=True)
+    organization_url = models.TextField(null=True, blank=True)
+    category_ids = models.TextField(null=True, blank=True)
+    member_count = models.IntegerField(null=True, blank=True)
 
     # Relationships
     memberships: models.QuerySet["ClubMembership"]

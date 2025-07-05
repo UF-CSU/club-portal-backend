@@ -54,6 +54,7 @@ ALLOWED_HOSTS.extend([os.environ.get("DJANGO_BASE_URL")])
 
 BASE_URL = os.environ.get("DJANGO_BASE_URL", "")
 ALLOWED_HOSTS.extend([BASE_URL])
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 
 
 # Application definition

@@ -238,7 +238,7 @@ class SocialProfileBase(ModelBase):
 
     url = models.URLField(null=True, blank=True)
     username = models.CharField(null=True, blank=True)
-    social_type = models.CharField(choices=SocialType.choices)
+    social_type = models.CharField(choices=SocialType.choices, blank=True)
     order = models.IntegerField(default=0, blank=True)
 
     class Meta:
