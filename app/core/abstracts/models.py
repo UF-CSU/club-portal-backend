@@ -230,6 +230,7 @@ class SocialType(models.TextChoices):
     GITHUB = "github", _("GitHub")
     WEBSITE = "website", _("Personal Website")
     BLUESKY = "bluesky", _("BlueSky")
+    SLACK = "slack", _("Slack")
     OTHER = "other", _("Other")
 
 
@@ -238,7 +239,7 @@ class SocialProfileBase(ModelBase):
 
     url = models.URLField(null=True, blank=True)
     username = models.CharField(null=True, blank=True)
-    social_type = models.CharField(choices=SocialType.choices)
+    social_type = models.CharField(choices=SocialType.choices, blank=True)
     order = models.IntegerField(default=0, blank=True)
 
     class Meta:
@@ -246,4 +247,30 @@ class SocialProfileBase(ModelBase):
         ordering = ["order", "id"]
 
     def __str__(self):
-        return f"{self.username} ({self.social_type})"
+        return f"{self.username or self.url} ({self.social_type})"
+
+    def save(self, *args, **kwargs):
+
+        if self.social_type or not self.url:
+            return super().save(*args, **kwargs)
+
+        if "discord" in self.url:
+            self.social_type = SocialType.DISCORD
+        elif "instagram" in self.url:
+            self.social_type = SocialType.INSTAGRAM
+        elif "facebook" in self.url:
+            self.social_type = SocialType.FACEBOOK
+        elif "twitter" in self.url or "x.com" in self.url:
+            self.social_type = SocialType.TWITTER
+        elif "linkedin" in self.url:
+            self.social_type = SocialType.LINKEDIN
+        elif "github" in self.url:
+            self.social_type = SocialType.GITHUB
+        elif "bsky" in self.url:
+            self.social_type = SocialType.BLUESKY
+        elif "slack" in self.url:
+            self.social_type = SocialType.SLACK
+        else:
+            self.social_type = SocialType.OTHER
+
+        return super().save(*args, **kwargs)

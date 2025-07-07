@@ -2,20 +2,20 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status
 from rest_framework.generics import GenericAPIView
-from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
-from clubs.models import Club, ClubApiKey, ClubMembership, Team, ClubTag
+from clubs.models import Club, ClubApiKey, ClubMembership, ClubTag, Team
 from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
     ClubMembershipSerializer,
-    ClubSerializer,
     ClubPreviewSerializer,
+    ClubSerializer,
+    ClubTagSerializer,
     InviteClubMemberSerializer,
     JoinClubsSerializer,
     TeamSerializer,
-    ClubTagSerializer,
 )
 from clubs.services import ClubService
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
@@ -62,10 +62,12 @@ class ClubViewSet(ModelViewSetBase):
             return qs
 
 
-class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+class ClubPreviewViewSet(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet
+):
     queryset = Club.objects.all()
     serializer_class = ClubPreviewSerializer
-    
+
 
 class ClubTagsView(GenericAPIView):
     """Creates a GET route for fetching available club tags."""

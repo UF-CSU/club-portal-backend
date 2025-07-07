@@ -147,7 +147,7 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
 
     @property
     def is_useragent(self):
-        return False
+        return self.useragent is not None
 
     @property
     def is_onboarded(self) -> bool:

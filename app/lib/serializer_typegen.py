@@ -20,8 +20,8 @@ DRF_FIELD_TO_TS_MAP = {
     serializers.IntegerField: "number",
     serializers.BooleanField: "boolean",
     serializers.CharField: "string",
-    serializers.DateField: "string",
-    serializers.DateTimeField: "string",
+    serializers.DateField: "Date",
+    serializers.DateTimeField: "Date",
     serializers.DecimalField: "number",
     serializers.DurationField: "string",
     serializers.EmailField: "string",
@@ -51,9 +51,9 @@ PYTHON_TYPE_TO_TS_MAP = {
     int: "number",
     UUID: "string",
     Decimal: "number",
-    datetime: "string",
-    date: "string",
-    time: "string",
+    datetime: "Date",
+    date: "Date",
+    time: "Date",
     timedelta: "string",
     IPv4Address: "string",
     IPv6Address: "string",
@@ -71,29 +71,31 @@ FILE_DOC_TPL = """/**
  */
 """
 
+INTERFACE_NAME_TPL = "I%s"
+
 INTERFACE_TPL = """
 /**
  * %(doc)s
  */
-declare interface I%(model)s {
+declare interface %(name)s {
 """
 
 CREATE_INTERFACE_TPL = """
 /**
- * Fields needed to create %(article)s %(model)s object.
+ * Fields needed to create %(article)s %(name)s object.
  *
- * @see {@link I%(model)s}
+ * @see {@link %(name)s}
  */
-declare interface I%(model)sCreate {
+declare interface %(name)sCreate {
 """
 
 UPDATE_INTERFACE_TPL = """
 /**
- * Fields that can be updated for %(article)s %(model)s object.
+ * Fields that can be updated for %(article)s %(name)s object.
  *
- * @see {@link I%(model)s}
+ * @see {@link %(name)s}
  */
-declare interface I%(model)sUpdate {
+declare interface %(name)sUpdate {
 """
 
 FIELD_TPL = TAB + "%(property)s: %(type)s;\n"
@@ -129,6 +131,9 @@ class TypeGenerator:
 
         self.types_file_name = "club-portal.d.ts"
         self.enums_file_name = "club-portal-enums.ts"
+
+        self.serializer_interfaces_map = {}
+        self.other_interfaces = []
 
     @property
     def types_generated(self):
@@ -172,12 +177,17 @@ class TypeGenerator:
         self,
         field: serializers.Field,
         prop_name: str,
+        serializer: SerializerBase,
         is_list=False,
     ):
         """Get TS type for serializer field."""
 
         if isinstance(field, serializers.ChoiceField):
             return self._get_prop_choice_type(prop_name=prop_name, field=field)
+        elif isinstance(field, serializers.SlugRelatedField):
+            return self._get_prop_type_from_model(
+                prop_name, field=field, serializer=serializer, is_list=is_list
+            )
 
         else:
             return self._get_prop_type(
@@ -218,7 +228,14 @@ class TypeGenerator:
             )
         elif isinstance(field, serializers.SlugRelatedField):
             # getattr returns DeferredAttribute, which has a "field" attribute with actual field
-            model_field = getattr(model_field.related_model, field.slug_field).field
+            if hasattr(model_field, "related_model"):
+                model_field = getattr(model_field.related_model, field.slug_field).field
+            elif hasattr(model_field.field, "related_model"):
+                # model_field is a ForwardManyToOneDescriptor
+                model_field = getattr(
+                    model_field.field.related_model, field.slug_field
+                ).field
+
             field_type = self._get_prop_type(
                 model_field, is_list=is_list, using=DJANGO_FIELD_TO_TS_MAP
             )
@@ -271,12 +288,14 @@ class TypeGenerator:
 
     def _props_factory(
         self,
-        all_fields: dict[str | serializers.Field],
+        # all_fields: dict[str | serializers.Field],
+        serializer: SerializerBase,
         ignore_nonnull: bool,
         force_optional: bool,
         indent_level=0,
     ):
         """Create function for generating props."""
+        all_fields = serializer.get_fields()
 
         def gen_prop(
             prop_name, prop_type=None, required=True, readonly=False, **kwargs
@@ -285,7 +304,9 @@ class TypeGenerator:
             kwargs = {
                 "property": prop_name,
                 "prop_type": prop_type
-                or self._get_prop_type_from_field(field, prop_name),
+                or self._get_prop_type_from_field(
+                    field, prop_name, serializer=serializer
+                ),
                 "doc": kwargs.pop("doc", None) or getattr(field, "help_text", None),
                 "indent_level": indent_level,
                 **kwargs,
@@ -337,7 +358,8 @@ class TypeGenerator:
                 ignore_fields += serializer.readonly_fields
 
         gen_prop = self._props_factory(
-            all_fields,
+            # all_fields,
+            serializer=serializer,
             ignore_nonnull=ignore_nonnull,
             indent_level=indent_level,
             force_optional=force_optional,
@@ -412,6 +434,26 @@ class TypeGenerator:
 
             field = all_fields[field_name]
 
+            if isinstance(field, serializers.BaseSerializer) and type(field) in [
+                *self.serializer_classes,
+                *self.readonly_serializer_classes,
+            ]:
+                serializer_field = type(field)
+
+                if field not in self.serializer_interfaces_map.keys():
+                    doc = self._generate_interface(serializer_field, mode="read")
+                    self.other_interfaces.append(doc)
+
+                field_type = self.serializer_interfaces_map[serializer_field]
+                field_prop = gen_prop(
+                    field_name,
+                    prop_type=field_type,
+                    required=(field_name in serializer.required_fields),
+                )
+                properties.append(field_prop)
+
+                continue
+
             nested_properties = self._generate_props(
                 field,
                 mode=mode,
@@ -435,9 +477,30 @@ class TypeGenerator:
             if field_name in ignore_fields:
                 continue
 
-            field = all_fields[field_name]
+            field = all_fields[field_name].child
+
+            if isinstance(field, serializers.BaseSerializer) and type(field) in [
+                *self.serializer_classes,
+                *self.readonly_serializer_classes,
+            ]:
+                serializer_field = type(field)
+
+                if field not in self.serializer_interfaces_map.keys():
+                    doc = self._generate_interface(serializer_field, mode="read")
+                    self.other_interfaces.append(doc)
+
+                field_type = self.serializer_interfaces_map[serializer_field]
+                field_prop = gen_prop(
+                    field_name,
+                    prop_type=field_type + "[]",
+                    required=(field_name in serializer.required_fields),
+                )
+                properties.append(field_prop)
+
+                continue
+
             nested_properties = self._generate_props(
-                field.child,
+                field,
                 mode=mode,
                 indent_level=indent_level + 1,
             )
@@ -496,25 +559,28 @@ class TypeGenerator:
         """Create TS Interface from serializer."""
 
         serializer = serializer_class()
-        interface_name = serializer_class.__name__.replace("Serializer", "")
+        model_name = serializer_class.__name__.replace("Serializer", "")
+        interface_name = INTERFACE_NAME_TPL % (model_name,)
         model_article = self._get_model_article(interface_name)
         idoc = ""
+
+        self.serializer_interfaces_map[serializer_class] = interface_name
 
         match mode:
             case "read":
                 idoc = INTERFACE_TPL % {
                     "doc": serializer.__doc__,
-                    "model": interface_name,
+                    "name": interface_name,
                 }
             case "create":
                 idoc = CREATE_INTERFACE_TPL % {
                     "article": model_article,
-                    "model": interface_name,
+                    "name": interface_name,
                 }
             case "update":
                 idoc = UPDATE_INTERFACE_TPL % {
                     "article": model_article,
-                    "model": interface_name,
+                    "name": interface_name,
                 }
             case _:
                 raise Exception(f"Unknown mode: {mode}")

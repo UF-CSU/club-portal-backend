@@ -6,18 +6,43 @@ from events.models import Event, EventCancellation, EventHost, EventTag
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 
 
-class EventHostNestedSerializer(ModelSerializerBase):
+class EventTagSerializer(ModelSerializerBase):
+    """Group related events."""
+
+    # TODO: This shows as readonly in typegen, shouldn't be readonly
+    id = serializers.PrimaryKeyRelatedField(queryset=EventTag.objects.all())
+
+    class Meta:
+        model = EventTag
+        fields = ["id", "name", "color", "order"]
+        read_only_fields = ["name", "color", "order"]
+
+
+class EventHostSerializer(ModelSerializerBase):
     """JSON representation for hosts inside events."""
+
+    club_id = serializers.PrimaryKeyRelatedField(
+        source="club", queryset=Club.objects.all()
+    )
+    club_name = serializers.SlugRelatedField(
+        source="club", read_only=True, slug_field="name"
+    )
+    club_logo = serializers.ImageField(
+        source="club.logo",
+        read_only=True,
+    )
 
     class Meta:
         model = EventHost
-        fields = ["club", "primary"]
+        fields = ["club_id", "club_name", "club_logo", "is_primary"]
 
 
 class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
-    hosts = EventHostNestedSerializer(many=True)
+    hosts = EventHostSerializer(many=True)
+    all_day = serializers.BooleanField(read_only=True)
+    tags = EventTagSerializer(many=True, required=False)
 
     class Meta:
         model = Event
@@ -26,12 +51,9 @@ class EventSerializer(ModelSerializerBase):
             "name",
             "description",
             "location",
-            "start_date",
-            "end_date",
             "start_at",
             "end_at",
             "tags",
-            "attendance_links",
             "hosts",
             "all_day",
             "created_at",
@@ -39,22 +61,16 @@ class EventSerializer(ModelSerializerBase):
         ]
 
     def create(self, validated_data):
-        hosts_data = validated_data.pop('hosts', [])
-        attendance_links_data = validated_data.pop('attendance_links', [])
+        hosts_data = validated_data.pop("hosts", [])
 
         event = Event.objects.create(**validated_data)
 
         for host in hosts_data:
             EventHost.objects.create(
-                event=event,
-                club=host['club'],
-                primary=host.get('primary', False)
+                event=event, club=host["club"], primary=host.get("primary", False)
             )
 
-        event.attendance_links.set(attendance_links_data)
-
         return event
-        
 
 
 class EventCsvSerializer(CsvModelSerializer):

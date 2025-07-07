@@ -158,7 +158,7 @@ class EventManager(ManagerBase["Event"]):
         event = super().create(name=name, start_at=start_at, end_at=end_at, **kwargs)
 
         if host:
-            event.add_host(host, primary=True)
+            event.add_host(host, is_primary=True)
         if secondary_hosts:
             event.add_hosts(*secondary_hosts)
 
@@ -175,15 +175,21 @@ class Event(EventFields):
 
     scope = Scope.CLUB
 
-    start_date = models.DateField(
-        default=date.today
-    )
-    end_date = models.DateField(
-        null=True, blank=True
-    )
-    
-    start_at = models.DateTimeField(null=True, blank=True)
-    end_at = models.DateTimeField(null=True, blank=True)
+    # start_date = models.DateField(
+    #     default=date.today
+    # )
+    # end_date = models.DateField(
+    #     null=True, blank=True
+    # )
+
+    start_at = models.DateTimeField(default=timezone.now)
+    end_at = models.DateTimeField(default=timezone.now)
+    # start_date = models.DateField()
+    # end_date = models.DateField()
+
+    # start_time = models.TimeField(default=get_default_start_time, blank=True)
+    # end_time = models.TimeField(default=get_default_end_time, blank=True)
+
     recurring_event = models.ForeignKey(
         RecurringEvent,
         on_delete=models.CASCADE,
@@ -234,7 +240,7 @@ class Event(EventFields):
         return super().__str__()
 
     # Methods
-    def add_host(self, club: Club, primary=False, commit=True):
+    def add_host(self, club: Club, is_primary=False, commit=True):
         """
         Add a new club host to an event.
 
@@ -245,9 +251,9 @@ class Event(EventFields):
         host, _ = EventHost.objects.get_or_create(event=self, club=club)
 
         # Only update if the default arg is overwritten
-        if primary is True:
+        if is_primary is True:
             # TODO: Remove current primary host
-            host.primary = True
+            host.is_primary = True
             host.save()
 
         if commit:
@@ -263,19 +269,19 @@ class Event(EventFields):
 
     def save(self, *args, **kwargs):
 
-        if self.end_date is None and self.start_date is not None:
-            self.end_date = self.start_date
+        # if self.end_date is None and self.start_date is not None:
+        #     self.end_date = self.start_date
 
-        if self.start_at is None and self.start_date:
-            start_dt = datetime.combine(self.start_date, time.min)
-            
-            self.start_at = start_dt
-        
-        if self.end_at is None and self.end_date:
-            end_dt = datetime.combine(self.end_date, time.max)
-            
-            self.end_at = end_dt
-        
+        # if self.start_at is None and self.start_date:
+        #     start_dt = datetime.combine(self.start_date, time.min)
+
+        #     self.start_at = start_dt
+
+        # if self.end_at is None and self.end_date:
+        #     end_dt = datetime.combine(self.end_date, time.max)
+
+        #     self.end_at = end_dt
+
         super().save(*args, **kwargs)
 
 
@@ -286,7 +292,7 @@ class EventHost(ModelBase):
     club = models.ForeignKey(
         Club, on_delete=models.CASCADE, related_name="event_hostings"
     )
-    primary = models.BooleanField(
+    is_primary = models.BooleanField(
         default=False,
         blank=True,
         help_text="This is the main club that hosts the event.",
@@ -296,8 +302,8 @@ class EventHost(ModelBase):
         constraints = [
             models.UniqueConstraint(
                 name="one_primary_host_per_event",
-                fields=("event", "primary"),
-                condition=models.Q(primary=True),
+                fields=("event", "is_primary"),
+                condition=models.Q(is_primary=True),
             )
         ]
 
@@ -311,7 +317,11 @@ class EventAttendance(ModelBase):
     """
 
     event = models.ForeignKey(
-        Event, on_delete=models.CASCADE, related_name="user_attendance", blank=True, null=True
+        Event,
+        on_delete=models.CASCADE,
+        related_name="user_attendance",
+        blank=True,
+        null=True,
     )
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="event_attendance"
