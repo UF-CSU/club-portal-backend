@@ -175,20 +175,8 @@ class Event(EventFields):
 
     scope = Scope.CLUB
 
-    # start_date = models.DateField(
-    #     default=date.today
-    # )
-    # end_date = models.DateField(
-    #     null=True, blank=True
-    # )
-
     start_at = models.DateTimeField(default=timezone.now)
     end_at = models.DateTimeField(default=timezone.now)
-    # start_date = models.DateField()
-    # end_date = models.DateField()
-
-    # start_time = models.TimeField(default=get_default_start_time, blank=True)
-    # end_time = models.TimeField(default=get_default_end_time, blank=True)
 
     recurring_event = models.ForeignKey(
         RecurringEvent,
@@ -209,7 +197,7 @@ class Event(EventFields):
     def primary_club(self):
         """Get the primary club hosting the event."""
 
-        host = self.hosts.filter(primary=True)
+        host = self.hosts.filter(is_primary=True)
         if not host.exists():
             return None
 
@@ -266,23 +254,6 @@ class Event(EventFields):
 
         for club in clubs:
             self.add_host(club)
-
-    def save(self, *args, **kwargs):
-
-        # if self.end_date is None and self.start_date is not None:
-        #     self.end_date = self.start_date
-
-        # if self.start_at is None and self.start_date:
-        #     start_dt = datetime.combine(self.start_date, time.min)
-
-        #     self.start_at = start_dt
-
-        # if self.end_at is None and self.end_date:
-        #     end_dt = datetime.combine(self.end_date, time.max)
-
-        #     self.end_at = end_dt
-
-        super().save(*args, **kwargs)
 
 
 class EventHost(ModelBase):

@@ -31,8 +31,6 @@ from utils.permissions import get_permission, parse_permissions
 class ClubTag(Tag):
     """Group clubs together based on topics."""
 
-    pass
-
 
 def get_default_founding_year():
     """Initializes default founding year to current year."""
@@ -559,18 +557,10 @@ class ClubApiKeyManager(ManagerBase["ClubApiKey"]):
         Can either assign initial permissions by perm_labels as ``list[str]``, or
         by permissions as ``list[Permission]``.
         """
-        print("kwargs:", kwargs)
-        # username = f"agent-c{club.id}-" + slugify(name)
-        # user_agent = UserAgent.objects.create(
-        #     username=username, apikey_type=KeyType.CLUB
-        # )
-        print("reached!")
-
         perm_objs = parse_permissions(permissions, fail_silently=False)
 
         key = super().create(
             club=club,
-            # user_agent=user_agent,
             name=name,
             description=description,
             **kwargs,

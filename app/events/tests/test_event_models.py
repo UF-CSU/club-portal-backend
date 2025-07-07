@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.utils import timezone
 
 from analytics.models import Link
 from clubs.tests.utils import create_test_club, create_test_clubs
@@ -17,7 +18,11 @@ class ClubEventTests(TestsBase):
         clubs = create_test_clubs(5)
 
         event = Event.objects.create(
-            name="Test event", host=primary_club, secondary_hosts=clubs
+            name="Test event",
+            host=primary_club,
+            secondary_hosts=clubs,
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
         )
 
         self.assertEqual(event.clubs.count(), 6)
@@ -28,7 +33,12 @@ class ClubEventTests(TestsBase):
         self.assertEqual(Link.objects.count(), 0)
 
         club = create_test_club()
-        event = Event.objects.create(host=club, name="Test Event")
+        event = Event.objects.create(
+            host=club,
+            name="Test Event",
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
+        )
 
         self.assertEqual(event.attendance_links.count(), 1)
         self.assertEqual(Link.objects.count(), 1)

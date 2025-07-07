@@ -422,4 +422,4 @@ class ClubsApiPermsTests(PublicApiTestsBase):
 
         # Accepted, has permission
         res = self.client.get(url)
-        self.assertResForbidden(res)
+        self.assertResOk(res)

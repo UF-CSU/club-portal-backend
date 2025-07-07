@@ -1,4 +1,5 @@
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 
 from core.abstracts.tests import ViewTestsBase
@@ -30,7 +31,11 @@ class EventViewTests(ViewTestsBase):
         self.client.force_login(user)
 
         # Create event and url
-        event = Event.objects.create(name=fake.title(3))
+        event = Event.objects.create(
+            name=fake.title(3),
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
+        )
         url = event_attendance_url(event_id=event.id)
         redirect_url = event_attendance_done_url(event_id=event.id)
 
