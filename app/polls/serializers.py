@@ -4,12 +4,12 @@ Convert poll models to json objects.
 
 from rest_framework import serializers
 
-from polls import models
 from core.abstracts.serializers import (
     ModelSerializer,
     ModelSerializerBase,
     StringListField,
 )
+from polls import models
 
 
 class TextInputNestedSerializer(ModelSerializerBase):

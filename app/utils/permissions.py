@@ -13,11 +13,7 @@ def get_permission(perm_label: str, obj=None, fail_silently=True):
 
     app_label, codename = perm_label.split(".")
     try:
-        if obj is None:
-            content_types = ContentType.objects.filter(app_label=app_label)
-        else:
-            content_types = [ContentType.objects.get_for_model(obj)]
-
+        content_types = ContentType.objects.filter(app_label=app_label)
         permission = Permission.objects.get(
             content_type__in=content_types, codename=codename
         )

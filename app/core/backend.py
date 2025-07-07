@@ -63,8 +63,8 @@ class CustomBackend(ModelBackend):
                 obj, "club"
             ), 'Club scoped objects must have a "club" attribute.'
 
-            if user_obj.is_useragent and user_obj.apikey_type == "club":
-                key = user_obj.club_apikey
+            if user_obj.is_useragent and user_obj.useragent.apikey_type == "club":
+                key = user_obj.useragent.club_apikey
 
                 # Auto return false if not correct club
                 if not key.club.id == obj.club.id:

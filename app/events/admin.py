@@ -91,8 +91,6 @@ class EventAdmin(ModelAdminBase):
         "__str__",
         "id",
         "location",
-        "start_at",
-        "end_at",
     )
     ordering = ("start_at",)
 
