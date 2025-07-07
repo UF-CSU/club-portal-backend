@@ -83,6 +83,8 @@ class ClubSerializer(ModelSerializerBase):
     # teams = ClubTeamNestedSerializer(many=True, read_only=True)
 
     member_count = serializers.IntegerField(read_only=True)
+    socials_data = serializers.JSONField(write_only=True, required=False)
+    tags_data = serializers.JSONField(write_only=True, required=False)
 
     class Meta:
         model = Club
@@ -100,7 +102,23 @@ class ClubSerializer(ModelSerializerBase):
             "socials",
             "photos",
             "alias",
+            "socials_data",
+            "tags_data"
         ]
+
+    def update(self, instance, validated_data):
+        """Update and return club"""
+        socials_data = validated_data.pop("socials_data", None)
+        tags_data = validated_data.pop("tags_data", None)
+        club = super().update(instance, validated_data)
+        if socials_data:
+            club.socials.all().delete()
+            for social_data in socials_data:
+                club.socials.create(**social_data)
+        if tags_data:
+            tag_objects = ClubTag.objects.filter(name__in=tags_data)
+            club.tags.set(tag_objects)
+        return club
 
 
 class ClubPreviewSerializer(ModelSerializerBase):

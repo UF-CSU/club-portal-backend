@@ -76,7 +76,7 @@ class ClubTagsView(GenericAPIView):
     authentication_classes = ViewSetBase.authentication_classes
     permission_classes = ViewSetBase.permission_classes
 
-    def get(self):
+    def get(self, request):
         tags = ClubTag.objects.all().order_by("order", "name")
         serializer = self.serializer_class(tags, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
