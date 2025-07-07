@@ -1,6 +1,6 @@
-from polls.models import Poll, PollField, PollInputType, PollQuestion, TextInput
 from core.abstracts.tests import TestsBase
 from lib.faker import fake
+from polls.models import Poll, PollField, PollInputType, PollQuestion, TextInput
 
 
 class PollModelTests(TestsBase):

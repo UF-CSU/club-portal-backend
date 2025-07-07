@@ -3,11 +3,12 @@ Club models.
 """
 
 # from datetime import datetime, timedelta
+
 from typing import ClassVar, Optional, Union
 
 from django.contrib.auth.models import Permission
 from django.core import exceptions
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.text import slugify
@@ -29,8 +30,6 @@ from utils.permissions import get_permission, parse_permissions
 
 class ClubTag(Tag):
     """Group clubs together based on topics."""
-
-    pass
 
 
 def get_default_founding_year():
@@ -69,6 +68,15 @@ class Club(UniqueModel):
     contact_email = models.EmailField(null=True, blank=True)
 
     tags = models.ManyToManyField(ClubTag, blank=True)
+    gatorconnect_url = models.URLField(
+        null=True,
+        blank=True,
+        validators=[
+            RegexValidator(
+                r"^https:\/\/orgs\.studentinvolvement\.ufl\.edu\/Organization\/"
+            )
+        ],
+    )
 
     # Relationships
     memberships: models.QuerySet["ClubMembership"]
@@ -84,8 +92,8 @@ class Club(UniqueModel):
         return self
 
     @property
-    def member_count(self):
-        return self.memberships.count
+    def member_count(self) -> int:
+        return self.memberships.count()
 
     class Meta:
         permissions = [("preview_club", "Can view a set of limited fields for a club.")]
@@ -123,6 +131,14 @@ class ClubSocialProfile(SocialProfileBase):
     """Saves social media profile info for clubs."""
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="socials")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_social_urls_per_club",
+                fields=["club", "social_type", "url"],
+            )
+        ]
 
 
 class ClubRoleManager(ManagerBase["ClubRole"]):
@@ -244,6 +260,10 @@ class ClubMembership(ModelBase):
 
     # Foreign Relationships
     # teams: models.QuerySet["Team"]
+
+    @property
+    def team_memberships(self):
+        return self.user.team_memberships.filter(team__club__id=self.club.id)
 
     # Overrides
     objects: ClassVar[ClubMembershipManager] = ClubMembershipManager()
@@ -379,6 +399,9 @@ class TeamRole(ModelBase):
         help_text="New members would be automatically assigned this role.",
     )
     permissions = models.ManyToManyField(Permission, blank=True)
+    order = models.PositiveIntegerField(
+        default=0, help_text="Used to determine the list ordering of a team member"
+    )
 
     # Overrides
     objects: ClassVar[TeamRoleManager] = TeamRoleManager()
@@ -464,6 +487,23 @@ class TeamMembership(ModelBase):
         User, on_delete=models.CASCADE, related_name="team_memberships"
     )
     roles = models.ManyToManyField(TeamRole, blank=True)
+    order_override = models.PositiveIntegerField(null=True, blank=True)
+
+    # Custom properties
+    @property
+    def order(self) -> int:
+        if self.order_override:
+            return self.order_override
+
+        roles = self.roles.order_by("order")
+        if not roles.exists():
+            return 0
+
+        return roles.first().order
+
+    @order.setter
+    def order(self, value: int):
+        self.order_override = value
 
     # Overrides
     objects: ClassVar["TeamMembershipManager"] = TeamMembershipManager()
@@ -517,16 +557,10 @@ class ClubApiKeyManager(ManagerBase["ClubApiKey"]):
         Can either assign initial permissions by perm_labels as ``list[str]``, or
         by permissions as ``list[Permission]``.
         """
-        username = f"agent-c{club.id}-" + slugify(name)
-        user_agent = UserAgent.objects.create(
-            username=username, apikey_type=KeyType.CLUB
-        )
-
         perm_objs = parse_permissions(permissions, fail_silently=False)
 
         key = super().create(
             club=club,
-            user_agent=user_agent,
             name=name,
             description=description,
             **kwargs,
@@ -547,7 +581,7 @@ class ClubApiKey(ModelBase):
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE)
     user_agent = models.OneToOneField(
-        UserAgent, on_delete=models.PROTECT, related_name="club_apikey"
+        UserAgent, on_delete=models.PROTECT, related_name="club_apikey", blank=True
     )
 
     name = models.CharField(max_length=32)
@@ -567,11 +601,20 @@ class ClubApiKey(ModelBase):
 
     # Overrides
     class Meta:
+        verbose_name = "Api Key"
         constraints = [
             models.UniqueConstraint(
                 name="unique_apikey_name_per_club", fields=("name", "club")
             )
         ]
+
+    def save(self, *args, **kwargs):
+        if self.user_agent_id is None:
+            username = f"agent-c{self.club.id}-" + slugify(self.name)
+            self.user_agent = UserAgent.objects.create(
+                username=username, apikey_type=KeyType.CLUB
+            )
+        return super().save(*args, **kwargs)
 
     def delete(self, using=None, keep_parents=None):
         """Delete self and clean up related models."""

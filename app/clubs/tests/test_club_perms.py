@@ -84,17 +84,17 @@ class ClubScopedPermsTests(TestsBase):
         """Event permissions should be scoped to a club."""
 
         event1 = create_test_event(host=self.club1)
-        self.assertTrue(self.user.has_perm("clubs.view_event", event1))
-        self.assertFalse(self.user.has_perm("clubs.change_event", event1))
+        self.assertTrue(self.user.has_perm("events.view_event", event1))
+        self.assertFalse(self.user.has_perm("events.change_event", event1))
 
         # Check officer's permissions
         self.service1.set_member_role(self.user, "Officer")
-        self.assertTrue(self.user.has_perm("clubs.change_event", event1))
+        self.assertTrue(self.user.has_perm("events.change_event", event1))
 
         # Test access to other club's events
         event2 = create_test_event(host=self.club2)
-        self.assertFalse(self.user.has_perm("clubs.view_event", event2))
-        self.assertFalse(self.user.has_perm("clubs.change_event", event2))
+        self.assertFalse(self.user.has_perm("events.view_event", event2))
+        self.assertFalse(self.user.has_perm("events.change_event", event2))
 
     def test_club_team_perms(self):
         """Team permissions should be scoped to a club."""

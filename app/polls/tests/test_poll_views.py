@@ -1,5 +1,7 @@
 from django.urls import reverse
 
+from core.abstracts.tests import AuthViewsTestsBase
+from lib.faker import fake
 from polls.models import (
     ChoiceInput,
     Poll,
@@ -10,8 +12,6 @@ from polls.models import (
     TextInput,
     UploadInput,
 )
-from core.abstracts.tests import AuthViewsTestsBase
-from lib.faker import fake
 
 POLLS_URL = reverse("api-clubpolls:polls-list")
 
