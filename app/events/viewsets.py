@@ -15,6 +15,11 @@ class EventViewset(ModelViewSetBase):
 
     def get_queryset(self):
 
+        all_param = self.request.query_params.get('all')
+
+        if all_param is not None and all_param.lower() in ['true']:
+            return self.queryset
+
         user_clubs = list(self.request.user.clubs.values_list("id", flat=True))
         return self.queryset.filter(clubs__id__in=user_clubs).distinct()
 

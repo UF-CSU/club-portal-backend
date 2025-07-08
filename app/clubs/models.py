@@ -59,6 +59,7 @@ class Club(UniqueModel):
     name = models.CharField(max_length=64, unique=True)
     logo = models.ImageField(upload_to=get_logo_filepath, blank=True, null=True)
     banner = models.ImageField(upload_to=get_banner_filepath, blank=True, null=True)
+    color = models.CharField(max_length=6, default="0F44CD")
 
     alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     about = models.TextField(blank=True, null=True)

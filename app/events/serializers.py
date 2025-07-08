@@ -6,6 +6,13 @@ from events.models import Event, EventCancellation, EventHost, EventTag
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 
 
+class EventTagSerializer(ModelSerializerBase):
+    """Represents a tag event for all clubs"""
+
+    class Meta:
+        fields = '__all__'
+
+
 class EventHostNestedSerializer(ModelSerializerBase):
     """JSON representation for hosts inside events."""
 
@@ -26,6 +33,7 @@ class EventSerializer(ModelSerializerBase):
             "name",
             "description",
             "location",
+            "color",
             "start_date",
             "end_date",
             "start_at",

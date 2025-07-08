@@ -8,9 +8,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.timezone import now
+from events.serializers import EventTagSerializer
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from clubs.models import Club
-from events.models import Event, EventCancellation
+from events.models import Event, EventCancellation, EventTag
 from events.services import EventService
 
 
@@ -52,3 +55,13 @@ def cancel_event(request: HttpRequest, event_id: int):
     EventCancellation.objects.create(
         event=event, reason=reason, cancelled_by=request.user, cancelled_at=now()
     )
+
+@api_view(['GET'])
+@login_required()
+def get_event_tags(request):
+
+    event_tags = EventTag.objects.all()
+    print(event_tags)
+    serializer = EventTagSerializer(event_tags, many=True)
+
+    return Response(serializer.data)
