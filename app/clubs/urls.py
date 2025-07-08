@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import path
 
 from . import views
 
@@ -9,6 +9,6 @@ urlpatterns = [
     path("links/<int:link_id>/", views.club_home_view, name="link"),
     path("club/<int:club_id>/", views.club_home_view, name="home"),
     path("club/<int:club_id>/join/", views.join_club_view, name="join"),
-    path("polls/", include("clubs.polls.urls")),
+    # path("polls/", include("clubs.polls.urls")),
     # path("accept-invite/<int:user_id>/", views.accept_invite, name="accept_invite"),
 ]

@@ -17,7 +17,7 @@ xlsxwriter>=3.2.0,<3.3
 pathlib>=1.0.1,<1.1
 
 # OAuth
-django-allauth>=65.4.1,<65.5
+django-allauth>=65.9.0,<65.10
 PyJWT>=2.10.1,<2.11
 requests-oauthlib>=2.0.0,<2.1
 python3-openid>=3.2.0,<3.3

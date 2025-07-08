@@ -9,7 +9,7 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 from clubs.models import ClubMembership
 from core.abstracts.admin import ModelAdminBase
-from users.models import Profile, SocialProfile, User
+from users.models import Profile, SocialProfile, User, VerifiedEmail
 from users.serializers import UserCsvSerializer
 from users.services import UserService
 
@@ -65,6 +65,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         *BaseUserAdmin.readonly_fields,
         "date_joined",
         "profile_image",
+        "is_onboarded",
     )
     actions = ("send_account_setup_link",)
 
@@ -112,3 +113,4 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
 
 admin.site.register(User, UserAdmin)
+admin.site.register(VerifiedEmail)

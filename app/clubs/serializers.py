@@ -21,7 +21,7 @@ from core.abstracts.serializers import (
     SerializerBase,
 )
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from users.models import User
+from users.models import SocialProfile, User
 from users.services import UserService
 
 
@@ -55,10 +55,10 @@ class ClubPhotoNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = ClubPhoto
-        fields = [*ModelSerializerBase.default_fields, "id", "photo", "order"]
+        fields = ["id", "photo", "order"]
 
 
-class ClubSocialNestedSerializer(ModelSerializerBase):
+class ClubSocialSerializer(ModelSerializerBase):
     """Represents social profiles for clubs."""
 
     class Meta:
@@ -66,16 +66,25 @@ class ClubSocialNestedSerializer(ModelSerializerBase):
         fields = ["id", "url", "username", "social_type", "order"]
 
 
+class ClubTagSerializer(ModelSerializerBase):
+    """Represents tags for clubs."""
+
+    class Meta:
+        model = ClubTag
+        fields = ["id", "name", "color", "order"]
+
+
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
-    members = ClubMemberNestedSerializer(
-        many=True, read_only=True, help_text="List of club members"
-    )
     photos = ClubPhotoNestedSerializer(many=True, read_only=True)
-    socials = ClubSocialNestedSerializer(many=True, read_only=True)
-    # tags = ClubTagNestedSerializer(many=True, read_only=True)
+    socials = ClubSocialSerializer(many=True, read_only=True)
+    tags = ClubTagSerializer(many=True, read_only=True)
     # teams = ClubTeamNestedSerializer(many=True, read_only=True)
+
+    member_count = serializers.IntegerField(read_only=True)
+    socials_data = serializers.JSONField(write_only=True, required=False)
+    tags_data = serializers.JSONField(write_only=True, required=False)
 
     class Meta:
         model = Club
@@ -88,17 +97,36 @@ class ClubSerializer(ModelSerializerBase):
             "about",
             "founding_year",
             "contact_email",
-            # "tags",
-            "members",
+            "tags",
+            "member_count",
             # "teams",
             "socials",
             "photos",
             "alias",
+            "socials_data",
+            "tags_data"
         ]
+
+    def update(self, instance, validated_data):
+        """Update and return club"""
+        socials_data = validated_data.pop("socials_data", None)
+        tags_data = validated_data.pop("tags_data", None)
+        club = super().update(instance, validated_data)
+        if socials_data:
+            club.socials.all().delete()
+            for social_data in socials_data:
+                club.socials.create(**social_data)
+        if tags_data:
+            tag_objects = ClubTag.objects.filter(name__in=tags_data)
+            club.tags.set(tag_objects)
+        return club
 
 
 class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
+
+    tags = ClubTagSerializer(many=True, read_only=True)
+    socials = ClubSocialSerializer(many=True, read_only=True)
 
     class Meta:
         model = Club
@@ -109,7 +137,21 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "banner",
             "about",
             "founding_year",
+            "tags",
+            "member_count",
+            "alias",
+            "gatorconnect_url",
+            "socials",
         ]
+
+
+class ClubUserSocialsSerializer(ModelSerializerBase):
+    """Show socials for a club member."""
+
+    class Meta:
+        model = SocialProfile
+        fields = ["id", "social_type", "url"]
+        read_only_fields = ["social_type", "url"]
 
 
 class ClubMemberUserNestedSerializer(ModelSerializerBase):
@@ -127,6 +169,8 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
         write_only=True,
         help_text="A new user will click a link in their email that will redirect to this url.",
     )
+    image = serializers.ImageField(source="profile.image", required=False)
+    socials = ClubUserSocialsSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
@@ -137,6 +181,8 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
             "name",
             "send_account_email",
             "account_setup_url",
+            "image",
+            "socials",
         ]
         read_only_fields = ["id", "username", "name"]
 
@@ -221,22 +267,17 @@ class ClubMembershipSerializer(ModelSerializerBase):
 class UserNestedSerializer(ModelSerializerBase):
     """Display a user within memberships."""
 
-    id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all()
-    )  # TODO: Restrict users to club members only
+    id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    image = serializers.ImageField(source="profile.image", required=False)
+    socials = ClubUserSocialsSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
-        fields = [
-            "id",
-            "username",
-            "email",
-            "name",
-        ]
-        read_only_fields = ["username", "email", "name"]
+        fields = ["id", "username", "email", "name", "image", "socials"]
+        read_only_fields = ["username", "email", "name", "socials"]
 
 
-class TeamMemberNestedSerializer(ModelSerializerBase):
+class TeamMembershipSerializer(ModelSerializerBase):
     """List members of a specific team."""
 
     user = UserNestedSerializer()
@@ -245,18 +286,20 @@ class TeamMemberNestedSerializer(ModelSerializerBase):
         many=True,
         queryset=TeamRole.objects.all(),  # TODO: Restrict roles to team only
     )
+    order = serializers.IntegerField(required=False)
 
     class Meta:
         model = TeamMembership
         exclude = [
             "team",
+            "order_override",
         ]
 
 
 class TeamSerializer(ModelSerializerBase):
     """Represents a sub group of users within a club."""
 
-    memberships = TeamMemberNestedSerializer(many=True, required=False)
+    memberships = TeamMembershipSerializer(many=True, required=False)
 
     class Meta:
         model = Team
@@ -307,7 +350,7 @@ class JoinClubsSerializer(SerializerBase):
 ##############################################################
 
 
-class ClubSocialNestedCsvSerializer(CsvModelSerializer, ClubSocialNestedSerializer):
+class ClubSocialNestedCsvSerializer(CsvModelSerializer, ClubSocialSerializer):
     """Represents a club's social accounts in a csv."""
 
 

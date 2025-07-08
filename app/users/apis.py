@@ -25,14 +25,6 @@ urlpatterns = [
         name="login",
     ),
     path("me/", viewsets.ManageUserView.as_view(), name="me"),
-    # TODO: Configure security around creating users
-    # path(
-    #     "users/",
-    #     include(
-    #         [
-    #             path("create/", viewsets.CreateUserView.as_view(), name="create"),
-    #         ]
-    #     ),
-    # ),
     path("oauth-directory/", viewsets.OauthDirectoryView.as_view()),
+    path("me/providers/", viewsets.SocialProviderViewSet.as_view({"get": "list"})),
 ]
