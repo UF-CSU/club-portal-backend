@@ -4,16 +4,18 @@ Unit tests focused around REST APIs for the Clubs Service.
 
 from typing import Optional
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from clubs.models import ClubApiKey, ClubRole
+from clubs.models import ClubApiKey, ClubFile, ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import create_test_club, create_test_clubs
 from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
 from lib.faker import fake
 from users.models import User
 from users.tests.utils import create_test_user
+from utils.testing import create_test_image
 
 
 def club_invite_url(club_id: int):
@@ -38,6 +40,10 @@ CLUBS_JOIN_URL = reverse("api-clubs:join")
 
 def club_list_url_member():
     return reverse("api-clubs:club-list")
+
+
+def club_file_list_url(club_id: int):
+    return reverse("api-clubs:file-list", args=[club_id])
 
 
 class ClubsApiPublicTests(PublicApiTestsBase):
@@ -283,6 +289,40 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
 
         for id in payload["clubs"]:
             self.assertTrue(self.user.club_memberships.filter(club__id=id).exists())
+
+    def test_upload_media(self):
+        """User should be able to upload new media for a club."""
+
+        club = create_test_club()
+        file_path = create_test_image()
+        file_binary = open(file_path, mode="rb").read()
+
+        # Test uploading
+        payload = {
+            "file": SimpleUploadedFile(
+                "test_image.jpg", file_binary, content_type="image/jpeg"
+            )
+        }
+        url = club_file_list_url(club.id)
+        res = self.client.post(url, payload, format="multipart")
+        self.assertResCreated(res)
+
+        data = res.json()
+        self.assertStartsWith(data["file"], "http://")
+        self.assertEqual(ClubFile.objects.count(), 1)
+
+        club_file = ClubFile.objects.first()
+        dir_path = "/".join(club_file.file.path.split("/")[0:-1])
+        self.assertIn(str(club.id), dir_path)
+
+        # Test viewing
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+
+        self.assertIsInstance(data, list)
+        self.assertLength(data, 1)
 
 
 class ClubsApiPermsTests(PublicApiTestsBase):

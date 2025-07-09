@@ -92,20 +92,20 @@ class QrSerializer(serializers.ModelSerializer):
             "width",
         ]
 
-    def get_url(self, obj):
+    def get_url(self, obj) -> str:
         # Assumes QRCode.url property returns the tracking URL
         try:
             return obj.url
         except Exception:
             return None
 
-    def get_width(self, obj):
+    def get_width(self, obj) -> int:
         try:
             return obj.width
         except Exception:
             return None
 
-    def get_size(self, obj):
+    def get_size(self, obj) -> str:
         try:
             return obj.size
         except Exception:

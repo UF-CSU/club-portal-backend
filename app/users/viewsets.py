@@ -129,6 +129,7 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
     """Display social account providers for a user."""
 
     serializer_class = SocialProviderSerializer
+    queryset = SocialAccount.objects.none()
 
     def get_queryset(self):
         return SocialAccount.objects.filter(user=self.request.user)
