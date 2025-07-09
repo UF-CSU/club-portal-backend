@@ -11,6 +11,7 @@ from polls.models import (
     RangeInput,
     TextInput,
     UploadInput,
+    NumberInput
 )
 
 POLLS_URL = reverse("api-clubpolls:polls-list")
@@ -77,7 +78,7 @@ class PollViewAuthTests(AuthViewsTestsBase):
                         "input_type": "choice",
                         "choice_input": {
                             "multiple": False,
-                            "single_choice_type": "radio",
+                            "single_choice_type": "select",
                             "options": [
                                 {
                                     "order": 0,
@@ -94,6 +95,30 @@ class PollViewAuthTests(AuthViewsTestsBase):
                 },
                 {
                     "order": 4,
+                    "field_type": "question",
+                    "question": {
+                        "label": "Example single choice question?",
+                        "description": fake.paragraph(),
+                        "input_type": "choice",
+                        "choice_input": {
+                            "multiple": False,
+                            "single_choice_type": "radio",
+                            "options": [
+                                {
+                                    "order": 0,
+                                    "label": "Option 1",
+                                },
+                                {
+                                    "order": 1,
+                                    "label": "Option 2",
+                                    "value": "option2",
+                                },
+                            ],
+                        },
+                    },
+                },
+                {
+                    "order": 5,
                     "field_type": "question",
                     "question": {
                         "label": "Example choice question?",
@@ -117,7 +142,31 @@ class PollViewAuthTests(AuthViewsTestsBase):
                     },
                 },
                 {
-                    "order": 5,
+                    "order": 6,
+                    "field_type": "question",
+                    "question": {
+                        "label": "Example choice question?",
+                        "description": fake.paragraph(),
+                        "input_type": "choice",
+                        "choice_input": {
+                            "multiple": True,
+                            "multiple_choice_type": "select",
+                            "options": [
+                                {
+                                    "order": 0,
+                                    "label": "Option 1",
+                                },
+                                {
+                                    "order": 1,
+                                    "label": "Option 2",
+                                    "value": "option2",
+                                },
+                            ],
+                        },
+                    },
+                },
+                {
+                    "order": 7,
                     "field_type": "question",
                     "question": {
                         "label": "Example range question?",
@@ -131,7 +180,7 @@ class PollViewAuthTests(AuthViewsTestsBase):
                     },
                 },
                 {
-                    "order": 6,
+                    "order": 8,
                     "field_type": "question",
                     "question": {
                         "label": "Example upload question?",
@@ -144,14 +193,28 @@ class PollViewAuthTests(AuthViewsTestsBase):
                     },
                 },
                 {
-                    "order": 7,
+                    "order": 9,
                     "field_type": "page_break",
                 },
                 {
-                    "order": 8,
+                    "order": 10,
                     "field_type": "markup",
                     "markup": {
                         "content": "# Hello World",
+                    },
+                },
+                {
+                    "order": 11,
+                    "field_type": "question",
+                    "question": {
+                        "label": "Example number question?",
+                        "description": fake.paragraph(),
+                        "input_type": "number",
+                        "number_input": {
+                            "min_value": 1,
+                            "max_value": 5,
+                            "decimal_places": 3,
+                        },
                     },
                 },
             ],
@@ -165,9 +228,54 @@ class PollViewAuthTests(AuthViewsTestsBase):
 
         self.assertEqual(Poll.objects.count(), 1)
         self.assertEqual(PollField.objects.count(), len(payload["fields"]))
-        self.assertEqual(PollQuestion.objects.count(), 7)
+        self.assertEqual(PollQuestion.objects.count(), 10)
         self.assertEqual(TextInput.objects.count(), 3)
-        self.assertEqual(ChoiceInput.objects.count(), 2)
+        self.assertEqual(ChoiceInput.objects.count(), 4)
         self.assertEqual(RangeInput.objects.count(), 1)
         self.assertEqual(UploadInput.objects.count(), 1)
         self.assertEqual(PollMarkup.objects.count(), 1)
+        self.assertEqual(NumberInput.objects.count(), 1)
+
+    def test_update_poll(self):
+        """Should update poll via api."""
+
+        poll = Poll.objects.create(
+            name=fake.title(),
+            description=fake.paragraph(),
+        )
+
+        self.assertEqual(Poll.objects.count(), 1)
+
+        payload = {
+            "name": "Blake's Poll",
+            "description": "This is a description for Blake's Poll.",
+        }
+
+        url = POLLS_URL + f"{poll.id}/"
+
+        res = self.client.patch(url, data=payload, format="json")
+        self.assertEqual(res.status_code, 200, res.content)
+
+        poll.refresh_from_db()
+        self.assertEqual(poll.name, payload["name"])
+        self.assertEqual(poll.description, payload["description"])
+        
+    def test_delete_poll(self):
+        """Should delete poll via api."""
+
+        poll = Poll.objects.create(
+            name=fake.title(),
+            description=fake.paragraph(),
+        )
+
+        self.assertEqual(Poll.objects.count(), 1)
+
+        url = POLLS_URL + f"{poll.id}/"
+
+        res = self.client.delete(url)
+        self.assertEqual(res.status_code, 204, res.content)
+
+        self.assertEqual(Poll.objects.count(), 0)
+        
+    def test_list_polls(self):
+        """Should list all polls via api."""

@@ -20,6 +20,8 @@ Poll
 -- -- -- Choice Input (single, multiple)
 -- -- -- Range Input
 -- -- -- Upload Input
+-- -- -- Number Input
+
 """
 
 from typing import ClassVar, Optional
@@ -40,6 +42,7 @@ class PollInputType(models.TextChoices):
     CHOICE = "choice"
     RANGE = "range"
     UPLOAD = "upload"
+    NUMBER = "number"
 
 
 class PollFieldType(models.TextChoices):
@@ -70,7 +73,6 @@ class PollMultiChoiceType(models.TextChoices):
 
     SELECT = "select", _("Multi Select Box")
     CHECKBOX = "checkbox", _("Multi Checkbox Select")
-
 
 class PollManager(ManagerBase["Poll"]):
     """Manage queries for polls."""
@@ -170,6 +172,8 @@ class PollQuestionManager(ManagerBase["PollQuestion"]):
                 RangeInput.objects.create(question=question)
             case PollInputType.UPLOAD:
                 UploadInput.objects.create(question=question)
+            case PollInputType.NUMBER:
+                NumberInput.objects.create(question=question)
 
         return question
 
@@ -217,6 +221,8 @@ class PollQuestion(ModelBase):
                 return self.range_input
             case PollInputType.UPLOAD:
                 return self.upload_input
+            case PollInputType.NUMBER:
+                return self.number_input
 
         return None
 
@@ -255,6 +261,13 @@ class PollQuestion(ModelBase):
             return None
 
         return self._upload_input
+    
+    @property
+    def number_input(self) -> Optional["NumberInput"]:
+        if not hasattr(self, "_number_input"):
+            return None
+
+        return self._number_input
 
     # Overrides
     objects: ClassVar[PollQuestionManager] = PollQuestionManager()
@@ -398,10 +411,14 @@ class RangeInput(ModelBase):
     )
 
     min_value = models.IntegerField(default=0)
-    max_value = models.IntegerField(default=100)
+    max_value = models.IntegerField(default=10)
+    
+    min_value_label = models.CharField(max_length=32, null=True, blank=True)
+    max_value_label = models.CharField(max_length=32, null=True, blank=True)
+    
     step = models.IntegerField(default=1)
     initial_value = models.IntegerField(default=0)
-    unit = models.CharField(max_length=10, null=True, blank=True)
+    unit = models.CharField(max_length=16, null=True, blank=True)
 
     @property
     def widget(self):
@@ -423,6 +440,25 @@ class UploadInput(ModelBase):
     def widget(self):
         return "File Upload"
 
+class NumberInput(ModelBase):
+    """Number input, for numeric responses."""
+
+    question = models.OneToOneField(
+        PollQuestion, on_delete=models.CASCADE, related_name="_number_input"
+    )
+
+    min_value = models.FloatField(default=0.0)
+    max_value = models.FloatField(default=10.0)
+   
+    unit = models.CharField(max_length=16, null=True, blank=True)
+        
+    decimal_places = models.PositiveIntegerField(
+        default=1, validators=[MinValueValidator(0)]
+    )
+
+    @property
+    def widget(self):
+        return "Number Input"
 
 class PollSubmission(ModelBase):
     """Records a person's input for a poll."""
