@@ -41,7 +41,7 @@ class Link(ModelBase):
 
     # Dynamic Properties
     @property
-    def url_path(self):
+    def url_path(self) -> str:
         # Extended models use link_id
         return reverse("redirect-link", kwargs={"link_id": self.id or self.link_id})
 
@@ -143,16 +143,16 @@ class QRCode(ModelBase):
 
     # Dynamic Properties
     @property
-    def url(self):
+    def url(self) -> str:
         return self.link.tracking_url
 
     @property
-    def width(self):
+    def width(self) -> int:
         if self.image:
             return self.image.width
 
     @property
-    def size(self):
+    def size(self) -> str:
         if self.image:
             return format_bytes(self.image.size)
 

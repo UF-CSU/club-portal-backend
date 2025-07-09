@@ -4,6 +4,7 @@ from rest_framework.fields import empty
 from clubs.models import (
     Club,
     ClubApiKey,
+    ClubFile,
     ClubMembership,
     ClubPhoto,
     ClubRole,
@@ -50,12 +51,54 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
         ]
 
 
+class ClubFileSerializer(ModelSerializerBase):
+    """Represents a file that was uploaded to a club's media library."""
+
+    file = serializers.FileField(
+        help_text="Full url to file, upload multipart form file data to create/update",
+    )
+
+    class Meta:
+        model = ClubFile
+        fields = [
+            "id",
+            "club",
+            "display_name",
+            "file",
+            "size",
+            "uploaded_by",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "club",
+            "uploaded_by",
+            "size",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ClubFileNestedSerializer(ModelSerializerBase):
+    """Display minimal info about a file."""
+
+    id = serializers.IntegerField()
+
+    class Meta:
+        model = ClubFile
+        fields = ["id", "display_name", "url", "size"]
+        read_only_fields = ["display_name", "url", "size"]
+
+
 class ClubPhotoNestedSerializer(ModelSerializerBase):
     """Represents photos for clubs."""
 
+    file = ClubFileNestedSerializer()
+
     class Meta:
         model = ClubPhoto
-        fields = ["id", "photo", "order"]
+        fields = ["id", "file", "order"]
 
 
 class ClubSocialSerializer(ModelSerializerBase):
@@ -77,10 +120,9 @@ class ClubTagSerializer(ModelSerializerBase):
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
-    photos = ClubPhotoNestedSerializer(many=True, read_only=True)
+    photos = ClubPhotoNestedSerializer(many=True, required=False)
     socials = ClubSocialSerializer(many=True, read_only=True)
     tags = ClubTagSerializer(many=True, read_only=True)
-    # teams = ClubTeamNestedSerializer(many=True, read_only=True)
 
     member_count = serializers.IntegerField(read_only=True)
     socials_data = serializers.JSONField(write_only=True, required=False)
@@ -103,13 +145,17 @@ class ClubSerializer(ModelSerializerBase):
             "photos",
             "alias",
             "socials_data",
-            "tags_data"
+            "tags_data",
         ]
 
     def update(self, instance, validated_data):
         """Update and return club"""
         socials_data = validated_data.pop("socials_data", None)
         tags_data = validated_data.pop("tags_data", None)
+        photos = validated_data.pop("photos", None)
+
+        print("photos:", photos)
+
         club = super().update(instance, validated_data)
         if socials_data:
             club.socials.all().delete()

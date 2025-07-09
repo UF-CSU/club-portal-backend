@@ -23,8 +23,10 @@ from core.abstracts.models import (
     UniqueModel,
 )
 from users.models import KeyType, User, UserAgent
-from utils.helpers import get_import_path
-from utils.models import UploadFilepathFactory
+from utils.files import get_file_path
+from utils.formatting import format_bytes
+from utils.helpers import get_full_url, get_import_path
+from utils.models import UploadFilepathFactory, UploadNestedClubFilepathFactory
 from utils.permissions import get_permission, parse_permissions
 
 
@@ -112,11 +114,55 @@ class Club(UniqueModel):
         return super().save(*args, **kwargs)
 
 
+class ClubFile(ModelBase):
+    """
+    Represents a file that a club admin has uploaded to their media library.
+
+    This allows club admins to upload banners, photo galleries,
+    event documents, etc.
+    """
+
+    upload_file_path = UploadNestedClubFilepathFactory("clubs/%(club_id)s/files/")
+
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="files")
+    file = models.FileField(upload_to=upload_file_path)
+    display_name = models.CharField(blank=True)
+
+    # When uploading a new file, it must be required to set the uploaded_by field
+    # for management purposes, but it should be ok to have null values in the database
+    # for when a user is deleted, or if a file is generated, etc.
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def save(self, *args, **kwargs):
+        # Set display name to file name if not set
+        if self.display_name is None or self.display_name == "":
+            self.display_name = self.file.name
+        return super().save(*args, **kwargs)
+
+    @property
+    def url(self) -> str:
+        """Get the web url for the file."""
+        return get_full_url(self.file.url)
+
+    @property
+    def size(self) -> str:
+        """Get a string representation of the size of the file."""
+        return format_bytes(self.file.size)
+
+    @property
+    def file_type(self) -> str:
+        """Get the type of file stored (using file extension)."""
+        try:
+            return get_file_path(self.file).split(".")[-1]
+        except Exception:
+            return "Unknown"
+
+
 class ClubPhoto(ModelBase):
     """Photos for club carousel"""
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="photos")
-    photo = models.ImageField(upload_to="club_photos/")
+    file = models.ForeignKey(ClubFile, on_delete=models.CASCADE)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

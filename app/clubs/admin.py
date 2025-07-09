@@ -6,6 +6,7 @@ from clubs.forms import TeamMembershipForm
 from clubs.models import (
     Club,
     ClubApiKey,
+    ClubFile,
     ClubMembership,
     ClubPhoto,
     ClubRole,
@@ -179,3 +180,4 @@ admin.site.register(ClubMembership, ClubMembershipAdmin)
 admin.site.register(ClubSocialProfile)
 admin.site.register(ClubPhoto)
 admin.site.register(ClubApiKey, ApiKeyAdmin)
+admin.site.register(ClubFile)
