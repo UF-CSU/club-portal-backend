@@ -42,6 +42,7 @@ SERIALIZERS_READONLY = [
     ClubPreviewSerializer,
     SocialProviderSerializer,
     ClubSocialSerializer,
+    ClubPhotoSerializer,
     EventHostSerializer,
     EventTagSerializer,
 ]
