@@ -413,9 +413,9 @@ class RangeInput(ModelBase):
     min_value = models.IntegerField(default=0)
     max_value = models.IntegerField(default=10)
     
-    min_value_label = models.CharField(max_length=32, null=True, blank=True)
-    max_value_label = models.CharField(max_length=32, null=True, blank=True)
-    
+    left_label = models.CharField(max_length=24, null=True, blank=True)
+    right_label = models.CharField(max_length=24, null=True, blank=True)
+
     step = models.IntegerField(default=1)
     initial_value = models.IntegerField(default=0)
     unit = models.CharField(max_length=16, null=True, blank=True)
