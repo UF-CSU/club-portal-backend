@@ -30,6 +30,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.abstracts.models import ManagerBase, ModelBase
+from events.models import EventType
 from users.models import User
 
 
@@ -85,8 +86,40 @@ class Poll(ModelBase):
     name = models.CharField(max_length=64)
     description = models.TextField(blank=True, null=True)
 
+    # Foreign Relationships
+    fields: models.QuerySet["PollField"]
+
     # Overrides
     objects: ClassVar[PollManager] = PollManager()
+
+    @property
+    def is_template(self):
+        return hasattr(self, "polltemplate")
+
+
+class PollTemplateManager(ManagerBase["PollTemplate"]):
+    """Manage poll template queries."""
+
+    def create(self, template_name: str, poll_name: str, **kwargs):
+        return super().create(template_name=template_name, name=poll_name, **kwargs)
+
+
+class PollTemplate(Poll):
+    """Extension of polls that allow the creation of new polls."""
+
+    template_name = models.CharField()
+    event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
+
+    # Overrides
+    objects: ClassVar[PollTemplateManager] = PollTemplateManager()
+
+
+class PollFieldManager(ManagerBase["PollField"]):
+    """Manage queries with Poll Fields."""
+
+    def create(self, poll: Poll, **kwargs):
+
+        return super().create(poll=poll, **kwargs)
 
 
 class PollField(ModelBase):
@@ -98,11 +131,18 @@ class PollField(ModelBase):
     )
     order = models.IntegerField()
 
+    # Dynamic properties
+    @property
+    def question(self) -> Optional["PollQuestion"]:
+        return getattr(self, "_question", None)
+
+    # Overrides
+    objects: ClassVar[PollFieldManager] = PollFieldManager()
+
     class Meta:
         ordering = ["order", "-id"]
 
     def __str__(self):
-
         return f"{self.poll} - {self.order}"
 
     def clean(self):
@@ -137,7 +177,7 @@ class PollMarkup(ModelBase):
     """Store markdown content for a poll."""
 
     field = models.OneToOneField(
-        PollField, on_delete=models.CASCADE, related_name="markup"
+        PollField, on_delete=models.CASCADE, related_name="_markup"
     )
     content = models.TextField(default="")
 
@@ -185,7 +225,7 @@ class PollQuestion(ModelBase):
     """
 
     field = models.OneToOneField(
-        PollField, on_delete=models.CASCADE, related_name="question"
+        PollField, on_delete=models.CASCADE, related_name="_question"
     )
 
     input_type = models.CharField(

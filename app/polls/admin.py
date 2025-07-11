@@ -42,8 +42,10 @@ class PollAdmin(admin.ModelAdmin):
         return obj.fields.count()
 
     def view_poll(self, obj):
+        if not obj.pk:
+            return "-"
         return mark_safe(
-            f"<a href=\"{reverse('clubs:polls:poll', args=[obj.id])}\" target='_blank'>View Poll</a>"
+            f"<a href=\"{reverse('polls:poll', args=[obj.id])}\" target='_blank'>View Poll</a>"
         )
 
 
