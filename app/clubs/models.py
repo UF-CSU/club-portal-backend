@@ -164,6 +164,7 @@ class ClubPhoto(ModelBase):
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="photos")
     file = models.ForeignKey(ClubFile, on_delete=models.CASCADE)
     order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [
