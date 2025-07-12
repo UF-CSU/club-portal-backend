@@ -86,8 +86,12 @@ class UserSerializer(ModelSerializer):
             user.save()
 
         if profile_data:
-            Profile.objects.get_or_create(user=user)  # ensure one exists first
-            Profile.objects.filter(user=user).update(**profile_data)
+            profile, _ = Profile.objects.get_or_create(user=user)
+
+            for key, value in profile_data.items():
+                setattr(profile, key, value)
+
+            profile.save()
 
         return user
 
