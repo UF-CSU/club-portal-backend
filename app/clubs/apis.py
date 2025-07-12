@@ -23,7 +23,9 @@ router.register(
 )
 
 router.register("club-previews", viewsets.ClubPreviewViewSet, basename="clubpreview")
-router.register(r"clubs/(?P<club_id>.+)/files", viewsets.ClubFilesViewSet, basename="file")
+router.register(
+    r"clubs/(?P<club_id>.+)/files", viewsets.ClubFilesViewSet, basename="file"
+)
 
 app_name = "api-clubs"
 

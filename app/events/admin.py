@@ -9,7 +9,7 @@ from events.models import (
     EventTag,
     RecurringEvent,
 )
-from events.serializers import EventCsvSerializer
+from events.serializers import EventAttendanceCsvSerializer, EventCsvSerializer
 from events.services import EventService
 
 
@@ -33,6 +33,24 @@ class RecurringEventAdmin(admin.ModelAdmin):
             EventService.sync_recurring_event(recurring)
 
         return
+
+
+class EventAttendanceAdmin(ModelAdminBase):
+    """Admin config for event attendance."""
+
+    csv_serializer_class = EventAttendanceCsvSerializer
+
+    list_display = ("event", "user")
+
+    search_fields = (
+        "event__name",
+        "user__username",
+    )
+
+    list_filter = (
+        "event__name",
+        "user__username",
+    )
 
 
 class EventAttendanceInlineAdmin(admin.TabularInline):
@@ -111,5 +129,6 @@ class EventAdmin(ModelAdminBase):
 
 
 admin.site.register(Event, EventAdmin)
+admin.site.register(EventAttendance, EventAttendanceAdmin)
 admin.site.register(EventTag)
 admin.site.register(RecurringEvent, RecurringEventAdmin)
