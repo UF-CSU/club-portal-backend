@@ -34,6 +34,13 @@ from events.models import EventType
 from users.models import User
 
 
+class PollType(models.TextChoices):
+    """Different types of polls."""
+
+    STANDARD = "standard", _("Standard")
+    TEMPLATE = "template", _("Template")
+
+
 class PollInputType(models.TextChoices):
     """Types of fields a user can add to a poll."""
 
@@ -85,6 +92,9 @@ class Poll(ModelBase):
 
     name = models.CharField(max_length=64)
     description = models.TextField(blank=True, null=True)
+    poll_type = models.CharField(
+        choices=PollType.choices, default=PollType.STANDARD, editable=False
+    )
 
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
@@ -92,9 +102,24 @@ class Poll(ModelBase):
     # Overrides
     objects: ClassVar[PollManager] = PollManager()
 
-    @property
-    def is_template(self):
-        return hasattr(self, "polltemplate")
+    def save(self, *args, **kwargs):
+        if hasattr(self, "polltemplate"):
+            self.poll_type = PollType.TEMPLATE
+
+        return super().save(*args, **kwargs)
+
+    def add_field(self, field_type: PollFieldType):
+        """Add new question, markup, or page break to a poll."""
+
+        highest_order = self.fields.order_by("-order")
+        if highest_order.exists():
+            highest_order = highest_order.first().order
+        else:
+            highest_order = 1
+
+        return PollField.objects.create(
+            poll=self, order=highest_order, field_type=field_type
+        )
 
 
 class PollTemplateManager(ManagerBase["PollTemplate"]):
@@ -135,6 +160,10 @@ class PollField(ModelBase):
     @property
     def question(self) -> Optional["PollQuestion"]:
         return getattr(self, "_question", None)
+
+    @property
+    def markup(self) -> Optional["PollMarkup"]:
+        return getattr(self, "_markup", None)
 
     # Overrides
     objects: ClassVar[PollFieldManager] = PollFieldManager()
@@ -270,31 +299,19 @@ class PollQuestion(ModelBase):
     # Foreign relationships
     @property
     def text_input(self) -> Optional["TextInput"]:
-        if not hasattr(self, "_text_input"):
-            return None
-
-        return self._text_input
+        return getattr(self, "_text_input", None)
 
     @property
     def choice_input(self) -> Optional["ChoiceInput"]:
-        if not hasattr(self, "_choice_input"):
-            return None
-
-        return self._choice_input
+        return getattr(self, "_choice_input", None)
 
     @property
     def range_input(self) -> Optional["RangeInput"]:
-        if not hasattr(self, "_range_input"):
-            return None
-
-        return self._range_input
+        return getattr(self, "_range_input", None)
 
     @property
     def upload_input(self) -> Optional["UploadInput"]:
-        if not hasattr(self, "_upload_input"):
-            return None
-
-        return self._upload_input
+        return getattr(self, "_upload_input", None)
 
     # Overrides
     objects: ClassVar[PollQuestionManager] = PollQuestionManager()
