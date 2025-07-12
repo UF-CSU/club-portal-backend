@@ -96,10 +96,13 @@ class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
     serializer_class = EmailVerificationRequestSerializer
 
     def perform_create(self, serializer: serializer_class):
+        try:
+            UserService(self.request.user).send_verification_code(
+                serializer.validated_data.get("email")
+            )
+        except Exception as e:
+            raise ParseError(e, code="verification_error")
 
-        UserService(self.request.user).send_verification_code(
-            serializer.validated_data.get("email")
-        )
         return serializer.data
 
     @action(
