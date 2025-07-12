@@ -209,7 +209,7 @@ class Event(EventFields):
 
         #If there are clubs
         hosts = self.hosts.all()
-        primary_host = self.hosts.filter(primary=True)
+        primary_host = self.hosts.filter(is_primary=True)
 
         if primary_host.exists():
             return primary_host[0].club.color

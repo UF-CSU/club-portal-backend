@@ -39,6 +39,8 @@ class EventHostSerializer(ModelSerializerBase):
         read_only=True,
     )
 
+    is_primary = serializers.BooleanField(default=False)
+
     class Meta:
         model = EventHost
         fields = ["club_id", "club_name", "club_logo", "is_primary"]
@@ -74,7 +76,7 @@ class EventSerializer(ModelSerializerBase):
 
         for host in hosts_data:
             EventHost.objects.create(
-                event=event, club=host["club"], primary=host.get("primary", False)
+                event=event, club=host["club"], is_primary=host.get("is_primary", False)
             )
 
         return event
