@@ -9,6 +9,7 @@ from django.utils.deconstruct import deconstructible
 from rest_framework.fields import ObjectDoesNotExist
 
 from utils.helpers import import_from_path
+from utils.logging import print_error
 from utils.types import T
 
 
@@ -27,15 +28,37 @@ class UploadFilepathFactory(object):
         self.path = path
         self.default_extension = default_extension
 
+    def _parse_path(self, instance):
+        try:
+            path = self.path % {"id": instance.pk}
+            return path
+        except Exception:
+            print_error()
+            return self.path
+
     def __call__(self, instance, filename):
         if "." in filename:
             extension = filename.split(".")[-1]
         else:
             extension = self.default_extension or ""
 
+        path = self._parse_path(instance)
+
         filename = "{}.{}".format(uuid.uuid4().hex, extension)
-        nested_dirs = [dirname for dirname in self.path.split("/") if dirname]
+        nested_dirs = [dirname for dirname in path.split("/") if dirname]
         return os.path.join("uploads", *nested_dirs, filename)
+
+
+class UploadNestedClubFilepathFactory(UploadFilepathFactory):
+    """Overrides the normal factory to render club id in the file path."""
+
+    def _parse_path(self, instance):
+        try:
+            path = self.path % {"club_id": instance.club.pk}
+            return path
+        except Exception:
+            print_error()
+            return self.path
 
 
 @deconstructible

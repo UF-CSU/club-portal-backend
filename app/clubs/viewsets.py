@@ -5,10 +5,11 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from clubs.models import Club, ClubApiKey, ClubMembership, ClubTag, Team
+from clubs.models import Club, ClubApiKey, ClubFile, ClubMembership, ClubTag, Team
 from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
+    ClubFileSerializer,
     ClubMembershipSerializer,
     ClubPreviewSerializer,
     ClubSerializer,
@@ -19,6 +20,35 @@ from clubs.serializers import (
 )
 from clubs.services import ClubService
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
+
+
+class ClubNestedViewSetBase(ModelViewSetBase):
+    """
+    Represents objects that require a club id to query.
+    """
+
+    def get_queryset(self):
+        club_id = self.kwargs.get("club_id", None)
+        self.queryset = self.queryset.filter(club__id=club_id)
+
+        return super().get_queryset()
+
+    def perform_create(self, serializer: ClubMembershipSerializer, **kwargs):
+        club_id = self.kwargs.get("club_id", None)
+        club = Club.objects.get(id=club_id)
+
+        serializer.save(club=club, **kwargs)
+
+    def check_permissions(self, request):
+        club_id = self.kwargs.get("club_id", None)
+        club = Club.objects.get(id=club_id)
+
+        if not request.user.has_perm(
+            "clubs.view_club", club
+        ) or not request.user.has_perm("clubs.view_clubmembership", club):
+            self.permission_denied(request)
+
+        return super().check_permissions(request)
 
 
 class ClubViewSet(ModelViewSetBase):
@@ -82,34 +112,11 @@ class ClubTagsView(GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ClubMembershipViewSet(ModelViewSetBase):
+class ClubMembershipViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
 
     serializer_class = ClubMembershipSerializer
     queryset = ClubMembership.objects.all()
-
-    def get_queryset(self):
-        club_id = self.kwargs.get("club_id", None)
-        self.queryset = ClubMembership.objects.filter(club__id=club_id)
-
-        return super().get_queryset()
-
-    def perform_create(self, serializer: ClubMembershipSerializer):
-        club_id = self.kwargs.get("club_id", None)
-        club = Club.objects.get(id=club_id)
-
-        serializer.save(club=club)
-
-    def check_permissions(self, request):
-        club_id = self.kwargs.get("club_id", None)
-        club = Club.objects.get(id=club_id)
-
-        if not request.user.has_perm(
-            "clubs.view_club", club
-        ) or not request.user.has_perm("clubs.view_clubmembership", club):
-            self.permission_denied(request)
-
-        return super().check_permissions(request)
 
 
 class ClubMemberViewSet(
@@ -140,23 +147,11 @@ class ClubMemberViewSet(
         return get_object_or_404(self.queryset)
 
 
-class TeamViewSet(ModelViewSetBase):
+class TeamViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for Team objects."""
 
     serializer_class = TeamSerializer
     queryset = Team.objects.all()
-
-    def get_queryset(self):
-        club_id = self.kwargs.get("club_id", None)
-        self.queryset = Team.objects.filter(club__id=club_id)
-
-        return super().get_queryset()
-
-    def perform_create(self, serializer: TeamSerializer):
-        club_id = self.kwargs.get("club_id", None)
-        club = Club.objects.get(id=club_id)
-
-        serializer.save(club=club)
 
 
 class InviteClubMemberView(GenericAPIView):
@@ -179,23 +174,11 @@ class InviteClubMemberView(GenericAPIView):
         return Response(status=status.HTTP_202_ACCEPTED)
 
 
-class ClubApiKeyViewSet(ModelViewSetBase):
+class ClubApiKeyViewSet(ClubNestedViewSetBase):
     """Api routes for managing club api keys."""
 
     serializer_class = ClubApiKeySerializer
     queryset = ClubApiKey.objects.none()
-
-    def get_queryset(self):
-        club_id = self.kwargs.get("club_id")
-        self.queryset = ClubApiKey.objects.filter(club__id=club_id)
-
-        return super().get_queryset()
-
-    def perform_create(self, serializer):
-        club_id = self.kwargs.get("club_id", None)
-        club = Club.objects.get(id=club_id)
-
-        serializer.save(club=club)
 
     def get_serializer_class(self):
         # When the key is being created, allow users to see the secret
@@ -225,3 +208,14 @@ class JoinClubsViewSet(GenericAPIView):
             ClubService(club).add_member(request.user)
 
         return Response(serializer.data)
+
+
+class ClubFilesViewSet(ClubNestedViewSetBase):
+    """Manage club files."""
+
+    serializer_class = ClubFileSerializer
+    queryset = ClubFile.objects.all()
+
+    def perform_create(self, serializer, **kwargs):
+        user = self.request.user
+        return super().perform_create(serializer, uploaded_by=user, **kwargs)

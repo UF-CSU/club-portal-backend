@@ -4,6 +4,7 @@ from django.utils.safestring import mark_safe
 
 from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
+from utils.files import get_file_path
 from utils.helpers import import_from_path
 
 
@@ -48,7 +49,7 @@ def process_csv_job_task(job_id: int):
             ),
             "text/html",
         )
-        mail.attach_file(job.report.path)
+        mail.attach_file(get_file_path(job.report))
         mail.send()
     elif job.notify_email:
         # Job raised a parsing error

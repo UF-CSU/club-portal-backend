@@ -96,10 +96,13 @@ class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
     serializer_class = EmailVerificationRequestSerializer
 
     def perform_create(self, serializer: serializer_class):
+        try:
+            UserService(self.request.user).send_verification_code(
+                serializer.validated_data.get("email")
+            )
+        except Exception as e:
+            raise ParseError(e, code="verification_error")
 
-        UserService(self.request.user).send_verification_code(
-            serializer.validated_data.get("email")
-        )
         return serializer.data
 
     @action(
@@ -129,6 +132,7 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
     """Display social account providers for a user."""
 
     serializer_class = SocialProviderSerializer
+    queryset = SocialAccount.objects.none()
 
     def get_queryset(self):
         return SocialAccount.objects.filter(user=self.request.user)
