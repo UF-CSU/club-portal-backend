@@ -160,15 +160,19 @@ class ClubSerializer(ModelSerializerBase):
         if banner_data:
             club.banner_id = banner_data["id"]
         club.save()
+
+        club.socials.all().delete()
         if socials_data:
-            club.socials.all().delete()
             for social in socials_data:
                 club.socials.create(**social)
+
         if tags_data:
-            tag_objects = ClubTag.objects.filter(name__in=tags_data)
+            tag_names = [tag['name'] for tag in tags_data]
+            tag_objects = ClubTag.objects.filter(name__in=tag_names)
             club.tags.set(tag_objects)
+
+        club.photos.all().delete()
         if photos_data:
-            club.photos.all().delete()
             for photo in photos_data:
                 club.photos.create(
                     file_id=photo['file']['id'],
