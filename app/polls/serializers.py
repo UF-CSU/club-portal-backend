@@ -197,3 +197,53 @@ class PollSerializer(ModelSerializer):
                 serializer.save()
 
         return poll
+
+
+class PollSubmissionAnswerSerializer(ModelSerializerBase):
+    """Record a user's answer for a specific question."""
+
+    options_value = serializers.SlugRelatedField(
+        many=True,
+        required=False,
+        slug_field="value",
+        queryset=models.ChoiceInputOption.objects.all(),
+    )
+
+    class Meta:
+        model = models.PollQuestionAnswer
+        fields = [
+            "id",
+            "question",
+            "text_value",
+            "number_value",
+            "options_value",
+            "created_at",
+        ]
+
+
+class PollSubmissionSerializer(ModelSerializer):
+    """A user's submission for a form."""
+
+    # Poll id is set in the url
+    poll = serializers.PrimaryKeyRelatedField(read_only=True)
+    answers = PollSubmissionAnswerSerializer(many=True)
+
+    class Meta:
+        model = models.PollSubmission
+        fields = ["poll", "answers", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        answers = validated_data.pop("answers", None)
+        submission = super().create(validated_data)
+
+        if not answers:
+            return submission
+
+        for answer in answers:
+            models.PollQuestionAnswer.objects.create(submission=submission, **answer)
+
+        return submission
+
+    def update(self, instance, validated_data):
+        raise NotImplementedError("Submission update is not implemented yet.")
+        # return super().update(instance, validated_data)

@@ -69,18 +69,25 @@ class PollTextInputType(models.TextChoices):
     RICH = "rich", _("Rich Text Input")
 
 
-class PollSingleChoiceType(models.TextChoices):
-    """Different ways of showing single choice fields."""
+class PollChoiceType(models.TextChoices):
+    """Different ways of showing a choice field."""
 
-    SELECT = "select", _("Single Dropdown Select")
-    RADIO = "radio", _("Single Radio Select")
+    DROPDOWN = "select", _("Dropdown Select")
+    SELECT = "radio", _("Input Select")
 
 
-class PollMultiChoiceType(models.TextChoices):
-    """Different ways of showing multichoice fields."""
+# class PollSingleChoiceType(models.TextChoices):
+#     """Different ways of showing single choice fields."""
 
-    SELECT = "select", _("Multi Select Box")
-    CHECKBOX = "checkbox", _("Multi Checkbox Select")
+#     SELECT = "select", _("Single Dropdown Select")
+#     RADIO = "radio", _("Single Radio Select")
+
+
+# class PollMultiChoiceType(models.TextChoices):
+#     """Different ways of showing multichoice fields."""
+
+#     SELECT = "select", _("Multi Select Box")
+#     CHECKBOX = "checkbox", _("Multi Checkbox Select")
 
 
 class PollManager(ManagerBase["Poll"]):
@@ -381,53 +388,25 @@ class ChoiceInput(ModelBase):
         PollQuestion, on_delete=models.CASCADE, related_name="_choice_input"
     )
 
-    multiple = models.BooleanField(default=False)
-    multiple_choice_type = models.CharField(
-        choices=PollMultiChoiceType.choices,
-        null=True,
-        blank=True,
-        default=PollMultiChoiceType.CHECKBOX,
-    )
-    single_choice_type = models.CharField(
-        choices=PollSingleChoiceType.choices,
-        null=True,
-        blank=True,
-        default=PollSingleChoiceType.RADIO,
+    is_multiple = models.BooleanField(default=False)
+    choice_type = models.CharField(
+        choices=PollChoiceType.choices, default=PollChoiceType.DROPDOWN
     )
 
+    # Foreign relations
+    selections: models.QuerySet["PollQuestionAnswer"]
+
+    # Dyanmic properties
     @property
     def widget(self):
-        if self.multiple:
-            return PollMultiChoiceType(self.multiple_choice_type).label
-        else:
-            return PollSingleChoiceType(self.single_choice_type).label
+        return PollChoiceType(self.choice_type).label
 
     # Overrides
     class Meta:
         ordering = ["question__field", "-id"]
-        constraints = [
-            # Multiple/single choice types can be set at same time,
-            # so if user toggles between them their preference is saved.
-            models.CheckConstraint(
-                name="poll_choice_type",
-                check=(
-                    models.Q(multiple=True, multiple_choice_type__isnull=False)
-                    | models.Q(multiple=False, single_choice_type__isnull=False)
-                ),
-            )
-        ]
 
     def __str__(self):
         return f"{self.question.field} - {self.widget}"
-
-    def save(self, *args, **kwargs):
-        # Enforce defaults, in case user deletes field type but keeps "multiple" selection
-        if self.multiple is True and self.multiple_choice_type is None:
-            self.multiple_choice_type = PollMultiChoiceType.CHECKBOX
-        elif self.multiple is False and self.single_choice_type is None:
-            self.single_choice_type = PollSingleChoiceType.RADIO
-
-        return super().save(*args, **kwargs)
 
 
 class ChoiceInputOption(ModelBase):
@@ -534,7 +513,89 @@ class PollSubmission(ModelBase):
         null=True,
         blank=True,
     )
-    data = models.JSONField(null=True, blank=True)
 
+    # Foreign relations
+    answers: models.QuerySet["PollQuestionAnswer"]
+
+    # Overrides
     def __str__(self):
         return f"Submission from {self.user or 'anonymous'}"
+
+
+class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
+    """Manage queries with poll answers."""
+
+    def create(self, **kwargs):
+        options_value = kwargs.pop("options_value", [])
+
+        answer = super().create(**kwargs)
+
+        for value in options_value:
+            answer.options_value.add(value)
+
+        return answer
+
+
+class PollQuestionAnswer(ModelBase):
+    """Store info about how a user answered a specific question."""
+
+    question = models.ForeignKey(
+        PollQuestion, on_delete=models.CASCADE, related_name="answers"
+    )
+    submission = models.ForeignKey(
+        PollSubmission, on_delete=models.CASCADE, related_name="answers"
+    )
+
+    # Answer values
+    text_value = models.CharField(null=True, blank=True)
+    number_value = models.IntegerField(null=True, blank=True)
+    options_value = models.ManyToManyField(
+        ChoiceInputOption, blank=True, related_name="selections"
+    )
+
+    # Dynamic properties
+    @property
+    def value(self):
+        return (
+            self.text_value
+            or self.number_value
+            or list(self.options_value.values_list("value", flat=True))
+        )
+
+    # Overrides
+    objects: ClassVar[PollQuestionAnswerManager] = PollQuestionAnswerManager()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="pollanswer_text_or_number_or_option_set",
+                check=(
+                    (
+                        models.Q(text_value__isnull=False)
+                        & models.Q(number_value__isnull=True)
+                    )
+                    | (
+                        models.Q(text_value__isnull=True)
+                        & models.Q(number_value__isnull=False)
+                    )
+                    | (
+                        models.Q(text_value__isnull=True)
+                        & models.Q(number_value__isnull=True)
+                    )
+                ),
+                violation_error_message='Can only set one of "text", "number", or "options".',
+            )
+        ]
+
+    def clean(self):
+        if not self.pk:
+            return super().clean()
+
+        if self.options_value.count() > 0 and (
+            self.text_value is not None or self.number_value is not None
+        ):
+            raise exceptions.ValidationError(
+                "Cannot set options value if number or text is set."
+            )
+
+        return super().clean()

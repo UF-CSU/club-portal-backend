@@ -123,7 +123,11 @@ class PublicApiTestsBase(TestsBase):
 
 
 class PrivateApiTestsBase(PublicApiTestsBase):
-    """Testing utilities for apis where authentication is required."""
+    """
+    Testing utilities for apis where authentication is required.
+
+    A user is automatically set in each request.
+    """
 
     def setUp(self):
         super().setUp()

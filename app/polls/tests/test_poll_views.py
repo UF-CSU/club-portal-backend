@@ -1,10 +1,11 @@
 from django.urls import reverse
 
-from core.abstracts.tests import AuthViewsTestsBase
+from core.abstracts.tests import PrivateApiTestsBase
 from lib.faker import fake
 from polls.models import (
     ChoiceInput,
     ChoiceInputOption,
+    NumberInput,
     Poll,
     PollField,
     PollMarkup,
@@ -12,13 +13,20 @@ from polls.models import (
     RangeInput,
     TextInput,
     UploadInput,
-    NumberInput,
 )
 
-POLLS_URL = reverse("api-clubpolls:polls-list")
+POLLS_URL = reverse("api-polls:poll-list")
 
 
-class PollViewAuthTests(AuthViewsTestsBase):
+def polls_detail_url(id: int):
+    return reverse("api-polls:poll-detail", args=[id])
+
+
+def pollsubmissions_list_url(poll_id: int):
+    return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
+
+
+class PollViewAuthTests(PrivateApiTestsBase):
     """Test managing polls via REST api and views."""
 
     def test_create_poll(self):
@@ -252,7 +260,7 @@ class PollViewAuthTests(AuthViewsTestsBase):
             "description": "This is a description for Blake's Poll.",
         }
 
-        url = POLLS_URL + f"{poll.id}/"
+        url = polls_detail_url(poll.pk)
 
         res = self.client.patch(url, data=payload, format="json")
         self.assertEqual(res.status_code, 200, res.content)
@@ -271,7 +279,7 @@ class PollViewAuthTests(AuthViewsTestsBase):
 
         self.assertEqual(Poll.objects.count(), 1)
 
-        url = POLLS_URL + f"{poll.id}/"
+        url = polls_detail_url(poll.pk)
 
         res = self.client.delete(url)
         self.assertEqual(res.status_code, 204, res.content)
@@ -306,16 +314,13 @@ class PollViewAuthTests(AuthViewsTestsBase):
         payload = {
             "answers": [
                 {
-                    "field": poll_field.id,
-                    "text_input": {
-                        "text_type": "short",
-                        "value": "This is a short answer.",
-                    },
+                    "question": poll_question.pk,
+                    "text_value": "This is a short answer.",
                 }
             ]
         }
 
-        url = POLLS_URL + f"{poll.id}/submit/"
+        url = pollsubmissions_list_url(poll.pk)
 
         res = self.client.post(url, data=payload, format="json")
         self.assertEqual(res.status_code, 201, res.content)
@@ -332,15 +337,10 @@ class PollViewAuthTests(AuthViewsTestsBase):
         )  # Assuming AuthViewsTestsBase sets self.user
 
         # Verify the submission data contains the correct answer
-        self.assertIsNotNone(submission.data)
-        self.assertIn("answers", submission.data)
-        self.assertEqual(len(submission.data["answers"]), 1)
-
-        answer = submission.data["answers"][0]
-        self.assertEqual(answer["field"], poll_field.id)
-        self.assertIn("text_input", answer)
-        self.assertEqual(answer["text_input"]["text_type"], "short")
-        self.assertEqual(answer["text_input"]["value"], "This is a short answer.")
+        self.assertEqual(submission.answers.count(), 1)
+        self.assertEqual(
+            submission.answers.first().text_value, "This is a short answer."
+        )
 
     def test_submission_poll_multiple_questions(self):
         """Should submit poll with multiple question types via api."""
@@ -377,8 +377,9 @@ class PollViewAuthTests(AuthViewsTestsBase):
             required=True,
         )
 
+        # This would be rendered as a radio field
         choice_input = ChoiceInput.objects.create(
-            question=choice_question, multiple=False, single_choice_type="radio"
+            question=choice_question, is_multiple=False, choice_type="select"
         )
 
         ChoiceInputOption.objects.create(
@@ -409,28 +410,22 @@ class PollViewAuthTests(AuthViewsTestsBase):
         payload = {
             "answers": [
                 {
-                    "field": text_field.id,
-                    "text_input": {
-                        "text_type": "short",
-                        "value": "John Doe",
-                    },
+                    "question": text_question.pk,
+                    "text_value": "John Doe",
                 },
                 {
-                    "field": choice_field.id,
-                    "choice_input": {
-                        "value": "blue",
-                    },
+                    "question": choice_question.pk,
+                    # Multi is false, so > 1 would throw error
+                    "options_value": ["blue"],
                 },
                 {
-                    "field": number_field.id,
-                    "number_input": {
-                        "value": 8.0,
-                    },
+                    "question": number_question.id,
+                    "number_value": 8.0,
                 },
             ]
         }
 
-        url = POLLS_URL + f"{poll.id}/submit/"
+        url = pollsubmissions_list_url(poll.pk)
 
         res = self.client.post(url, data=payload, format="json")
         self.assertEqual(res.status_code, 201, res.content)
@@ -445,26 +440,31 @@ class PollViewAuthTests(AuthViewsTestsBase):
         self.assertEqual(submission.user, self.user)
 
         # Verify the submission data contains all answers
-        self.assertIsNotNone(submission.data)
-        self.assertIn("answers", submission.data)
-        self.assertEqual(len(submission.data["answers"]), 3)
-
-        # Verify each answer type
-        answers_by_field = {
-            answer["field"]: answer for answer in submission.data["answers"]
-        }
+        self.assertEqual(submission.answers.count(), 3)
 
         # Text answer
-        text_answer = answers_by_field[text_field.id]
-        self.assertEqual(text_answer["text_input"]["value"], "John Doe")
+        self.assertEqual(
+            submission.answers.get(question__id=text_question.pk).text_value, "John Doe"
+        )
 
         # Choice answer
-        choice_answer = answers_by_field[choice_field.id]
-        self.assertEqual(choice_answer["choice_input"]["value"], "blue")
+        self.assertEqual(
+            submission.answers.get(question__id=number_question.pk).number_value, 8.0
+        )
 
         # Number answer
-        number_answer = answers_by_field[number_field.id]
-        self.assertEqual(number_answer["number_input"]["value"], 8.0)
+        self.assertEqual(
+            submission.answers.get(question__id=choice_question.pk)
+            .options_value.all()
+            .count(),
+            1,
+        )
+        self.assertEqual(
+            submission.answers.get(question__id=choice_question.pk)
+            .options_value.first()
+            .value,
+            "blue",
+        )
 
     def test_submission_poll_validation_errors(self):
         """Should validate poll submission and return errors for invalid data."""
@@ -491,7 +491,7 @@ class PollViewAuthTests(AuthViewsTestsBase):
         # Test with missing answer for required field
         payload = {"answers": []}
 
-        url = POLLS_URL + f"{poll.id}/submit/"
+        url = pollsubmissions_list_url(poll.pk)
 
         res = self.client.post(url, data=payload, format="json")
         self.assertEqual(res.status_code, 400, res.content)
@@ -501,11 +501,8 @@ class PollViewAuthTests(AuthViewsTestsBase):
         payload = {
             "answers": [
                 {
-                    "field": text_field.id,
-                    "text_input": {
-                        "text_type": "short",
-                        "value": "short",  # Less than min_length of 10
-                    },
+                    "question": text_question.pk,
+                    "text_value": "short",
                 }
             ]
         }

@@ -7,6 +7,7 @@ from polls.models import (
     PollInputType,
     PollMarkup,
     PollQuestion,
+    PollSubmission,
     PollTemplate,
     TextInput,
 )
@@ -29,7 +30,9 @@ class PollTemplateService(ServiceBase[PollTemplate]):
                     max_length=question_tpl.text_input.max_length,
                 )
             case PollInputType.CHOICE:
-                ChoiceInput.objects.create(questin=target_question, )
+                ChoiceInput.objects.create(
+                    questin=target_question,
+                )
 
     def _clone_field(self, field_tpl: PollField, target_poll: Poll):
         """Clone field to poll."""
@@ -60,3 +63,8 @@ class PollTemplateService(ServiceBase[PollTemplate]):
 
         for field_tpl in self.obj.fields.all():
             self._clone_field(field_tpl, poll)
+
+    def validate_poll_submission(self, submission: PollSubmission):
+        """Check if a poll submission is valid."""
+
+        pass
