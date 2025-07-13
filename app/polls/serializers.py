@@ -217,6 +217,8 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
             "text_value",
             "number_value",
             "options_value",
+            "is_valid",
+            "error",
             "created_at",
         ]
 

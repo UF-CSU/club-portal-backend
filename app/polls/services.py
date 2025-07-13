@@ -64,7 +64,14 @@ class PollTemplateService(ServiceBase[PollTemplate]):
         for field_tpl in self.obj.fields.all():
             self._clone_field(field_tpl, poll)
 
-    def validate_poll_submission(self, submission: PollSubmission):
+
+class PollService(ServiceBase[Poll]):
+    """Business logic for polls."""
+
+    model = Poll
+
+    def validate_submission(self, submission: PollSubmission, raise_exception=False):
         """Check if a poll submission is valid."""
 
-        pass
+        for answer in submission.answers.all():
+            pass

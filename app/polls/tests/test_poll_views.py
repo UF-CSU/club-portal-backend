@@ -508,5 +508,11 @@ class PollViewAuthTests(PrivateApiTestsBase):
         }
 
         res = self.client.post(url, data=payload, format="json")
-        self.assertEqual(res.status_code, 400, res.content)
-        self.assertEqual(poll.submissions.count(), 0)
+        # self.assertEqual(res.status_code, 400, res.content)
+        self.assertResCreated(res)
+
+        data = res.json()
+        self.assertFalse(data["answers"][0]["is_valid"])
+        self.assertEqual(poll.submissions.count(), 1)
+        self.assertFalse(poll.submissions.first().is_valid)
+        self.assertIsNotNone(poll.submissions.first().error)

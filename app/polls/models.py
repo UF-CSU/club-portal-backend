@@ -514,12 +514,22 @@ class PollSubmission(ModelBase):
         blank=True,
     )
 
+    error = models.CharField(null=True, blank=True)
+
     # Foreign relations
     answers: models.QuerySet["PollQuestionAnswer"]
 
     # Overrides
     def __str__(self):
         return f"Submission from {self.user or 'anonymous'}"
+
+    # Dynamic properties
+    @property
+    def is_valid(self):
+        # Is valid if no error and no answers have errors
+        return (
+            self.error is None and not self.answers.filter(error__isnull=True).exists()
+        )
 
 
 class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
@@ -547,10 +557,16 @@ class PollQuestionAnswer(ModelBase):
     )
 
     # Answer values
+    # Store them separately so calculations can be made in postgres/django orm
     text_value = models.CharField(null=True, blank=True)
     number_value = models.IntegerField(null=True, blank=True)
     options_value = models.ManyToManyField(
         ChoiceInputOption, blank=True, related_name="selections"
+    )
+
+    # Validation
+    error = models.CharField(
+        null=True, blank=True, help_text="Error message if input is not valid."
     )
 
     # Dynamic properties
@@ -561,6 +577,10 @@ class PollQuestionAnswer(ModelBase):
             or self.number_value
             or list(self.options_value.values_list("value", flat=True))
         )
+
+    @property
+    def is_valid(self) -> bool:
+        return self.error is None
 
     # Overrides
     objects: ClassVar[PollQuestionAnswerManager] = PollQuestionAnswerManager()

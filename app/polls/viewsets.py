@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from core.abstracts.viewsets import ModelViewSetBase
 from polls.models import Poll, PollSubmission
 from polls.serializers import PollSerializer, PollSubmissionSerializer
+from polls.services import PollService
 
 
 class PollViewset(ModelViewSetBase):
@@ -28,4 +29,13 @@ class PollSubmissionViewSet(ModelViewSetBase):
         poll = get_object_or_404(Poll, id=poll_id)
         user = self.request.user
 
-        serializer.save(poll=poll, user=user)
+        submission = serializer.save(poll=poll, user=user)
+        submission = PollService(poll).validate_submission(submission)
+
+        return submission
+
+    def perform_update(self, serializer):
+        submission = super().perform_update(serializer)
+        submission = PollService(submission.poll).validate_submission(submission)
+
+        return submission
