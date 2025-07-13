@@ -91,7 +91,7 @@ class ClubFileNestedSerializer(ModelSerializerBase):
         read_only_fields = ["display_name", "url", "size"]
 
 
-class ClubPhotoNestedSerializer(ModelSerializerBase):
+class ClubPhotoSerializer(ModelSerializerBase):
     """Represents photos for clubs."""
 
     file = ClubFileNestedSerializer()
@@ -120,13 +120,13 @@ class ClubTagSerializer(ModelSerializerBase):
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
-    photos = ClubPhotoNestedSerializer(many=True, required=False)
-    socials = ClubSocialSerializer(many=True, read_only=True)
-    tags = ClubTagSerializer(many=True, read_only=True)
+    logo = ClubFileNestedSerializer()
+    banner = ClubFileNestedSerializer()
+    photos = ClubPhotoSerializer(many=True)
+    socials = ClubSocialSerializer(many=True)
+    tags = ClubTagSerializer(many=True)
 
     member_count = serializers.IntegerField(read_only=True)
-    socials_data = serializers.JSONField(write_only=True, required=False)
-    tags_data = serializers.JSONField(write_only=True, required=False)
 
     class Meta:
         model = Club
@@ -144,26 +144,37 @@ class ClubSerializer(ModelSerializerBase):
             "socials",
             "photos",
             "alias",
-            "socials_data",
-            "tags_data",
         ]
 
     def update(self, instance, validated_data):
-        """Update and return club"""
-        socials_data = validated_data.pop("socials_data", None)
-        tags_data = validated_data.pop("tags_data", None)
-        photos = validated_data.pop("photos", None)
-
-        print("photos:", photos)
+        logo_data = validated_data.pop("logo", None)
+        banner_data = validated_data.pop("banner", None)
+        socials_data = validated_data.pop("socials", [])
+        tags_data = validated_data.pop("tags", [])
+        photos_data = validated_data.pop("photos", [])
 
         club = super().update(instance, validated_data)
+
+        if logo_data:
+            club.logo_id = logo_data["id"]
+        if banner_data:
+            club.banner_id = banner_data["id"]
+        club.save()
         if socials_data:
             club.socials.all().delete()
-            for social_data in socials_data:
-                club.socials.create(**social_data)
+            for social in socials_data:
+                club.socials.create(**social)
         if tags_data:
             tag_objects = ClubTag.objects.filter(name__in=tags_data)
             club.tags.set(tag_objects)
+        if photos_data:
+            club.photos.all().delete()
+            for photo in photos_data:
+                club.photos.create(
+                    file_id=photo['file']['id'],
+                    order=photo['order']
+                )
+                
         return club
 
 
