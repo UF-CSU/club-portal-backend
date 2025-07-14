@@ -12,5 +12,5 @@ app_name = "api-events"
 urlpatterns = [
     path("", include(router.urls)),
     path("event-tags/", views.get_event_tags, name="event-tags"),
-    
+    path("event-tag/<int:event_tag_id>", views.get_event_tag, name="event-tag"),
 ]

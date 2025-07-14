@@ -4,6 +4,8 @@ from clubs.models import Club
 from core.abstracts.serializers import ModelSerializerBase
 from events.models import Event, EventCancellation, EventHost, EventTag
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from django.forms.models import model_to_dict
+from django.shortcuts import get_object_or_404
 
 
 class EventTagSerializer(ModelSerializerBase):
@@ -71,6 +73,9 @@ class EventSerializer(ModelSerializerBase):
 
     def create(self, validated_data):
         hosts_data = validated_data.pop("hosts", [])
+        tag_data = validated_data.pop("tags", [])
+
+        print(tag_data)
 
         event = Event.objects.create(**validated_data)
 
@@ -78,6 +83,16 @@ class EventSerializer(ModelSerializerBase):
             EventHost.objects.create(
                 event=event, club=host["club"], is_primary=host.get("is_primary", False)
             )
+        
+        for tag in tag_data:
+            tag_obj = tag.get("id")
+            tag_fields = model_to_dict(tag_obj)
+            print(tag_fields)
+            tag_id = tag_fields["id"]
+            print(tag_id)
+            new_tag = get_object_or_404(EventTag, id=tag_id)
+            if new_tag:
+                event.tags.add(new_tag)
 
         return event
 

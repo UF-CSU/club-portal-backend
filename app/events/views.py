@@ -61,7 +61,14 @@ def cancel_event(request: HttpRequest, event_id: int):
 def get_event_tags(request):
 
     event_tags = EventTag.objects.all()
-    print(event_tags)
     serializer = EventTagSerializer(event_tags, many=True)
 
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@login_required()
+def get_event_tag(request, event_tag_id: int):
+
+    event_tag = get_object_or_404(EventTag, id=event_tag_id)
+    serializer = EventTagSerializer(event_tag)
     return Response(serializer.data)

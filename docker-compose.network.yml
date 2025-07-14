@@ -108,12 +108,12 @@ services:
     image: mailhog/mailhog
     container_name: 'mailhog'
     restart: unless-stopped
-    profiles:
-      - dev
+    networks:
+      - cluster
     attach: false
     user: root
     volumes:
-      - mailhog-clubs-dev:/home/maildir
+      - mailhog-clubs-network:/home/maildir
     ports:
       - '1025:1025'
       - '8025:8025'
@@ -143,6 +143,7 @@ services:
 volumes:
   postgres-clubs-network:
   static-clubs-network:
+  mailhog-clubs-network:
 
 networks:
   cluster:
