@@ -6,6 +6,7 @@ should function.
 from clubs.serializers import (
     ClubFileSerializer,
     ClubMembershipSerializer,
+    ClubPhotoSerializer,
     ClubPreviewSerializer,
     ClubSerializer,
     ClubSocialSerializer,
@@ -21,6 +22,7 @@ SERIALIZERS_CREATE_READ_UPDATE = [
     ClubSerializer,
     ClubMembershipSerializer,
     ClubFileSerializer,
+    ClubPhotoSerializer,
     TeamSerializer,
     TeamMembershipSerializer,
     EventSerializer,
@@ -40,6 +42,7 @@ SERIALIZERS_READONLY = [
     ClubPreviewSerializer,
     SocialProviderSerializer,
     ClubSocialSerializer,
+    ClubPhotoSerializer,
     EventHostSerializer,
     EventTagSerializer,
 ]
