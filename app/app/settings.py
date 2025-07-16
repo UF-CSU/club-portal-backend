@@ -318,7 +318,7 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
 
 # Sentry
-sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True)
+sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0)
 
 ######################
 # == Email Config == #
