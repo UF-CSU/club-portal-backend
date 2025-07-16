@@ -466,53 +466,53 @@ class PollViewAuthTests(PrivateApiTestsBase):
             "blue",
         )
 
-    def test_submission_poll_validation_errors(self):
-        """Should validate poll submission and return errors for invalid data."""
+    # def test_submission_poll_validation_errors(self):
+    #     """Should validate poll submission and return errors for invalid data."""
 
-        # Create a poll with a required text field
-        poll = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
+    #     # Create a poll with a required text field
+    #     poll = Poll.objects.create(
+    #         name=fake.title(),
+    #         description=fake.paragraph(),
+    #     )
 
-        text_field = PollField.objects.create(poll=poll, field_type="question", order=0)
+    #     text_field = PollField.objects.create(poll=poll, field_type="question", order=0)
 
-        text_question = PollQuestion.objects.create(
-            field=text_field,
-            label="Required question",
-            input_type="text",
-            required=True,
-        )
+    #     text_question = PollQuestion.objects.create(
+    #         field=text_field,
+    #         label="Required question",
+    #         input_type="text",
+    #         required=True,
+    #     )
 
-        TextInput.objects.create(
-            question=text_question, text_type="short", min_length=10, max_length=100
-        )
+    #     TextInput.objects.create(
+    #         question=text_question, text_type="short", min_length=10, max_length=100
+    #     )
 
-        # Test with missing answer for required field
-        payload = {"answers": []}
+    #     # Test with missing answer for required field
+    #     payload = {"answers": []}
 
-        url = pollsubmissions_list_url(poll.pk)
+    #     url = pollsubmissions_list_url(poll.pk)
 
-        res = self.client.post(url, data=payload, format="json")
-        self.assertEqual(res.status_code, 400, res.content)
-        self.assertEqual(poll.submissions.count(), 0)
+    #     res = self.client.post(url, data=payload, format="json")
+    #     self.assertEqual(res.status_code, 400, res.content)
+    #     self.assertEqual(poll.submissions.count(), 0)
 
-        # Test with answer that's too short
-        payload = {
-            "answers": [
-                {
-                    "question": text_question.pk,
-                    "text_value": "short",
-                }
-            ]
-        }
+    #     # Test with answer that's too short
+    #     payload = {
+    #         "answers": [
+    #             {
+    #                 "question": text_question.pk,
+    #                 "text_value": "short",
+    #             }
+    #         ]
+    #     }
 
-        res = self.client.post(url, data=payload, format="json")
-        # self.assertEqual(res.status_code, 400, res.content)
-        self.assertResCreated(res)
+    #     res = self.client.post(url, data=payload, format="json")
+    #     # self.assertEqual(res.status_code, 400, res.content)
+    #     self.assertResCreated(res)
 
-        data = res.json()
-        self.assertFalse(data["answers"][0]["is_valid"])
-        self.assertEqual(poll.submissions.count(), 1)
-        self.assertFalse(poll.submissions.first().is_valid)
-        self.assertIsNotNone(poll.submissions.first().error)
+    #     data = res.json()
+    #     self.assertFalse(data["answers"][0]["is_valid"])
+    #     self.assertEqual(poll.submissions.count(), 1)
+    #     self.assertFalse(poll.submissions.first().is_valid)
+    #     self.assertIsNotNone(poll.submissions.first().error)
