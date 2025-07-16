@@ -91,8 +91,9 @@ class EventAdmin(ModelAdminBase):
         "__str__",
         "id",
         "location",
+        "start_at",
     )
-    ordering = ("start_at",)
+    ordering = ("-start_at",)
 
     inlines = (
         EventHostInlineAdmin,

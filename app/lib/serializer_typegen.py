@@ -101,12 +101,13 @@ declare interface %(name)sUpdate {
 FIELD_TPL = TAB + "%(property)s: %(type)s;\n"
 OPTIONAL_FIELD_TPL = TAB + "%(property)s?: %(type)s | null;\n"
 READONLY_FIELD_TPL = TAB + "readonly %(property)s: %(type)s;\n"
+READONLY_OPTIONAL_FIELD_TPL = TAB + "readonly %(property)s?: %(type)s;\n"
 
 FIELD_DOC_TPL = TAB + "/** %s */\n"
 
 SEPARATOR_TPL = """/*
  * ===============================================================
- * %s
+ * MARK: %s
  * ===============================================================
  */"""
 
@@ -115,7 +116,13 @@ ENUM_FIELD_TPL = TAB + "%(field)s = '%(value)s',\n"
 
 
 class TypeGenerator:
-    """Create TypeScript interfaces from a list of serializers."""
+    """
+    Create TypeScript interfaces from a list of serializers.
+
+    Field conventions:
+    - `allow_null`: If null values are allowed in the database. Use `serializer.nullable_fields` to access.
+    - `required`: If setting this field is required on creation. Use `serialzier.required_fields` to access.
+    """
 
     def __init__(
         self,
@@ -322,6 +329,8 @@ class TypeGenerator:
                 field_prop = self._generate_prop(OPTIONAL_FIELD_TPL, **kwargs)
             elif not readonly:
                 field_prop = self._generate_prop(FIELD_TPL, **kwargs)
+            elif readonly and (force_optional or not required):
+                field_prop = self._generate_prop(READONLY_OPTIONAL_FIELD_TPL, **kwargs)
             else:
                 field_prop = self._generate_prop(READONLY_FIELD_TPL, **kwargs)
 
@@ -536,7 +545,10 @@ class TypeGenerator:
                         field_name, field, serializer
                     )
                     field_prop = gen_prop(
-                        field_name, prop_type=field_type, readonly=True
+                        field_name,
+                        prop_type=field_type,
+                        readonly=True,
+                        required=(field_name not in serializer.nullable_fields),
                     )
                 except Exception as e:
                     field_type = "unknown"
@@ -545,7 +557,11 @@ class TypeGenerator:
                     )
                     print(e)
             else:
-                field_prop = gen_prop(field_name, readonly=True)
+                field_prop = gen_prop(
+                    field_name,
+                    readonly=True,
+                    required=(field_name not in serializer.nullable_fields),
+                )
 
             properties.append(field_prop)
 
