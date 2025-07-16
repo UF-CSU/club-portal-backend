@@ -19,7 +19,7 @@
 
 project = "Club Portal"
 copyright = "2025, UF Computing Student Union"
-author = "Isaac Hunter, Steve Sajeev, Lucas Romero-Wyhnanskyj, Jonathan Hooth"
+author = "UF Computing Student Union"
 github_url = "https://github.com/UF-CSU/club-portal-backend"
 
 # The full version, including alpha/beta/rc tags

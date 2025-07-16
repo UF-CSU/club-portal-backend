@@ -27,8 +27,21 @@ class DayChoice(models.IntegerChoices):
     SUNDAY = 6, _("Sunday")
 
 
+class EventType(models.TextChoices):
+    """Broad type of event."""
+
+    GBM = "gbm", _("GBM")
+    WORKSHOP = "workshop", _("Workshop")
+    SOCIAL = "social", _("Social")
+    INTERNAL_MEETING = "internal_meeting", _("Internal Meeting")
+    SPEAKER = "speaker", _("Speaker")
+    OTHER = "other", _("Other")
+
+
 class EventTag(Tag):
     """Group together different types of events."""
+
+    pass
 
 
 class EventFields(ModelBase):
@@ -36,6 +49,7 @@ class EventFields(ModelBase):
 
     name = models.CharField(max_length=128)
     description = models.TextField(null=True, blank=True)
+    event_type = models.CharField(choices=EventType.choices, default=EventType.OTHER)
 
     location = models.CharField(null=True, blank=True, max_length=255)
 
