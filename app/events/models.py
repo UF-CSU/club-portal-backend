@@ -216,6 +216,22 @@ class Event(EventFields):
             return None
 
         return host.first().club
+    
+    @property
+    def color(self):
+        default_color = "0F44CD"
+
+        #If there are clubs
+        hosts = self.hosts.all()
+        primary_host = self.hosts.filter(is_primary=True)
+
+        if primary_host.exists():
+            return primary_host[0].club.color
+        
+        if hosts.exists():
+            return hosts[0].club.color
+        
+        return default_color
 
     @property
     def club(self):

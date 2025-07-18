@@ -104,6 +104,25 @@ services:
     networks:
       - cluster
 
+  mailhog:
+    image: mailhog/mailhog
+    container_name: 'mailhog'
+    restart: unless-stopped
+    networks:
+      - cluster
+    attach: false
+    user: root
+    volumes:
+      - mailhog-clubs-network:/home/maildir
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    depends_on:
+      - app
+    environment:
+      MH_STORAGE: maildir
+      MH_MAILDIR_PATH: /home/maildir
+
   proxy:
     build:
       context: ./deploy/proxy/
@@ -124,6 +143,7 @@ services:
 volumes:
   postgres-clubs-network:
   static-clubs-network:
+  mailhog-clubs-network:
 
 networks:
   cluster:

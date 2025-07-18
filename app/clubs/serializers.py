@@ -135,6 +135,7 @@ class ClubSerializer(ModelSerializerBase):
             "name",
             "logo",
             "banner",
+            "color",
             "about",
             "founding_year",
             "contact_email",

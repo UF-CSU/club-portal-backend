@@ -58,6 +58,7 @@ class Club(UniqueModel):
     name = models.CharField(max_length=64, unique=True)
     logo = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     banner = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    color = models.CharField(max_length=6, default="0F44CD")
 
     alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     about = models.TextField(blank=True, null=True)

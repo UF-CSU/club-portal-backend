@@ -13,10 +13,17 @@ class EventViewset(ModelViewSetBase):
     queryset = models.Event.objects.all()
     serializer_class = serializers.EventSerializer
 
-    # def get_queryset(self):
+    def get_queryset(self):
 
-    #     user_clubs = list(self.request.user.clubs.values_list("id", flat=True))
-    #     return self.queryset.filter(clubs__id__in=user_clubs).distinct()
+        qs = super().get_queryset()
+
+        all_param = self.request.query_params.get('all')
+
+        if all_param is not None and all_param.lower() in ['true']:
+            return qs
+
+        user_clubs = list(self.request.user.clubs.values_list("id", flat=True))
+        return self.queryset.filter(clubs__id__in=user_clubs).distinct()
 
 
 class EventCancellationViewSet(ModelViewSetBase):
