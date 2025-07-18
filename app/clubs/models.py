@@ -54,12 +54,10 @@ class Club(UniqueModel):
     """Group of users."""
 
     scope = Scope.CLUB
-    get_logo_filepath = UploadFilepathFactory("clubs/logos/")
-    get_banner_filepath = UploadFilepathFactory("clubs/banners/")
 
     name = models.CharField(max_length=64, unique=True)
-    logo = models.ImageField(upload_to=get_logo_filepath, blank=True, null=True)
-    banner = models.ImageField(upload_to=get_banner_filepath, blank=True, null=True)
+    logo = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    banner = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
 
     alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     about = models.TextField(blank=True, null=True)
@@ -163,6 +161,7 @@ class ClubPhoto(ModelBase):
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="photos")
     file = models.ForeignKey(ClubFile, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

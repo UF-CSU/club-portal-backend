@@ -29,8 +29,7 @@ class EventHostSerializer(ModelSerializerBase):
         source="club", read_only=True, slug_field="name"
     )
     club_logo = serializers.ImageField(
-        source="club.logo",
-        read_only=True,
+        source="club.logo", read_only=True, required=False, allow_null=True
     )
 
     class Meta:
@@ -52,6 +51,7 @@ class EventSerializer(ModelSerializerBase):
             "name",
             "description",
             "location",
+            "event_type",
             "start_at",
             "end_at",
             "tags",
