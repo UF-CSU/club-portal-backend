@@ -1,6 +1,5 @@
 from core.abstracts.tests import TestsBase
-from lib.faker import fake
-from polls.models import PollField, PollInputType, PollQuestion, PollTemplate
+from polls.models import PollTemplate
 from polls.services import PollTemplateService
 
 

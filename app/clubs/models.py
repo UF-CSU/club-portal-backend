@@ -26,7 +26,7 @@ from users.models import KeyType, User, UserAgent
 from utils.files import get_file_path
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
-from utils.models import UploadFilepathFactory, UploadNestedClubFilepathFactory
+from utils.models import UploadNestedClubFilepathFactory
 from utils.permissions import get_permission, parse_permissions
 
 
@@ -56,8 +56,12 @@ class Club(UniqueModel):
     scope = Scope.CLUB
 
     name = models.CharField(max_length=64, unique=True)
-    logo = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
-    banner = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    logo = models.ForeignKey(
+        "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    banner = models.ForeignKey(
+        "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
 
     alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     about = models.TextField(blank=True, null=True)
