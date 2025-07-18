@@ -96,21 +96,53 @@ class EventCsvSerializer(CsvModelSerializer):
 
 
 class EventAttendanceCsvSerializer(CsvModelSerializer):
-    event = serializers.SlugRelatedField(
-        slug_field="name",
-        queryset=Event.objects.all(),
-        help_text="Event name",
+    event = None
+    name = serializers.CharField(
+        write_only=True,
+        max_length=128,
+        help_text="Name of event"
+    )
+    start_at = serializers.DateTimeField(
+        write_only=True,
+        help_text="Start datetime of event"
+    )
+    end_at = serializers.DateTimeField(
+        write_only=True,
+        help_text="End datetime of event"
     )
 
-    user = serializers.SlugRelatedField(
-        slug_field="username",
+    user = WritableSlugRelatedField(
+        slug_field="email",
         queryset=User.objects.all(),
-        help_text="Username of attendee",
+        help_text="Email of attendee",
     )
 
     class Meta:
         model = EventAttendance
-        fields = "__all__"
+        exclude = ('event',)
+
+    def validate(self, attrs):
+        name = attrs.get("name")
+        start_at = attrs.get("start_at")
+        end_at = attrs.get("end_at")
+
+        try:
+            event = Event.objects.get(
+                name=name,
+                start_at=start_at,
+                end_at=end_at,
+            )
+        except Event.DoesNotExist:
+            raise serializers.ValidationError("Event with the given name, start_at and end_at does not exist.")
+
+        attrs["event"] = event
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("name", None)
+        validated_data.pop("start_at", None)
+        validated_data.pop("end_at", None)
+        return super().create(validated_data)
 
 
 class EventCancellationSerializer(serializers.ModelSerializer):
