@@ -98,17 +98,13 @@ class EventCsvSerializer(CsvModelSerializer):
 class EventAttendanceCsvSerializer(CsvModelSerializer):
     event = None
     name = serializers.CharField(
-        write_only=True,
-        max_length=128,
-        help_text="Name of event"
+        write_only=True, max_length=128, help_text="Name of event"
     )
     start_at = serializers.DateTimeField(
-        write_only=True,
-        help_text="Start datetime of event"
+        write_only=True, help_text="Start datetime of event"
     )
     end_at = serializers.DateTimeField(
-        write_only=True,
-        help_text="End datetime of event"
+        write_only=True, help_text="End datetime of event"
     )
 
     user = WritableSlugRelatedField(
@@ -119,7 +115,7 @@ class EventAttendanceCsvSerializer(CsvModelSerializer):
 
     class Meta:
         model = EventAttendance
-        exclude = ('event',)
+        exclude = ("event",)
 
     def validate(self, attrs):
         name = attrs.get("name")
@@ -133,7 +129,9 @@ class EventAttendanceCsvSerializer(CsvModelSerializer):
                 end_at=end_at,
             )
         except Event.DoesNotExist:
-            raise serializers.ValidationError("Event with the given name, start_at and end_at does not exist.")
+            raise serializers.ValidationError(
+                "Event with the given name, start_at and end_at does not exist."
+            )
 
         attrs["event"] = event
         return attrs

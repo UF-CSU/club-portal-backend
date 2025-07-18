@@ -41,8 +41,6 @@ class EventType(models.TextChoices):
 class EventTag(Tag):
     """Group together different types of events."""
 
-    pass
-
 
 class EventFields(ModelBase):
     """Common fields for club event models."""
@@ -273,9 +271,10 @@ class Event(EventFields):
         constraints = [
             models.UniqueConstraint(
                 name="unique_event_by_name_and_time",
-                fields=["name", "start_at", "end_at"]
+                fields=["name", "start_at", "end_at"],
             )
         ]
+
 
 class EventHost(ModelBase):
     """Attach clubs to events."""
