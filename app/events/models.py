@@ -267,6 +267,14 @@ class Event(EventFields):
         for club in clubs:
             self.add_host(club)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_event_by_name_and_time",
+                fields=["name", "start_at", "end_at"],
+            )
+        ]
+
 
 class EventHost(ModelBase):
     """Attach clubs to events."""
