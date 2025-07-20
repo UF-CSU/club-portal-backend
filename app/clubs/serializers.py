@@ -121,7 +121,7 @@ class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
     logo = ClubFileNestedSerializer()
-    banner = ClubFileNestedSerializer()
+    banner = ClubFileNestedSerializer(required=False)
     photos = ClubPhotoSerializer(many=True)
     socials = ClubSocialSerializer(many=True)
     tags = ClubTagSerializer(many=True)
@@ -167,18 +167,15 @@ class ClubSerializer(ModelSerializerBase):
                 club.socials.create(**social)
 
         if tags_data:
-            tag_names = [tag['name'] for tag in tags_data]
+            tag_names = [tag["name"] for tag in tags_data]
             tag_objects = ClubTag.objects.filter(name__in=tag_names)
             club.tags.set(tag_objects)
 
         club.photos.all().delete()
         if photos_data:
             for photo in photos_data:
-                club.photos.create(
-                    file_id=photo['file']['id'],
-                    order=photo['order']
-                )
-                
+                club.photos.create(file_id=photo["file"]["id"], order=photo["order"])
+
         return club
 
 
@@ -186,7 +183,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
 
     logo = ClubFileNestedSerializer()
-    banner = ClubFileNestedSerializer()
+    banner = ClubFileNestedSerializer(required=False)
     tags = ClubTagSerializer(many=True, read_only=True)
     socials = ClubSocialSerializer(many=True, read_only=True)
 

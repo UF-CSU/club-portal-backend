@@ -5,7 +5,14 @@ Unit tests for generic model functions, validation, etc.
 from django.core import exceptions
 from rest_framework.authtoken.models import Token
 
-from clubs.models import ClubApiKey, ClubMembership, Team, TeamMembership, TeamRole
+from clubs.models import (
+    Club,
+    ClubApiKey,
+    ClubMembership,
+    Team,
+    TeamMembership,
+    TeamRole,
+)
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import TestsBase
 from users.models import User
@@ -59,6 +66,12 @@ from users.tests.utils import create_test_user
 
 class ClubModelTests(TestsBase):
     """Tests for club models."""
+
+    def test_create_club(self):
+        """Should create club, and set default logo."""
+
+        club = Club.objects.create(name="Test Club")
+        self.assertIsNotNone(club.logo)
 
     def test_one_membership_per_user(self):
         """A user should only be able to have one membership per club."""
