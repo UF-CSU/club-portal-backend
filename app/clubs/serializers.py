@@ -185,6 +185,8 @@ class ClubSerializer(ModelSerializerBase):
 class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
 
+    logo = ClubFileNestedSerializer()
+    banner = ClubFileNestedSerializer()
     tags = ClubTagSerializer(many=True, read_only=True)
     socials = ClubSocialSerializer(many=True, read_only=True)
 
