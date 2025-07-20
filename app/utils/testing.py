@@ -1,4 +1,5 @@
 from unittest.mock import Mock
+
 from PIL import Image
 
 from lib.faker import fake
