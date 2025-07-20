@@ -56,7 +56,7 @@ class Club(UniqueModel):
     scope = Scope.CLUB
 
     name = models.CharField(max_length=64, unique=True)
-    logo = models.ForeignKey(
+    logo: "ClubFile" = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     banner = models.ForeignKey(
@@ -133,7 +133,9 @@ class ClubFile(ModelBase):
     # When uploading a new file, it must be required to set the uploaded_by field
     # for management purposes, but it should be ok to have null values in the database
     # for when a user is deleted, or if a file is generated, etc.
-    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def save(self, *args, **kwargs):
         # Set display name to file name if not set

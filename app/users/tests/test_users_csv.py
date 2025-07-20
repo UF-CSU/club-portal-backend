@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from clubs.models import Club, ClubMembership, ClubRole, Team
 from clubs.tests.utils import create_test_club
@@ -7,6 +7,7 @@ from querycsv.tests.utils import UploadCsvTestsBase
 from users.models import Profile, SocialProfile, User
 from users.serializers import UserCsvSerializer
 from users.tests.utils import create_test_user
+from utils.testing import set_mock_return_image
 
 
 class UserCsvTests(UploadCsvTestsBase):
@@ -124,9 +125,7 @@ class UserCsvTests(UploadCsvTestsBase):
     def test_upload_user_profile_image(self, mock_get):
         """When uploading user csv, should upload profile images."""
 
-        mock_get.return_value = Mock()
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.content = fake.image((300, 300), "png")
+        set_mock_return_image(mock_get)
 
         payload = {
             "email": fake.safe_email(),
@@ -147,9 +146,7 @@ class UserCsvTests(UploadCsvTestsBase):
     def test_upload_user_profile_update_image(self, mock_get):
         """When uploading user csv, should update user profile image."""
 
-        mock_get.return_value = Mock()
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.content = fake.image((300, 300), "png")
+        set_mock_return_image(mock_get)
 
         user = create_test_user()
         c1 = create_test_club(name="Test Club 1")

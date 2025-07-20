@@ -2,6 +2,7 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
+from django.core.files import File
 from django.db import models
 
 from app.settings import MEDIA_ROOT, S3_STORAGE_BACKEND
@@ -71,3 +72,12 @@ def get_file_path(file: models.FileField):
         return file.url
     else:
         return file.path
+
+
+def get_file_from_path(filepath: str):
+    """Get a Django File object from file path."""
+
+    path = Path(filepath)
+    file = File(open(filepath, mode="rb"), name=path.name)
+
+    return file

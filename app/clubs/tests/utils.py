@@ -14,7 +14,7 @@ CLUB_CREATE_PARAMS = {
 CLUB_UPDATE_PARAMS = {"name": "Updated Club"}
 
 
-def create_test_club(name=None, members: Optional[list[User]] = None, **kwargs):
+def create_test_club(name=None, members: Optional[list[User]] = None, **kwargs) -> Club:
     """Create unique club for unit tests."""
     if name is None:
         name = f"Test Club {uuid.uuid4()}"

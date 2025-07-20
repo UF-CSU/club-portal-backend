@@ -297,6 +297,8 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         file_path = create_test_image()
         file_binary = open(file_path, mode="rb").read()
 
+        club_file_count_before = ClubFile.objects.count()
+
         # Test uploading
         payload = {
             "file": SimpleUploadedFile(
@@ -309,7 +311,7 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
 
         data = res.json()
         self.assertStartsWith(data["file"], "http://")
-        self.assertEqual(ClubFile.objects.count(), 1)
+        self.assertEqual(ClubFile.objects.count(), club_file_count_before + 1)
 
         club_file = ClubFile.objects.first()
         dir_path = "/".join(club_file.file.path.split("/")[0:-1])
@@ -322,7 +324,7 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         data = res.json()
 
         self.assertIsInstance(data, list)
-        self.assertLength(data, 1)
+        self.assertLength(data, club_file_count_before + 1)
 
 
 class ClubsApiPermsTests(PublicApiTestsBase):

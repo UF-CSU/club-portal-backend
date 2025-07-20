@@ -1,11 +1,8 @@
-import random
-
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from PIL import Image, ImageDraw
 
 from users.models import Profile, User
-from utils.files import get_media_path
+from utils.images import create_default_icon
 from utils.models import save_file_to_model
 
 
@@ -23,35 +20,14 @@ def on_save_user(sender, instance: User, created=False, **kwargs):
     if instance.profile.image:
         return
 
-    colors = [
-        "#1A73E8",  # (Blue)
-        "#34A853",  # (Green)
-        "#EA4335",  # (Red)
-        "#F9AB00",  # (Amber)
-        "#8E24AA",  # (Purple)
-        "#00ACC1",  # (Teal)
-        "#FF7043",  # (Coral)
-        "#3949AB",  # (Indigo)
-        "#43A047",  # (Dark Green)
-        "#D81B60",  # (Pink)
-    ]
-
-    color = random.choice(colors)
-
-    img = Image.new("RGB", (300, 300), color=color)
-    draw = ImageDraw.Draw(img)
-
     initials = ""
     if instance.profile.name is not None and len(instance.profile.name) > 0:
         initials = "".join([word[0] for word in instance.profile.name.split(" ", 3)])
     else:
         initials = instance.email[0]
 
-    draw.text((150, 150), initials, fill="white", font_size=150, anchor="mm")
-
-    path = get_media_path(
-        "users/images/generated/", fileprefix=instance.id, fileext="png"
+    path = create_default_icon(
+        initials, image_path="users/images/generated/", fileprefix=instance.pk
     )
-    img.save(path)
 
     save_file_to_model(instance.profile, path, field="image")
