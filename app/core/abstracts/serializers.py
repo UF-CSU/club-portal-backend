@@ -386,11 +386,21 @@ class ImageUrlField(serializers.Field):
                 f"Expected url {data} to return 200, but returned {res.status_code}"
             )
 
+        file_type = res.headers["Content-Type"]
+        if not file_type or "/" not in file_type:
+            raise Exception("Invalid file type:", file_type)
+
+        file_type = file_type.split("/")[1]
+
         temp_file = NamedTemporaryFile(delete=True)
         temp_file.write(res.content)
         temp_file.flush()
 
-        name = data.split("/")[-1]
+        name = str(data.split("/")[-1])
+
+        if not name.endswith(file_type):
+            name += f".{file_type}"
+
         file = File(temp_file, name=name)
 
         validators.validate_image_file_extension(file)

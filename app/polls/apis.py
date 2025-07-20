@@ -6,7 +6,9 @@ from polls import viewsets
 router = DefaultRouter()
 router.register("polls", viewsets.PollViewset, basename="poll")
 router.register(
-    r"polls/(?P<poll_id>.+)/submissions", viewsets.PollSubmissionViewSet, basename="pollsubmission"
+    r"polls/(?P<poll_id>.+)/submissions",
+    viewsets.PollSubmissionViewSet,
+    basename="pollsubmission",
 )
 
 app_name = "api-polls"

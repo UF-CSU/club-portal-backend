@@ -5,7 +5,7 @@ Import/upload data tests.
 import json
 import os
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from django.contrib.postgres.aggregates import StringAgg
 from django.db import models
@@ -20,6 +20,7 @@ from querycsv.tests.utils import (
     CsvDataM2OTestsBase,
     UploadCsvTestsBase,
 )
+from utils.testing import set_mock_return_image
 
 
 class UploadCsvTests(UploadCsvTestsBase):
@@ -129,9 +130,7 @@ class UploadCsvTests(UploadCsvTestsBase):
     def test_upload_csv_create_images(self, mock_get):
         """Should download images from url when uploading csv to create objects."""
 
-        mock_get.return_value = Mock()
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.content = fake.image((300, 300), "png")
+        set_mock_return_image(mock_get)
 
         payload = {
             "name": fake.title(),
@@ -151,9 +150,7 @@ class UploadCsvTests(UploadCsvTestsBase):
     def test_upload_csv_update_images(self, mock_get):
         """Should download images from url when updating objects with csv."""
 
-        mock_get.return_value = Mock()
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.content = fake.image((300, 300), "png")
+        set_mock_return_image(mock_get)
 
         default_payload = {
             "name": fake.title(),
