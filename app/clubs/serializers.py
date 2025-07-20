@@ -510,6 +510,37 @@ class ClubCsvSerializer(CsvModelSerializer):
         model = Club
         fields = "__all__"
 
+    # def run_validation(self, data=dict):
+    #     # logo = data.pop("logo", {})
+    #     # print("validation logo:", logo)
+    #     validated = super().run_validation(data)
+    #     print("validated:", validated)
+
+    #     return validated
+
+    def create(self, validated_data):
+        logo = validated_data.pop("logo", None)
+
+        club = super().create(validated_data)
+
+        if logo:
+            file = ClubFile.objects.create(club=club, file=logo)
+            club.logo = file
+            club.save()
+
+        return club
+
+    def update(self, instance, validated_data):
+        logo = validated_data.pop("logo", None)
+        club = super().update(instance, validated_data)
+
+        if logo and not club.logo.display_name == logo.name:
+            file = ClubFile.objects.create(club=club, file=logo)
+            club.logo = file
+            club.save()
+
+        return club
+
 
 class TeamMemberNestedCsvSerializer(CsvModelSerializer):
     """Represents team memberships in csvs."""

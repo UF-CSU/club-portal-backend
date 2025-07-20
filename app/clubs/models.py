@@ -56,7 +56,7 @@ class Club(UniqueModel):
     scope = Scope.CLUB
 
     name = models.CharField(max_length=64, unique=True)
-    logo = models.ForeignKey(
+    logo: "ClubFile" = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     banner = models.ForeignKey(
