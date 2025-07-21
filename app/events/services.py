@@ -27,6 +27,8 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         Will remove all excess events outside of start/end dates,
         and will create events if missing on a certain day.
 
+        Returns a queryset of all events for a recurring event.
+
         Date filter docs:
         https://docs.djangoproject.com/en/dev/ref/models/querysets/#week-day
         """
@@ -51,8 +53,6 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # Sync events for each day
         start = rec_ev.start_date
         end = rec_ev.end_date
-
-        events = []
 
         for day in rec_ev.days:
             # Buffer in first and last date
@@ -81,6 +81,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                     start_at=event_start,
                     end_at=event_end,
                     recurring_event=rec_ev,
+                    defaults=rec_ev.get_event_update_kwargs(),
                 )
 
                 # Sync hosts
@@ -90,15 +91,14 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 if rec_ev.other_clubs.count() > 0:
                     event.add_hosts(*rec_ev.other_clubs.all())
 
-                # Set other fields
-                event.location = rec_ev.location
-                event.event_type = rec_ev.event_type
-                event.is_public = rec_ev.is_public
+                # Sync attachments
+                # TODO: Should admins be allowed to set custom attachments for individual events?
+                rec_ev.refresh_from_db()
+                event.attachments.set(rec_ev.attachments.all())
 
                 event.save()
-                events.append(event)
 
-        return events
+        return rec_ev.events.all()
 
 
 class EventService(ServiceBase[Event]):

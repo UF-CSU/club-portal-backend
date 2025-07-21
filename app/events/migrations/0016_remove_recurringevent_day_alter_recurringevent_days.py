@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("events", "0015_set_recurring_event_days"),
+        ("events", "0015_manual_set_recurring_event_days"),
     ]
 
     operations = [

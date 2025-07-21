@@ -5,7 +5,6 @@ Event models.
 from datetime import date, time
 from typing import ClassVar, Optional
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -18,6 +17,7 @@ from clubs.models import Club, ClubFile
 from core.abstracts.models import ManagerBase, ModelBase, Scope, Tag
 from users.models import User
 from utils.dates import get_day_count
+from utils.models import ChoiceArrayField
 
 
 class DayChoice(models.IntegerChoices):
@@ -52,8 +52,12 @@ class EventFields(ModelBase):
 
     name = models.CharField(max_length=128)
     event_type = models.CharField(choices=EventType.choices, default=EventType.OTHER)
-
+    description = models.TextField(null=True, blank=True)
     location = models.CharField(null=True, blank=True, max_length=255)
+
+    attachments = models.ManyToManyField(
+        ClubFile, blank=True, related_name="%(class)ss"
+    )
 
     class Meta:
         abstract = True
@@ -71,8 +75,8 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
         club: Optional[Club] = None,
         **kwargs,
     ):
-        attachments = kwargs.pop("attachments", None)
-        other_clubs = kwargs.pop("other_clubs", None)
+        attachments = kwargs.pop("attachments", [])
+        other_clubs = kwargs.pop("other_clubs", [])
 
         rec_ev = super().create(
             name=name,
@@ -83,11 +87,13 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
             **kwargs,
         )
 
-        if other_clubs:
-            rec_ev.other_clubs.set(other_clubs)
+        rec_ev.other_clubs.set(other_clubs)
+        rec_ev.attachments.set(attachments)
 
-        if attachments:
-            rec_ev.attachments.set(attachments)
+        # Update events since already created from signal
+        for event in rec_ev.events.all():
+            event.attachments.set(attachments)
+            event.clubs.add(*[club.id for club in list(other_clubs)])
 
         return rec_ev
 
@@ -113,11 +119,8 @@ class RecurringEvent(EventFields):
         null=True,
         blank=True,
     )
-    description = models.TextField(null=True, blank=True)
 
-    # day = models.IntegerField(choices=DayChoice.choices)
-    # days = models.CharField(validators=[RegexValidator(r'^[0-6](,[0-6])*$')])
-    days = ArrayField(models.IntegerField(choices=DayChoice.choices))
+    days = ChoiceArrayField(models.IntegerField(choices=DayChoice.choices))
     event_start_time = models.TimeField(
         blank=True,
         help_text="Each event will start at this time",
@@ -140,9 +143,9 @@ class RecurringEvent(EventFields):
         Club, blank=True, help_text="These clubs host the events as secondary hosts."
     )
 
-    attachments = models.ManyToManyField(
-        ClubFile, blank=True, related_name="recurring_events"
-    )
+    # attachments = models.ManyToManyField(
+    #     ClubFile, blank=True, related_name="recurring_events"
+    # )
 
     # Relationships
     events: models.QuerySet["Event"]
@@ -163,6 +166,16 @@ class RecurringEvent(EventFields):
 
     # Overrides
     objects: ClassVar[RecurringEventManager] = RecurringEventManager()
+
+    def get_event_update_kwargs(self):
+        """Get fields/values to update each event with."""
+
+        return {
+            "location": self.location,
+            "event_type": self.event_type,
+            "is_public": self.is_public,
+            "description": self.description,
+        }
 
 
 class EventManager(ManagerBase["Event"]):
@@ -212,8 +225,8 @@ class Event(EventFields):
 
     tags = models.ManyToManyField(EventTag, blank=True)
 
-    attachments_override = models.ManyToManyField(ClubFile, blank=True)
-    description_override = models.TextField(null=True, blank=True)
+    # attachments_override = models.ManyToManyField(ClubFile, blank=True, editable=False)
+    # description_override = models.TextField(null=True, blank=True, editable=False)
     is_draft = models.BooleanField(default=False)
     is_public = models.BooleanField(default=True)
     make_public_at = models.DateTimeField(null=True, blank=True)
@@ -227,24 +240,24 @@ class Event(EventFields):
     hosts: models.QuerySet["EventHost"]
 
     # Dynamic Properties
-    @property
-    def description(self):
-        return self.description_override or self.recurring_event.description
+    # @property
+    # def description(self):
+    #     return self.description_override or self.recurring_event.description
 
-    @description.setter
-    def description(self, value):
-        self.description_override = value
+    # @description.setter
+    # def description(self, value):
+    #     self.description_override = value
 
-    @property
-    def attachments(self):
-        if self.attachments_override.count() > 0:
-            return self.attachments_override
-        else:
-            return self.recurring_event.attachments
+    # @property
+    # def attachments(self):
+    #     if self.attachments_override.count() > 0:
+    #         return self.attachments_override
+    #     else:
+    #         return self.recurring_event.attachments
 
-    @attachments.setter
-    def attachments(self, value):
-        self.attachments_override = value
+    # @attachments.setter
+    # def attachments(self, value):
+    #     self.attachments_override = value
 
     @property
     def primary_club(self):

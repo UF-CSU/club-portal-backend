@@ -101,6 +101,7 @@ class RecurringEventTests(TestsBase):
         rec = RecurringEvent.objects.create(**payload)
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
         self.assertEqual(rec.expected_event_count, EXPECTED_EV_COUNT)
+        self.assertEqual(rec.attachments.count(), len(files))
         self.assertEqual(ClubFile.objects.count(), club_files_count_before)
 
         for i, event in enumerate(list(Event.objects.all().order_by("start_at"))):
@@ -129,6 +130,8 @@ class RecurringEventTests(TestsBase):
             self.assertEqual(event.start_at.day, expected_day)
             self.assertEqual(event.attachments.count(), len(files))
             self.assertEqual(event.attachments.first().pk, files[0].pk)
+            self.assertEqual(event.clubs.count(), rec.other_clubs.all().count() + 1)
+            self.assertEqual(event.club.id, rec.club.id)
 
         Event.objects.all().delete()
         self.assertEqual(Event.objects.count(), 0)
