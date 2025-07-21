@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Optional, Type
 
@@ -6,10 +7,12 @@ from django.core import mail
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
+from django_celery_beat.models import PeriodicTask
 from rest_framework import serializers, status
 from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
 
+from core.abstracts.schedules import run_func
 from users.tests.utils import create_test_adminuser
 
 
@@ -218,3 +221,41 @@ class EmailTestsBase(TestsBase):
                     body = "\n".join(bodies)
 
             self.assertIn(substring, body)
+
+
+class PeriodicTaskTestsBase(TestsBase):
+    """Utilities for testing celery periodic tasks."""
+
+    def mock_apply_sharedtask(self, fn: callable, args=None, kwargs=None):
+        """Run a function with decorator @shared_task immediately, return output."""
+
+        return fn.apply(args=args, kwargs=kwargs).get()
+
+    def run_clocked_func(self, task: Optional[PeriodicTask] = None, check_params=None):
+        """Run periodic task."""
+
+        check_params = check_params or None
+
+        if not task:
+            task = PeriodicTask.objects.first()
+
+            if task is None:
+                self.fail("No task to run.")
+
+        self.mock_apply_sharedtask(
+            run_func, args=json.loads(task.args), kwargs=json.loads(task.kwargs)
+        )
+
+    def assertPeriodicTaskKwargs(self, task: PeriodicTask, expected_kwargs: dict):
+        kwargs = json.loads(task.kwargs)
+        check_payload = {
+            "max_runs": 1,
+            **(expected_kwargs or {}),
+        }
+
+        for key, value in check_payload.items():
+            self.assertEqual(
+                kwargs[key],
+                value,
+                f"Expected kwargs[{key}] to be {value}, but got {kwargs[key]}.",
+            )

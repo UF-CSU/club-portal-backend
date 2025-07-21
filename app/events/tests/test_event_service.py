@@ -5,17 +5,41 @@ Unit tests for Event business logic.
 import datetime
 
 from django.utils import timezone
+from django_celery_beat.models import PeriodicTask
 
 from clubs.models import ClubFile
 from clubs.tests.utils import create_test_club, create_test_clubfile, create_test_clubs
-from core.abstracts.tests import TestsBase
+from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from events.models import DayChoice, Event, RecurringEvent
 from events.services import RecurringEventService
+from events.tests.utils import create_test_event
 from lib.faker import fake
 
 
-class ClubEventTests(TestsBase):
-    """Unit tests for club events."""
+class EventServiceTests(PeriodicTaskTestsBase):
+    """Unit tests for events business logic."""
+
+    def test_make_public_at(self):
+        """Should set event as public at given date."""
+
+        pt_before = PeriodicTask.objects.count()
+
+        event = create_test_event()
+        event.is_public = False
+        event.make_public_at = timezone.now() + timezone.timedelta(days=1)
+        event.save()
+
+        self.assertEqual(PeriodicTask.objects.count(), pt_before + 1)
+
+        event.refresh_from_db()
+        self.run_clocked_func(event.make_public_task)
+
+        event.refresh_from_db()
+        self.assertTrue(event.is_public)
+
+
+class RecurringEventTests(TestsBase):
+    """Unit tests for recurring events business logic."""
 
     def test_create_recurring_event(self):
         """

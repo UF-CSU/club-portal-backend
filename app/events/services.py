@@ -7,6 +7,7 @@ from django.db import models
 from django.urls import reverse
 
 from clubs.models import Club
+from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from events.models import Event, EventAttendance, EventAttendanceLink, RecurringEvent
 from users.models import User
@@ -92,6 +93,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 # Set other fields
                 event.location = rec_ev.location
                 event.event_type = rec_ev.event_type
+                event.is_public = rec_ev.is_public
 
                 event.save()
                 events.append(event)
@@ -234,3 +236,26 @@ class EventService(ServiceBase[Event]):
         buffer = io.BytesIO(cal.to_ical())
         buffer.seek(0)
         return buffer
+
+    def schedule_make_public_task(self):
+        """Create new periodic task to set event to public."""
+
+        task = schedule_clocked_func(
+            name=f"Make {self.obj.name} public",
+            due_at=self.obj.make_public_at,
+            func=make_event_public,
+            kwargs={"event_id": self.obj.pk},
+        )
+
+        self.obj.make_public_task = task
+        self.obj.save()
+
+        return task
+
+
+def make_event_public(event_id: int):
+    """Function called when making an event public."""
+    event = Event.objects.get(id=event_id)
+
+    event.is_public = True
+    event.save()

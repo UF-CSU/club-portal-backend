@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
+from django_celery_beat.models import PeriodicTask
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile
@@ -131,6 +132,7 @@ class RecurringEvent(EventFields):
     start_date = models.DateField(help_text="Date of the first occurance of this event")
     # TODO: Allow no end date
     end_date = models.DateField(help_text="Date of the last occurance of this event")
+    is_public = models.BooleanField(default=True)
 
     # TODO: add skip_dates field
 
@@ -212,6 +214,12 @@ class Event(EventFields):
 
     attachments_override = models.ManyToManyField(ClubFile, blank=True)
     description_override = models.TextField(null=True, blank=True)
+    is_draft = models.BooleanField(default=False)
+    is_public = models.BooleanField(default=True)
+    make_public_at = models.DateTimeField(null=True, blank=True)
+    make_public_task = models.ForeignKey(
+        PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
+    )
 
     # Foreign Relationships
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
