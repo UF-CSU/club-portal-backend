@@ -72,6 +72,8 @@ FILE_DOC_TPL = """/**
 """
 
 INTERFACE_NAME_TPL = "I%s"
+CREATE_INTERFACE_NAME_TPL = "I%sCreate"
+UPDATE_INTERFACE_NAME_TPL = "I%sUpdate"
 
 INTERFACE_TPL = """
 /**
@@ -86,7 +88,7 @@ CREATE_INTERFACE_TPL = """
  *
  * @see {@link %(name)s}
  */
-declare interface %(name)sCreate {
+declare interface %(name)s {
 """
 
 UPDATE_INTERFACE_TPL = """
@@ -95,7 +97,7 @@ UPDATE_INTERFACE_TPL = """
  *
  * @see {@link %(name)s}
  */
-declare interface %(name)sUpdate {
+declare interface %(name)s {
 """
 
 FIELD_TPL = TAB + "%(property)s: %(type)s;\n"
@@ -354,6 +356,7 @@ class TypeGenerator:
         # Flags
         force_optional = False
         ignore_nonnull = False
+        # nested = False
 
         match mode:
             case "read":
@@ -364,7 +367,11 @@ class TypeGenerator:
             case "update":
                 ignore_nonnull = True
                 force_optional = True
-                ignore_fields += serializer.readonly_fields
+                ignore_fields += [
+                    field
+                    for field in serializer.readonly_fields
+                    if (field != getattr(serializer, "pk_field", None))
+                ]
 
         gen_prop = self._props_factory(
             # all_fields,
@@ -381,8 +388,12 @@ class TypeGenerator:
         ):
             # Only show pk as readonly if top level, and/or in read mode
             readonly = indent_level == 0 or indent_level > 0 and mode == "read"
+            required = mode != "create"
             field_prop = gen_prop(
-                serializer.pk_field, readonly=readonly, doc="Primary key"
+                serializer.pk_field,
+                readonly=readonly,
+                doc="Primary key",
+                required=required,
             )
             properties.append(field_prop)
             ignore_fields.append(serializer.pk_field)  # No on else should handle it
@@ -450,10 +461,17 @@ class TypeGenerator:
                 serializer_field = type(field)
 
                 if field not in self.serializer_interfaces_map.keys():
-                    doc = self._generate_interface(serializer_field, mode="read")
+                    nested_mode = (
+                        mode
+                        if type(field) not in self.readonly_serializer_classes
+                        else "read"
+                    )
+                    doc = self._generate_interface(serializer_field, mode=nested_mode)
                     self.other_interfaces.append(doc)
 
-                field_type = self.serializer_interfaces_map[serializer_field]
+                field_type = self.serializer_interfaces_map[
+                    f"{serializer_field}_{nested_mode}"
+                ]
                 field_prop = gen_prop(
                     field_name,
                     prop_type=field_type,
@@ -475,11 +493,12 @@ class TypeGenerator:
 
             if field_name in serializer.required_fields and not force_optional:
                 properties.append(indent + TAB + "%s: {\n" % (field_name,))
+                properties += nested_properties
+                properties.append(indent + TAB + "}\n")
             else:
                 properties.append(indent + TAB + "%s?: {\n" % (field_name,))
-
-            properties += nested_properties
-            properties.append(indent + TAB + "}\n")
+                properties += nested_properties
+                properties.append(indent + TAB + "} | null\n")
 
         # Generate nested list fields
         for field_name in serializer.many_nested_fields:
@@ -494,11 +513,18 @@ class TypeGenerator:
             ]:
                 serializer_field = type(field)
 
-                if field not in self.serializer_interfaces_map.keys():
-                    doc = self._generate_interface(serializer_field, mode="read")
+                if f"{field}_{mode}" not in self.serializer_interfaces_map.keys():
+                    nested_mode = (
+                        mode
+                        if type(field) not in self.readonly_serializer_classes
+                        else "read"
+                    )
+                    doc = self._generate_interface(serializer_field, mode=nested_mode)
                     self.other_interfaces.append(doc)
 
-                field_type = self.serializer_interfaces_map[serializer_field]
+                field_type = self.serializer_interfaces_map[
+                    f"{serializer_field}_{nested_mode}"
+                ]
                 field_prop = gen_prop(
                     field_name,
                     prop_type=field_type + "[]",
@@ -509,9 +535,7 @@ class TypeGenerator:
                 continue
 
             nested_properties = self._generate_props(
-                field,
-                mode=mode,
-                indent_level=indent_level + 1,
+                field, mode=mode, indent_level=indent_level + 1
             )
 
             # Skip fields with no properties
@@ -576,30 +600,38 @@ class TypeGenerator:
 
         serializer = serializer_class()
         model_name = serializer_class.__name__.replace("Serializer", "")
-        interface_name = INTERFACE_NAME_TPL % (model_name,)
-        model_article = self._get_model_article(interface_name)
+        interface_name = None
         idoc = ""
-
-        self.serializer_interfaces_map[serializer_class] = interface_name
 
         match mode:
             case "read":
+                interface_name = INTERFACE_NAME_TPL % (model_name)
+                model_article = self._get_model_article(interface_name)
+
                 idoc = INTERFACE_TPL % {
                     "doc": serializer.__doc__,
                     "name": interface_name,
                 }
             case "create":
+                interface_name = CREATE_INTERFACE_NAME_TPL % (model_name)
+                model_article = self._get_model_article(interface_name)
+
                 idoc = CREATE_INTERFACE_TPL % {
                     "article": model_article,
                     "name": interface_name,
                 }
             case "update":
+                interface_name = UPDATE_INTERFACE_NAME_TPL % (model_name)
+                model_article = self._get_model_article(interface_name)
+
                 idoc = UPDATE_INTERFACE_TPL % {
                     "article": model_article,
                     "name": interface_name,
                 }
             case _:
                 raise Exception(f"Unknown mode: {mode}")
+
+        self.serializer_interfaces_map[f"{serializer_class}_{mode}"] = interface_name
 
         properties = self._generate_props(serializer, mode=mode)
 

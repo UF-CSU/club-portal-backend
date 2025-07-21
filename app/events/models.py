@@ -48,7 +48,9 @@ class EventFields(ModelBase):
     """Common fields for club event models."""
 
     name = models.CharField(max_length=128)
-    event_type = models.CharField(choices=EventType.choices, default=EventType.OTHER)
+    event_type = models.CharField(
+        choices=EventType.choices, default=EventType.OTHER, blank=True
+    )
     description = models.TextField(null=True, blank=True)
     location = models.CharField(null=True, blank=True, max_length=255)
 

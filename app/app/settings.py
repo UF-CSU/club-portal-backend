@@ -60,12 +60,6 @@ CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:5173")
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
     "rest_framework.authtoken",
@@ -79,6 +73,12 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.github",
     "core",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     "users",
     "users.authentication",
     "querycsv",

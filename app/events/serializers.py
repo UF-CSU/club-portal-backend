@@ -34,13 +34,19 @@ class EventHostSerializer(ModelSerializerBase):
 
     class Meta:
         model = EventHost
-        fields = ["club_id", "club_name", "club_logo", "is_primary"]
+        fields = ["id", "club_id", "club_name", "club_logo", "is_primary"]
+        read_only_fields = [
+            "id",
+            "club_name",
+            "club_logo",
+        ]
+        # required_fields_update = ["id"]
 
 
 class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
-    hosts = EventHostSerializer(many=True)
+    hosts = EventHostSerializer(many=True, required=False)
     all_day = serializers.BooleanField(read_only=True)
     tags = EventTagSerializer(many=True, required=False)
 
@@ -67,8 +73,9 @@ class EventSerializer(ModelSerializerBase):
         event = Event.objects.create(**validated_data)
 
         for host in hosts_data:
+
             EventHost.objects.create(
-                event=event, club=host["club"], primary=host.get("primary", False)
+                event=event, club=host["club"], is_primary=host.get("is_primary", False)
             )
 
         return event

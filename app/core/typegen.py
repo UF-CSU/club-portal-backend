@@ -26,6 +26,7 @@ SERIALIZERS_CREATE_READ_UPDATE = [
     TeamSerializer,
     TeamMembershipSerializer,
     EventSerializer,
+    EventHostSerializer,
     UserSerializer,
     PollSerializer,
 ]
@@ -43,7 +44,6 @@ SERIALIZERS_READONLY = [
     SocialProviderSerializer,
     ClubSocialSerializer,
     ClubPhotoSerializer,
-    EventHostSerializer,
     EventTagSerializer,
 ]
 """
