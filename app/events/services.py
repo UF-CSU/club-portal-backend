@@ -32,6 +32,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         Date filter docs:
         https://docs.djangoproject.com/en/dev/ref/models/querysets/#week-day
         """
+        self.obj.refresh_from_db()
         rec_ev = self.obj
 
         # Remove extra events

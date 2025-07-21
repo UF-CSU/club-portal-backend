@@ -162,3 +162,74 @@ class RecurringEventTests(TestsBase):
         self.assertEqual(ev.end_at.weekday(), 0)
         self.assertEqual(ev.end_at.hour, 23)
         self.assertEqual(ev.end_at.minute, 59)
+
+    def test_event_name_conflicts(self):
+        """Recurring events should add event even if name/times exist."""
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            days=[DayChoice.MONDAY, DayChoice.WEDNESDAY],
+            start_date=timezone.datetime(2025, 3, 16),
+            end_date=timezone.datetime(2025, 4, 16),
+        )
+        service = RecurringEventService(rec)
+
+        # Detach event from recurring event
+        event_1 = rec.events.order_by("start_at").first()
+        event_1.recurring_event = None
+        event_1.save()
+
+        # Sync events
+        events_count_before = Event.objects.count()
+        service.sync_events()
+
+        # Check old event
+        self.assertIsNone(event_1.recurring_event)
+        self.assertEqual(Event.objects.count(), events_count_before + 1)
+
+        # Check that new event created has proper name
+        event_2 = rec.events.order_by("start_at").first()
+
+        self.assertDatesEqual(event_2.start_at, rec.start_date, skip=["day", "month"])
+        self.assertDatesEqual(event_2.end_at, rec.end_date, skip=["day", "month"])
+        self.assertEqual(event_2.description, rec.description)
+        self.assertEqual(event_2.name, f"{rec.name} 1")
+
+        # Check for multiple duplicated objects
+        event_2.recurring_event = None
+        event_2.save()
+        service.sync_events()
+        event_3 = rec.events.order_by("start_at").first()
+
+        self.assertDatesEqual(event_3.start_at, rec.start_date, skip=["day", "month"])
+        self.assertDatesEqual(event_3.end_at, rec.end_date, skip=["day", "month"])
+        self.assertEqual(event_3.description, rec.description)
+        self.assertEqual(event_3.name, f"{rec.name} 2")
+
+    def test_delete_extra_events(self):
+        """Should delete extra events."""
+
+        # 2 Mondays, 2 Wednesdays between 7/20/25 - 8/2/25
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            days=[DayChoice.MONDAY, DayChoice.WEDNESDAY],
+            start_date=timezone.datetime(2025, 7, 20),
+            end_date=timezone.datetime(2025, 8, 2),
+        )
+        service = RecurringEventService(rec)
+
+        expected_count_before = rec.expected_event_count
+        self.assertEqual(expected_count_before, 4)
+        self.assertEqual(Event.objects.count(), expected_count_before)
+
+        rec.days = [DayChoice.MONDAY]
+        rec.save()
+        rec.refresh_from_db()
+
+        service.sync_events()
+
+        expected_count_after = rec.expected_event_count
+        self.assertEqual(expected_count_after, 2)
+        self.assertEqual(Event.objects.count(), expected_count_after)

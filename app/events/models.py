@@ -7,7 +7,6 @@ from typing import ClassVar, Optional
 
 from django.db import models
 from django.utils import timezone
-from django.utils.functional import cached_property
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
@@ -151,7 +150,7 @@ class RecurringEvent(EventFields):
     events: models.QuerySet["Event"]
 
     # Dynamic properties & methods
-    @cached_property
+    @property
     def expected_event_count(self):
         return sum(
             [get_day_count(self.start_date, self.end_date, day) for day in self.days]
@@ -292,6 +291,21 @@ class Event(EventFields):
             return super().__str__() + f' ({self.start_at.strftime("%a %m/%d")})'
 
         return super().__str__()
+
+    def full_clean(self, *args, **kwargs):
+        # If creating event, ensure no name clashes
+        if self.pk is None and Event.objects.filter(
+            name=self.name, start_at=self.start_at, end_at=self.end_at
+        ):
+            # Account for multiple duplicate events
+            index = 1
+            while Event.objects.filter(
+                name=f"{self.name} {index}", start_at=self.start_at, end_at=self.end_at
+            ).exists():
+                index += 1
+
+            self.name = f"{self.name} {index}"
+        return super().full_clean(*args, **kwargs)
 
     # Methods
     def add_host(self, club: Club, is_primary=False, commit=True):
