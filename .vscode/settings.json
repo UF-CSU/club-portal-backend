@@ -30,6 +30,11 @@
       "name": "drf_spectacular",
       "depth": 3,
       "includeAllSymbols": true
+    },
+    {
+      "name": "django_celery_beat",
+      "depth": 3,
+      "includeAllSymbols": true
     }
   ],
   "[python]": {

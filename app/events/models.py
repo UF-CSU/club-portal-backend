@@ -9,12 +9,14 @@ from django.db import models
 from django.utils import timezone
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
+from django_celery_beat.models import PeriodicTask
 
 from analytics.models import Link
-from clubs.models import Club
+from clubs.models import Club, ClubFile
 from core.abstracts.models import ManagerBase, ModelBase, Scope, Tag
 from users.models import User
 from utils.dates import get_day_count
+from utils.models import ChoiceArrayField
 
 
 class DayChoice(models.IntegerChoices):
@@ -46,10 +48,13 @@ class EventFields(ModelBase):
     """Common fields for club event models."""
 
     name = models.CharField(max_length=128)
-    description = models.TextField(null=True, blank=True)
     event_type = models.CharField(choices=EventType.choices, default=EventType.OTHER)
-
+    description = models.TextField(null=True, blank=True)
     location = models.CharField(null=True, blank=True, max_length=255)
+
+    attachments = models.ManyToManyField(
+        ClubFile, blank=True, related_name="%(class)ss"
+    )
 
     class Meta:
         abstract = True
@@ -61,25 +66,31 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
     def create(
         self,
         name: str,
-        day: DayChoice,
+        days: list[DayChoice],
         start_date: date,
-        end_date: Optional[date] = None,
+        end_date: date,
         club: Optional[Club] = None,
-        other_clubs: Optional[list[Club]] = None,
         **kwargs,
     ):
+        attachments = kwargs.pop("attachments", [])
+        other_clubs = kwargs.pop("other_clubs", [])
+
         rec_ev = super().create(
             name=name,
-            day=day,
+            days=days,
             start_date=start_date,
             end_date=end_date,
             club=club,
             **kwargs,
         )
 
-        if other_clubs:
-            rec_ev.other_clubs.set(other_clubs)
-            rec_ev.save()
+        rec_ev.other_clubs.set(other_clubs)
+        rec_ev.attachments.set(attachments)
+
+        # Update events since already created from signal
+        for event in rec_ev.events.all():
+            event.attachments.set(attachments)
+            event.clubs.add(*[club.id for club in list(other_clubs)])
 
         return rec_ev
 
@@ -106,7 +117,7 @@ class RecurringEvent(EventFields):
         blank=True,
     )
 
-    day = models.IntegerField(choices=DayChoice.choices)
+    days = ChoiceArrayField(models.IntegerField(choices=DayChoice.choices))
     event_start_time = models.TimeField(
         blank=True,
         help_text="Each event will start at this time",
@@ -119,14 +130,19 @@ class RecurringEvent(EventFields):
     )
 
     start_date = models.DateField(help_text="Date of the first occurance of this event")
-    end_date = models.DateField(
-        null=True, blank=True, help_text="Date of the last occurance of this event"
-    )
+    # TODO: Allow no end date
+    end_date = models.DateField(help_text="Date of the last occurance of this event")
+    is_public = models.BooleanField(default=True)
+
     # TODO: add skip_dates field
 
     other_clubs = models.ManyToManyField(
         Club, blank=True, help_text="These clubs host the events as secondary hosts."
     )
+
+    # attachments = models.ManyToManyField(
+    #     ClubFile, blank=True, related_name="recurring_events"
+    # )
 
     # Relationships
     events: models.QuerySet["Event"]
@@ -134,13 +150,9 @@ class RecurringEvent(EventFields):
     # Dynamic properties & methods
     @property
     def expected_event_count(self):
-        # TODO: How to handle no end date?
-        if self.end_date is None:
-            end_date = timezone.now()
-        else:
-            end_date = self.end_date
-
-        return get_day_count(self.start_date, end_date, self.day)
+        return sum(
+            [get_day_count(self.start_date, self.end_date, day) for day in self.days]
+        )
 
     @property
     def all_day(self):
@@ -151,6 +163,16 @@ class RecurringEvent(EventFields):
 
     # Overrides
     objects: ClassVar[RecurringEventManager] = RecurringEventManager()
+
+    def get_event_update_kwargs(self):
+        """Get fields/values to update each event with."""
+
+        return {
+            "location": self.location,
+            "event_type": self.event_type,
+            "is_public": self.is_public,
+            "description": self.description,
+        }
 
 
 class EventManager(ManagerBase["Event"]):
@@ -200,10 +222,39 @@ class Event(EventFields):
 
     tags = models.ManyToManyField(EventTag, blank=True)
 
+    # attachments_override = models.ManyToManyField(ClubFile, blank=True, editable=False)
+    # description_override = models.TextField(null=True, blank=True, editable=False)
+    is_draft = models.BooleanField(default=False)
+    is_public = models.BooleanField(default=True)
+    make_public_at = models.DateTimeField(null=True, blank=True)
+    make_public_task = models.ForeignKey(
+        PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
+    )
+
     # Foreign Relationships
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
     attendance_links: models.QuerySet["EventAttendanceLink"]
     hosts: models.QuerySet["EventHost"]
+
+    # Dynamic Properties
+    # @property
+    # def description(self):
+    #     return self.description_override or self.recurring_event.description
+
+    # @description.setter
+    # def description(self, value):
+    #     self.description_override = value
+
+    # @property
+    # def attachments(self):
+    #     if self.attachments_override.count() > 0:
+    #         return self.attachments_override
+    #     else:
+    #         return self.recurring_event.attachments
+
+    # @attachments.setter
+    # def attachments(self, value):
+    #     self.attachments_override = value
 
     @property
     def primary_club(self):
@@ -238,6 +289,21 @@ class Event(EventFields):
             return super().__str__() + f' ({self.start_at.strftime("%a %m/%d")})'
 
         return super().__str__()
+
+    def full_clean(self, *args, **kwargs):
+        # If creating event, ensure no name clashes
+        if self.pk is None and Event.objects.filter(
+            name=self.name, start_at=self.start_at, end_at=self.end_at
+        ):
+            # Account for multiple duplicate events
+            index = 1
+            while Event.objects.filter(
+                name=f"{self.name} {index}", start_at=self.start_at, end_at=self.end_at
+            ).exists():
+                index += 1
+
+            self.name = f"{self.name} {index}"
+        return super().full_clean(*args, **kwargs)
 
     # Methods
     def add_host(self, club: Club, is_primary=False, commit=True):

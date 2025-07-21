@@ -417,6 +417,7 @@ if DEBUG:
 if TESTING:
     # Ensure tasks execute immediately
     CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_ALWAYS_EAGER = True
 
     # Force disable notifications
     EMAIL_HOST_PASSWORD = None

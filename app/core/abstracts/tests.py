@@ -1,15 +1,19 @@
+import datetime
+import json
 import os
-from typing import Optional, Type
+from typing import Literal, Optional, Type
 
 from django import forms
 from django.core import mail
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
+from django_celery_beat.models import PeriodicTask
 from rest_framework import serializers, status
 from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
 
+from core.abstracts.schedules import run_func
 from users.tests.utils import create_test_adminuser
 
 
@@ -69,6 +73,61 @@ class TestsBase(TestCase):
             list2.sort()
 
         return super().assertListEqual(list1, list2, msg)
+
+    def assertDatesEqual(
+        self,
+        date1: datetime.date | datetime.datetime,
+        date2: datetime.date | datetime.datetime,
+        skip: Optional[
+            list[Literal["year", "month", "day", "hour", "minute", "second"]]
+        ] = None,
+    ):
+        """
+        Two dates should have the same year/month/day,
+        and the same hour/min/sec if they are both `datetime` objects.
+        """
+        skip = skip or []
+        if "year" not in skip:
+            self.assertEqual(
+                date1.year,
+                date2.year,
+                msg=f"Years do not match, {date1.year} != {date2.year}",
+            )
+
+        if "month" not in skip:
+            self.assertEqual(
+                date1.month,
+                date2.month,
+                msg=f"Months do not match, {date1.month} != {date2.month}",
+            )
+        if "day" not in skip:
+            self.assertEqual(
+                date1.day,
+                date2.day,
+                msg=f"Days do not match, {date1.day} != {date2.day}",
+            )
+
+        if isinstance(date1, datetime.datetime) and isinstance(
+            date2, datetime.datetime
+        ):
+            if "hour" not in skip:
+                self.assertEqual(
+                    date1.hour,
+                    date2.hour,
+                    msg=f"Hours do not match, {date1.hour} != {date2.hour}",
+                )
+            if "minute" not in skip:
+                self.assertEqual(
+                    date1.minute,
+                    date2.minute,
+                    msg=f"Minutes do not match, {date1.minute} != {date2.minute}",
+                )
+            if "second" not in skip:
+                self.assertEqual(
+                    date1.second,
+                    date2.second,
+                    msg=f"Seconds do not match, {date1.second} != {date2.second}",
+                )
 
 
 class PublicApiTestsBase(TestsBase):
@@ -218,3 +277,41 @@ class EmailTestsBase(TestsBase):
                     body = "\n".join(bodies)
 
             self.assertIn(substring, body)
+
+
+class PeriodicTaskTestsBase(TestsBase):
+    """Utilities for testing celery periodic tasks."""
+
+    def mock_apply_sharedtask(self, fn: callable, args=None, kwargs=None):
+        """Run a function with decorator @shared_task immediately, return output."""
+
+        return fn.apply(args=args, kwargs=kwargs).get()
+
+    def run_clocked_func(self, task: Optional[PeriodicTask] = None, check_params=None):
+        """Run periodic task."""
+
+        check_params = check_params or None
+
+        if not task:
+            task = PeriodicTask.objects.first()
+
+            if task is None:
+                self.fail("No task to run.")
+
+        self.mock_apply_sharedtask(
+            run_func, args=json.loads(task.args), kwargs=json.loads(task.kwargs)
+        )
+
+    def assertPeriodicTaskKwargs(self, task: PeriodicTask, expected_kwargs: dict):
+        kwargs = json.loads(task.kwargs)
+        check_payload = {
+            "max_runs": 1,
+            **(expected_kwargs or {}),
+        }
+
+        for key, value in check_payload.items():
+            self.assertEqual(
+                kwargs[key],
+                value,
+                f"Expected kwargs[{key}] to be {value}, but got {kwargs[key]}.",
+            )

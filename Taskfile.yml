@@ -159,6 +159,11 @@ tasks:
     cmds:
       - docker-compose --profile slim down --remove-orphans -v
 
+  coverage:
+    desc: 'Just start the coverage nginx server'
+    cmds:
+      - docker-compose up coverage -d
+
   ###################################
   # Sphinx Docs
   ###################################
