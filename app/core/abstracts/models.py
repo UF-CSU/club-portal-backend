@@ -278,6 +278,3 @@ class SocialProfileBase(ModelBase):
             self.social_type = SocialType.OTHER
 
         return super().save(*args, **kwargs)
-    
-    
-
