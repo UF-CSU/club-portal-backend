@@ -106,6 +106,10 @@ class ManagerBase(models.Manager, Generic[T]):
     def update_or_create(
         self, defaults: MutableMapping[str, Any] | None = None, **kwargs
     ) -> tuple[T, bool]:
+        """
+        Use kwargs as lookup values, and update with defaults if exists
+        or create with lookups and defaults otherwise.
+        """
         return super(ManagerBase, self).update_or_create(defaults, **kwargs)
 
     def all(self) -> models.QuerySet[T]:

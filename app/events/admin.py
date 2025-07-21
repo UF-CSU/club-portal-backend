@@ -18,7 +18,7 @@ class RecurringEventAdmin(admin.ModelAdmin):
 
     list_display = (
         "__str__",
-        "day",
+        "days",
         "location",
         "start_date",
         "end_date",

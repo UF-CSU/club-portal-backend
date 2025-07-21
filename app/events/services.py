@@ -10,11 +10,97 @@ from clubs.models import Club
 from core.abstracts.services import ServiceBase
 from events.models import Event, EventAttendance, EventAttendanceLink, RecurringEvent
 from users.models import User
+from utils.dates import get_day_count
 from utils.helpers import get_full_url
 
 
+class RecurringEventService(ServiceBase[RecurringEvent]):
+    """Business logic for Recurring Events."""
+
+    model = RecurringEvent
+
+    def sync_events(self):
+        """
+        Sync all events for recurring event template.
+
+        Will remove all excess events outside of start/end dates,
+        and will create events if missing on a certain day.
+
+        Date filter docs:
+        https://docs.djangoproject.com/en/dev/ref/models/querysets/#week-day
+        """
+        rec_ev = self.obj
+
+        # Remove extra events
+        # Get all dates assigned to recurring,
+        # delete if they don't overlap with the start/end dates
+        range_start = datetime.combine(rec_ev.start_date, rec_ev.event_start_time)
+        range_end = datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
+
+        # Django filter starts at Sun=1, python starts Mon=0
+        query_days = [day + 2 if day > 0 else 6 for day in rec_ev.days]
+
+        # Delete events outside of range
+        query = rec_ev.events.filter(
+            ~models.Q(start_at__date__range=(range_start, range_end))
+            | ~models.Q(start_at__week_day__in=query_days)
+        )
+        query.delete()
+
+        # Sync events for each day
+        start = rec_ev.start_date
+        end = rec_ev.end_date
+
+        events = []
+
+        for day in rec_ev.days:
+            # Buffer in first and last date
+            for i in range(get_day_count(start, end, day) + 2):
+
+                # Calculate event date using timedelta from index
+                event_date = (
+                    (start - timedelta(days=start.weekday()))
+                    + timedelta(days=day)
+                    + timedelta(weeks=i)
+                )
+
+                if event_date < start or event_date > end:
+                    continue
+
+                event_start = datetime.combine(
+                    event_date, rec_ev.event_start_time, tzinfo=timezone.utc
+                )
+                event_end = datetime.combine(
+                    event_date, rec_ev.event_end_time, tzinfo=timezone.utc
+                )
+
+                # These fields must all be unique together
+                event, _ = Event.objects.update_or_create(
+                    name=rec_ev.name,
+                    start_at=event_start,
+                    end_at=event_end,
+                    recurring_event=rec_ev,
+                )
+
+                # Sync hosts
+                if rec_ev.club:
+                    event.add_host(rec_ev.club, is_primary=True)
+
+                if rec_ev.other_clubs.count() > 0:
+                    event.add_hosts(*rec_ev.other_clubs.all())
+
+                # Set other fields
+                event.location = rec_ev.location
+                event.event_type = rec_ev.event_type
+
+                event.save()
+                events.append(event)
+
+        return events
+
+
 class EventService(ServiceBase[Event]):
-    """Business logic for events."""
+    """Business logic for Events."""
 
     model = Event
 
@@ -148,73 +234,3 @@ class EventService(ServiceBase[Event]):
         buffer = io.BytesIO(cal.to_ical())
         buffer.seek(0)
         return buffer
-
-    @classmethod
-    def sync_recurring_event(cls, rec_ev: RecurringEvent):
-        """
-        Sync all events for recurring event template.
-
-        Will remove all excess events outside of start/end dates,
-        and will create events if missing on a certain day.
-
-        Date filter docs:
-        https://docs.djangoproject.com/en/dev/ref/models/querysets/#week-day
-        """
-        event_count = rec_ev.expected_event_count + 2  # Buffer before/after
-
-        # Remove extra events
-        # Get all dates assigned to recurring,
-        # delete if they don't overlap with the start/end dates
-        range_start = datetime.combine(rec_ev.start_date, rec_ev.event_start_time)
-        range_end = datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
-
-        # Django filter starts at Sun=1, python starts Mon=0
-        query_day = rec_ev.day + 2 if rec_ev.day > 0 else 6
-
-        query = rec_ev.events.filter(
-            ~models.Q(start_at__date__range=(range_start, range_end))
-            | ~models.Q(start_at__week_day=query_day)
-        )
-        query.delete()
-
-        # Create missing events
-        for i in range(event_count):
-            # Equalize date to monday (0), set to target day, set to target week (i)
-            event_date = (
-                (rec_ev.start_date - timedelta(days=rec_ev.start_date.weekday()))
-                + timedelta(days=rec_ev.day)
-                + timedelta(weeks=i)
-            )
-
-            if event_date < rec_ev.start_date or event_date > rec_ev.end_date:
-                continue
-
-            event_start = datetime.combine(
-                event_date, rec_ev.event_start_time, tzinfo=timezone.utc
-            )
-            event_end = datetime.combine(
-                event_date, rec_ev.event_end_time, tzinfo=timezone.utc
-            )
-
-            # These fields must all be unique together
-            event, _ = Event.objects.update_or_create(
-                name=rec_ev.name,
-                start_at=event_start,
-                end_at=event_end,
-                recurring_event=rec_ev,
-            )
-            if rec_ev.club:
-                event.add_host(rec_ev.club, is_primary=True)
-
-            if rec_ev.other_clubs.count() > 0:
-                event.add_hosts(*rec_ev.other_clubs.all())
-
-            # Set other fields
-            event.location = rec_ev.location
-
-            # Only add description if not exists
-            # Doesn't override custom description for existing events
-            if event.description is None:
-                event.description = rec_ev.description
-
-            event.save()

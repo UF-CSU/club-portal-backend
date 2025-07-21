@@ -5,13 +5,15 @@ Event models.
 from datetime import date, time
 from typing import ClassVar, Optional
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 
 from analytics.models import Link
-from clubs.models import Club
+from clubs.models import Club, ClubFile
 from core.abstracts.models import ManagerBase, ModelBase, Scope, Tag
 from users.models import User
 from utils.dates import get_day_count
@@ -41,12 +43,13 @@ class EventType(models.TextChoices):
 class EventTag(Tag):
     """Group together different types of events."""
 
+    pass
+
 
 class EventFields(ModelBase):
     """Common fields for club event models."""
 
     name = models.CharField(max_length=128)
-    description = models.TextField(null=True, blank=True)
     event_type = models.CharField(choices=EventType.choices, default=EventType.OTHER)
 
     location = models.CharField(null=True, blank=True, max_length=255)
@@ -61,16 +64,18 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
     def create(
         self,
         name: str,
-        day: DayChoice,
+        days: list[DayChoice],
         start_date: date,
-        end_date: Optional[date] = None,
+        end_date: date,
         club: Optional[Club] = None,
-        other_clubs: Optional[list[Club]] = None,
         **kwargs,
     ):
+        attachments = kwargs.pop("attachments", None)
+        other_clubs = kwargs.pop("other_clubs", None)
+
         rec_ev = super().create(
             name=name,
-            day=day,
+            days=days,
             start_date=start_date,
             end_date=end_date,
             club=club,
@@ -79,7 +84,9 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
 
         if other_clubs:
             rec_ev.other_clubs.set(other_clubs)
-            rec_ev.save()
+
+        if attachments:
+            rec_ev.attachments.set(attachments)
 
         return rec_ev
 
@@ -105,8 +112,11 @@ class RecurringEvent(EventFields):
         null=True,
         blank=True,
     )
+    description = models.TextField(null=True, blank=True)
 
-    day = models.IntegerField(choices=DayChoice.choices)
+    # day = models.IntegerField(choices=DayChoice.choices)
+    # days = models.CharField(validators=[RegexValidator(r'^[0-6](,[0-6])*$')])
+    days = ArrayField(models.IntegerField(choices=DayChoice.choices))
     event_start_time = models.TimeField(
         blank=True,
         help_text="Each event will start at this time",
@@ -119,28 +129,28 @@ class RecurringEvent(EventFields):
     )
 
     start_date = models.DateField(help_text="Date of the first occurance of this event")
-    end_date = models.DateField(
-        null=True, blank=True, help_text="Date of the last occurance of this event"
-    )
+    # TODO: Allow no end date
+    end_date = models.DateField(help_text="Date of the last occurance of this event")
+
     # TODO: add skip_dates field
 
     other_clubs = models.ManyToManyField(
         Club, blank=True, help_text="These clubs host the events as secondary hosts."
     )
 
+    attachments = models.ManyToManyField(
+        ClubFile, blank=True, related_name="recurring_events"
+    )
+
     # Relationships
     events: models.QuerySet["Event"]
 
     # Dynamic properties & methods
-    @property
+    @cached_property
     def expected_event_count(self):
-        # TODO: How to handle no end date?
-        if self.end_date is None:
-            end_date = timezone.now()
-        else:
-            end_date = self.end_date
-
-        return get_day_count(self.start_date, end_date, self.day)
+        return sum(
+            [get_day_count(self.start_date, self.end_date, day) for day in self.days]
+        )
 
     @property
     def all_day(self):
@@ -200,10 +210,33 @@ class Event(EventFields):
 
     tags = models.ManyToManyField(EventTag, blank=True)
 
+    attachments_override = models.ManyToManyField(ClubFile, blank=True)
+    description_override = models.TextField(null=True, blank=True)
+
     # Foreign Relationships
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
     attendance_links: models.QuerySet["EventAttendanceLink"]
     hosts: models.QuerySet["EventHost"]
+
+    # Dynamic Properties
+    @property
+    def description(self):
+        return self.description_override or self.recurring_event.description
+
+    @description.setter
+    def description(self, value):
+        self.description_override = value
+
+    @property
+    def attachments(self):
+        if self.attachments_override.count() > 0:
+            return self.attachments_override
+        else:
+            return self.recurring_event.attachments
+
+    @attachments.setter
+    def attachments(self, value):
+        self.attachments_override = value
 
     @property
     def primary_club(self):

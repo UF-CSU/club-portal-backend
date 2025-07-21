@@ -3,15 +3,28 @@ from typing import Optional
 
 from django.urls import reverse
 
-from clubs.models import Club, Team, TeamRole
+from clubs.models import Club, ClubFile, Team, TeamRole
 from clubs.services import ClubService
 from lib.faker import fake
 from users.models import User
+from utils.files import get_file_from_path
+from utils.testing import create_test_image
 
 CLUB_CREATE_PARAMS = {
     "name": "Test Club",
 }
 CLUB_UPDATE_PARAMS = {"name": "Updated Club"}
+
+
+def create_test_clubfile(club: Club, **kwargs):
+    """Create club file for testing."""
+
+    payload = {
+        "club": club,
+        "file": get_file_from_path(create_test_image()),
+    }
+
+    return ClubFile.objects.create(**payload)
 
 
 def create_test_club(name=None, members: Optional[list[User]] = None, **kwargs) -> Club:
