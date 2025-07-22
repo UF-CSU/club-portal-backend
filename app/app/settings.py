@@ -60,12 +60,6 @@ CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:5173")
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
     "django_celery_beat",
     "rest_framework",
     "rest_framework.authtoken",
@@ -79,6 +73,12 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.github",
     "core",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     "users",
     "users.authentication",
     "querycsv",
@@ -318,7 +318,9 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
 
 # Sentry
-sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0)
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0
+)
 
 ######################
 # == Email Config == #
@@ -416,6 +418,7 @@ if DEBUG:
 if TESTING:
     # Ensure tasks execute immediately
     CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_ALWAYS_EAGER = True
 
     # Force disable notifications
     EMAIL_HOST_PASSWORD = None

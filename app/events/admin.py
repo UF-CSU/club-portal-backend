@@ -9,8 +9,8 @@ from events.models import (
     EventTag,
     RecurringEvent,
 )
-from events.serializers import EventCsvSerializer
-from events.services import EventService
+from events.serializers import EventAttendanceCsvSerializer, EventCsvSerializer
+from events.services import EventService, RecurringEventService
 
 
 # Register your models here.
@@ -18,7 +18,7 @@ class RecurringEventAdmin(admin.ModelAdmin):
 
     list_display = (
         "__str__",
-        "day",
+        "days",
         "location",
         "start_date",
         "end_date",
@@ -30,9 +30,27 @@ class RecurringEventAdmin(admin.ModelAdmin):
     def sync_events(self, request, queryset):
 
         for recurring in queryset.all():
-            EventService.sync_recurring_event(recurring)
+            RecurringEventService(recurring).sync_events()
 
         return
+
+
+class EventAttendanceAdmin(ModelAdminBase):
+    """Admin config for event attendance."""
+
+    csv_serializer_class = EventAttendanceCsvSerializer
+
+    list_display = ("event", "user")
+
+    search_fields = (
+        "event__name",
+        "user__username",
+    )
+
+    list_filter = (
+        "event__name",
+        "user__username",
+    )
 
 
 class EventAttendanceInlineAdmin(admin.TabularInline):
@@ -82,17 +100,33 @@ class EventHostInlineAdmin(admin.TabularInline):
     extra = 1
 
 
+# class EventAdminForm(forms.ModelForm):
+#     """Form for EventAdmin."""
+
+#     class Meta:
+#         model = Event
+#         fields = ["name", "description", "location", "start_at", "end_at", "tags"]
+
+#     # def save(self, commit=True):
+#     #     # Ensure that the event is saved before syncing attendance links
+#     #     event = super().save(commit)
+#     #     EventService(event).sync_hosts_attendance_links()
+#     #     return event
+
+
 class EventAdmin(ModelAdminBase):
     """Admin config for club events."""
 
     csv_serializer_class = EventCsvSerializer
+    # form = EventAdminForm
 
     list_display = (
         "__str__",
         "id",
         "location",
+        "start_at",
     )
-    ordering = ("start_at",)
+    ordering = ("-start_at",)
 
     inlines = (
         EventHostInlineAdmin,
@@ -101,6 +135,32 @@ class EventAdmin(ModelAdminBase):
     )
     filter_horizontal = ("tags",)
     actions = ("sync_attendance_links",)
+
+    # fieldsets = (
+    #     (
+    #         None,
+    #         {
+    #             "fields": (
+    #                 "name",
+    #                 "description",
+    #                 "location",
+    #                 "start_at",
+    #                 "end_at",
+    #                 "tags",
+    #             )
+    #         },
+    #     ),
+    #     (
+    #         "Advanced Options",
+    #         {
+    #             "classes": ("collapse",),
+    #             "fields": (
+    #                 "is_public",
+    #                 "recurring_event",
+    #             ),
+    #         },
+    #     ),
+    # )
 
     @admin.action(description="Sync Attendence Links")
     def sync_attendance_links(self, request, queryset):
@@ -111,5 +171,6 @@ class EventAdmin(ModelAdminBase):
 
 
 admin.site.register(Event, EventAdmin)
+admin.site.register(EventAttendance, EventAttendanceAdmin)
 admin.site.register(EventTag)
 admin.site.register(RecurringEvent, RecurringEventAdmin)

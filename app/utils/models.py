@@ -2,6 +2,8 @@ import os
 import uuid
 from pathlib import Path
 
+from django import forms
+from django.contrib.postgres.fields import ArrayField
 from django.core.files import File
 from django.db import models
 from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
@@ -72,14 +74,6 @@ class ValidateImportString(object):
 
     def __call__(self, text: str):
         symbol = import_from_path(text)
-        # print(
-        #     "symbol:",
-        #     symbol,
-        #     " target type:",
-        #     self.target_type,
-        #     " is instance:",
-        #     isinstance(symbol, self.target_type),
-        # )
         assert issubclass(
             symbol, self.target_type
         ), f"Imported object needs to be of type {self.target_type}, but got {type(symbol)}."
@@ -97,10 +91,29 @@ class OneToOneOrNoneField(models.OneToOneField[T]):
     """
     A OneToOneField that returns None if the related object doesn't exist.
 
-    Source: <https://stackoverflow.com/questions/3955093/django-return-none-from-onetoonefield-if-related-object-doesnt-exist
+    Source: <https://stackoverflow.com/questions/3955093/django-return-none-from-onetoonefield-if-related-object-doesnt-exist>
     """  # noqa: E501
 
     related_accessor_class = ReverseOneToOneOrNoneDescriptor
+
+
+class ChoiceArrayField(ArrayField):
+    """
+    A field that allows us to store an array of choices.
+    Uses Django's Postgres ArrayField
+    and a MultipleChoiceField for its formfield.
+
+    Source: <https://stackoverflow.com/a/39833588/10914922>
+    """
+
+    def formfield(self, **kwargs):
+        defaults = {
+            "form_class": forms.MultipleChoiceField,
+            "widget": forms.CheckboxSelectMultiple,
+            "choices": self.base_field.choices,
+        }
+        defaults.update(kwargs)
+        return super(ArrayField, self).formfield(**defaults)
 
 
 def save_file_to_model(model: models.Model, filepath, field="file"):

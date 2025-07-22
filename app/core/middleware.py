@@ -14,11 +14,7 @@ class TimezoneMiddleware(BaseMiddleware):
     """
 
     def on_request(self, request: HttpRequest, *args, **kwargs):
-        tzname = request.session.get("django_timezone")
-
-        if tzname:
-            timezone.activate(zoneinfo.ZoneInfo(tzname))
-        else:
-            timezone.deactivate()
+        tzname = request.COOKIES.get("user_timezone", "UTC")
+        timezone.activate(zoneinfo.ZoneInfo(tzname))
 
         return super().on_request(request, *args, **kwargs)

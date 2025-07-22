@@ -1,10 +1,16 @@
 import json
+from datetime import datetime
 
 from celery import shared_task
 from django.apps import apps
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django_celery_beat.models import CrontabSchedule, IntervalSchedule, PeriodicTask
+from django_celery_beat.models import (
+    ClockedSchedule,
+    CrontabSchedule,
+    IntervalSchedule,
+    PeriodicTask,
+)
 
 from core.abstracts.models import ModelBase
 from utils.helpers import get_import_path, import_from_path
@@ -116,3 +122,31 @@ class CronScheduleBase(ScheduleBase):
 
     class Meta:
         abstract = True
+
+
+@shared_task
+def run_func(callback_path, *args, **kwargs):
+    """Central task runner for all models that inherit schedule base."""
+
+    callback = import_from_path(callback_path)
+    callback(*args, **kwargs)
+
+
+def schedule_clocked_func(
+    name: str, due_at: datetime, func: callable, args=None, kwargs=None
+):
+    """Call function at certain time."""
+
+    args = args or []
+    kwargs = kwargs or {}
+
+    schedule = ClockedSchedule.objects.create(clocked_time=due_at)
+    periodic_task = PeriodicTask.objects.create(
+        clocked=schedule,
+        name=name,
+        args=json.dumps([get_import_path(func), *args]),
+        kwargs=json.dumps(kwargs),
+        one_off=True,
+    )
+
+    return periodic_task

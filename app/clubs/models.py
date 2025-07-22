@@ -26,7 +26,7 @@ from users.models import KeyType, User, UserAgent
 from utils.files import get_file_path
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
-from utils.models import UploadFilepathFactory, UploadNestedClubFilepathFactory
+from utils.models import UploadNestedClubFilepathFactory
 from utils.permissions import get_permission, parse_permissions
 
 
@@ -56,8 +56,12 @@ class Club(UniqueModel):
     scope = Scope.CLUB
 
     name = models.CharField(max_length=64, unique=True)
-    logo = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
-    banner = models.ForeignKey('ClubFile', on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    logo: "ClubFile" = models.ForeignKey(
+        "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    banner = models.ForeignKey(
+        "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
 
     alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     about = models.TextField(blank=True, null=True)
@@ -129,7 +133,9 @@ class ClubFile(ModelBase):
     # When uploading a new file, it must be required to set the uploaded_by field
     # for management purposes, but it should be ok to have null values in the database
     # for when a user is deleted, or if a file is generated, etc.
-    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def save(self, *args, **kwargs):
         # Set display name to file name if not set
@@ -161,6 +167,7 @@ class ClubPhoto(ModelBase):
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="photos")
     file = models.ForeignKey(ClubFile, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

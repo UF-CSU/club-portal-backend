@@ -20,6 +20,8 @@ Poll
 -- -- -- Choice Input (single, multiple)
 -- -- -- Range Input
 -- -- -- Upload Input
+-- -- -- Number Input
+
 """
 
 from typing import ClassVar, Optional
@@ -30,7 +32,15 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.abstracts.models import ManagerBase, ModelBase
+from events.models import EventType
 from users.models import User
+
+
+class PollType(models.TextChoices):
+    """Different types of polls."""
+
+    STANDARD = "standard", _("Standard")
+    TEMPLATE = "template", _("Template")
 
 
 class PollInputType(models.TextChoices):
@@ -40,6 +50,7 @@ class PollInputType(models.TextChoices):
     CHOICE = "choice"
     RANGE = "range"
     UPLOAD = "upload"
+    NUMBER = "number"
 
 
 class PollFieldType(models.TextChoices):
@@ -58,18 +69,25 @@ class PollTextInputType(models.TextChoices):
     RICH = "rich", _("Rich Text Input")
 
 
-class PollSingleChoiceType(models.TextChoices):
-    """Different ways of showing single choice fields."""
+class PollChoiceType(models.TextChoices):
+    """Different ways of showing a choice field."""
 
-    SELECT = "select", _("Single Dropdown Select")
-    RADIO = "radio", _("Single Radio Select")
+    DROPDOWN = "select", _("Dropdown Select")
+    SELECT = "radio", _("Input Select")
 
 
-class PollMultiChoiceType(models.TextChoices):
-    """Different ways of showing multichoice fields."""
+# class PollSingleChoiceType(models.TextChoices):
+#     """Different ways of showing single choice fields."""
 
-    SELECT = "select", _("Multi Select Box")
-    CHECKBOX = "checkbox", _("Multi Checkbox Select")
+#     SELECT = "select", _("Single Dropdown Select")
+#     RADIO = "radio", _("Single Radio Select")
+
+
+# class PollMultiChoiceType(models.TextChoices):
+#     """Different ways of showing multichoice fields."""
+
+#     SELECT = "select", _("Multi Select Box")
+#     CHECKBOX = "checkbox", _("Multi Checkbox Select")
 
 
 class PollManager(ManagerBase["Poll"]):
@@ -84,9 +102,59 @@ class Poll(ModelBase):
 
     name = models.CharField(max_length=64)
     description = models.TextField(blank=True, null=True)
+    poll_type = models.CharField(
+        choices=PollType.choices, default=PollType.STANDARD, editable=False
+    )
+
+    # Foreign Relationships
+    fields: models.QuerySet["PollField"]
 
     # Overrides
     objects: ClassVar[PollManager] = PollManager()
+
+    def save(self, *args, **kwargs):
+        if hasattr(self, "polltemplate"):
+            self.poll_type = PollType.TEMPLATE
+
+        return super().save(*args, **kwargs)
+
+    def add_field(self, field_type: PollFieldType):
+        """Add new question, markup, or page break to a poll."""
+
+        highest_order = self.fields.order_by("-order")
+        if highest_order.exists():
+            highest_order = highest_order.first().order
+        else:
+            highest_order = 1
+
+        return PollField.objects.create(
+            poll=self, order=highest_order, field_type=field_type
+        )
+
+
+class PollTemplateManager(ManagerBase["PollTemplate"]):
+    """Manage poll template queries."""
+
+    def create(self, template_name: str, poll_name: str, **kwargs):
+        return super().create(template_name=template_name, name=poll_name, **kwargs)
+
+
+class PollTemplate(Poll):
+    """Extension of polls that allow the creation of new polls."""
+
+    template_name = models.CharField()
+    event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
+
+    # Overrides
+    objects: ClassVar[PollTemplateManager] = PollTemplateManager()
+
+
+class PollFieldManager(ManagerBase["PollField"]):
+    """Manage queries with Poll Fields."""
+
+    def create(self, poll: Poll, **kwargs):
+
+        return super().create(poll=poll, **kwargs)
 
 
 class PollField(ModelBase):
@@ -98,11 +166,22 @@ class PollField(ModelBase):
     )
     order = models.IntegerField()
 
+    # Dynamic properties
+    @property
+    def question(self) -> Optional["PollQuestion"]:
+        return getattr(self, "_question", None)
+
+    @property
+    def markup(self) -> Optional["PollMarkup"]:
+        return getattr(self, "_markup", None)
+
+    # Overrides
+    objects: ClassVar[PollFieldManager] = PollFieldManager()
+
     class Meta:
         ordering = ["order", "-id"]
 
     def __str__(self):
-
         return f"{self.poll} - {self.order}"
 
     def clean(self):
@@ -137,7 +216,7 @@ class PollMarkup(ModelBase):
     """Store markdown content for a poll."""
 
     field = models.OneToOneField(
-        PollField, on_delete=models.CASCADE, related_name="markup"
+        PollField, on_delete=models.CASCADE, related_name="_markup"
     )
     content = models.TextField(default="")
 
@@ -170,6 +249,8 @@ class PollQuestionManager(ManagerBase["PollQuestion"]):
                 RangeInput.objects.create(question=question)
             case PollInputType.UPLOAD:
                 UploadInput.objects.create(question=question)
+            case PollInputType.NUMBER:
+                NumberInput.objects.create(question=question)
 
         return question
 
@@ -185,7 +266,7 @@ class PollQuestion(ModelBase):
     """
 
     field = models.OneToOneField(
-        PollField, on_delete=models.CASCADE, related_name="question"
+        PollField, on_delete=models.CASCADE, related_name="_question"
     )
 
     input_type = models.CharField(
@@ -217,6 +298,8 @@ class PollQuestion(ModelBase):
                 return self.range_input
             case PollInputType.UPLOAD:
                 return self.upload_input
+            case PollInputType.NUMBER:
+                return self.number_input
 
         return None
 
@@ -230,24 +313,15 @@ class PollQuestion(ModelBase):
     # Foreign relationships
     @property
     def text_input(self) -> Optional["TextInput"]:
-        if not hasattr(self, "_text_input"):
-            return None
-
-        return self._text_input
+        return getattr(self, "_text_input", None)
 
     @property
     def choice_input(self) -> Optional["ChoiceInput"]:
-        if not hasattr(self, "_choice_input"):
-            return None
-
-        return self._choice_input
+        return getattr(self, "_choice_input", None)
 
     @property
     def range_input(self) -> Optional["RangeInput"]:
-        if not hasattr(self, "_range_input"):
-            return None
-
-        return self._range_input
+        return getattr(self, "_range_input", None)
 
     @property
     def upload_input(self) -> Optional["UploadInput"]:
@@ -255,6 +329,13 @@ class PollQuestion(ModelBase):
             return None
 
         return self._upload_input
+
+    @property
+    def number_input(self) -> Optional["NumberInput"]:
+        if not hasattr(self, "_number_input"):
+            return None
+
+        return self._number_input
 
     # Overrides
     objects: ClassVar[PollQuestionManager] = PollQuestionManager()
@@ -307,53 +388,25 @@ class ChoiceInput(ModelBase):
         PollQuestion, on_delete=models.CASCADE, related_name="_choice_input"
     )
 
-    multiple = models.BooleanField(default=False)
-    multiple_choice_type = models.CharField(
-        choices=PollMultiChoiceType.choices,
-        null=True,
-        blank=True,
-        default=PollMultiChoiceType.CHECKBOX,
-    )
-    single_choice_type = models.CharField(
-        choices=PollSingleChoiceType.choices,
-        null=True,
-        blank=True,
-        default=PollSingleChoiceType.RADIO,
+    is_multiple = models.BooleanField(default=False)
+    choice_type = models.CharField(
+        choices=PollChoiceType.choices, default=PollChoiceType.DROPDOWN
     )
 
+    # Foreign relations
+    selections: models.QuerySet["PollQuestionAnswer"]
+
+    # Dyanmic properties
     @property
     def widget(self):
-        if self.multiple:
-            return PollMultiChoiceType(self.multiple_choice_type).label
-        else:
-            return PollSingleChoiceType(self.single_choice_type).label
+        return PollChoiceType(self.choice_type).label
 
     # Overrides
     class Meta:
         ordering = ["question__field", "-id"]
-        constraints = [
-            # Multiple/single choice types can be set at same time,
-            # so if user toggles between them their preference is saved.
-            models.CheckConstraint(
-                name="poll_choice_type",
-                check=(
-                    models.Q(multiple=True, multiple_choice_type__isnull=False)
-                    | models.Q(multiple=False, single_choice_type__isnull=False)
-                ),
-            )
-        ]
 
     def __str__(self):
         return f"{self.question.field} - {self.widget}"
-
-    def save(self, *args, **kwargs):
-        # Enforce defaults, in case user deletes field type but keeps "multiple" selection
-        if self.multiple is True and self.multiple_choice_type is None:
-            self.multiple_choice_type = PollMultiChoiceType.CHECKBOX
-        elif self.multiple is False and self.single_choice_type is None:
-            self.single_choice_type = PollSingleChoiceType.RADIO
-
-        return super().save(*args, **kwargs)
 
 
 class ChoiceInputOption(ModelBase):
@@ -398,10 +451,14 @@ class RangeInput(ModelBase):
     )
 
     min_value = models.IntegerField(default=0)
-    max_value = models.IntegerField(default=100)
+    max_value = models.IntegerField(default=10)
+
+    left_label = models.CharField(max_length=24, null=True, blank=True)
+    right_label = models.CharField(max_length=24, null=True, blank=True)
+
     step = models.IntegerField(default=1)
     initial_value = models.IntegerField(default=0)
-    unit = models.CharField(max_length=10, null=True, blank=True)
+    unit = models.CharField(max_length=16, null=True, blank=True)
 
     @property
     def widget(self):
@@ -424,6 +481,27 @@ class UploadInput(ModelBase):
         return "File Upload"
 
 
+class NumberInput(ModelBase):
+    """Number input, for numeric responses."""
+
+    question = models.OneToOneField(
+        PollQuestion, on_delete=models.CASCADE, related_name="_number_input"
+    )
+
+    min_value = models.FloatField(default=0.0)
+    max_value = models.FloatField(default=10.0)
+
+    unit = models.CharField(max_length=16, null=True, blank=True)
+
+    decimal_places = models.PositiveIntegerField(
+        default=1, validators=[MinValueValidator(0)]
+    )
+
+    @property
+    def widget(self):
+        return "Number Input"
+
+
 class PollSubmission(ModelBase):
     """Records a person's input for a poll."""
 
@@ -435,7 +513,109 @@ class PollSubmission(ModelBase):
         null=True,
         blank=True,
     )
-    data = models.JSONField(null=True, blank=True)
 
+    error = models.CharField(null=True, blank=True)
+
+    # Foreign relations
+    answers: models.QuerySet["PollQuestionAnswer"]
+
+    # Overrides
     def __str__(self):
         return f"Submission from {self.user or 'anonymous'}"
+
+    # Dynamic properties
+    @property
+    def is_valid(self):
+        # Is valid if no error and no answers have errors
+        return (
+            self.error is None and not self.answers.filter(error__isnull=True).exists()
+        )
+
+
+class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
+    """Manage queries with poll answers."""
+
+    def create(self, **kwargs):
+        options_value = kwargs.pop("options_value", [])
+
+        answer = super().create(**kwargs)
+
+        for value in options_value:
+            answer.options_value.add(value)
+
+        return answer
+
+
+class PollQuestionAnswer(ModelBase):
+    """Store info about how a user answered a specific question."""
+
+    question = models.ForeignKey(
+        PollQuestion, on_delete=models.CASCADE, related_name="answers"
+    )
+    submission = models.ForeignKey(
+        PollSubmission, on_delete=models.CASCADE, related_name="answers"
+    )
+
+    # Answer values
+    # Store them separately so calculations can be made in postgres/django orm
+    text_value = models.CharField(null=True, blank=True)
+    number_value = models.IntegerField(null=True, blank=True)
+    options_value = models.ManyToManyField(
+        ChoiceInputOption, blank=True, related_name="selections"
+    )
+
+    # Validation
+    error = models.CharField(
+        null=True, blank=True, help_text="Error message if input is not valid."
+    )
+
+    # Dynamic properties
+    @property
+    def value(self):
+        return (
+            self.text_value
+            or self.number_value
+            or list(self.options_value.values_list("value", flat=True))
+        )
+
+    @property
+    def is_valid(self) -> bool:
+        return self.error is None
+
+    # Overrides
+    objects: ClassVar[PollQuestionAnswerManager] = PollQuestionAnswerManager()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="pollanswer_text_or_number_or_option_set",
+                check=(
+                    (
+                        models.Q(text_value__isnull=False)
+                        & models.Q(number_value__isnull=True)
+                    )
+                    | (
+                        models.Q(text_value__isnull=True)
+                        & models.Q(number_value__isnull=False)
+                    )
+                    | (
+                        models.Q(text_value__isnull=True)
+                        & models.Q(number_value__isnull=True)
+                    )
+                ),
+                violation_error_message='Can only set one of "text", "number", or "options".',
+            )
+        ]
+
+    def clean(self):
+        if not self.pk:
+            return super().clean()
+
+        if self.options_value.count() > 0 and (
+            self.text_value is not None or self.number_value is not None
+        ):
+            raise exceptions.ValidationError(
+                "Cannot set options value if number or text is set."
+            )
+
+        return super().clean()

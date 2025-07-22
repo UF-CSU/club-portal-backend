@@ -88,6 +88,14 @@ class SerializerBase(serializers.Serializer):
         ]
 
     @cached_property
+    def nullable_fields(self) -> list[str]:
+        """Fields that might not be present on the read-only version of the serializer."""
+
+        return [
+            key for key, value in self.get_fields().items() if value.allow_null is True
+        ]
+
+    @cached_property
     def image_fields(self) -> list[str]:
         """List of fields that are of type ImageField."""
 
@@ -300,10 +308,10 @@ class ModelSerializer(ModelSerializerBase):
 
     id = serializers.IntegerField(label="ID", read_only=True)
     created_at = serializers.DateTimeField(
-        format=datetime_format, read_only=True, required=False, allow_null=True
+        format=datetime_format, read_only=True, required=False
     )
     updated_at = serializers.DateTimeField(
-        format=datetime_format, read_only=True, required=False, allow_null=True
+        format=datetime_format, read_only=True, required=False
     )
 
     class Meta:
@@ -378,11 +386,21 @@ class ImageUrlField(serializers.Field):
                 f"Expected url {data} to return 200, but returned {res.status_code}"
             )
 
+        file_type = res.headers["Content-Type"]
+        if not file_type or "/" not in file_type:
+            raise Exception("Invalid file type:", file_type)
+
+        file_type = file_type.split("/")[1]
+
         temp_file = NamedTemporaryFile(delete=True)
         temp_file.write(res.content)
         temp_file.flush()
 
-        name = data.split("/")[-1]
+        name = str(data.split("/")[-1])
+
+        if not name.endswith(file_type):
+            name += f".{file_type}"
+
         file = File(temp_file, name=name)
 
         validators.validate_image_file_extension(file)
