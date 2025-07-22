@@ -268,6 +268,91 @@ class PollViewAuthTests(PrivateApiTestsBase):
         poll.refresh_from_db()
         self.assertEqual(poll.name, payload["name"])
         self.assertEqual(poll.description, payload["description"])
+        
+    def test_update_poll_fields(self):
+        """Should update poll via api."""
+
+        poll = Poll.objects.create(
+            name=fake.title(),
+            description=fake.paragraph(),
+        )
+
+        self.assertEqual(Poll.objects.count(), 1)
+
+        payload = {
+            "name": "Blake's Poll",
+            "description": "This is a description for Blake's Poll.",
+            "fields": [
+                {
+                    "order": 0,
+                    "field_type": "question",
+                    "question": {
+                        "label": "Updated question?",
+                        "description": fake.paragraph(),
+                        "input_type": "text",
+                        "text_input": {
+                            "text_type": "short",
+                            "min_length": 5,
+                            "max_length": 15,
+                        },
+                    },
+                },
+            ],
+        }
+
+        url = polls_detail_url(poll.pk)
+
+        res = self.client.patch(url, data=payload, format="json")
+        self.assertEqual(res.status_code, 200, res.content)
+
+        poll.refresh_from_db()
+        self.assertEqual(poll.name, payload["name"])
+        self.assertEqual(poll.description, payload["description"])
+        self.assertEqual(poll.fields.count(), 1)
+        self.assertEqual(poll.fields.first().field_type, "question")
+        self.assertEqual(poll.fields.first().question.label, "Updated question?")
+        
+        payload = {
+            "fields": [
+                {
+                    "order": 0,
+                    "field_type": "question",
+                    "question": {
+                        "label": "Updated question again?",
+                        "description": fake.paragraph(),
+                        "input_type": "text",
+                        "text_input": {
+                            "text_type": "short",
+                            "min_length": 5,
+                            "max_length": 15,
+                        },
+                    },
+                },
+                {
+                    "order": 1,
+                    "field_type": "question",
+                    "question": {
+                        "label": "New question?",
+                        "description": fake.paragraph(),
+                        "input_type": "text",
+                        "text_input": {
+                            "text_type": "short",
+                            "min_length": 5,
+                            "max_length": 15,
+                        },
+                    },
+                }
+            ],
+        }
+        
+        res = self.client.patch(url, data=payload, format="json")
+        self.assertEqual(res.status_code, 200, res.content)
+        poll.refresh_from_db()
+        self.assertEqual(poll.fields.count(), 2)
+        self.assertEqual(poll.fields.first().field_type, "question")
+        self.assertEqual(poll.fields.first().question.label, "Updated question again?")
+        self.assertEqual(poll.fields.last().field_type, "question")
+        self.assertEqual(poll.fields.last().question.label, "New question?")
 
     def test_delete_poll(self):
         """Should delete poll via api."""
