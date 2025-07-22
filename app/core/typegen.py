@@ -14,7 +14,12 @@ from clubs.serializers import (
     TeamMembershipSerializer,
     TeamSerializer,
 )
-from events.serializers import EventHostSerializer, EventSerializer, EventTagSerializer
+from events.serializers import (
+    EventHostSerializer,
+    EventSerializer,
+    EventTagSerializer,
+    RecurringEventSerializer,
+)
 from polls.serializers import PollSerializer
 from users.serializers import SocialProviderSerializer, UserSerializer
 
@@ -27,6 +32,7 @@ SERIALIZERS_CREATE_READ_UPDATE = [
     TeamMembershipSerializer,
     EventSerializer,
     EventHostSerializer,
+    RecurringEventSerializer,
     UserSerializer,
     PollSerializer,
 ]

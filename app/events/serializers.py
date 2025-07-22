@@ -1,8 +1,16 @@
 from rest_framework import serializers
 
 from clubs.models import Club
+from clubs.serializers import ClubFileNestedSerializer
 from core.abstracts.serializers import ModelSerializerBase
-from events.models import Event, EventAttendance, EventCancellation, EventHost, EventTag
+from events.models import (
+    Event,
+    EventAttendance,
+    EventCancellation,
+    EventHost,
+    EventTag,
+    RecurringEvent,
+)
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 
@@ -81,6 +89,27 @@ class EventSerializer(ModelSerializerBase):
         return event
 
 
+class EventCancellationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventCancellation
+        fields = "__all__"
+
+
+class RecurringEventSerializer(ModelSerializerBase):
+    """Defines repeating events."""
+
+    attachments = ClubFileNestedSerializer(many=True, required=False)
+
+    class Meta:
+        model = RecurringEvent
+        fields = "__all__"
+
+
+#############################################################
+# MARK: CSV Serializers
+#############################################################
+
+
 class EventCsvSerializer(CsvModelSerializer):
     """CSV Fields for events."""
 
@@ -148,9 +177,3 @@ class EventAttendanceCsvSerializer(CsvModelSerializer):
         validated_data.pop("start_at", None)
         validated_data.pop("end_at", None)
         return super().create(validated_data)
-
-
-class EventCancellationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EventCancellation
-        fields = "__all__"
