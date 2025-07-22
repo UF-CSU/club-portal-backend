@@ -90,12 +90,11 @@ class UserService(ServiceBase[User]):
         if next_url:
             url += "?" + urlencode({"next": next_url})
 
-        send_mail(
+        send_html_mail(
             "Finish account setup",
-            message=f"Click here: {url}",
-            from_email=DEFAULT_FROM_EMAIL,
-            recipient_list=[self.obj.email],
-            fail_silently=False,
+            to=[self.obj.email],
+            html_template="users/setup_account_email.html",
+            html_context={"setup_url": url},
         )
 
     @classmethod
