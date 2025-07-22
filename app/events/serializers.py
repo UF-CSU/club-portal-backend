@@ -1,8 +1,16 @@
 from rest_framework import serializers
 
 from clubs.models import Club
+from clubs.serializers import ClubFileNestedSerializer
 from core.abstracts.serializers import ModelSerializerBase
-from events.models import Event, EventAttendance, EventCancellation, EventHost, EventTag
+from events.models import (
+    Event,
+    EventAttendance,
+    EventCancellation,
+    EventHost,
+    EventTag,
+    RecurringEvent,
+)
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 
@@ -34,13 +42,19 @@ class EventHostSerializer(ModelSerializerBase):
 
     class Meta:
         model = EventHost
-        fields = ["club_id", "club_name", "club_logo", "is_primary"]
+        fields = ["id", "club_id", "club_name", "club_logo", "is_primary"]
+        read_only_fields = [
+            "id",
+            "club_name",
+            "club_logo",
+        ]
+        # required_fields_update = ["id"]
 
 
 class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
-    hosts = EventHostSerializer(many=True)
+    hosts = EventHostSerializer(many=True, required=False)
     all_day = serializers.BooleanField(read_only=True)
     tags = EventTagSerializer(many=True, required=False)
 
@@ -67,11 +81,33 @@ class EventSerializer(ModelSerializerBase):
         event = Event.objects.create(**validated_data)
 
         for host in hosts_data:
+
             EventHost.objects.create(
-                event=event, club=host["club"], primary=host.get("primary", False)
+                event=event, club=host["club"], is_primary=host.get("is_primary", False)
             )
 
         return event
+
+
+class EventCancellationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventCancellation
+        fields = "__all__"
+
+
+class RecurringEventSerializer(ModelSerializerBase):
+    """Defines repeating events."""
+
+    attachments = ClubFileNestedSerializer(many=True, required=False)
+
+    class Meta:
+        model = RecurringEvent
+        fields = "__all__"
+
+
+#############################################################
+# MARK: CSV Serializers
+#############################################################
 
 
 class EventCsvSerializer(CsvModelSerializer):
@@ -141,9 +177,3 @@ class EventAttendanceCsvSerializer(CsvModelSerializer):
         validated_data.pop("start_at", None)
         validated_data.pop("end_at", None)
         return super().create(validated_data)
-
-
-class EventCancellationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EventCancellation
-        fields = "__all__"
