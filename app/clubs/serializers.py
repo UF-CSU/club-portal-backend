@@ -279,6 +279,17 @@ class ClubMemberTeamNestedSerializer(ModelSerializerBase):
 class ClubMembershipSerializer(ModelSerializerBase):
     """Connects a User to a Club with some additional fields."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not hasattr(self, 'context') or not self.context:
+            return
+        club_id = self.context.get('club_id')
+        if club_id:
+            filtered_roles = ClubRole.objects.filter(club_id=club_id)
+            self.fields['roles'].queryset = filtered_roles
+            if hasattr(self.fields['roles'], 'child_relation'):
+                self.fields['roles'].child_relation.queryset = filtered_roles
+
     user = ClubMemberUserNestedSerializer()
     club_id = serializers.SlugRelatedField(
         slug_field="id", source="club", read_only=True
@@ -296,7 +307,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
     roles = serializers.SlugRelatedField(
         slug_field="name",
         many=True,
-        queryset=ClubRole.objects.all(),  # TODO: Restrict roles to club only
+        queryset=ClubRole.objects.none(),
         required=False,
     )
 

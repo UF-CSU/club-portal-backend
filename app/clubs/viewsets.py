@@ -118,6 +118,11 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
     serializer_class = ClubMembershipSerializer
     queryset = ClubMembership.objects.all()
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['club_id'] = self.kwargs.get('club_id')
+        return context
+
 
 class ClubMemberViewSet(
     ViewSetBase,
