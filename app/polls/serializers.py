@@ -17,8 +17,7 @@ class TextInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.TextInput
-        fields = ["id", "text_type", "min_length", "max_length", "question"]
-        extra_kwargs = {"question": {"required": False}}
+        fields = ["id", "text_type", "min_length", "max_length"]
 
 
 class ChoiceInputOptionNestedSerializer(ModelSerializerBase):
@@ -38,8 +37,7 @@ class ChoiceInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.ChoiceInput
-        fields = ["id", "options", "question"]
-        extra_kwargs = {"question": {"required": False}}
+        fields = ["id", "options"]
 
 
 class RangeInputNestedSerializer(ModelSerializerBase):
@@ -56,9 +54,7 @@ class RangeInputNestedSerializer(ModelSerializerBase):
             "step",
             "initial_value",
             "unit",
-            "question",
         ]
-        extra_kwargs = {"question": {"required": False}}
 
 
 class UploadInputNestedSerializer(ModelSerializerBase):
@@ -68,8 +64,7 @@ class UploadInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.UploadInput
-        fields = ["id", "file_types", "max_files", "question"]
-        extra_kwargs = {"question": {"required": False}}
+        fields = ["id", "file_types", "max_files"]
 
 
 class NumberInputNestedSerializer(ModelSerializerBase):
@@ -83,9 +78,7 @@ class NumberInputNestedSerializer(ModelSerializerBase):
             "max_value",
             "unit",
             "decimal_places",
-            "question",
         ]
-        extra_kwargs = {"question": {"required": False}}
 
 
 class PollQuestionNestedSerializer(ModelSerializerBase):
@@ -102,8 +95,7 @@ class PollQuestionNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.PollQuestion
-        exclude = ["created_at", "updated_at"]
-        extra_kwargs = {"field": {"required": False}}
+        exclude = ["created_at", "updated_at", "field"]
 
     def create(self, validated_data):
         """Create question with nested inputs."""
@@ -223,8 +215,8 @@ class PollMarkupNestedSerializer(ModelSerializerBase):
         extra_kwargs = {"field": {"required": False}}
 
 
-class PollFieldNestedSerializer(ModelSerializerBase):
-    """Show poll fields nested in polls."""
+class PollFieldSerializer(ModelSerializerBase):
+    """Show poll fields  in polls."""
 
     question = PollQuestionNestedSerializer(required=False)
     markup = PollMarkupNestedSerializer(required=False)
@@ -280,7 +272,7 @@ class PollFieldNestedSerializer(ModelSerializerBase):
 class PollSerializer(ModelSerializer):
     """JSON definition for polls."""
 
-    fields = PollFieldNestedSerializer(many=True)
+    fields = PollFieldSerializer(many=True)
 
     class Meta:
         model = models.Poll
