@@ -184,6 +184,22 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertEqual(Event.objects.count(), 1)
         self.assertEqual(Event.objects.for_club(self.other_club).count(), 0)
 
+        # No hosts
+        payload["hosts"] = []
+        url = EVENT_LIST_URL
+        res = self.client.post(url, payload, format="json")
+        self.assertResForbidden(res)
+
+        self.assertEqual(Event.objects.count(), 1)
+
+        # Only secondary hosts
+        payload["hosts"] = [{"club_id": self.club.id, "is_primary": False}]
+        url = EVENT_LIST_URL
+        res = self.client.post(url, payload, format="json")
+        self.assertResBadRequest(res)
+
+        self.assertEqual(Event.objects.count(), 1)
+
     def test_edit_hosted_events(self):
         """Admins should only be able to edit events where their club is a host."""
 
@@ -461,6 +477,16 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         self.owner_membership.refresh_from_db()
         self.assertFalse(self.owner_membership.is_owner)
+
+        # Owner of 1 club, member of another
+        self.other_service.add_member(self.owner_user, roles=["Member"])
+        payload = {"is_owner": True}
+        url = club_members_detail_url(self.other_club, self.other_user_membership.id)
+        res = self.client.patch(url, payload)
+        self.assertResForbidden(res)
+
+        self.other_user_membership.refresh_from_db()
+        self.assertFalse(self.other_user_membership.is_owner)
 
     def test_edit_member_roles(self):
         """Admins should be able to edit member roles."""
