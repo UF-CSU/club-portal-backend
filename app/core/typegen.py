@@ -20,7 +20,7 @@ from events.serializers import (
     EventTagSerializer,
     RecurringEventSerializer,
 )
-from polls.serializers import PollSerializer
+from polls.serializers import PollSerializer, PollFieldSerializer
 from users.serializers import SocialProviderSerializer, UserSerializer
 
 SERIALIZERS_CREATE_READ_UPDATE = [
@@ -35,6 +35,7 @@ SERIALIZERS_CREATE_READ_UPDATE = [
     RecurringEventSerializer,
     UserSerializer,
     PollSerializer,
+    PollFieldSerializer,
 ]
 """
 List of serializers to create interfaces for:
