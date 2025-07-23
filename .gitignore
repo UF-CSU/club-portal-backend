@@ -122,6 +122,7 @@ celerybeat.pid
 .env
 .env.*
 .venv
+clubportal
 env/
 venv/
 ENV/
@@ -169,3 +170,5 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+./clubportal
