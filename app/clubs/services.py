@@ -37,7 +37,7 @@ class ClubService(ServiceBase[Club]):
     def add_member(
         self,
         user: User,
-        roles: Optional[list[ClubRole]] = None,
+        roles: Optional[list[ClubRole | str]] = None,
         send_email=False,
         club_redirect_url=None,
         fail_silently=True,

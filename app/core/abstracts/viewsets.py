@@ -1,3 +1,5 @@
+from typing import Literal
+
 from rest_framework import authentication, permissions
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
@@ -6,6 +8,9 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 class ViewSetBase(GenericViewSet):
     """Provide core functionality for most viewsets."""
+
+    # Read more: https://testdriven.io/blog/drf-views-part-3/
+    action: Literal["list", "create", "retrieve", "update", "partial_update", "destroy"]
 
     authentication_classes = [
         authentication.TokenAuthentication,

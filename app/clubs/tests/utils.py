@@ -10,10 +10,41 @@ from users.models import User
 from utils.files import get_file_from_path
 from utils.testing import create_test_image
 
-CLUB_CREATE_PARAMS = {
-    "name": "Test Club",
-}
-CLUB_UPDATE_PARAMS = {"name": "Updated Club"}
+
+def club_invite_url(club_id: int):
+    return reverse("api-clubs:invite", args=[club_id])
+
+
+def club_members_list_url(club_id: int):
+    return reverse("api-clubs:clubmember-list", args=[club_id])
+
+
+def club_members_detail_url(club_id: int, member_id: int):
+    return reverse("api-clubs:clubmember-detail", args=[club_id, member_id])
+
+
+def club_detail_url(club_id: int):
+    return reverse("api-clubs:club-detail", args=[club_id])
+
+
+def club_apikey_list_url(club_id: int):
+    return reverse("api-clubs:apikey-list", args=[club_id])
+
+
+CLUBS_LIST_URL = reverse("api-clubs:club-list")
+CLUBS_JOIN_URL = reverse("api-clubs:join")
+
+
+def club_list_url_member():
+    return reverse("api-clubs:club-list")
+
+
+def club_file_list_url(club_id: int):
+    return reverse("api-clubs:file-list", args=[club_id])
+
+
+def club_file_detail_url(club_id: int, file_id: int):
+    return reverse("api-clubs:file-list", args=[club_id, file_id])
 
 
 def create_test_clubfile(club: Club, **kwargs):

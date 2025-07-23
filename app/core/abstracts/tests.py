@@ -164,6 +164,10 @@ class PublicApiTestsBase(TestsBase):
         """Client response should be 202."""
         self.assertStatusCode(response, status.HTTP_202_ACCEPTED, **kwargs)
 
+    def assertResNoContent(self, response: HttpResponse, **kwargs):
+        """Client response should be 204."""
+        self.assertStatusCode(response, status.HTTP_204_NO_CONTENT, **kwargs)
+
     def assertResBadRequest(self, response: HttpResponse, **kwargs):
         """Client response should be 400"""
         self.assertStatusCode(response, status.HTTP_400_BAD_REQUEST, **kwargs)
@@ -188,11 +192,20 @@ class PrivateApiTestsBase(PublicApiTestsBase):
     A user is automatically set in each request.
     """
 
+    client: APIClient
+
+    def create_authenticated_user(self):
+        """Create the user that is authenticated in the api."""
+        user = create_test_adminuser()
+        user.is_superuser = True
+        user.save()
+
+        return user
+
     def setUp(self):
         super().setUp()
-        self.user = create_test_adminuser()
-        self.user.is_superuser = True
-        self.user.save()
+
+        self.user = self.create_authenticated_user()
 
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)

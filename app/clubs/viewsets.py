@@ -10,6 +10,7 @@ from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
     ClubFileSerializer,
+    ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
     ClubPreviewSerializer,
     ClubSerializer,
@@ -33,7 +34,7 @@ class ClubNestedViewSetBase(ModelViewSetBase):
 
         return super().get_queryset()
 
-    def perform_create(self, serializer: ClubMembershipSerializer, **kwargs):
+    def perform_create(self, serializer: ClubMembershipCreateSerializer, **kwargs):
         club_id = self.kwargs.get("club_id", None)
         club = Club.objects.get(id=club_id)
 
@@ -120,8 +121,14 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['club_id'] = self.kwargs.get('club_id')
+        context["club_id"] = self.kwargs.get("club_id")
         return context
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ClubMembershipCreateSerializer
+
+        return super().get_serializer_class()
 
 
 class ClubMemberViewSet(

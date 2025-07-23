@@ -337,10 +337,13 @@ class ClubMembership(ModelBase):
             ),
         ]
 
-    def add_roles(self, *roles, commit=True):
+    def add_roles(self, *roles: ClubRole | str, commit=True):
         """Add ClubRole to membership."""
 
         for role in roles:
+            if isinstance(role, str):
+                role = ClubRole.objects.get(name=role, club=self.club)
+
             # If there's an issue, reverse all db ops
             with transaction.atomic():
                 if role in self.roles.all():

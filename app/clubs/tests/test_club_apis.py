@@ -2,48 +2,28 @@
 Unit tests focused around REST APIs for the Clubs Service.
 """
 
-from typing import Optional
-
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from clubs.models import ClubApiKey, ClubFile, ClubRole
 from clubs.services import ClubService
-from clubs.tests.utils import create_test_club, create_test_clubs
+from clubs.tests.utils import (
+    CLUBS_JOIN_URL,
+    CLUBS_LIST_URL,
+    club_apikey_list_url,
+    club_detail_url,
+    club_file_list_url,
+    club_invite_url,
+    club_list_url_member,
+    club_members_list_url,
+    create_test_club,
+    create_test_clubs,
+)
 from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
 from lib.faker import fake
 from users.models import User
 from users.tests.utils import create_test_user
-from utils.testing import create_test_image
-
-
-def club_invite_url(club_id: int):
-    return reverse("api-clubs:invite", args=[club_id])
-
-
-def club_members_list_url(club_id: Optional[int] = None):
-    return reverse("api-clubs:clubmember-list", args=[club_id])
-
-
-def club_detail_url(club_id: int):
-    return reverse("api-clubs:club-detail", args=[club_id])
-
-
-def club_apikey_list_url(club_id: int):
-    return reverse("api-clubs:apikey-list", args=[club_id])
-
-
-CLUBS_LIST_URL = reverse("api-clubs:club-list")
-CLUBS_JOIN_URL = reverse("api-clubs:join")
-
-
-def club_list_url_member():
-    return reverse("api-clubs:club-list")
-
-
-def club_file_list_url(club_id: int):
-    return reverse("api-clubs:file-list", args=[club_id])
+from utils.testing import create_test_uploadable_image
 
 
 class ClubsApiPublicTests(PublicApiTestsBase):
@@ -294,17 +274,10 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         """User should be able to upload new media for a club."""
 
         club = create_test_club()
-        file_path = create_test_image()
-        file_binary = open(file_path, mode="rb").read()
-
         club_file_count_before = ClubFile.objects.count()
 
         # Test uploading
-        payload = {
-            "file": SimpleUploadedFile(
-                "test_image.jpg", file_binary, content_type="image/jpeg"
-            )
-        }
+        payload = {"file": create_test_uploadable_image()}
         url = club_file_list_url(club.id)
         res = self.client.post(url, payload, format="multipart")
         self.assertResCreated(res)
@@ -328,7 +301,7 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
 
 
 class ClubsApiPermsTests(PublicApiTestsBase):
-    """Test permissions handling in API."""
+    """Test fine-grained permissions handling in API."""
 
     CLUBS_COUNT = 5
 

@@ -5,7 +5,7 @@ should function.
 
 from clubs.serializers import (
     ClubFileSerializer,
-    ClubMembershipSerializer,
+    ClubMembershipCreateSerializer,
     ClubPhotoSerializer,
     ClubPreviewSerializer,
     ClubSerializer,
@@ -25,7 +25,7 @@ from users.serializers import SocialProviderSerializer, UserSerializer
 
 SERIALIZERS_CREATE_READ_UPDATE = [
     ClubSerializer,
-    ClubMembershipSerializer,
+    ClubMembershipCreateSerializer,
     ClubFileSerializer,
     ClubPhotoSerializer,
     TeamSerializer,
