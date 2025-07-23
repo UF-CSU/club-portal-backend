@@ -203,7 +203,7 @@ class EventManager(ManagerBase["Event"]):
     def for_club(self, club: Club | int) -> models.QuerySet["Event"]:
         """Get events where the club is a host."""
 
-        raise NotImplementedError()
+        return Event.objects.filter(clubs__id=club.id)
 
 
 class Event(EventFields):

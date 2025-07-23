@@ -12,6 +12,7 @@ from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.text import slugify
+from django.utils.translation import gettext_lazy as _
 from rest_framework.authtoken.models import Token
 
 from core.abstracts.models import (
@@ -27,11 +28,21 @@ from utils.files import get_file_path
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
 from utils.models import UploadNestedClubFilepathFactory
-from utils.permissions import get_permission, parse_permissions
+from utils.permissions import get_perm_label, get_permission, parse_permissions
+
+
+class RoleType(models.TextChoices):
+    """Different types of club roles."""
+
+    ADMIN = "admin", _("Admin")
+    VIEWER = "viewer", _("Viewer")
+    CUSTOM = "custom", _("Custom")
 
 
 class ClubTag(Tag):
     """Group clubs together based on topics."""
+
+    pass
 
 
 def get_default_founding_year():
@@ -195,17 +206,34 @@ class ClubSocialProfile(SocialProfileBase):
 class ClubRoleManager(ManagerBase["ClubRole"]):
     """Manage club role queries."""
 
-    def create(self, club: Club, name: str, default=False, perm_labels=None, **kwargs):
+    def create(
+        self,
+        club: Club,
+        name: str,
+        default=False,
+        perm_labels=None,
+        role_type=RoleType.VIEWER,
+        **kwargs,
+    ):
         """
         Create new club role.
 
         Can either assign initial permissions by perm_labels as ``list[str]``, or
         by permissions as ``list[Permission]``.
         """
+        from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
+
         perm_labels = perm_labels if perm_labels is not None else []
         permissions = kwargs.pop("permissions", [])
 
-        role = super().create(club=club, name=name, default=default, **kwargs)
+        if role_type == RoleType.ADMIN:
+            perm_labels = ADMIN_ROLE_PERMISSIONS
+        elif role_type == RoleType.VIEWER:
+            perm_labels = VIEWER_ROLE_PERMISSIONS
+
+        role = super().create(
+            club=club, name=name, default=default, role_type=role_type, **kwargs
+        )
 
         for perm in perm_labels:
             perm = get_permission(perm)
@@ -227,7 +255,14 @@ class ClubRole(ModelBase):
         help_text="New members would be automatically assigned this role.",
     )
     permissions = models.ManyToManyField(Permission, blank=True)
-    # is_admin = models.BooleanField(default=False, blank=True)
+    role_type = models.CharField(
+        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
+    )
+
+    # Dynamic Properties
+    @property
+    def perm_labels(self):
+        return [get_perm_label(perm) for perm in self.permissions.all()]
 
     # Overrides
     objects: ClassVar[ClubRoleManager] = ClubRoleManager()
@@ -266,10 +301,14 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
     """Manage queries for ClubMemberships."""
 
     def create(
-        self, club: Club, user: User, roles: Optional[list[ClubRole]] = None, **kwargs
+        self,
+        club: Club,
+        user: User,
+        roles: Optional[list[ClubRole | str]] = None,
+        **kwargs,
     ):
         """Create new club membership."""
-        roles = roles if roles is not None else []
+        roles = roles or []
 
         membership = super().create(club=club, user=user, **kwargs)
 
@@ -278,6 +317,9 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
             roles.append(default_role)
 
         for role in roles:
+            if isinstance(role, str):
+                role = ClubRole.objects.get(club=club, name=role)
+
             membership.roles.add(role)
 
         return membership
@@ -304,17 +346,27 @@ class ClubMembership(ModelBase):
         User, related_name="club_memberships", on_delete=models.CASCADE
     )
 
-    is_owner = models.BooleanField(default=False, blank=True)
-    is_admin = models.BooleanField(default=False, blank=True)
+    is_owner = models.BooleanField(
+        default=False,
+        blank=True,
+        help_text="Determines whether user is the sole superadmin for the club",
+    )
     points = models.IntegerField(default=0, blank=True)
     roles = models.ManyToManyField(ClubRole, blank=True)
+    # is_admin = models.BooleanField(default=False, blank=True)
 
     # Foreign Relationships
     # teams: models.QuerySet["Team"]
 
+    # Dynamic Properties
     @property
     def team_memberships(self):
         return self.user.team_memberships.filter(team__club__id=self.club.id)
+
+    @property
+    def is_admin(self) -> bool:
+        """Indicates if user automatically gets all permissions for the club."""
+        return self.is_owner or self.roles.filter(role_type=RoleType.ADMIN).exists()
 
     # Overrides
     objects: ClassVar[ClubMembershipManager] = ClubMembershipManager()
@@ -337,6 +389,7 @@ class ClubMembership(ModelBase):
             ),
         ]
 
+    # Methods
     def add_roles(self, *roles: ClubRole | str, commit=True):
         """Add ClubRole to membership."""
 
@@ -455,6 +508,9 @@ class TeamRole(ModelBase):
     permissions = models.ManyToManyField(Permission, blank=True)
     order = models.PositiveIntegerField(
         default=0, help_text="Used to determine the list ordering of a team member"
+    )
+    role_type = models.CharField(
+        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
     )
 
     # Overrides

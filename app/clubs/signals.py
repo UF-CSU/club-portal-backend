@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from clubs.consts import INITIAL_CLUB_ROLES, INITIAL_TEAM_ROLES
+from clubs.defaults import INITIAL_CLUB_ROLES, INITIAL_TEAM_ROLES
 from clubs.models import Club, ClubFile, ClubRole, Team, TeamRole
 from utils.files import get_file_from_path
 from utils.images import create_default_icon
@@ -23,7 +23,7 @@ def on_save_club(sender, instance: Club, created=False, **kwargs):
         instance.logo = logo
         instance.save()
 
-    if not created:  # Skip if being updated
+    if not created:  # Only continue if being created
         return
 
     # Create roles after club creation
@@ -32,7 +32,8 @@ def on_save_club(sender, instance: Club, created=False, **kwargs):
             club=instance,
             name=role["name"],
             default=role["default"],
-            perm_labels=role["permissions"],
+            role_type=role["role_type"],
+            # perm_labels=role["permissions"],
         )
 
 
@@ -40,7 +41,7 @@ def on_save_club(sender, instance: Club, created=False, **kwargs):
 def on_save_team(sender, instance: Team, created=False, **kwargs):
     """Automations to run when a team is created."""
 
-    if not created:
+    if not created:  # Only continue if being created
         return
 
     for role in INITIAL_TEAM_ROLES:
@@ -48,5 +49,6 @@ def on_save_team(sender, instance: Team, created=False, **kwargs):
             team=instance,
             name=role["name"],
             default=role["default"],
-            perm_labels=role["permissions"],
+            role_type=role["role_type"],
+            # perm_labels=role["permissions"],
         )

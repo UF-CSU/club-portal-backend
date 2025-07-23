@@ -1,3 +1,4 @@
+from clubs.defaults import INITIAL_CLUB_ROLES
 from clubs.models import ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import create_test_club, create_test_team
@@ -19,7 +20,7 @@ class ClubPermsBasicTests(TestsBase):
     def test_club_initial_roles(self):
         """When a club is created, it should contain initial roles."""
 
-        self.assertEqual(ClubRole.objects.count(), 2)
+        self.assertEqual(ClubRole.objects.count(), len(INITIAL_CLUB_ROLES))
 
         member_role = ClubRole.objects.find_one(name="Member")
         self.assertIsNotNone(member_role)

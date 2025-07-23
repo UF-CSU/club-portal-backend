@@ -3,7 +3,7 @@ from typing import Optional
 
 from django.urls import reverse
 
-from clubs.models import Club, ClubFile, Team, TeamRole
+from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
 from clubs.services import ClubService
 from lib.faker import fake
 from users.models import User
@@ -81,6 +81,17 @@ def create_test_club(name=None, members: Optional[list[User]] = None, **kwargs) 
         svc.add_member(member)
 
     return club
+
+
+def create_test_clubrole(club: Club, role_type=RoleType.VIEWER, **kwargs):
+    """Create viewer club role role for tests."""
+
+    payload = {
+        "name": " ".join(fake.words(2)),
+        "default": False,
+        **kwargs,
+    }
+    return ClubRole.objects.create(club=club, role_type=role_type, **payload)
 
 
 def create_test_clubs(count=5, **kwargs):

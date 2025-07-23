@@ -63,14 +63,14 @@ class ClubEventTests(TestsBase):
             name="Test Event",
             start_at=timezone.now(),
             end_at=timezone.now() + timezone.timedelta(hours=2),
-            clubs=[c1, c2],
+            secondary_hosts=[c1, c2],
         )
         Event.objects.create(
             host=c1,
             name="Test Event",
             start_at=timezone.now(),
             end_at=timezone.now() + timezone.timedelta(hours=2),
-            clubs=[c2, c3],
+            secondary_hosts=[c2, c3],
         )
 
         self.assertEqual(Event.objects.for_club(c0).count(), 1)

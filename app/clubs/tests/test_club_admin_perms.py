@@ -207,16 +207,16 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             "name": fake.title(),
         }
 
-        e0 = create_test_event(host=[self.club])
-        e1 = create_test_event(host=[self.club], secondary_hosts=[self.other_club])
-        e2 = create_test_event(host=[self.other_club], secondary_hosts=[self.club])
-        e3 = create_test_event(host=[self.other_club])
+        e0 = create_test_event(host=self.club)
+        e1 = create_test_event(host=self.club, secondary_hosts=[self.other_club])
+        e2 = create_test_event(host=self.other_club, secondary_hosts=[self.club])
+        e3 = create_test_event(host=self.other_club)
 
         # E0: Is main host, can edit
         url = event_detail_url(e0.id)
         payload["name"] = fake.title() + " 0"
         res = self.client.patch(url, payload)
-        self.assertOk(res)
+        self.assertResOk(res)
 
         e0.refresh_from_db()
         self.assertEqual(e0.name, payload["name"])
@@ -225,7 +225,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         url = event_detail_url(e1.id)
         payload["name"] = fake.title() + " 1"
         res = self.client.patch(url, payload)
-        self.assertOk(res)
+        self.assertResOk(res)
 
         e1.refresh_from_db()
         self.assertEqual(e1.name, payload["name"])
@@ -234,7 +234,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         url = event_detail_url(e2.id)
         payload["name"] = fake.title() + " 2"
         res = self.client.patch(url, payload)
-        self.assertOk(res)
+        self.assertResOk(res)
 
         e2.refresh_from_db()
         self.assertEqual(e2.name, payload["name"])
@@ -251,22 +251,22 @@ class ApiClubAdminTests(PrivateApiTestsBase):
     def test_delete_club_events(self):
         """Admins should be able to delete club events."""
 
-        e0 = create_test_event(host=[self.club])
-        e1 = create_test_event(host=[self.club], secondary_hosts=[self.other_club])
-        e2 = create_test_event(host=[self.other_club], secondary_hosts=[self.club])
-        e3 = create_test_event(host=[self.other_club])
+        e0 = create_test_event(host=self.club)
+        e1 = create_test_event(host=self.club, secondary_hosts=[self.other_club])
+        e2 = create_test_event(host=self.other_club, secondary_hosts=[self.club])
+        e3 = create_test_event(host=self.other_club)
 
         # E0: Is main host, can delete
         url = event_detail_url(e0.id)
         res = self.client.patch(url)
-        self.assertOk(res)
+        self.assertResOk(res)
 
         self.assertFalse(Event.objects.filter(id=e0.pk).exists())
 
         # E1: Is main host, has secondary host, can delete
         url = event_detail_url(e1.id)
         res = self.client.patch(url)
-        self.assertOk(res)
+        self.assertResOk(res)
 
         self.assertFalse(Event.objects.filter(id=e1.pk).exists())
 
@@ -391,7 +391,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         # Own club
         url = club_members_list_url(self.club.id)
-        res = self.client.post(url, payload)
+        res = self.client.post(url, payload, format="json")
         self.assertResOk(res)
 
         self.assertEqual(self.club.member_count, 2)
