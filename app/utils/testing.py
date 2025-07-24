@@ -22,7 +22,7 @@ def create_test_uploadable_image(name=None, width=100, height=100):
 
     file_path = create_test_image(width=width, height=height)
     file_binary = open(file_path, mode="rb").read()
-    file_name = name or "test_image.jpg"
+    file_name = name or f"{fake.title().replace(' ', '_').lower()}.jpg"
 
     return SimpleUploadedFile(file_name, file_binary, content_type="image/jpeg")
 

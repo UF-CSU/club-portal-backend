@@ -44,7 +44,7 @@ def club_file_list_url(club_id: int):
 
 
 def club_file_detail_url(club_id: int, file_id: int):
-    return reverse("api-clubs:file-list", args=[club_id, file_id])
+    return reverse("api-clubs:file-detail", args=[club_id, file_id])
 
 
 def create_test_clubfile(club: Club, **kwargs):
@@ -53,6 +53,7 @@ def create_test_clubfile(club: Club, **kwargs):
     payload = {
         "club": club,
         "file": get_file_from_path(create_test_image()),
+        **kwargs,
     }
 
     return ClubFile.objects.create(**payload)

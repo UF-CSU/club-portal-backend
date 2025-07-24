@@ -14,14 +14,29 @@ class RolePayloadType(TypedDict):
     # permissions: list[str]
 
 
-VIEWER_ROLE_PERMISSIONS = ["clubs.view_club", "events.view_event", "clubs.view_team"]
-ADMIN_ROLE_PERMISSIONS = [
+VIEWER_ROLE_PERMISSIONS = [
     "clubs.view_club",
-    "clubs.change_club",
     "events.view_event",
-    "events.change_event",
     "clubs.view_team",
+    "clubs.view_clubfile",
+]
+ADMIN_ROLE_PERMISSIONS = [
+    *VIEWER_ROLE_PERMISSIONS,
+    # Clubs
+    "clubs.change_club",
+    "clubs.add_team",
     "clubs.change_team",
+    "clubs.delete_team",
+    "clubs.add_clubfile",
+    "clubs.change_clubfile",
+    "clubs.delete_clubfile",
+    "clubs.add_clubmembership",
+    "clubs.change_clubmembership",
+    "clubs.delete_clubmembership",
+    # Events
+    "events.add_event",
+    "events.change_event",
+    "events.delete_event",
 ]
 
 # Sort permissions lists to use for testing, assertions, etc

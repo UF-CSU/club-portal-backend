@@ -55,7 +55,7 @@ class CustomBackend(ModelBackend):
             if get_permission(perm) in perms:
                 return True
 
-        if not hasattr(obj, "scope"):
+        if getattr(obj, "scope", Scope.GLOBAL) == Scope.GLOBAL:
             return super().has_perm(user_obj, perm, obj)
 
         if obj.scope == Scope.CLUB:

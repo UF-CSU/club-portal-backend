@@ -104,18 +104,20 @@ class ClubModelTests(TestsBase):
         viewer_role = create_test_clubrole(club, role_type=RoleType.VIEWER)
         admin_role = create_test_clubrole(club, role_type=RoleType.ADMIN)
 
+        # Check admin role for owner
+        m0 = ClubMembership.objects.create(
+            club=club, user=u2, roles=[viewer_role], is_owner=True
+        )
+        self.assertTrue(m0.is_admin)
+
         # Check viewer role
-        m0 = ClubMembership.objects.create(club=club, user=u0, roles=[viewer_role])
-        self.assertFalse(m0.is_admin)
+        m1 = ClubMembership.objects.create(club=club, user=u0, roles=[viewer_role])
+        self.assertFalse(m1.is_admin)
 
         # Check admin role
-        m1 = ClubMembership.objects.create(
+        m2 = ClubMembership.objects.create(
             club=club, user=u1, roles=[viewer_role, admin_role]
         )
-        self.assertTrue(m1.is_admin)
-
-        # Check admin role for owner
-        m2 = ClubMembership.objects.create(club=club, user=u2, roles=[viewer_role])
         self.assertTrue(m2.is_admin)
 
 

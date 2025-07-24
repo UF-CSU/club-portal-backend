@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
-from rest_framework import mixins, status
+from rest_framework import exceptions, mixins, status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -21,6 +21,18 @@ from clubs.serializers import (
 )
 from clubs.services import ClubService
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
+from users.models import User
+
+
+def get_club_or_404(club_id: int, user: User):
+    """Get club for user, or raise 404 error."""
+
+    try:
+        return Club.objects.get_for_user(club_id, user)
+    except Club.DoesNotExist:
+        raise exceptions.NotFound(
+            detail="Club with id %s does not exist for user." % club_id
+        )
 
 
 class ClubNestedViewSetBase(ModelViewSetBase):
@@ -28,28 +40,22 @@ class ClubNestedViewSetBase(ModelViewSetBase):
     Represents objects that require a club id to query.
     """
 
+    def check_permissions(self, request):
+        # This runs before `get_queryset`, will short-circuit out if user
+        # does not have a club membership
+
+        club_id = int(self.kwargs.get("club_id"))
+        self.club = get_club_or_404(club_id, self.request.user)
+
+        return super().check_permissions(request)
+
     def get_queryset(self):
-        club_id = self.kwargs.get("club_id", None)
-        self.queryset = self.queryset.filter(club__id=club_id)
+        self.queryset = self.queryset.filter(club__id=self.club.id)
 
         return super().get_queryset()
 
     def perform_create(self, serializer: ClubMembershipCreateSerializer, **kwargs):
-        club_id = self.kwargs.get("club_id", None)
-        club = Club.objects.get(id=club_id)
-
-        serializer.save(club=club, **kwargs)
-
-    def check_permissions(self, request):
-        club_id = self.kwargs.get("club_id", None)
-        club = Club.objects.get(id=club_id)
-
-        if not request.user.has_perm(
-            "clubs.view_club", club
-        ) or not request.user.has_perm("clubs.view_clubmembership", club):
-            self.permission_denied(request)
-
-        return super().check_permissions(request)
+        serializer.save(club=self.club, **kwargs)
 
 
 class ClubViewSet(ModelViewSetBase):
@@ -58,39 +64,16 @@ class ClubViewSet(ModelViewSetBase):
     serializer_class = ClubSerializer
     queryset = Club.objects.all()
 
-    def check_object_permissions(self, request, obj):
-        if not request.user.has_perm("clubs.view_club", obj):
-            self.permission_denied(request)
+    def check_permissions(self, request):
+        if self.detail:
+            # Check if the user is a member of specified club
+            club_id = int(self.kwargs.get("pk"))
+            get_club_or_404(club_id, self.request.user)
 
-        return super().check_object_permissions(request, obj)
-
-    def filter_queryset(self, queryset):
-        qs = super().filter_queryset(queryset)
-
-        has_membership = self.request.GET.get("has_membership", False)
-
-        if has_membership:
-            club_ids = self.request.user.clubs.values_list("id", flat=True)
-            return qs.filter(id__in=club_ids)
-
-        return qs
+        return super().check_permissions(request)
 
     def get_queryset(self):
-        qs = super().get_queryset()
-
-        request = self.request
-        user = request.user
-
-        if not user or not user.is_authenticated:
-            if self.action == "list":
-                return qs.none()
-            else:
-                self.permission_denied(self.request)
-
-        if self.action == "list":
-            return user.clubs.all()
-        else:
-            return qs
+        return Club.objects.filter_for_user(self.request.user)
 
 
 class ClubPreviewViewSet(
@@ -129,6 +112,24 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
             return ClubMembershipCreateSerializer
 
         return super().get_serializer_class()
+
+    def perform_update(self, serializer):
+        instance: ClubMembership = serializer.instance
+        user_membership = ClubMembership.objects.get(
+            user=self.request.user, club=instance.club
+        )
+
+        # Check club ownership edge cases
+        is_owner_value = serializer.validated_data.get("is_owner", None)
+        if not user_membership.is_owner:
+            raise exceptions.PermissionDenied(detail="Only owners can change ownership")
+
+        elif user_membership.is_owner and is_owner_value is False:
+            raise exceptions.ParseError(
+                detail="Cannot unset ownership, must set to someone else"
+            )
+
+        return super().perform_update(serializer)
 
 
 class ClubMemberViewSet(

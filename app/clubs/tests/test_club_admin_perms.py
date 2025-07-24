@@ -95,23 +95,21 @@ class ApiClubAdminTests(PrivateApiTestsBase):
     def test_add_club_files(self):
         """Admins should be able to add club files."""
 
-        payload = {
-            "file": create_test_uploadable_image(),
-        }
-
         file_count_before = ClubFile.objects.count()
 
         # Own club
+        payload = {"file": create_test_uploadable_image()}
         url = club_file_list_url(self.club.id)
-        res = self.client.patch(url, payload)
-        self.assertResOk(res)
+        res = self.client.post(url, payload)
+        self.assertResCreated(res)
 
         self.assertEqual(ClubFile.objects.count(), file_count_before + 1)
         file_count_before += 1
 
         # Other club
+        payload = {"file": create_test_uploadable_image()}
         url = club_file_list_url(self.other_club.id)
-        res = self.client.patch(url, payload)
+        res = self.client.post(url, payload)
         self.assertResNotFound(res)
 
         self.assertEqual(ClubFile.objects.count(), file_count_before)
@@ -123,15 +121,15 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         club_file = create_test_clubfile(self.club)
         file_count_before = ClubFile.objects.count()
 
-        url = club_file_detail_url(self.club.id, club_file.id)
+        url = club_file_detail_url(self.club.id, club_file.pk)
         res = self.client.delete(url)
         self.assertResNoContent(res)
 
         self.assertEqual(ClubFile.objects.count(), file_count_before - 1)
-        file_count_before -= 1
 
         # Other club
         other_club_file = create_test_clubfile(self.other_club)
+        file_count_before = ClubFile.objects.count()
 
         url = club_file_detail_url(self.other_club.id, other_club_file.id)
         res = self.client.delete(url)
@@ -176,6 +174,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertEqual(Event.objects.for_club(self.club).count(), 1)
 
         # Other club
+        payload["name"] += " copy"
         payload["hosts"] = [{"club_id": self.other_club.id, "is_primary": True}]
         url = EVENT_LIST_URL
         res = self.client.post(url, payload, format="json")
@@ -185,6 +184,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertEqual(Event.objects.for_club(self.other_club).count(), 0)
 
         # No hosts
+        payload["name"] += " copy"
         payload["hosts"] = []
         url = EVENT_LIST_URL
         res = self.client.post(url, payload, format="json")
@@ -193,6 +193,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertEqual(Event.objects.count(), 1)
 
         # Only secondary hosts
+        payload["name"] += " copy"
         payload["hosts"] = [{"club_id": self.club.id, "is_primary": False}]
         url = EVENT_LIST_URL
         res = self.client.post(url, payload, format="json")
@@ -258,28 +259,28 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         # E0: Is main host, can delete
         url = event_detail_url(e0.id)
-        res = self.client.patch(url)
-        self.assertResOk(res)
+        res = self.client.delete(url)
+        self.assertResNoContent(res)
 
         self.assertFalse(Event.objects.filter(id=e0.pk).exists())
 
         # E1: Is main host, has secondary host, can delete
         url = event_detail_url(e1.id)
-        res = self.client.patch(url)
-        self.assertResOk(res)
+        res = self.client.delete(url)
+        self.assertResNoContent(res)
 
         self.assertFalse(Event.objects.filter(id=e1.pk).exists())
 
         # E2: Is secondary host, cannot delete
         url = event_detail_url(e2.id)
-        res = self.client.patch(url)
+        res = self.client.delete(url)
         self.assertResForbidden(res)
 
         self.assertTrue(Event.objects.filter(id=e2.pk).exists())
 
         # E3: Is not host, cannot delete
         url = event_detail_url(e3.id)
-        res = self.client.patch(url)
+        res = self.client.delete(url)
         self.assertResForbidden(res)
 
         self.assertTrue(Event.objects.filter(id=e3.pk).exists())
@@ -388,13 +389,14 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             "send_email": False,
             "roles": ["Officer"],
         }
+        initial_member_count = self.club.member_count
 
         # Own club
         url = club_members_list_url(self.club.id)
         res = self.client.post(url, payload, format="json")
-        self.assertResOk(res)
+        self.assertResCreated(res)
 
-        self.assertEqual(self.club.member_count, 2)
+        self.assertEqual(self.club.member_count, initial_member_count + 1)
         membership = ClubMembership.objects.get(
             club=self.club, user__email=payload["user"]["email"]
         )
@@ -402,7 +404,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         # Other club
         url = club_members_list_url(self.other_club.id)
-        res = self.client.post(url, payload)
+        res = self.client.post(url, payload, format="json")
         self.assertResNotFound(res)
 
         self.assertFalse(
@@ -461,7 +463,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         payload = {"is_owner": False}
         url = club_members_detail_url(self.club.id, self.owner_membership.id)
         res = self.client.patch(url, payload)
-        self.assertResForbidden(res)
+        self.assertResBadRequest(res)
 
         self.owner_membership.refresh_from_db()
         self.assertTrue(self.owner_membership.is_owner)
@@ -481,7 +483,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         # Owner of 1 club, member of another
         self.other_service.add_member(self.owner_user, roles=["Member"])
         payload = {"is_owner": True}
-        url = club_members_detail_url(self.other_club, self.other_user_membership.id)
+        url = club_members_detail_url(self.other_club.id, self.other_user_membership.id)
         res = self.client.patch(url, payload)
         self.assertResForbidden(res)
 
@@ -495,7 +497,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         member_role = self.club.roles.get(name="Member")
 
         # Own club, other member
-        payload = {"roles": [officer_role.id]}
+        payload = {"roles": [officer_role.name]}
         url = club_members_detail_url(self.club.id, self.member_membership.id)
         res = self.client.patch(url, payload)
         self.assertResOk(res)
@@ -504,7 +506,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertTrue(self.member_membership.is_admin)
 
         # Own club, owner
-        payload = {"roles": [member_role]}
+        payload = {"roles": [member_role.name]}
         url = club_members_detail_url(self.club.id, self.owner_membership.id)
         res = self.client.patch(url, payload)
         self.assertResOk(res)
@@ -520,7 +522,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             other_member, roles=["Member"]
         )
         officer_role = self.other_club.roles.get(name="Officer")
-        payload = {"roles": [officer_role.id]}
+        payload = {"roles": [officer_role.name]}
 
         url = club_members_detail_url(self.other_club.id, other_member_membership.id)
         res = self.client.patch(url, payload)

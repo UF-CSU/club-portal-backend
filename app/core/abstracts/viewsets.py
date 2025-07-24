@@ -9,13 +9,16 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 class ViewSetBase(GenericViewSet):
     """Provide core functionality for most viewsets."""
 
-    # Read more: https://testdriven.io/blog/drf-views-part-3/
+    # Setting types for properties set by drf, read more:
+    # - https://www.django-rest-framework.org/api-guide/viewsets/#introspecting-viewset-actions,
+    # - https://testdriven.io/blog/drf-views-part-3/
     action: Literal["list", "create", "retrieve", "update", "partial_update", "destroy"]
+    """What request method is being called for the viewset."""
 
-    authentication_classes = [
-        authentication.TokenAuthentication,
-        # authentication.SessionAuthentication,
-    ]
+    detail: bool
+    """Indicates if the current action is configured for a list or detail view."""
+
+    authentication_classes = [authentication.TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
 

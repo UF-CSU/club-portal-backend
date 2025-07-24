@@ -94,7 +94,7 @@ class ApiClubViewerTests(PrivateApiTestsBase):
         url = EVENT_LIST_URL
 
         # Event with a host
-        payload["hosts"] = [self.club.id]
+        payload["hosts"] = [{"club_id": self.club.id, "is_primary": True}]
         res = self.client.post(url, payload, format="json")
         self.assertResForbidden(res)
 

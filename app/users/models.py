@@ -245,11 +245,11 @@ class SocialProfile(SocialProfileBase):
 class UserAgentManager(BaseUserManager):
     """Manage user agent objects."""
 
-    def create(self, username: str, apikey_type: "KeyType", **kwargs):
+    def create(self, username: str, apikey_type: "ApiKeyType", **kwargs):
         return super().create(username=username, apikey_type=apikey_type, **kwargs)
 
 
-class KeyType(models.TextChoices):
+class ApiKeyType(models.TextChoices):
     """What type of api key is attached to the user agent."""
 
     CLUB = "club", _("Club Api Key")
@@ -263,7 +263,7 @@ class UserAgent(User):
     that don't necessarily represent an individual person.
     """
 
-    apikey_type = models.CharField(choices=KeyType.choices)
+    apikey_type = models.CharField(choices=ApiKeyType.choices)
 
     # Foreign Relationships
     club_apikey: Optional[models.Model]

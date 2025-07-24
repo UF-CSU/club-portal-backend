@@ -4,18 +4,22 @@ Abstract models for common fields.
 
 import uuid
 from enum import Enum
-from typing import Any, ClassVar, Generic, MutableMapping, Optional, Self
+from typing import Any, ClassVar, Generic, MutableMapping, Optional, Self, Type
 
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from utils.permissions import get_perm_label
 from utils.types import T
 
 
 class ManagerBase(models.Manager, Generic[T]):
     """Extends django manager for improved db access."""
+
+    model: Type[T]
 
     def create(self, **kwargs) -> T:
         """Create new model."""
@@ -160,6 +164,27 @@ class ModelBase(models.Model):
         This is a shorthand for: ``ContentType.objects.get_for_model(model)``
         """
         return ContentType.objects.get_for_model(cls)
+
+    @classmethod
+    def get_permissions(cls):
+        """
+        Get Permissions associated with this object. By default
+        this will return: "add_model", "change_model", "delete_model", "view_model",
+        with "model" being the name of the model.
+        """
+
+        return Permission.objects.filter(content_type=cls.get_content_type())
+
+    @classmethod
+    def get_permission_labels(cls):
+        """
+        Get list of labels representing the permissions that are available
+        on this model. The standard format will usually return:
+        "app.add_model", "app.change_model", "app.delete_model", "app.view_model"
+        with "app" being the app name and "model" being the name of the model.
+        """
+
+        return [get_perm_label(perm) for perm in cls.get_permissions()]
 
     @classmethod
     def get_fields_list(

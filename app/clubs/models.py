@@ -23,7 +23,7 @@ from core.abstracts.models import (
     Tag,
     UniqueModel,
 )
-from users.models import KeyType, User, UserAgent
+from users.models import ApiKeyType, User, UserAgent
 from utils.files import get_file_path
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
@@ -59,6 +59,37 @@ def validate_max_founding_year(value: int):
         raise ValueError(
             f"A club cannot have been founded in the future. Founding year must be greater than {current_year}."
         )
+
+
+class ClubManager(ManagerBase["Club"]):
+    """Manage club queries."""
+
+    def filter_for_user(self, user: User):
+        """Get clubs for user."""
+
+        if user.is_superuser:
+            return self.all()
+        elif user.is_useragent and user.useragent.apikey_type == "club":
+            # TODO: Abstract this useragent club
+            return self.filter(id=user.useragent.club_apikey.club.id)
+
+        return self.filter(memberships__user=user)
+
+    def get_for_user(self, id: int, user: User):
+        """Get club for user, or throw 404."""
+
+        if user.is_superuser:
+            return self.get(id=id)
+        elif user.is_useragent and user.useragent.apikey_type == "club":
+            # TODO: Abstract this useragent club
+            key_club = user.useragent.club_apikey.club
+
+            if key_club.id != id:
+                raise self.model.DoesNotExist
+
+            return key_club
+
+        return self.get(id=id, memberships__user__id=user.id)
 
 
 class Club(UniqueModel):
@@ -101,6 +132,8 @@ class Club(UniqueModel):
     photos: models.QuerySet["ClubPhoto"]
 
     # Overrides
+    objects: ClassVar[ClubManager] = ClubManager()
+
     @property
     def club(self):
         """Used for permissions checking."""
@@ -134,6 +167,8 @@ class ClubFile(ModelBase):
     This allows club admins to upload banners, photo galleries,
     event documents, etc.
     """
+
+    scope = Scope.CLUB
 
     upload_file_path = UploadNestedClubFilepathFactory("clubs/%(club_id)s/files/")
 
@@ -176,6 +211,8 @@ class ClubFile(ModelBase):
 class ClubPhoto(ModelBase):
     """Photos for club carousel"""
 
+    scope = Scope.CLUB
+
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="photos")
     file = models.ForeignKey(ClubFile, on_delete=models.CASCADE)
     order = models.PositiveIntegerField(default=0)
@@ -191,6 +228,8 @@ class ClubPhoto(ModelBase):
 
 class ClubSocialProfile(SocialProfileBase):
     """Saves social media profile info for clubs."""
+
+    scope = Scope.CLUB
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="socials")
 
@@ -212,7 +251,7 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         name: str,
         default=False,
         perm_labels=None,
-        role_type=RoleType.VIEWER,
+        role_type=None,
         **kwargs,
     ):
         """
@@ -223,30 +262,43 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         """
         from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
 
-        perm_labels = perm_labels if perm_labels is not None else []
-        permissions = kwargs.pop("permissions", [])
+        # perm_labels = perm_labels if perm_labels is not None else []
+        permissions = kwargs.pop("permissions", []) + parse_permissions(
+            perm_labels or []
+        )
 
+        # Set default role type
+        if role_type is None and len(permissions) > 0:
+            role_type = RoleType.CUSTOM
+        elif role_type is None:
+            role_type = RoleType.VIEWER
+
+        # Set default permissions if necessary
         if role_type == RoleType.ADMIN:
-            perm_labels = ADMIN_ROLE_PERMISSIONS
+            permissions = parse_permissions(ADMIN_ROLE_PERMISSIONS)
         elif role_type == RoleType.VIEWER:
-            perm_labels = VIEWER_ROLE_PERMISSIONS
+            perm_labels = parse_permissions(VIEWER_ROLE_PERMISSIONS)
 
         role = super().create(
             club=club, name=name, default=default, role_type=role_type, **kwargs
         )
 
-        for perm in perm_labels:
-            perm = get_permission(perm)
-            role.permissions.add(perm)
+        # for perm in perm_labels:
+        #     perm = get_permission(perm)
+        #     role.permissions.add(perm)
 
-        for perm in permissions:
-            role.permissions.add(perm)
+        # for perm in permissions:
+        #     role.permissions.add(perm)
+        role.permissions.set(permissions)
+        role.save()
 
         return role
 
 
 class ClubRole(ModelBase):
     """Extend permission group to manage club roles."""
+
+    scope = Scope.CLUB
 
     name = models.CharField(max_length=32)
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="roles")
@@ -261,7 +313,7 @@ class ClubRole(ModelBase):
 
     # Meta fields
     cached_role_type = models.CharField(
-        choices=RoleType.choices, default=RoleType.VIEWER, blank=True, editable=False
+        choices=RoleType.choices, default=None, blank=True, null=True, editable=False
     )
 
     # Dynamic Properties
@@ -350,6 +402,8 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
 class ClubMembership(ModelBase):
     """Connection between user and club."""
 
+    scope = Scope.CLUB
+
     club = models.ForeignKey(Club, related_name="memberships", on_delete=models.CASCADE)
     user = models.ForeignKey(
         User, related_name="club_memberships", on_delete=models.CASCADE
@@ -362,7 +416,14 @@ class ClubMembership(ModelBase):
     )
     points = models.IntegerField(default=0, blank=True)
     roles = models.ManyToManyField(ClubRole, blank=True)
-    # is_admin = models.BooleanField(default=False, blank=True)
+
+    # Meta fields
+    cached_is_owner = models.BooleanField(
+        default=False,
+        blank=True,
+        editable=False,
+        help_text="Used to determine if is_owner has changed",
+    )
 
     # Foreign Relationships
     # teams: models.QuerySet["Team"]
@@ -423,12 +484,21 @@ class ClubMembership(ModelBase):
 
     def clean(self):
         """Validate membership model."""
-        if self.is_owner and not self.is_admin:
-            self.is_admin = True
+        # if self.is_owner and not self.is_admin:
+        #     self.is_admin = True
 
+        # Handle changing of is_owner field
+        if self.is_owner and not self.cached_is_owner:
+            ClubMembership.objects.filter(club=self.club).update(is_owner=False)
+            self.cached_is_owner = True
+        elif not self.is_owner and self.cached_is_owner:
+            self.cached_is_owner = False
+
+        # Only proceed if already created
         if not self.pk:
             return super().clean()
 
+        # Check that all roles are assigned to club
         for role in self.roles.all():
             if role.club.id != self.club.id:
                 raise exceptions.ValidationError(
@@ -507,6 +577,8 @@ class TeamRoleManager(ManagerBase["TeamRole"]):
 
 class TeamRole(ModelBase):
     """Extend permission group to manage club roles."""
+
+    scope = Scope.CLUB
 
     name = models.CharField(max_length=32)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="roles")
@@ -602,6 +674,8 @@ class TeamMembershipManager(ManagerBase["TeamMembership"]):
 
 class TeamMembership(ModelBase):
     """Manage club member's assignment to a team."""
+
+    scope = Scope.CLUB
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="memberships")
     user = models.ForeignKey(
@@ -733,7 +807,7 @@ class ClubApiKey(ModelBase):
         if self.user_agent_id is None:
             username = f"agent-c{self.club.id}-" + slugify(self.name)
             self.user_agent = UserAgent.objects.create(
-                username=username, apikey_type=KeyType.CLUB
+                username=username, apikey_type=ApiKeyType.CLUB
             )
         return super().save(*args, **kwargs)
 

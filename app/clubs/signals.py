@@ -74,7 +74,7 @@ def on_save_club_role(sender, instance: ClubRole, created=False, **kwargs):
     if instance.role_type == RoleType.CUSTOM:
         # Skip if role type is set to custom
         if instance.cached_role_type != RoleType.CUSTOM:
-            instance.role_type = RoleType.CUSTOM
+            instance.cached_role_type = RoleType.CUSTOM
             instance.save()
         return
 
