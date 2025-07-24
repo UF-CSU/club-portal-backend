@@ -31,12 +31,14 @@ class ClubPermsBasicTests(TestsBase):
         self.assertFalse(officer_role.default)
 
     def test_clubs_view_access(self):
-        """Club memberships should have view access."""
+        """All users should have view access to allow previews, but only members can see details."""
 
-        self.assertFalse(self.user.has_perm("clubs.view_club", self.club))
+        self.assertTrue(self.user.has_perm("clubs.view_club", self.club))
+        self.assertFalse(self.user.has_perm("clubs.view_club_details", self.club))
 
         self.service.add_member(self.user)
         self.assertTrue(self.user.has_perm("clubs.view_club", self.club))
+        self.assertTrue(self.user.has_perm("clubs.view_club_details", self.club))
         self.assertFalse(self.user.has_perm("clubs.change_club"), self.club)
 
     def test_club_role_change_access(self):
@@ -79,13 +81,16 @@ class ClubScopedPermsTests(TestsBase):
         """Club roles should only apply to that club."""
 
         self.assertTrue(self.user.has_perm("clubs.view_club", self.club1))
-        self.assertFalse(self.user.has_perm("clubs.view_club", self.club2))
+        self.assertTrue(self.user.has_perm("clubs.view_club_details", self.club1))
+        self.assertTrue(self.user.has_perm("clubs.view_club", self.club2))
+        self.assertFalse(self.user.has_perm("clubs.view_club_details", self.club2))
 
     def test_club_event_perms(self):
         """Event permissions should be scoped to a club."""
 
         event1 = create_test_event(host=self.club1)
         self.assertTrue(self.user.has_perm("events.view_event", event1))
+        self.assertTrue(self.user.has_perm("events.view_private_event", event1))
         self.assertFalse(self.user.has_perm("events.change_event", event1))
 
         # Check officer's permissions
@@ -94,7 +99,8 @@ class ClubScopedPermsTests(TestsBase):
 
         # Test access to other club's events
         event2 = create_test_event(host=self.club2)
-        self.assertFalse(self.user.has_perm("events.view_event", event2))
+        self.assertTrue(self.user.has_perm("events.view_event", event2))
+        self.assertFalse(self.user.has_perm("events.view_private_event", event2))
         self.assertFalse(self.user.has_perm("events.change_event", event2))
 
     def test_club_team_perms(self):

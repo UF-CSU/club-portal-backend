@@ -10,7 +10,9 @@ from events.models import (
     RecurringEvent,
 )
 from events.serializers import EventAttendanceCsvSerializer, EventCsvSerializer
-from events.services import EventService, RecurringEventService
+from events.services import EventService
+from events.tasks import sync_recurring_event_task
+from lib.celery import delay_task
 
 
 # Register your models here.
@@ -30,7 +32,8 @@ class RecurringEventAdmin(admin.ModelAdmin):
     def sync_events(self, request, queryset):
 
         for recurring in queryset.all():
-            RecurringEventService(recurring).sync_events()
+            delay_task(sync_recurring_event_task, recurring_event_id=recurring.id)
+            # RecurringEventService(recurring).sync_events()
 
         return
 

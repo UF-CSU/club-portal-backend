@@ -3,7 +3,6 @@ Abstract models for common fields.
 """
 
 import uuid
-from enum import Enum
 from typing import Any, ClassVar, Generic, MutableMapping, Optional, Self, Type
 
 from django.contrib.auth.models import Permission
@@ -120,11 +119,11 @@ class ManagerBase(models.Manager, Generic[T]):
         return super().all()
 
 
-class Scope(Enum):
+class ScopeType(models.TextChoices):
     """Permission levels."""
 
-    GLOBAL = "global"
-    CLUB = "club"
+    GLOBAL = "global", _("Global")
+    CLUB = "club", _("Club")
 
 
 class ModelBase(models.Model):
@@ -136,7 +135,7 @@ class ModelBase(models.Model):
     if the field exists on the model.
     """
 
-    scope = Scope.GLOBAL
+    scope = ScopeType.GLOBAL  # TODO: Define scope has db column
     """Defines permissions level applied to model."""
 
     created_at = models.DateTimeField(auto_now_add=True, editable=False, blank=True)

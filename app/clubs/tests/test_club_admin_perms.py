@@ -1,7 +1,7 @@
 import pytz
 from django.utils import timezone
 
-from clubs.models import ClubFile, ClubMembership
+from clubs.models import ClubFile, ClubMembership, RoleType
 from clubs.services import ClubService
 from clubs.tests.utils import (
     club_detail_url,
@@ -77,7 +77,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             "name": self.club.name + " updated",
         }
 
-        # Own club
+        # Our club
         url = club_detail_url(self.club.id)
         res = self.client.patch(url, payload)
         self.assertResOk(res)
@@ -97,7 +97,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         file_count_before = ClubFile.objects.count()
 
-        # Own club
+        # Our club
         payload = {"file": create_test_uploadable_image()}
         url = club_file_list_url(self.club.id)
         res = self.client.post(url, payload)
@@ -117,7 +117,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
     def test_delete_club_files(self):
         """Admins should be able to delete club files."""
 
-        # Own club
+        # Our club
         club_file = create_test_clubfile(self.club)
         file_count_before = ClubFile.objects.count()
 
@@ -164,7 +164,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             "hosts": [],
         }
 
-        # Own club
+        # Our club
         payload["hosts"] = [{"club_id": self.club.id, "is_primary": True}]
         url = EVENT_LIST_URL
         res = self.client.post(url, payload, format="json")
@@ -271,12 +271,12 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         self.assertFalse(Event.objects.filter(id=e1.pk).exists())
 
-        # E2: Is secondary host, cannot delete
+        # E2: Is secondary host, can delete
         url = event_detail_url(e2.id)
         res = self.client.delete(url)
-        self.assertResForbidden(res)
+        self.assertResNoContent(res)
 
-        self.assertTrue(Event.objects.filter(id=e2.pk).exists())
+        self.assertFalse(Event.objects.filter(id=e2.pk).exists())
 
         # E3: Is not host, cannot delete
         url = event_detail_url(e3.id)
@@ -325,12 +325,13 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         rec_query = RecurringEvent.objects.filter(club=self.club)
         self.assertTrue(rec_query.exists())
+
         self.assertTrue(Event.objects.for_club(self.club).exists())
         self.assertTrue(Event.objects.for_club(self.other_club).exists())
 
         rec_query.delete()
 
-        # Is not host, is secondary, is not allowed
+        # Is not host, is secondary, is allowed
         self.assertFalse(Event.objects.for_club(self.club).exists())
 
         payload["club"] = self.other_club.id
@@ -338,13 +339,23 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         url = RECURRINGEVENT_LIST_URL
         res = self.client.post(url, payload)
-        self.assertResForbidden(res)
+        self.assertResCreated(res)
 
-        rec_query = RecurringEvent.objects.filter(club=self.club)
-        self.assertFalse(rec_query.exists())
-        rec_query = RecurringEvent.objects.filter(other_clubs__id=self.club.id)
-        self.assertFalse(rec_query.exists())
-        self.assertFalse(Event.objects.for_club(self.club).exists())
+        rec_query_host = RecurringEvent.objects.filter(club=self.other_club)
+        rec_query_other_host = RecurringEvent.objects.filter(
+            other_clubs__id=self.club.id
+        )
+
+        self.assertTrue(rec_query_host.exists())
+        self.assertTrue(rec_query_other_host.exists())
+
+        self.assertFalse(RecurringEvent.objects.filter(club=self.club).exists())
+        self.assertFalse(
+            RecurringEvent.objects.filter(other_clubs__id=self.other_club.id).exists()
+        )
+
+        rec_query_host.delete()
+        rec_query_other_host.delete()
 
         # Is not host, is not allowed
         self.assertFalse(Event.objects.for_club(self.club).exists())
@@ -391,7 +402,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         }
         initial_member_count = self.club.member_count
 
-        # Own club
+        # Our club
         url = club_members_list_url(self.club.id)
         res = self.client.post(url, payload, format="json")
         self.assertResCreated(res)
@@ -420,7 +431,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             "is_owner": True,
         }
 
-        # Own club, set self as owner
+        # Our club, set self as owner
         url = club_members_detail_url(self.club.id, self.membership.id)
         res = self.client.patch(url, payload)
         self.assertResForbidden(res)
@@ -428,7 +439,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.membership.refresh_from_db()
         self.assertFalse(self.membership.is_owner)
 
-        # Own club, set other user as owner
+        # Our club, set other user as owner
         url = club_members_detail_url(self.club.id, self.member_membership.id)
         res = self.client.patch(url, payload)
         self.assertResForbidden(res)
@@ -444,7 +455,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.other_user_membership.refresh_from_db()
         self.assertFalse(self.other_user_membership.is_owner)
 
-        # Own club, change owner's ownership
+        # Our club, change owner's ownership
         payload["is_owner"] = False
         url = club_members_detail_url(self.club.id, self.owner_membership.id)
         res = self.client.patch(url, payload)
@@ -483,7 +494,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         # Owner of 1 club, member of another
         self.other_service.add_member(self.owner_user, roles=["Member"])
         payload = {"is_owner": True}
-        url = club_members_detail_url(self.other_club.id, self.other_user_membership.id)
+        url = club_members_detail_url(self.other_club.id, self.other_user_membership.pk)
         res = self.client.patch(url, payload)
         self.assertResForbidden(res)
 
@@ -493,11 +504,8 @@ class ApiClubAdminTests(PrivateApiTestsBase):
     def test_edit_member_roles(self):
         """Admins should be able to edit member roles."""
 
-        officer_role = self.club.roles.get(name="Officer")
-        member_role = self.club.roles.get(name="Member")
-
-        # Own club, other member
-        payload = {"roles": [officer_role.name]}
+        # Our club, change other member
+        payload = {"roles": ["Officer"]}
         url = club_members_detail_url(self.club.id, self.member_membership.id)
         res = self.client.patch(url, payload)
         self.assertResOk(res)
@@ -505,8 +513,8 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertTrue(self.member_membership.roles.filter(name="Officer").exists())
         self.assertTrue(self.member_membership.is_admin)
 
-        # Own club, owner
-        payload = {"roles": [member_role.name]}
+        # Our club, change owner
+        payload = {"roles": ["Member"]}
         url = club_members_detail_url(self.club.id, self.owner_membership.id)
         res = self.client.patch(url, payload)
         self.assertResOk(res)
@@ -521,8 +529,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         other_member_membership = self.other_service.add_member(
             other_member, roles=["Member"]
         )
-        officer_role = self.other_club.roles.get(name="Officer")
-        payload = {"roles": [officer_role.name]}
+        payload = {"roles": ["Officer"]}
 
         url = club_members_detail_url(self.other_club.id, other_member_membership.id)
         res = self.client.patch(url, payload)
@@ -530,21 +537,23 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         self.assertFalse(other_member_membership.roles.filter(name="Officer").exists())
 
-        # Own club, self (downgrade self to member)
-        payload = {"roles": [member_role]}
+        # Our club, change self (downgrade self to member)
+        payload = {"roles": ["Member"]}
         url = club_members_detail_url(self.club.id, self.membership.id)
         res = self.client.patch(url, payload)
         self.assertResOk(res)
 
         self.membership.refresh_from_db()
         self.assertFalse(self.membership.roles.filter(name="Officer").exists())
-        self.assertFalse(self.membership.roles.filter(is_admin=True).exists())
+        self.assertFalse(
+            self.membership.roles.filter(role_type=RoleType.ADMIN).exists()
+        )
         self.assertFalse(self.membership.is_admin)
 
     def test_remove_members(self):
         """Admins should be able to remove members, including other owners."""
 
-        # Own club, other user
+        # Our club, other user
         url = club_members_detail_url(self.club.id, self.member_membership.id)
         res = self.client.delete(url)
         self.assertResNoContent(res)
@@ -555,10 +564,10 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             ).exists()
         )
 
-        # Own club, owner
+        # Our club, owner
         url = club_members_detail_url(self.club.id, self.owner_membership.id)
         res = self.client.delete(url)
-        self.assertResForbidden(res)
+        self.assertResBadRequest(res)
 
         self.assertTrue(
             ClubMembership.objects.filter(club=self.club, user=self.owner_user).exists()
@@ -574,7 +583,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             ).exists()
         )
 
-        # Own club, self
+        # Our club, self
         url = club_members_detail_url(self.club.id, self.membership.id)
         res = self.client.delete(url)
         self.assertResNoContent(res)

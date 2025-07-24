@@ -99,6 +99,9 @@ class RecurringEventTests(TestsBase):
 
         # TODO: Figure out how to handle clubs with recurring events
         rec = RecurringEvent.objects.create(**payload)
+        service = RecurringEventService(rec)
+        service.sync_events()
+
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
         self.assertEqual(rec.expected_event_count, EXPECTED_EV_COUNT)
         self.assertEqual(rec.attachments.count(), len(files))
@@ -131,12 +134,12 @@ class RecurringEventTests(TestsBase):
             self.assertEqual(event.attachments.count(), len(files))
             self.assertEqual(event.attachments.first().pk, files[0].pk)
             self.assertEqual(event.clubs.count(), rec.other_clubs.all().count() + 1)
-            self.assertEqual(event.club.id, rec.club.id)
+            self.assertEqual(event.primary_club.id, rec.club.id)
 
         Event.objects.all().delete()
         self.assertEqual(Event.objects.count(), 0)
 
-        RecurringEventService(rec).sync_events()
+        service.sync_events()
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
 
     def test_recurring_event_allday_events(self):
@@ -150,6 +153,7 @@ class RecurringEventTests(TestsBase):
             start_date=timezone.datetime(2025, 3, 16),
             end_date=timezone.datetime(2025, 3, 18),
         )
+        RecurringEventService(rec).sync_events()
 
         self.assertEqual(rec.expected_event_count, 1)
         self.assertEqual(Event.objects.count(), 1)
@@ -174,6 +178,7 @@ class RecurringEventTests(TestsBase):
             end_date=timezone.datetime(2025, 4, 16),
         )
         service = RecurringEventService(rec)
+        service.sync_events()
 
         # Detach event from recurring event
         event_1 = rec.events.order_by("start_at").first()
@@ -219,6 +224,7 @@ class RecurringEventTests(TestsBase):
             end_date=timezone.datetime(2025, 8, 2),
         )
         service = RecurringEventService(rec)
+        service.sync_events()
 
         expected_count_before = rec.expected_event_count
         self.assertEqual(expected_count_before, 4)

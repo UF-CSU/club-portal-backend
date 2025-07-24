@@ -6,11 +6,13 @@ import random
 import string
 from typing import ClassVar, Optional
 
+from django.contrib import auth
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
     PermissionsMixin,
 )
+from django.core.exceptions import PermissionDenied
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -166,6 +168,23 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         if self.username is None or self.username == "":
             self.username = self.email
         return super().clean()
+
+    def has_perm(self, perm, obj=None, is_global=False):
+        # Allow checking permissions from a global context, meaning
+        # the user has this permission for all objects (like a staff member).
+        # Adapted from:
+        # https://github.com/django/django/blob/485f483d49144a2ea5401442bc3b937a370b3ca6/django/contrib/auth/models.py#L261
+        if is_global:
+            for backend in auth.get_backends():
+                if not hasattr(backend, "has_global_perm"):
+                    continue
+                try:
+                    if backend.has_global_perm(self, perm):
+                        return True
+                except PermissionDenied:
+                    return False
+
+        return super().has_perm(perm, obj)
 
 
 class Profile(ModelBase):

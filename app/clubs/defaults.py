@@ -15,10 +15,13 @@ class RolePayloadType(TypedDict):
 
 
 VIEWER_ROLE_PERMISSIONS = [
-    "clubs.view_club",
-    "events.view_event",
+    # Clubs
+    "clubs.view_club_details",
     "clubs.view_team",
     "clubs.view_clubfile",
+    "clubs.view_clubmembership",
+    # Events
+    "events.view_private_event",
 ]
 ADMIN_ROLE_PERMISSIONS = [
     *VIEWER_ROLE_PERMISSIONS,
@@ -33,10 +36,18 @@ ADMIN_ROLE_PERMISSIONS = [
     "clubs.add_clubmembership",
     "clubs.change_clubmembership",
     "clubs.delete_clubmembership",
+    "clubs.add_clubapikey",
+    "clubs.view_clubapikey",
+    "clubs.change_clubapikey",
+    "clubs.delete_clubapikey",
     # Events
     "events.add_event",
     "events.change_event",
     "events.delete_event",
+    "events.view_recurringevent",
+    "events.add_recurringevent",
+    "events.change_recurringevent",
+    "events.delete_recurringevent",
 ]
 
 # Sort permissions lists to use for testing, assertions, etc

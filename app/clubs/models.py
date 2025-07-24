@@ -18,7 +18,7 @@ from rest_framework.authtoken.models import Token
 from core.abstracts.models import (
     ManagerBase,
     ModelBase,
-    Scope,
+    ScopeType,
     SocialProfileBase,
     Tag,
     UniqueModel,
@@ -61,6 +61,29 @@ def validate_max_founding_year(value: int):
         )
 
 
+class ClubScopedModel:
+    """Attributes required for an object scoped for clubs."""
+
+    scope = ScopeType.CLUB
+
+    # @property
+    # def club(self) -> "Club":
+    #     raise NotImplementedError(
+    #         "Club scoped objects must have pointer to primary club."
+    #     )
+
+    @property
+    def clubs(self) -> models.QuerySet["Club"]:
+        """QuerySet of clubs allowed to access object."""
+
+        if hasattr(self, "club"):
+            return Club.objects.filter(id=self.club.id)
+
+        raise NotImplementedError(
+            "Club scoped objects must have pointer to all allowed clubs."
+        )
+
+
 class ClubManager(ManagerBase["Club"]):
     """Manage club queries."""
 
@@ -92,10 +115,8 @@ class ClubManager(ManagerBase["Club"]):
         return self.get(id=id, memberships__user__id=user.id)
 
 
-class Club(UniqueModel):
+class Club(ClubScopedModel, UniqueModel):
     """Group of users."""
-
-    scope = Scope.CLUB
 
     name = models.CharField(max_length=64, unique=True)
     logo: "ClubFile" = models.ForeignKey(
@@ -144,7 +165,7 @@ class Club(UniqueModel):
         return self.memberships.count()
 
     class Meta:
-        permissions = [("preview_club", "Can view a set of limited fields for a club.")]
+        permissions = [("view_club_details", "Can see extended information for a club")]
         ordering = ["name", "-id"]
 
     def save(self, *args, **kwargs):
@@ -160,15 +181,13 @@ class Club(UniqueModel):
         return super().save(*args, **kwargs)
 
 
-class ClubFile(ModelBase):
+class ClubFile(ClubScopedModel, ModelBase):
     """
     Represents a file that a club admin has uploaded to their media library.
 
     This allows club admins to upload banners, photo galleries,
     event documents, etc.
     """
-
-    scope = Scope.CLUB
 
     upload_file_path = UploadNestedClubFilepathFactory("clubs/%(club_id)s/files/")
 
@@ -208,10 +227,8 @@ class ClubFile(ModelBase):
             return "Unknown"
 
 
-class ClubPhoto(ModelBase):
+class ClubPhoto(ClubScopedModel, ModelBase):
     """Photos for club carousel"""
-
-    scope = Scope.CLUB
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="photos")
     file = models.ForeignKey(ClubFile, on_delete=models.CASCADE)
@@ -226,10 +243,8 @@ class ClubPhoto(ModelBase):
         ]
 
 
-class ClubSocialProfile(SocialProfileBase):
+class ClubSocialProfile(ClubScopedModel, SocialProfileBase):
     """Saves social media profile info for clubs."""
-
-    scope = Scope.CLUB
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="socials")
 
@@ -295,10 +310,8 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         return role
 
 
-class ClubRole(ModelBase):
+class ClubRole(ClubScopedModel, ModelBase):
     """Extend permission group to manage club roles."""
-
-    scope = Scope.CLUB
 
     name = models.CharField(max_length=32)
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="roles")
@@ -399,10 +412,8 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
         return membership
 
 
-class ClubMembership(ModelBase):
+class ClubMembership(ClubScopedModel, ModelBase):
     """Connection between user and club."""
-
-    scope = Scope.CLUB
 
     club = models.ForeignKey(Club, related_name="memberships", on_delete=models.CASCADE)
     user = models.ForeignKey(
@@ -424,9 +435,6 @@ class ClubMembership(ModelBase):
         editable=False,
         help_text="Used to determine if is_owner has changed",
     )
-
-    # Foreign Relationships
-    # teams: models.QuerySet["Team"]
 
     # Dynamic Properties
     @property
@@ -484,8 +492,6 @@ class ClubMembership(ModelBase):
 
     def clean(self):
         """Validate membership model."""
-        # if self.is_owner and not self.is_admin:
-        #     self.is_admin = True
 
         # Handle changing of is_owner field
         if self.is_owner and not self.cached_is_owner:
@@ -524,10 +530,9 @@ class TeamAccessType(models.TextChoices):
     """No one can join."""
 
 
-class Team(ModelBase):
+class Team(ClubScopedModel, ModelBase):
     """Smaller groups within clubs."""
 
-    scope = Scope.CLUB
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="teams")
 
     name = models.CharField(max_length=64)
@@ -575,10 +580,8 @@ class TeamRoleManager(ManagerBase["TeamRole"]):
         return role
 
 
-class TeamRole(ModelBase):
+class TeamRole(ClubScopedModel, ModelBase):
     """Extend permission group to manage club roles."""
-
-    scope = Scope.CLUB
 
     name = models.CharField(max_length=32)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="roles")
@@ -595,6 +598,11 @@ class TeamRole(ModelBase):
     )
 
     # TODO: Implement cached_role_type, signals
+
+    # Dynamic properties
+    @property
+    def club(self):
+        return self.team.club
 
     # Overrides
     objects: ClassVar[TeamRoleManager] = TeamRoleManager()
@@ -672,10 +680,8 @@ class TeamMembershipManager(ManagerBase["TeamMembership"]):
         return membership
 
 
-class TeamMembership(ModelBase):
+class TeamMembership(ClubScopedModel, ModelBase):
     """Manage club member's assignment to a team."""
-
-    scope = Scope.CLUB
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="memberships")
     user = models.ForeignKey(
@@ -695,6 +701,10 @@ class TeamMembership(ModelBase):
             return 0
 
         return roles.first().order
+
+    @property
+    def club(self):
+        return self.team.club
 
     @order.setter
     def order(self, value: int):
@@ -767,7 +777,7 @@ class ClubApiKeyManager(ManagerBase["ClubApiKey"]):
         return key
 
 
-class ClubApiKey(ModelBase):
+class ClubApiKey(ClubScopedModel, ModelBase):
     """
     Allow external systems to make authorized api requests.
 

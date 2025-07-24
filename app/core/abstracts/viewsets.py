@@ -32,7 +32,7 @@ class ObjectViewPermissions(permissions.DjangoObjectPermissions):
     """
 
     perms_map = {
-        "GET": [],
+        "GET": ["%(app_label)s.view_%(model_name)s"],
         "OPTIONS": [],
         "HEAD": [],
         "POST": ["%(app_label)s.add_%(model_name)s"],
@@ -42,8 +42,25 @@ class ObjectViewPermissions(permissions.DjangoObjectPermissions):
     }
 
 
+class ObjectViewDetailsPermissions(ObjectViewPermissions):
+    """
+    Overrides custom `ObjectViewPermissions` class to also require
+    the `view_model_details` permission when viewing an object.
+    """
+
+    perms_map = {
+        **ObjectViewPermissions.perms_map,
+        "GET": [
+            *ObjectViewPermissions.perms_map["GET"],
+            "%(app_label)s.view_%(model_name)s_details",
+        ],
+    }
+
+
 class ModelViewSetBase(ModelViewSet, ViewSetBase):
     """Base viewset for model CRUD operations."""
 
     # Enable permissions checking in API
     permission_classes = ViewSetBase.permission_classes + [ObjectViewPermissions]
+
+    # TODO: Could self.get_object_permissions be used to optimize club perm checking?

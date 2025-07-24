@@ -55,7 +55,9 @@ def register_user_view(request: HttpRequest):
                 ClubService(club).add_member(user)
 
             if event:
-                ClubService(event.club).add_member(user)
+                # TODO: Should event attendance add user to all clubs hosting event?
+                for club in event.clubs.all():
+                    ClubService(club).add_member(user)
                 EventService(event).record_event_attendance(user)
 
             if "next" in request.GET:

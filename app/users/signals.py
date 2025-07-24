@@ -1,14 +1,20 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from users.defaults import DEFAULT_USER_PERMISSIONS
 from users.models import Profile, User
 from utils.images import create_default_icon
 from utils.models import save_file_to_model
+from utils.permissions import parse_permissions
 
 
 @receiver(post_save, sender=User)
 def on_save_user(sender, instance: User, created=False, **kwargs):
     """Runs when user object is saved."""
+
+    # Set default permissions for all users
+    if instance.user_permissions.all().count() == 0:
+        instance.user_permissions.set(parse_permissions(DEFAULT_USER_PERMISSIONS))
 
     if created:  # Skip if being created
         return

@@ -20,11 +20,15 @@ from clubs.serializers import (
     TeamSerializer,
 )
 from clubs.services import ClubService
-from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
+from core.abstracts.viewsets import (
+    ModelViewSetBase,
+    ObjectViewDetailsPermissions,
+    ViewSetBase,
+)
 from users.models import User
 
 
-def get_club_or_404(club_id: int, user: User):
+def get_user_club_or_404(club_id: int, user: User):
     """Get club for user, or raise 404 error."""
 
     try:
@@ -45,16 +49,16 @@ class ClubNestedViewSetBase(ModelViewSetBase):
         # does not have a club membership
 
         club_id = int(self.kwargs.get("club_id"))
-        self.club = get_club_or_404(club_id, self.request.user)
+        self.club = get_user_club_or_404(club_id, self.request.user)
 
-        return super().check_permissions(request)
+        super().check_permissions(request)
 
     def get_queryset(self):
         self.queryset = self.queryset.filter(club__id=self.club.id)
 
         return super().get_queryset()
 
-    def perform_create(self, serializer: ClubMembershipCreateSerializer, **kwargs):
+    def perform_create(self, serializer, **kwargs):
         serializer.save(club=self.club, **kwargs)
 
 
@@ -63,12 +67,18 @@ class ClubViewSet(ModelViewSetBase):
 
     serializer_class = ClubSerializer
     queryset = Club.objects.all()
+    permission_classes = [*ViewSetBase.permission_classes, ObjectViewDetailsPermissions]
 
     def check_permissions(self, request):
+
         if self.detail:
             # Check if the user is a member of specified club
             club_id = int(self.kwargs.get("pk"))
-            get_club_or_404(club_id, self.request.user)
+            get_user_club_or_404(club_id, self.request.user)
+        elif self.action == "list":
+            # List permissions are done by queryset, otherwise users without a club
+            # would get 403 instead of an empty list.
+            return
 
         return super().check_permissions(request)
 
@@ -121,15 +131,23 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
 
         # Check club ownership edge cases
         is_owner_value = serializer.validated_data.get("is_owner", None)
-        if not user_membership.is_owner:
-            raise exceptions.PermissionDenied(detail="Only owners can change ownership")
+        if is_owner_value is not None:
+            if not user_membership.is_owner:
+                raise exceptions.PermissionDenied(
+                    detail="Only owners can change ownership"
+                )
 
-        elif user_membership.is_owner and is_owner_value is False:
-            raise exceptions.ParseError(
-                detail="Cannot unset ownership, must set to someone else"
-            )
+            elif user_membership.is_owner and is_owner_value is False:
+                raise exceptions.ParseError(
+                    detail="Cannot unset ownership, must set to someone else"
+                )
 
         return super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        if instance.is_owner:
+            raise exceptions.ParseError(detail="Cannot delete owner of club")
+        return super().perform_destroy(instance)
 
 
 class ClubMemberViewSet(
