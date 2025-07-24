@@ -77,12 +77,14 @@ class ClubModelTests(TestsBase):
 
         # Check state after adding permission
         role.permissions.add(get_permission("clubs.change_club"))
+        role.save()
         role.refresh_from_db()
         self.assertEqual(role.role_type, RoleType.CUSTOM)
 
         # Check manually setting role type
         role.role_type = RoleType.VIEWER
         role.save()
+        role.refresh_from_db()
         self.assertListEqual(role.perm_labels, VIEWER_ROLE_PERMISSIONS, sort_lists=True)
         self.assertNotIn("clubs.change_club", role.perm_labels)
 

@@ -1,10 +1,16 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from clubs.defaults import INITIAL_CLUB_ROLES, INITIAL_TEAM_ROLES
-from clubs.models import Club, ClubFile, ClubRole, Team, TeamRole
+from clubs.defaults import (
+    ADMIN_ROLE_PERMISSIONS,
+    INITIAL_CLUB_ROLES,
+    INITIAL_TEAM_ROLES,
+    VIEWER_ROLE_PERMISSIONS,
+)
+from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
 from utils.files import get_file_from_path
 from utils.images import create_default_icon
+from utils.permissions import parse_permissions
 
 
 @receiver(post_save, sender=Club)
@@ -52,3 +58,54 @@ def on_save_team(sender, instance: Team, created=False, **kwargs):
             role_type=role["role_type"],
             # perm_labels=role["permissions"],
         )
+
+
+@receiver(post_save, sender=ClubRole)
+def on_save_club_role(sender, instance: ClubRole, created=False, **kwargs):
+    """
+    When saving roles, sync permissions for role type.
+
+    Ex: When setting role to VIEWER, set permissions as viewer permissions.
+    """
+
+    if created:  # Only continue if being updated
+        return
+
+    if instance.role_type == RoleType.CUSTOM:
+        # Skip if role type is set to custom
+        if instance.cached_role_type != RoleType.CUSTOM:
+            instance.role_type = RoleType.CUSTOM
+            instance.save()
+        return
+
+    elif instance.role_type == RoleType.VIEWER:
+        if instance.cached_role_type != RoleType.VIEWER:
+            # Role type out of sync, set permissions
+            instance.cached_role_type = RoleType.VIEWER
+            instance.permissions.set(parse_permissions(VIEWER_ROLE_PERMISSIONS))
+            instance.save()
+        elif instance.perm_labels != VIEWER_ROLE_PERMISSIONS:
+            # Role type in sync, permissions out of sync
+            instance.role_type = RoleType.CUSTOM
+            instance.cached_role_type = RoleType.CUSTOM
+            instance.save()
+        else:
+            # Role type in sync, permissions in sync
+            pass
+    elif instance.role_type == RoleType.ADMIN:
+        if instance.cached_role_type != RoleType.ADMIN:
+            # Role type out of sync, set permissions
+            instance.cached_role_type = RoleType.ADMIN
+            instance.permissions.set(parse_permissions(ADMIN_ROLE_PERMISSIONS))
+            instance.save()
+        elif instance.perm_labels != ADMIN_ROLE_PERMISSIONS:
+            # Role type in sync, permissions out of sync
+            instance.role_type = RoleType.CUSTOM
+            instance.cached_role_type = RoleType.CUSTOM
+            instance.save()
+        else:
+            # Role type in sync, permissions in sync
+            pass
+    else:
+        # Unknown role type
+        pass

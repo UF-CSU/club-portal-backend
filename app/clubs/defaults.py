@@ -24,6 +24,10 @@ ADMIN_ROLE_PERMISSIONS = [
     "clubs.change_team",
 ]
 
+# Sort permissions lists to use for testing, assertions, etc
+VIEWER_ROLE_PERMISSIONS.sort()
+ADMIN_ROLE_PERMISSIONS.sort()
+
 
 INITIAL_CLUB_ROLES: list[RolePayloadType] = [
     {

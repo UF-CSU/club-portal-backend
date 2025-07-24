@@ -259,10 +259,19 @@ class ClubRole(ModelBase):
         choices=RoleType.choices, default=RoleType.VIEWER, blank=True
     )
 
+    # Meta fields
+    cached_role_type = models.CharField(
+        choices=RoleType.choices, default=RoleType.VIEWER, blank=True, editable=False
+    )
+
     # Dynamic Properties
     @property
     def perm_labels(self):
-        return [get_perm_label(perm) for perm in self.permissions.all()]
+        """Sorted list of permissions labels."""
+        labels = [get_perm_label(perm) for perm in self.permissions.all()]
+        labels.sort()
+
+        return labels
 
     # Overrides
     objects: ClassVar[ClubRoleManager] = ClubRoleManager()
@@ -512,6 +521,8 @@ class TeamRole(ModelBase):
     role_type = models.CharField(
         choices=RoleType.choices, default=RoleType.VIEWER, blank=True
     )
+
+    # TODO: Implement cached_role_type, signals
 
     # Overrides
     objects: ClassVar[TeamRoleManager] = TeamRoleManager()
