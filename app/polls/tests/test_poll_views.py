@@ -268,7 +268,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         poll.refresh_from_db()
         self.assertEqual(poll.name, payload["name"])
         self.assertEqual(poll.description, payload["description"])
-        
+
     def test_update_poll_fields(self):
         """Should update poll via api."""
 
@@ -311,7 +311,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(poll.fields.count(), 1)
         self.assertEqual(poll.fields.first().field_type, "question")
         self.assertEqual(poll.fields.first().question.label, "Updated question?")
-        
+
         payload = {
             "fields": [
                 {
@@ -341,10 +341,10 @@ class PollViewAuthTests(PrivateApiTestsBase):
                             "max_length": 15,
                         },
                     },
-                }
+                },
             ],
         }
-        
+
         res = self.client.patch(url, data=payload, format="json")
         self.assertEqual(res.status_code, 200, res.content)
         poll.refresh_from_db()

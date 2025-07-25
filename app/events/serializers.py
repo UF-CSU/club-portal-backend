@@ -1,3 +1,4 @@
+from django.core import exceptions
 from rest_framework import serializers
 
 from clubs.models import Club
@@ -11,6 +12,8 @@ from events.models import (
     EventTag,
     RecurringEvent,
 )
+from events.tasks import sync_recurring_event_task
+from lib.celery import delay_task
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 
@@ -30,6 +33,7 @@ class EventTagSerializer(ModelSerializerBase):
 class EventHostSerializer(ModelSerializerBase):
     """JSON representation for hosts inside events."""
 
+    # TODO: Rename to "club" or change to serializers.IntegerField
     club_id = serializers.PrimaryKeyRelatedField(
         source="club", queryset=Club.objects.all()
     )
@@ -48,7 +52,6 @@ class EventHostSerializer(ModelSerializerBase):
             "club_name",
             "club_logo",
         ]
-        # required_fields_update = ["id"]
 
 
 class EventSerializer(ModelSerializerBase):
@@ -74,6 +77,22 @@ class EventSerializer(ModelSerializerBase):
             "created_at",
             "updated_at",
         ]
+
+    def validate(self, attrs):
+        # Ensure that there are not only secondary hosts
+        hosts = attrs.get("hosts", None)
+
+        if not self.instance:
+            primary_hosts = [
+                host for host in hosts if host.get("is_primary", False) is True
+            ]
+
+            if len(primary_hosts) == 0 and len(hosts) > 0:
+                raise exceptions.ValidationError(
+                    "Event with hosts must have a primary host."
+                )
+
+        return super().validate(attrs)
 
     def create(self, validated_data):
         hosts_data = validated_data.pop("hosts", [])
@@ -103,6 +122,12 @@ class RecurringEventSerializer(ModelSerializerBase):
     class Meta:
         model = RecurringEvent
         fields = "__all__"
+
+    def create(self, validated_data):
+        obj = super().create(validated_data)
+        delay_task(sync_recurring_event_task, recurring_event_id=obj.id)
+
+        return obj
 
 
 #############################################################
