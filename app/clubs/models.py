@@ -42,8 +42,6 @@ class RoleType(models.TextChoices):
 class ClubTag(Tag):
     """Group clubs together based on topics."""
 
-    pass
-
 
 def get_default_founding_year():
     """Initializes default founding year to current year."""

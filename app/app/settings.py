@@ -423,7 +423,7 @@ if TESTING:
     EMAIL_HOST_PASSWORD = None
     # Suppress logs in test mode
     logging.disable(logging.ERROR)
-    
+
     # Check error handling
     # DRF_STANDARDIZED_ERRORS = {"ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True}
 
