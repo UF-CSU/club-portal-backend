@@ -78,7 +78,7 @@ class ClubsApiPublicTests(PublicApiTestsBase):
 
         self.assertResOk(res)
 
-        data = res.json()
+        data = res.json()["results"]
         self.assertIsInstance(data, list)
 
         expected_fields = ["name", "logo", "banner", "about", "founding_year"]

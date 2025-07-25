@@ -1,6 +1,8 @@
 from typing import Literal
 
 from rest_framework import authentication, permissions
+from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 # User = get_user_model()
@@ -64,3 +66,33 @@ class ModelViewSetBase(ModelViewSet, ViewSetBase):
     permission_classes = ViewSetBase.permission_classes + [ObjectViewPermissions]
 
     # TODO: Could self.get_object_permissions be used to optimize club perm checking?
+
+
+class CustomLimitOffsetPagination(LimitOffsetPagination):
+    """Defines custom pagination setup."""
+
+    default_limit = 100
+
+    def get_paginated_response(self, data):
+        return Response(
+            {
+                "count": self.count,
+                "next": self.get_next_link(),
+                "previous": self.get_previous_link(),
+                "offset": self.offset,
+                "results": data,
+            }
+        )
+
+    def get_paginated_response_schema(self, schema):
+        res_schema = super().get_paginated_response_schema(schema)
+
+        res_schema["properties"] = {
+            "offset": {
+                "type": "integer",
+                "example": 0,
+            },
+            **res_schema["properties"],
+        }
+
+        return res_schema

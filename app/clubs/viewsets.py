@@ -21,6 +21,7 @@ from clubs.serializers import (
 )
 from clubs.services import ClubService
 from core.abstracts.viewsets import (
+    CustomLimitOffsetPagination,
     ModelViewSetBase,
     ObjectViewDetailsPermissions,
     ViewSetBase,
@@ -91,6 +92,7 @@ class ClubPreviewViewSet(
 ):
     queryset = Club.objects.all()
     serializer_class = ClubPreviewSerializer
+    pagination_class = CustomLimitOffsetPagination
 
 
 class ClubTagsView(GenericAPIView):

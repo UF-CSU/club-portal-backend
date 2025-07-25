@@ -241,8 +241,8 @@ FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
 ###############################
 
 # Allows handling csrf and session cookies in external requests
-CSRF_COOKIE_SAMESITE = "None"
-SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
 
 # Prevent csrf and session cookies from being set by JS
 CSRF_COOKIE_HTTPONLY = False
@@ -400,13 +400,11 @@ if DEV:
 
     MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
-    CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
+    CSRF_TRUSTED_ORIGINS.extend(
+        ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
+    )
 
-    INTERNAL_IPS = [
-        "127.0.0.1",
-        "10.0.2.2",
-        "localhost"
-    ]
+    INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
 
