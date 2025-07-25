@@ -11,11 +11,11 @@ server {
     proxy_hide_header       X-Amz-Id-2;
     proxy_hide_header       X-Amz-Request-Id;
     
-    proxy_pass              "$DOCS_URI";
+    proxy_pass              $DOCS_URI;
   }
   
   location / {
-    uwsgi_pass              "$SERVER_URI";
+    uwsgi_pass              $SERVER_URI;
     
     proxy_set_header        Host "$host";
     proxy_set_header        X-Forwarded-For "$proxy_add_x_forwarded_for";

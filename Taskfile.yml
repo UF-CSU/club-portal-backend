@@ -88,12 +88,26 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
 
+  makemigrations:network:
+    desc: 'Create migration files in network mode'
+    deps:
+      - build:network
+    cmds:
+      - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
+
   migrate:
     desc: 'Apply migrations to the database.'
     deps:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py migrate {{.CLI_ARGS}}"
+
+  migrate:network:
+    desc: 'Apply migrations to the database in network mode.'
+    deps:
+      - build:network
+    cmds:
+      - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py migrate {{.CLI_ARGS}}"
 
   build-docker:clubs:
     desc: 'Build docker image for clubs server'
