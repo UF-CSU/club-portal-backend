@@ -241,8 +241,8 @@ FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
 ###############################
 
 # Allows handling csrf and session cookies in external requests
-CSRF_COOKIE_SAMESITE = "None"
-SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
 
 # Prevent csrf and session cookies from being set by JS
 CSRF_COOKIE_HTTPONLY = False
