@@ -37,7 +37,7 @@ class ClubService(ServiceBase[Club]):
     def add_member(
         self,
         user: User,
-        roles: Optional[list[ClubRole]] = None,
+        roles: Optional[list[ClubRole | str]] = None,
         send_email=False,
         club_redirect_url=None,
         fail_silently=True,
@@ -90,6 +90,7 @@ class ClubService(ServiceBase[Club]):
 
         member = self._get_user_membership(user)
         member.add_roles(role)
+        member.save()
 
     def increase_member_points(self, user: User, amount: int = 1):
         """Give the user more coins."""

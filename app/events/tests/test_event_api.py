@@ -1,10 +1,6 @@
-from django.urls import reverse
-
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
-from events.tests.utils import create_test_events
-
-EVENTS_LIST_URL = reverse("api-events:event-list")
+from events.tests.utils import EVENT_LIST_URL, create_test_events
 
 
 class EventPublicApiTests(PublicApiTestsBase):
@@ -15,7 +11,7 @@ class EventPublicApiTests(PublicApiTestsBase):
 
         create_test_events(count=5)
 
-        url = EVENTS_LIST_URL
+        url = EVENT_LIST_URL
         res = self.client.get(url)
 
         self.assertResUnauthorized(res)
@@ -36,7 +32,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_events(events_count, host=c1)
         create_test_events(events_count, host=c2)
 
-        url = EVENTS_LIST_URL
+        url = EVENT_LIST_URL
         res = self.client.get(url)
 
         self.assertResOk(res)

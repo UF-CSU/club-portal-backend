@@ -6,6 +6,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from clubs.models import ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url
@@ -25,7 +26,7 @@ class LinkManager(ManagerBase["Link"]):
         return link
 
 
-class Link(ModelBase):
+class Link(ClubScopedModel, ModelBase):
     """Track visits to target url."""
 
     club = models.ForeignKey(
@@ -33,7 +34,6 @@ class Link(ModelBase):
     )
     target_url = models.URLField(help_text="The final url we want to track clicks to.")
     display_name = models.CharField(null=True, blank=True)
-    # pings = models.IntegerField(default=0)
 
     # Relationships
     visits: models.QuerySet["LinkVisit"]
@@ -83,7 +83,7 @@ class LinkVisitManager(ManagerBase["LinkVisit"]):
         return super().create(link=link, ipaddress=ipaddress, **kwargs)
 
 
-class LinkVisit(ModelBase):
+class LinkVisit(ClubScopedModel, ModelBase):
     """Who visited a link."""
 
     link = models.ForeignKey(Link, on_delete=models.CASCADE, related_name="visits")
@@ -100,6 +100,10 @@ class LinkVisit(ModelBase):
 
     # Overrides
     objects: ClassVar[LinkVisitManager] = LinkVisitManager()
+
+    @property
+    def clubs(self):
+        return self.link.clubs
 
     def __str__(self):
         return super().__str__()
@@ -122,7 +126,7 @@ class LinkVisit(ModelBase):
             self.save()
 
 
-class QRCode(ModelBase):
+class QRCode(ClubScopedModel, ModelBase):
     """Store image for QR Codes."""
 
     qrcode_upload_path = UploadFilepathFactory("clubs/qrcodes/")
@@ -157,6 +161,10 @@ class QRCode(ModelBase):
             return format_bytes(self.image.size)
 
     # Overrides
+    @property
+    def clubs(self):
+        return self.link.clubs
+
     def __str__(self) -> str:
         return f'QRCode for "{self.link}"'
 

@@ -108,8 +108,8 @@ class ClubMembershipAdmin(ModelAdminBase):
     )
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "roles" and 'object_id' in request.resolver_match.kwargs:
-            membership_id = request.resolver_match.kwargs['object_id']
+        if db_field.name == "roles" and "object_id" in request.resolver_match.kwargs:
+            membership_id = request.resolver_match.kwargs["object_id"]
             club = ClubMembership.objects.get(id=membership_id).club
             kwargs["queryset"] = ClubRole.objects.filter(club=club)
         return super().formfield_for_manytomany(db_field, request, **kwargs)

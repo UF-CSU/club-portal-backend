@@ -277,31 +277,11 @@ class ClubMemberTeamNestedSerializer(ModelSerializerBase):
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
-    """Connects a User to a Club with some additional fields."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not hasattr(self, 'context') or not self.context:
-            return
-        club_id = self.context.get('club_id')
-        if club_id:
-            filtered_roles = ClubRole.objects.filter(club_id=club_id)
-            self.fields['roles'].queryset = filtered_roles
-            if hasattr(self.fields['roles'], 'child_relation'):
-                self.fields['roles'].child_relation.queryset = filtered_roles
+    """Connects a User to a Club, stores membership information for that user."""
 
     user = ClubMemberUserNestedSerializer()
     club_id = serializers.SlugRelatedField(
         slug_field="id", source="club", read_only=True
-    )
-    send_email = serializers.BooleanField(
-        default=False, write_only=True, required=False
-    )
-
-    club_redirect_url = serializers.URLField(
-        required=False,
-        write_only=True,
-        help_text="If the user has an existing account, they will redirect to this url.",
     )
     team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
     roles = serializers.SlugRelatedField(
@@ -311,6 +291,17 @@ class ClubMembershipSerializer(ModelSerializerBase):
         required=False,
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not hasattr(self, "context") or not self.context:
+            return
+        club_id = self.context.get("club_id")
+        if club_id:
+            filtered_roles = ClubRole.objects.filter(club_id=club_id)
+            self.fields["roles"].queryset = filtered_roles
+            if hasattr(self.fields["roles"], "child_relation"):
+                self.fields["roles"].child_relation.queryset = filtered_roles
+
     class Meta:
         model = ClubMembership
         fields = [
@@ -318,6 +309,30 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "user",
             "club_id",
             "is_owner",
+            "points",
+            "is_admin",
+            "team_memberships",
+            "roles",
+        ]
+
+
+class ClubMembershipCreateSerializer(ClubMembershipSerializer):
+    """Connects a User to a Club, determines how memberships should be added."""
+
+    send_email = serializers.BooleanField(
+        default=False, write_only=True, required=False
+    )
+    club_redirect_url = serializers.URLField(
+        required=False,
+        write_only=True,
+        help_text="If the user has an existing account, they will redirect to this url.",
+    )
+
+    class Meta(ClubMembershipSerializer.Meta):
+        fields = [
+            *ModelSerializerBase.default_fields,
+            "user",
+            "club_id",
             "points",
             "club_redirect_url",
             "send_email",
@@ -437,7 +452,7 @@ class UserNestedCsvSerializer(CsvModelSerializer, UserNestedSerializer):
         fields = ["id", "email", "username", "name"]
 
 
-class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipSerializer):
+class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipCreateSerializer):
     """Serialize club memberships for a csv."""
 
     user = UserNestedCsvSerializer(required=True)
