@@ -28,8 +28,8 @@ class ApiClubViewerTests(PrivateApiTestsBase):
         self.service.add_member(owner_user, roles=["President"], is_owner=True)
 
         user = create_test_user()
-        self.service.add_member(user, roles=["Member"])
-        return super().create_authenticated_user()
+        self.membership = self.service.add_member(user, roles=["Member"])
+        return user
 
     def test_unable_edit_club(self):
         """Viewers should not be able to edit clubs."""

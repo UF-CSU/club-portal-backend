@@ -320,7 +320,7 @@ class Event(EventFields):
             self.add_host(club)
 
     class Meta:
-        permissions = [("view_private_event", "View private event for club")]
+        permissions = [("view_private_event", "Can view private event")]
         constraints = [
             models.UniqueConstraint(
                 name="unique_event_by_name_and_time",

@@ -165,7 +165,7 @@ class Club(ClubScopedModel, UniqueModel):
         return self.memberships.count()
 
     class Meta:
-        permissions = [("view_club_details", "Can see extended information for a club")]
+        permissions = [("view_club_details", "Can view club details")]
         ordering = ["name", "-id"]
 
     def save(self, *args, **kwargs):

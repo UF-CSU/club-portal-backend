@@ -164,7 +164,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             "hosts": [],
         }
 
-        # Our club
+        # Our club is primary
         payload["hosts"] = [{"club_id": self.club.id, "is_primary": True}]
         url = EVENT_LIST_URL
         res = self.client.post(url, payload, format="json")
@@ -173,7 +173,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertEqual(Event.objects.count(), 1)
         self.assertEqual(Event.objects.for_club(self.club).count(), 1)
 
-        # Other club
+        # Other club is primary
         payload["name"] += " copy"
         payload["hosts"] = [{"club_id": self.other_club.id, "is_primary": True}]
         url = EVENT_LIST_URL
