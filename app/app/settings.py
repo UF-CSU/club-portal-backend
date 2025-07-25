@@ -424,8 +424,6 @@ if TESTING:
     # Suppress logs in test mode
     logging.disable(logging.ERROR)
 
-    # Check error handling
-    # DRF_STANDARDIZED_ERRORS = {"ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True}
 
 if DEV or TESTING:
     # Allow for migrations during dev mode
