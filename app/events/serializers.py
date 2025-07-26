@@ -106,6 +106,17 @@ class EventSerializer(ModelSerializerBase):
             )
 
         return event
+    
+class EventAttendanceSerializer(ModelSerializerBase):
+    """Represents event attendance"""
+
+    class Meta:
+        model = EventAttendance
+        fields = [
+            *ModelSerializerBase.default_fields,
+            "event",
+            "user",
+        ]
 
 
 class EventCancellationSerializer(serializers.ModelSerializer):
