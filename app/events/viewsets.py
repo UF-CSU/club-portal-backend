@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from clubs.models import Club
 from core.abstracts.viewsets import ModelViewSetBase
-from events.models import Event, EventCancellation
+from events.models import Event, EventAttendance, EventCancellation
 
 from . import models, serializers
 
@@ -67,6 +67,9 @@ class RecurringEventViewSet(ModelViewSetBase):
 
         return super().perform_create(serializer)
 
+class EventAttendanceViewSet(ModelViewSetBase):
+    queryset = EventAttendance.objects.all()
+    serializer_class = serializers.EventAttendanceSerializer
 
 class EventCancellationViewSet(ModelViewSetBase):
     queryset = EventCancellation.objects.all()
