@@ -86,6 +86,13 @@ class ClubViewSet(ModelViewSetBase):
     def get_queryset(self):
         return Club.objects.filter_for_user(self.request.user)
 
+    def filter_queryset(self, queryset):
+        majors = self.request.query_params.getlist("majors", None)
+
+        if majors:
+            queryset = queryset.filter(majors__name__in=majors)
+        return super().filter_queryset(queryset)
+
 
 class ClubPreviewViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet

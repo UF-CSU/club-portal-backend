@@ -1,27 +1,57 @@
 from typing import Literal
 
+from django.db import models
 from rest_framework import authentication, permissions
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
-# User = get_user_model()
-
 
 class ViewSetBase(GenericViewSet):
-    """Provide core functionality for most viewsets."""
+    """
+    Provide core functionality, additional type hints, and improved documentaton for viewsets.
+    """
 
-    # Setting types for properties set by drf, read more:
-    # - https://www.django-rest-framework.org/api-guide/viewsets/#introspecting-viewset-actions,
-    # - https://testdriven.io/blog/drf-views-part-3/
     action: Literal["list", "create", "retrieve", "update", "partial_update", "destroy"]
-    """What request method is being called for the viewset."""
+    """
+    What request method is being called for the viewset.
+
+    Learn more:
+    - https://www.django-rest-framework.org/api-guide/viewsets/#introspecting-viewset-actions
+    - https://testdriven.io/blog/drf-views-part-3/
+    """
 
     detail: bool
-    """Indicates if the current action is configured for a list or detail view."""
+    """
+    Indicates if the current action is configured for a list or detail view.
+    This is irrespective of the request method, detail views include the object's id
+    in the url, whereas the list view does not include the id.
+    """
+
+    request: Request
+    """The incomming request."""
+
+    kwargs: dict
+    """
+    URL arguments passed in as parameters or query parameters.
+    They are defined in the same place the url is defined.
+    """
+
+    filterset_class = None
+    """Optionally pass a filterset class to define complex filtering."""
+
+    filterset_fields = []
+    """Optionally define which fields can be filtered against in the url."""
 
     authentication_classes = [authentication.TokenAuthentication]
+    """Determines how a user is considered logged in, or authenticated."""
+
     permission_classes = [permissions.IsAuthenticated]
+    """Determines what a user can do."""
+
+    def filter_queryset(self, queryset: models.QuerySet) -> models.QuerySet:
+        return super().filter_queryset(queryset)
 
 
 class ObjectViewPermissions(permissions.DjangoObjectPermissions):

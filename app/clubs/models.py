@@ -23,6 +23,7 @@ from core.abstracts.models import (
     Tag,
     UniqueModel,
 )
+from core.models import Major
 from users.models import ApiKeyType, User, UserAgent
 from utils.files import get_file_path
 from utils.formatting import format_bytes
@@ -85,6 +86,14 @@ class ClubScopedModel:
 class ClubManager(ManagerBase["Club"]):
     """Manage club queries."""
 
+    def create(self, name: str, **kwargs):
+        majors = kwargs.pop("majors", [])
+        club = super().create(name=name, **kwargs)
+
+        club.majors.set(majors)
+
+        return club
+
     def filter_for_user(self, user: User):
         """Get clubs for user."""
 
@@ -117,22 +126,20 @@ class Club(ClubScopedModel, UniqueModel):
     """Group of users."""
 
     name = models.CharField(max_length=64, unique=True)
+    alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     logo: "ClubFile" = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     banner = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
-
-    alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
     about = models.TextField(blank=True, null=True)
     founding_year = models.IntegerField(
         default=get_default_founding_year,
         validators=[MinValueValidator(1900), validate_max_founding_year],
     )
-    contact_email = models.EmailField(null=True, blank=True)
 
-    tags = models.ManyToManyField(ClubTag, blank=True)
+    contact_email = models.EmailField(null=True, blank=True)
     gatorconnect_url = models.URLField(
         null=True,
         blank=True,
@@ -142,8 +149,20 @@ class Club(ClubScopedModel, UniqueModel):
             )
         ],
     )
+    majors = models.ManyToManyField(
+        Major, related_name="clubs", blank=True, help_text="Focused majors"
+    )
+    primary_color = models.CharField(
+        blank=True, default="#0F44CD", validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
+    )
+    text_color = models.CharField(
+        blank=True, default="#FFFFFF", validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
+    )
 
     # Relationships
+    tags = models.ManyToManyField(ClubTag, blank=True)
+
+    # Foreign Relationships
     memberships: models.QuerySet["ClubMembership"]
     teams: models.QuerySet["Team"]
     roles: models.QuerySet["ClubRole"]
@@ -177,6 +196,11 @@ class Club(ClubScopedModel, UniqueModel):
             pass
 
         return super().save(*args, **kwargs)
+
+    def clean(self):
+        if self.alias is not None and not self.alias.isupper():
+            self.alias = self.alias.capitalize()
+        return super().clean()
 
 
 class ClubFile(ClubScopedModel, ModelBase):
