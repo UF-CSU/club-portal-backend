@@ -152,6 +152,8 @@ class ClubSerializer(ModelSerializerBase):
             "photos",
             "alias",
             "majors",
+            "primary_color",
+            "text_color",
         ]
 
     def update(self, instance, validated_data):

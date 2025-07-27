@@ -153,10 +153,10 @@ class Club(ClubScopedModel, UniqueModel):
         Major, related_name="clubs", blank=True, help_text="Focused majors"
     )
     primary_color = models.CharField(
-        blank=True, default="#0F44CD", validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
+        blank=True, null=True, validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
     )
     text_color = models.CharField(
-        blank=True, default="#FFFFFF", validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
+        blank=True, null=True, validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
     )
 
     # Relationships
