@@ -189,9 +189,9 @@ class Club(ClubScopedModel, UniqueModel):
         # On save, set default alias from name
         try:
             if self.alias is None and len(self.name) >= 3:
-                self.alias = self.name[0:3].capitalize()
+                self.alias = self.name[0:3].upper()
             elif self.alias is None:
-                self.alias = self.name.capitalize()
+                self.alias = self.name.upper()
         except Exception:
             pass
 
@@ -199,7 +199,7 @@ class Club(ClubScopedModel, UniqueModel):
 
     def clean(self):
         if self.alias is not None and not self.alias.isupper():
-            self.alias = self.alias.capitalize()
+            self.alias = self.alias.upper()
         return super().clean()
 
 
