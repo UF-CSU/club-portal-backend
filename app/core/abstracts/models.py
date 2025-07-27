@@ -302,3 +302,10 @@ class SocialProfileBase(ModelBase):
             self.social_type = SocialType.OTHER
 
         return super().save(*args, **kwargs)
+
+
+class MajorType(models.TextChoices):
+    """Different types of academic majors."""
+
+    CS = "cs", _("Computer Science")
+    OTHER = "other", ("Other")

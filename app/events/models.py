@@ -16,7 +16,7 @@ from clubs.models import Club, ClubFile, ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase, Tag
 from users.models import User
 from utils.dates import get_day_count
-from utils.models import ChoiceArrayField
+from utils.models import ArrayChoiceField
 
 
 class DayChoice(models.IntegerChoices):
@@ -119,7 +119,7 @@ class RecurringEvent(EventFields):
         blank=True,
     )
 
-    days = ChoiceArrayField(models.IntegerField(choices=DayChoice.choices))
+    days = ArrayChoiceField(models.IntegerField(choices=DayChoice.choices))
     event_start_time = models.TimeField(
         blank=True,
         help_text="Each event will start at this time",

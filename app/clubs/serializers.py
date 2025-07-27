@@ -21,6 +21,7 @@ from core.abstracts.serializers import (
     PermissionRelatedField,
     SerializerBase,
 )
+from core.models import Major
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import SocialProfile, User
 from users.services import UserService
@@ -125,6 +126,12 @@ class ClubSerializer(ModelSerializerBase):
     photos = ClubPhotoSerializer(many=True)
     socials = ClubSocialSerializer(many=True)
     tags = ClubTagSerializer(many=True)
+    majors = serializers.SlugRelatedField(
+        slug_field="name",
+        queryset=Major.objects.all(),
+        required=False,
+        many=True,
+    )
 
     member_count = serializers.IntegerField(read_only=True)
 
@@ -144,6 +151,9 @@ class ClubSerializer(ModelSerializerBase):
             "socials",
             "photos",
             "alias",
+            "majors",
+            "primary_color",
+            "text_color",
         ]
 
     def update(self, instance, validated_data):

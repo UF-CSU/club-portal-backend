@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="recurringevent",
             name="days",
-            field=utils.models.ChoiceArrayField(
+            field=utils.models.ArrayChoiceField(
                 base_field=models.IntegerField(
                     choices=[
                         (0, "Monday"),
