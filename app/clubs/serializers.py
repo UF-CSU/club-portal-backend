@@ -147,7 +147,6 @@ class ClubSerializer(ModelSerializerBase):
             "contact_email",
             "tags",
             "member_count",
-            # "teams",
             "socials",
             "photos",
             "alias",

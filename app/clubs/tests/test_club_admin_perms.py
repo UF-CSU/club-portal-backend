@@ -400,14 +400,17 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             "send_email": False,
             "roles": ["Officer"],
         }
-        initial_member_count = self.club.member_count
+        initial_member_count = ClubMembership.objects.filter(club=self.club).count()
 
         # Our club
         url = club_members_list_url(self.club.id)
         res = self.client.post(url, payload, format="json")
         self.assertResCreated(res)
 
-        self.assertEqual(self.club.member_count, initial_member_count + 1)
+        self.assertEqual(
+            ClubMembership.objects.filter(club=self.club).count(),
+            initial_member_count + 1,
+        )
         membership = ClubMembership.objects.get(
             club=self.club, user__email=payload["user"]["email"]
         )

@@ -11,8 +11,15 @@ from . import models, serializers
 class EventViewset(ModelViewSetBase):
     """CRUD Api routes for Event models."""
 
-    queryset = models.Event.objects.all()
+    queryset = models.Event.objects.all().prefetch_related(
+        "hosts", "hosts__club", "tags"
+    )
     serializer_class = serializers.EventSerializer
+
+    def check_object_permissions(self, request, obj):
+        if self.action == "retrieve":
+            return True
+        return super().check_object_permissions(request, obj)
 
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])

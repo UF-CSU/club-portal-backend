@@ -1,3 +1,5 @@
+gzip on;
+
 server {
   listen 8080;
   
