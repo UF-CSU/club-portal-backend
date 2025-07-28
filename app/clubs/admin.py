@@ -162,11 +162,12 @@ class TeamMembershipInlineAdmin(admin.TabularInline):
         return formset
 
 
-# class TeamRoleInlineAdmin(admin.StackedInline):
-#     """Manage team roles in admin."""
+class TeamRoleInlineAdmin(admin.TabularInline):
+    """Manage team roles in admin."""
 
-#     model = TeamRole
-#     extra = 0
+    model = TeamRole
+    extra = 0
+    exclude = ("permissions",)
 
 
 class TeamAdmin(ModelAdminBase):
@@ -175,7 +176,7 @@ class TeamAdmin(ModelAdminBase):
     csv_serializer_class = TeamCsvSerializer
 
     list_display = ("__str__", "club", "members_count")
-    inlines = (TeamMembershipInlineAdmin,)
+    inlines = (TeamRoleInlineAdmin, TeamMembershipInlineAdmin,)
 
     select_related_fields = ("club",)
     prefetch_related_fields = ("memberships", "memberships__user", "memberships__roles")
