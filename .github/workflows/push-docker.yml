@@ -4,6 +4,9 @@ on:
     types: [closed]
     branches:
       - 'main'
+      
+env:
+  WORKSPACE: ${{ github.base_ref }}
 
 jobs:
   publish-images:

@@ -179,6 +179,8 @@ class ApiKeyAdmin(ModelAdminBase):
         "created_at",
     )
 
+    filter_horizontal = ("permissions",)
+
 
 admin.site.register(Club, ClubAdmin)
 admin.site.register(ClubTag, ClubTagAdmin)

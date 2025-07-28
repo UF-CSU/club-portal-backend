@@ -14,6 +14,11 @@ class EventViewset(ModelViewSetBase):
     queryset = models.Event.objects.all()
     serializer_class = serializers.EventSerializer
 
+    def check_object_permissions(self, request, obj):
+        if self.action == "retrieve":
+            return True
+        return super().check_object_permissions(request, obj)
+
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])
 
