@@ -93,7 +93,10 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
     """Base class for all model admins."""
 
     prefetch_related_fields = ()
+    """Makes another query to select a set of related objects."""
     select_related_fields = ()
+    """Uses SQL Join to select a single related object."""
+
     readonly_fields = (
         "id",
         "created_at",
@@ -137,12 +140,12 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
 
-        if len(self.prefetch_related_fields) > 0:
-            return qs.prefetch_related(*self.prefetch_related_fields).select_related(
-                *self.select_related_fields
-            )
-        else:
-            return qs
+        return qs.prefetch_related(*self.prefetch_related_fields).select_related(
+            *self.select_related_fields
+        )
+        # if len(self.prefetch_related_fields) > 0 or len(self.select_related_fields) > 0:
+        # else:
+        #     return qs
 
     def changelist_view(
         self, request: HttpRequest, extra_context: dict[str, str] | None = None
