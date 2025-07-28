@@ -115,7 +115,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "core/templates"),
             os.path.join(BASE_DIR, "dashboard/templates"),
         ],
-        # "APP_DIRS": True,
+        "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -123,11 +123,11 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
-            "loaders": [
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
-                "admin_tools.template_loaders.Loader",
-            ],
+            # "loaders": [
+            #     "django.template.loaders.filesystem.Loader",
+            #     "django.template.loaders.app_directories.Loader",
+            #     "admin_tools.template_loaders.Loader",
+            # ],
         },
     },
 ]
@@ -145,6 +145,7 @@ DATABASES = {
         "NAME": os.environ.get("POSTGRES_NAME"),
         "USER": os.environ.get("POSTGRES_USER"),
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
     }
 }
 
@@ -394,11 +395,12 @@ if environ_bool("AWS_EXECUTION_ENV", 1):
 if DEV:
     import socket
 
-    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("debug_toolbar")
+    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
-    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    # Insert near top, adjust pos as needed
+    MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(
         ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
@@ -407,6 +409,14 @@ if DEV:
     INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
+
+    # Ref: https://stackoverflow.com/a/64726422/10914922
+    def show_toolbar(*args, **kwargs):
+        return environ_bool("DJANGO_SHOW_TOOLBAR", 1)
+
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+    }
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
