@@ -15,7 +15,6 @@ from events.tasks import sync_recurring_event_task
 from lib.celery import delay_task
 
 
-# Register your models here.
 class RecurringEventAdmin(admin.ModelAdmin):
 
     list_display = (
@@ -67,24 +66,10 @@ class EventAttendanceInlineAdmin(admin.TabularInline):
         return False
 
 
-# class EventAttendanceLinkForm(forms.ModelForm):
-#     """Manage event links in admin."""
-
-#     class Meta:
-#         model = EventAttendanceLink
-#         fields = "__all__"
-
-#     def save(self, commit=True):
-
-#         print("clean:", self.cleaned_data)
-#         return super().save(commit)
-
-
 class EventAttendenceLinkInlineAdmin(admin.StackedInline):
     """List event links in event admin."""
 
     model = EventAttendanceLink
-    # form = EventAttendanceLinkForm
     readonly_fields = (
         "target_url",
         "club",
@@ -103,30 +88,16 @@ class EventHostInlineAdmin(admin.TabularInline):
     extra = 1
 
 
-# class EventAdminForm(forms.ModelForm):
-#     """Form for EventAdmin."""
-
-#     class Meta:
-#         model = Event
-#         fields = ["name", "description", "location", "start_at", "end_at", "tags"]
-
-#     # def save(self, commit=True):
-#     #     # Ensure that the event is saved before syncing attendance links
-#     #     event = super().save(commit)
-#     #     EventService(event).sync_hosts_attendance_links()
-#     #     return event
-
-
 class EventAdmin(ModelAdminBase):
     """Admin config for club events."""
 
     csv_serializer_class = EventCsvSerializer
-    # form = EventAdminForm
 
     list_display = (
         "__str__",
         "id",
         "location",
+        "host_clubs",
         "start_at",
     )
     ordering = ("-start_at",)
@@ -136,34 +107,16 @@ class EventAdmin(ModelAdminBase):
         EventAttendenceLinkInlineAdmin,
         EventAttendanceInlineAdmin,
     )
-    filter_horizontal = ("tags",)
     actions = ("sync_attendance_links",)
+    # TODO: Make sure only host attachments are available
+    filter_horizontal = (
+        "tags",
+        "attachments",
+    )
+    search_fields = ("hosts__club__name", "hosts__club__alias")
 
-    # fieldsets = (
-    #     (
-    #         None,
-    #         {
-    #             "fields": (
-    #                 "name",
-    #                 "description",
-    #                 "location",
-    #                 "start_at",
-    #                 "end_at",
-    #                 "tags",
-    #             )
-    #         },
-    #     ),
-    #     (
-    #         "Advanced Options",
-    #         {
-    #             "classes": ("collapse",),
-    #             "fields": (
-    #                 "is_public",
-    #                 "recurring_event",
-    #             ),
-    #         },
-    #     ),
-    # )
+    def host_clubs(self, obj):
+        return ", ".join(list(obj.hosts.all().values_list("club__alias", flat=True)))
 
     @admin.action(description="Sync Attendence Links")
     def sync_attendance_links(self, request, queryset):
