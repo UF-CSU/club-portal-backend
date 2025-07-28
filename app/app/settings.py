@@ -410,12 +410,15 @@ if DEV:
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
 
+if DEV and not TESTING:
+
     # Ref: https://stackoverflow.com/a/64726422/10914922
     def show_toolbar(*args, **kwargs):
-        return environ_bool("DJANGO_SHOW_TOOLBAR", 1)
+        return not TESTING and environ_bool("DJANGO_SHOW_TOOLBAR", 1)
 
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+        "IS_RUNNING_TESTS": False,
     }
 
 if DEBUG:

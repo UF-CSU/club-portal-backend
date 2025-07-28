@@ -103,8 +103,6 @@ class ClubRoleAdmin(ModelAdminBase):
 class ClubTagAdmin(ModelAdminBase):
     """Manage club tags in admin dashboard."""
 
-    pass
-
 
 class ClubMembershipAdmin(ModelAdminBase):
     """Manage club memberships in admin."""
@@ -176,7 +174,10 @@ class TeamAdmin(ModelAdminBase):
     csv_serializer_class = TeamCsvSerializer
 
     list_display = ("__str__", "club", "members_count")
-    inlines = (TeamRoleInlineAdmin, TeamMembershipInlineAdmin,)
+    inlines = (
+        TeamRoleInlineAdmin,
+        TeamMembershipInlineAdmin,
+    )
 
     select_related_fields = ("club",)
     prefetch_related_fields = ("memberships", "memberships__user", "memberships__roles")

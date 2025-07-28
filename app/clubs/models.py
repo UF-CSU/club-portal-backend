@@ -631,7 +631,9 @@ class TeamRole(ClubScopedModel, ModelBase):
     objects: ClassVar[TeamRoleManager] = TeamRoleManager()
 
     class Meta:
-        ordering = ["order",]
+        ordering = [
+            "order",
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=("default", "team"),
