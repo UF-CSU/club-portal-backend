@@ -95,10 +95,10 @@ class ObjectViewDetailsPermissions(ObjectViewPermissions):
 class ModelViewSetBase(ModelViewSet, ViewSetBase):
     """Base viewset for model CRUD operations."""
 
+    # TODO: Could self.get_object_permissions be used to optimize club perm checking?
+
     # Enable permissions checking in API
     permission_classes = ViewSetBase.permission_classes + [ObjectViewPermissions]
-
-    # TODO: Could self.get_object_permissions be used to optimize club perm checking?
 
     # Cache detail view for 2 minutes for each different Authorization header
     @method_decorator(cache_page(60 * 60 * 2))
