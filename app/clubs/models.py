@@ -11,6 +11,7 @@ from django.core import exceptions
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from rest_framework.authtoken.models import Token
@@ -177,7 +178,7 @@ class Club(ClubScopedModel, UniqueModel):
         """Used for permissions checking."""
         return self
 
-    @property
+    @cached_property
     def member_count(self) -> int:
         return self.memberships.count()
 
@@ -235,12 +236,12 @@ class ClubFile(ClubScopedModel, ModelBase):
         """Get the web url for the file."""
         return get_full_url(self.file.url)
 
-    @property
+    @cached_property
     def size(self) -> str:
         """Get a string representation of the size of the file."""
         return format_bytes(self.file.size)
 
-    @property
+    @cached_property
     def file_type(self) -> str:
         """Get the type of file stored (using file extension)."""
         try:
@@ -724,13 +725,13 @@ class TeamMembership(ClubScopedModel, ModelBase):
 
         return roles.first().order
 
-    @property
-    def club(self):
-        return self.team.club
-
     @order.setter
     def order(self, value: int):
         self.order_override = value
+
+    @property
+    def club(self):
+        return self.team.club
 
     # Overrides
     objects: ClassVar["TeamMembershipManager"] = TeamMembershipManager()
