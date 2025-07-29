@@ -1,10 +1,11 @@
+import datetime
 import io
-from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import icalendar
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
@@ -38,8 +39,10 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # Remove extra events
         # Get all dates assigned to recurring,
         # delete if they don't overlap with the start/end dates
-        range_start = datetime.combine(rec_ev.start_date, rec_ev.event_start_time)
-        range_end = datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
+        range_start = datetime.datetime.combine(
+            rec_ev.start_date, rec_ev.event_start_time
+        )
+        range_end = datetime.datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
 
         # Django filter starts at Sun=1, python starts Mon=0
         query_days = [day + 2 if day > 0 else 6 for day in rec_ev.days]
@@ -61,18 +64,18 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
                 # Calculate event date using timedelta from index
                 event_date = (
-                    (start - timedelta(days=start.weekday()))
-                    + timedelta(days=day)
-                    + timedelta(weeks=i)
+                    (start - datetime.timedelta(days=start.weekday()))
+                    + datetime.timedelta(days=day)
+                    + datetime.timedelta(weeks=i)
                 )
 
                 if event_date < start or event_date > end:
                     continue
 
-                event_start = datetime.combine(
+                event_start = datetime.datetime.combine(
                     event_date, rec_ev.event_start_time, tzinfo=timezone.utc
                 )
-                event_end = datetime.combine(
+                event_end = datetime.datetime.combine(
                     event_date, rec_ev.event_end_time, tzinfo=timezone.utc
                 )
 
@@ -89,7 +92,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 if rec_ev.club:
                     event.add_host(rec_ev.club, is_primary=True)
 
-                if rec_ev.other_clubs.count() > 0:
+                if rec_ev.other_clubs.all().count() > 0:
                     event.add_hosts(*rec_ev.other_clubs.all())
 
                 # Sync attachments
@@ -98,6 +101,9 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 event.attachments.set(rec_ev.attachments.all())
 
                 event.save()
+
+        rec_ev.last_synced = timezone.now()
+        rec_ev.save()
 
         return rec_ev.events.all()
 
@@ -198,8 +204,8 @@ class EventService(ServiceBase[Event]):
                 "BYDAY": days[event.recurring_event.day],
             }
             if event.recurring_event.end_date is not None:
-                until = datetime.combine(
-                    event.recurring_event.end_date, datetime.min.time()
+                until = datetime.datetime.combine(
+                    event.recurring_event.end_date, datetime.datetime.min.time()
                 )
                 aware_until = until.replace(tzinfo=local_tz)
                 options["UNTIL"] = aware_until
@@ -225,7 +231,7 @@ class EventService(ServiceBase[Event]):
         local_tz = ZoneInfo("America/New_York")
 
         # Get all events that start later than today
-        now = datetime.now().replace(tzinfo=local_tz)
+        now = datetime.datetime.now().replace(tzinfo=local_tz)
         query = Event.objects.filter(start_at__gt=now)
 
         for event in query:

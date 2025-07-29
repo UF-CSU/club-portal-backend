@@ -92,9 +92,9 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.middleware.common.CommonMiddleware",
     # "django.middleware.csrf.CsrfViewMiddleware", # TODO: Enable CSRF, implement with frontend
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -252,8 +252,8 @@ SESSION_COOKIE_HTTPONLY = False
 CSRF_TRUSTED_ORIGINS = environ_list("CSRF_TRUSTED_ORIGINS")
 
 # Only allow cookies to be sent over HTTPS
-CSRF_COOKIE_SECURE = environ_bool("CSRF_COOKIE_SECURE", True)
-SESSION_COOKIE_SECURE = environ_bool("SESSION_COOKIE_SECURE", True)
+CSRF_COOKIE_SECURE = environ_bool("CSRF_COOKIE_SECURE", False)
+SESSION_COOKIE_SECURE = environ_bool("SESSION_COOKIE_SECURE", False)
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
@@ -400,12 +400,11 @@ if DEV:
 
     MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
-    CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
+    CSRF_TRUSTED_ORIGINS.extend(
+        ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
+    )
 
-    INTERNAL_IPS = [
-        "127.0.0.1",
-        "10.0.2.2",
-    ]
+    INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
 
@@ -423,6 +422,14 @@ if TESTING:
     EMAIL_HOST_PASSWORD = None
     # Suppress logs in test mode
     logging.disable(logging.ERROR)
+
+    # Disable caching
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }
+
 
 if DEV or TESTING:
     # Allow for migrations during dev mode

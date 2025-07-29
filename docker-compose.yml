@@ -11,6 +11,8 @@ services:
     restart: unless-stopped
     ports:
       - '8000:8000'
+    networks:
+      - devnet
     volumes:
       - ./app:/app
       - ./docs:/docs
@@ -25,6 +27,7 @@ services:
       - .env
     environment:
       - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8000}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000/admin/}
     depends_on:
       - postgres
       - redis
@@ -35,6 +38,8 @@ services:
     profiles:
       - slim
       - dev
+    networks:
+      - devnet
     volumes:
       - postgres-clubs-dev:/var/lib/postgresql/data
     environment:
@@ -45,6 +50,8 @@ services:
   redis:
     image: redis:alpine
     restart: unless-stopped
+    networks:
+      - devnet
     profiles:
       - slim
       - dev
@@ -62,6 +69,8 @@ services:
       - dev
     user: django-user
     command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+    networks:
+      - devnet
     volumes:
       - ./app:/app
       - static-clubs-dev:/vol/web
@@ -92,6 +101,8 @@ services:
         '--scheduler',
         'django_celery_beat.schedulers:DatabaseScheduler'
       ]
+    networks:
+      - devnet
     volumes:
       - ./app:/app
       - static-clubs-dev:/vol/web
@@ -111,6 +122,8 @@ services:
       - dev
     ports:
       - '8001:80'
+    networks:
+      - devnet
     volumes:
       - ./docs/_build:/usr/share/nginx/html
 
@@ -122,6 +135,8 @@ services:
       - dev
     ports:
       - '8002:80'
+    networks:
+      - devnet
     volumes:
       - ./app/htmlcov:/usr/share/nginx/html
 
@@ -133,6 +148,8 @@ services:
       - dev
     attach: false
     user: root
+    networks:
+      - devnet
     volumes:
       - mailhog-clubs-dev:/home/maildir
     ports:
@@ -162,6 +179,8 @@ services:
     depends_on:
       - postgres
     entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
+    networks:
+      - devnet
     volumes:
       - pgadmin-clubs-dev:/var/lib/pgadmin
     configs:
@@ -169,6 +188,11 @@ services:
         target: /pgadmin4/servers.json
       - source: pgpass
         target: /pgpass
+
+networks:
+  devnet:
+    driver: bridge
+
 
 volumes:
   postgres-clubs-dev:

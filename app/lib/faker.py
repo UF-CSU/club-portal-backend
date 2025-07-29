@@ -9,7 +9,7 @@ class CustomFaker(Faker):
     def title(self, word_count: int = 3):
         """Create a fake display name with specified word count."""
 
-        return self.sentence(nb_words=word_count).title()
+        return self.sentence(nb_words=word_count).title().replace(".", "")
 
 
 fake = CustomFaker("en_US")
