@@ -15,7 +15,7 @@ class EventViewset(ModelViewSetBase):
         "hosts", "hosts__club", "tags"
     )
     serializer_class = serializers.EventSerializer
-    
+
     def filter_queryset(self, queryset):
         clubs = self.request.query_params.getlist("clubs", None)
 
