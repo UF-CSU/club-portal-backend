@@ -154,12 +154,10 @@ class Club(ClubScopedModel, UniqueModel):
     supporting_institution = models.TextField(null=True, blank=True)
     organization_url = models.TextField(null=True, blank=True)
     category_ids = models.TextField(null=True, blank=True)
-    member_count = models.IntegerField(null=True, blank=True)
     instagram_followers = models.IntegerField(null=True, blank=True)
 
     tags = models.ManyToManyField(ClubTag, blank=True)
     contact_email = models.EmailField(null=True, blank=True)
-    
     gatorconnect_url = models.URLField(
         null=True,
         blank=True,

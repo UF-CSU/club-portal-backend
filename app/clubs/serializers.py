@@ -211,6 +211,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "about",
         ]
 
+
 class ClubUserSocialsSerializer(ModelSerializerBase):
     """Show socials for a club member."""
 
