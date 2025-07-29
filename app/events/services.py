@@ -3,6 +3,7 @@ import io
 from zoneinfo import ZoneInfo
 
 import icalendar
+from django.contrib.auth.models import AbstractUser, AnonymousUser
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -121,8 +122,38 @@ class EventService(ServiceBase[Event]):
     def full_attendance_url(self):
         return get_full_url(self.attendance_url)
 
-    def record_event_attendance(self, user: User):
+    def record_event_attendance(self, user: AbstractUser | AnonymousUser, body: dict):
         """Record user's attendance for event."""
+
+        # Get user
+        if user.is_authenticated:
+            user = User.objects.get(email=user.email)
+        else:
+            # Create user
+            if 'user' in body and isinstance(body['user'], dict):
+                user = body['user']
+            else:
+                raise Exception("User is missing from body")
+
+            if 'email' not in user or not isinstance(user['email'], str):
+                raise Exception("Email is missing/invalid")
+            if 'name' not in user or not isinstance(user['name'], str):
+                raise Exception("Name is missing/invalid")
+
+            user = User.objects.create_user(user['email'], name=user['name'])
+
+        # Get poll submission
+        if 'poll_submission' in body and isinstance(body['poll_submission'], dict):
+            poll_submission = body['poll_submission']
+
+            # Create poll submission
+            if self.obj.poll:
+                # TODO: How do I actually create the submission????
+                # PollSubmission.objects.create(poll=self.obj.poll, user=user)
+                pass
+        else:
+            if self.obj.is_poll_submission_required:
+                raise Exception("Poll submission is required")
 
         attendence, _ = EventAttendance.objects.get_or_create(user=user, event=self.obj)
         return attendence

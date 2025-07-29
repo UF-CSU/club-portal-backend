@@ -8,7 +8,7 @@ app_name = "events"
 urlpatterns = [
     path(
         "events/<int:id>/attendance/",
-        views.record_attendance_view,
+        views.RecordAttendanceView.as_view(),
         name="attendance",
     ),
     path(

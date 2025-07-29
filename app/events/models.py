@@ -241,6 +241,8 @@ class Event(EventFields):
         PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
     )
 
+    is_poll_submission_required = models.BooleanField(default=True)
+
     # Foreign Relationships
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
     attendance_links: models.QuerySet["EventAttendanceLink"]
@@ -255,6 +257,18 @@ class Event(EventFields):
             return None
 
         return host.first().club
+
+    @property
+    def poll(self):
+        if not hasattr(self, '_poll'):
+            return None
+        return self._poll
+
+    @property
+    def submissions(self):
+        if not self.poll:
+            return None
+        return self.poll.submissions.all()
 
     @property
     def all_day(self) -> bool:
@@ -289,6 +303,12 @@ class Event(EventFields):
                 index += 1
 
             self.name = f"{self.name} {index}"
+
+        # Constraint: if poll is None, is_poll_submission_required must be False
+        # NOTE: This is not a regular Constraint since poll is a virtual property
+        if not self.poll and self.is_poll_submission_required:
+            self.is_poll_submission_required = False
+
         return super().full_clean(*args, **kwargs)
 
     # Methods

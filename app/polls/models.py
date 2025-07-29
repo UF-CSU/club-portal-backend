@@ -32,7 +32,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.abstracts.models import ManagerBase, ModelBase
-from events.models import EventType
+from events.models import Event, EventType
 from users.models import User
 
 
@@ -108,6 +108,7 @@ class Poll(ModelBase):
 
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name="_poll", null=True)
 
     # Overrides
     objects: ClassVar[PollManager] = PollManager()

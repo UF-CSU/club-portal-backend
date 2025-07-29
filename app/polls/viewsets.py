@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 
 from core.abstracts.viewsets import ModelViewSetBase
+from events.models import EventAttendance
 from polls.models import Poll, PollSubmission
 from polls.serializers import PollSerializer, PollSubmissionSerializer
 from polls.services import PollService
@@ -31,6 +32,11 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
         submission = serializer.save(poll=poll, user=user)
         submission = PollService(poll).validate_submission(submission)
+
+        # Mark attendance if poll contains related event
+        if hasattr(poll, "event"):
+            # NOTE: If user has already been marked as attended for the event, should we raise an error here instead?
+            EventAttendance.objects.update_or_create(event=poll.event, user=user)
 
         return submission
 

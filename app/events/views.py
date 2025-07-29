@@ -2,25 +2,36 @@
 Event views for static pages, and non-API routes.
 """
 
+import json
 import re
 
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.timezone import now
+from django.views import View
 
 from clubs.models import Club
 from events.models import Event, EventCancellation
 from events.services import EventService
 
 
-@login_required()
-def record_attendance_view(request: HttpRequest, id: int):
+class RecordAttendanceView(View):
     """Records a club member attended an event."""
-    event = get_object_or_404(Event, id=id)
-    EventService(event).record_event_attendance(request.user)
 
-    return redirect("events:attendance_done", id=event.id)
+    # This is a separate class to enable restricting to only POST
+    http_method_names = ['post']
+
+    def post(self, request: HttpRequest, id: int):
+        event = get_object_or_404(Event, id=id)
+
+        try:
+            EventService(event).record_event_attendance(request.user, json.loads(request.body))
+            return redirect("events:attendance_done", id=event.id)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Body is not JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
 
 def download_event_calendar(request: HttpRequest, event_id: int):
