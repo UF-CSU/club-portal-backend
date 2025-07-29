@@ -15,6 +15,14 @@ class EventViewset(ModelViewSetBase):
         "hosts", "hosts__club", "tags"
     )
     serializer_class = serializers.EventSerializer
+    
+    def filter_queryset(self, queryset):
+        clubs = self.request.query_params.getlist("clubs", None)
+
+        if clubs:
+            queryset = queryset.filter(hosts__club__id__in=clubs)
+
+        return super().filter_queryset(queryset)
 
     def check_object_permissions(self, request, obj):
         if self.action == "retrieve":
