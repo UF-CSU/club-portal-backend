@@ -95,7 +95,8 @@ class PollQuestionNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.PollQuestion
-        exclude = ["created_at", "updated_at", "field"]
+        exclude = ["created_at", "updated_at"]
+        extra_kwargs = {"field": {"required": False}}
 
     def create(self, validated_data):
         """Create question with nested inputs."""
@@ -106,7 +107,14 @@ class PollQuestionNestedSerializer(ModelSerializerBase):
         upload_input = validated_data.pop("upload_input", None)
         number_input = validated_data.pop("number_input", None)
 
-        question = super().create(validated_data)
+        # Extract field and pass it as positional argument to PollQuestionManager.create()
+        field = validated_data.pop("field")
+        label = validated_data.pop("label")
+        input_type = validated_data.pop("input_type")
+
+        question = models.PollQuestion.objects.create(
+            field=field, label=label, input_type=input_type, **validated_data
+        )
 
         if text_input:
             models.TextInput.objects.create(**text_input, question=question)
