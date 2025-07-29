@@ -436,14 +436,14 @@ if TESTING:
     # Suppress logs in test mode
     logging.disable(logging.ERROR)
 
+
+if DEV or TESTING:
+    # Allow for migrations during dev mode
+    INSTALLED_APPS.append("core.mock")
+
     # Disable caching
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.dummy.DummyCache",
         }
     }
-
-
-if DEV or TESTING:
-    # Allow for migrations during dev mode
-    INSTALLED_APPS.append("core.mock")
