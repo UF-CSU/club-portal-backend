@@ -12,11 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 
 from analytics.models import Link
-from clubs.models import Club, ClubFile
-from core.abstracts.models import ManagerBase, ModelBase, Scope, Tag
+from clubs.models import Club, ClubFile, ClubScopedModel
+from core.abstracts.models import ManagerBase, ModelBase, Tag
 from users.models import User
 from utils.dates import get_day_count
-from utils.models import ChoiceArrayField
+from utils.models import ArrayChoiceField
 
 
 class DayChoice(models.IntegerChoices):
@@ -44,7 +44,7 @@ class EventTag(Tag):
     """Group together different types of events."""
 
 
-class EventFields(ModelBase):
+class EventFields(ClubScopedModel, ModelBase):
     """Common fields for club event models."""
 
     name = models.CharField(max_length=128)
@@ -119,7 +119,7 @@ class RecurringEvent(EventFields):
         blank=True,
     )
 
-    days = ChoiceArrayField(models.IntegerField(choices=DayChoice.choices))
+    days = ArrayChoiceField(models.IntegerField(choices=DayChoice.choices))
     event_start_time = models.TimeField(
         blank=True,
         help_text="Each event will start at this time",
@@ -142,9 +142,9 @@ class RecurringEvent(EventFields):
         Club, blank=True, help_text="These clubs host the events as secondary hosts."
     )
 
-    # attachments = models.ManyToManyField(
-    #     ClubFile, blank=True, related_name="recurring_events"
-    # )
+    last_synced = models.DateTimeField(
+        null=True, blank=True, editable=False, help_text="Last time events were synced"
+    )
 
     # Relationships
     events: models.QuerySet["Event"]
@@ -161,6 +161,13 @@ class RecurringEvent(EventFields):
         return (
             self.event_start_time == get_default_start_time()
             and self.event_end_time == get_default_end_time()
+        )
+
+    @property
+    def clubs(self):
+        return Club.objects.filter(
+            models.Q(id=self.club.id)
+            | models.Q(id__id=list(self.other_clubs.all().values_list("id", flat=True)))
         )
 
     # Overrides
@@ -200,6 +207,11 @@ class EventManager(ManagerBase["Event"]):
 
         return event
 
+    def for_club(self, club: Club | int) -> models.QuerySet["Event"]:
+        """Get events where the club is a host."""
+
+        return Event.objects.filter(clubs__id=club.id)
+
 
 class Event(EventFields):
     """
@@ -208,8 +220,6 @@ class Event(EventFields):
     DateTimeRange docs:
     https://docs.djangoproject.com/en/5.1/ref/contrib/postgres/fields/#datetimerangefield
     """
-
-    scope = Scope.CLUB
 
     start_at = models.DateTimeField(default=timezone.now)
     end_at = models.DateTimeField(default=timezone.now)
@@ -224,8 +234,6 @@ class Event(EventFields):
 
     tags = models.ManyToManyField(EventTag, blank=True)
 
-    # attachments_override = models.ManyToManyField(ClubFile, blank=True, editable=False)
-    # description_override = models.TextField(null=True, blank=True, editable=False)
     is_draft = models.BooleanField(default=False)
     is_public = models.BooleanField(default=True)
     make_public_at = models.DateTimeField(null=True, blank=True)
@@ -238,26 +246,6 @@ class Event(EventFields):
     attendance_links: models.QuerySet["EventAttendanceLink"]
     hosts: models.QuerySet["EventHost"]
 
-    # Dynamic Properties
-    # @property
-    # def description(self):
-    #     return self.description_override or self.recurring_event.description
-
-    # @description.setter
-    # def description(self, value):
-    #     self.description_override = value
-
-    # @property
-    # def attachments(self):
-    #     if self.attachments_override.count() > 0:
-    #         return self.attachments_override
-    #     else:
-    #         return self.recurring_event.attachments
-
-    # @attachments.setter
-    # def attachments(self, value):
-    #     self.attachments_override = value
-
     @property
     def primary_club(self):
         """Get the primary club hosting the event."""
@@ -267,10 +255,6 @@ class Event(EventFields):
             return None
 
         return host.first().club
-
-    @property
-    def club(self):
-        return self.primary_club
 
     @property
     def all_day(self) -> bool:
@@ -336,6 +320,7 @@ class Event(EventFields):
             self.add_host(club)
 
     class Meta:
+        permissions = [("view_private_event", "Can view private event")]
         constraints = [
             models.UniqueConstraint(
                 name="unique_event_by_name_and_time",
@@ -344,7 +329,7 @@ class Event(EventFields):
         ]
 
 
-class EventHost(ModelBase):
+class EventHost(ClubScopedModel, ModelBase):
     """Attach clubs to events."""
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="hosts")
@@ -357,6 +342,11 @@ class EventHost(ModelBase):
         help_text="This is the main club that hosts the event.",
     )
 
+    @property
+    def clubs(self):
+        # Allow all clubs on event to edit hosts
+        return self.event.clubs
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -367,7 +357,7 @@ class EventHost(ModelBase):
         ]
 
 
-class EventAttendance(ModelBase):
+class EventAttendance(ClubScopedModel, ModelBase):
     """
     Records when user attend an event.
 
@@ -385,6 +375,10 @@ class EventAttendance(ModelBase):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="event_attendance"
     )
+
+    @property
+    def clubs(self):
+        return self.event.clubs
 
     class Meta:
 
@@ -435,6 +429,10 @@ class EventAttendanceLink(Link):
     # Overrides
     objects: ClassVar["EventAttendanceLinkManager"] = EventAttendanceLinkManager()
 
+    @property
+    def clubs(self):
+        return self.event.clubs
+
     def __str__(self):
         if self.reference:
             return f"{super().__str__()} ({self.reference})"
@@ -450,10 +448,16 @@ class EventAttendanceLink(Link):
         ]
 
 
-class EventCancellation(ModelBase):
+class EventCancellation(ClubScopedModel, ModelBase):
+    """Record when an event is canceled."""
+
     event = models.OneToOneField(
         Event, on_delete=models.CASCADE, related_name="cancellation"
     )
     reason = models.TextField(blank=True)
     cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     cancelled_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def clubs(self):
+        return self.event.clubs

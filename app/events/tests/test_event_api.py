@@ -1,10 +1,12 @@
-from django.urls import reverse
-
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
-from events.tests.utils import create_test_events
-
-EVENTS_LIST_URL = reverse("api-events:event-list")
+from events.tests.utils import (
+    EVENT_LIST_URL,
+    create_test_event,
+    create_test_events,
+    event_detail_url,
+)
+from users.tests.utils import create_test_user
 
 
 class EventPublicApiTests(PublicApiTestsBase):
@@ -15,7 +17,7 @@ class EventPublicApiTests(PublicApiTestsBase):
 
         create_test_events(count=5)
 
-        url = EVENTS_LIST_URL
+        url = EVENT_LIST_URL
         res = self.client.get(url)
 
         self.assertResUnauthorized(res)
@@ -23,6 +25,9 @@ class EventPublicApiTests(PublicApiTestsBase):
 
 class EventPrivateApiTests(PrivateApiTestsBase):
     """Events api tests for authenticated users."""
+
+    def create_authenticated_user(self):
+        return create_test_user()
 
     def test_list_events_api(self):
         """Should return list of events for assigned clubs."""
@@ -36,7 +41,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_events(events_count, host=c1)
         create_test_events(events_count, host=c2)
 
-        url = EVENTS_LIST_URL
+        url = EVENT_LIST_URL
         res = self.client.get(url)
 
         self.assertResOk(res)
@@ -45,12 +50,12 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         # Should return all events
         self.assertEqual(len(data), events_count * 2)
 
-    # def test_create_recurring_event(self):
-    #     """Should create a recurring event on event creation."""
+    def test_event_detail_api(self):
+        """Should get single event."""
 
-    #     payload = {
-    #         "name": fake.title(),
-    #         "description": fake.paragraph(),
-    #         "event_type": EventType.SOCIAL,
-    #         ""
-    #     }
+        club = create_test_club()
+        event = create_test_event(host=club)
+
+        url = event_detail_url(event.id)
+        res = self.client.get(url)
+        self.assertResOk(res)

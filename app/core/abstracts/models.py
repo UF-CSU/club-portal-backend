@@ -3,19 +3,22 @@ Abstract models for common fields.
 """
 
 import uuid
-from enum import Enum
-from typing import Any, ClassVar, Generic, MutableMapping, Optional, Self
+from typing import Any, ClassVar, Generic, MutableMapping, Optional, Self, Type
 
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MinLengthValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from utils.permissions import get_perm_label
 from utils.types import T
 
 
 class ManagerBase(models.Manager, Generic[T]):
     """Extends django manager for improved db access."""
+
+    model: Type[T]
 
     def create(self, **kwargs) -> T:
         """Create new model."""
@@ -116,11 +119,11 @@ class ManagerBase(models.Manager, Generic[T]):
         return super().all()
 
 
-class Scope(Enum):
+class ScopeType(models.TextChoices):
     """Permission levels."""
 
-    GLOBAL = "global"
-    CLUB = "club"
+    GLOBAL = "global", _("Global")
+    CLUB = "club", _("Club")
 
 
 class ModelBase(models.Model):
@@ -132,7 +135,7 @@ class ModelBase(models.Model):
     if the field exists on the model.
     """
 
-    scope = Scope.GLOBAL
+    scope = ScopeType.GLOBAL  # TODO: Define scope has db column
     """Defines permissions level applied to model."""
 
     created_at = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
@@ -160,6 +163,27 @@ class ModelBase(models.Model):
         This is a shorthand for: ``ContentType.objects.get_for_model(model)``
         """
         return ContentType.objects.get_for_model(cls)
+
+    @classmethod
+    def get_permissions(cls):
+        """
+        Get Permissions associated with this object. By default
+        this will return: "add_model", "change_model", "delete_model", "view_model",
+        with "model" being the name of the model.
+        """
+
+        return Permission.objects.filter(content_type=cls.get_content_type())
+
+    @classmethod
+    def get_permission_labels(cls):
+        """
+        Get list of labels representing the permissions that are available
+        on this model. The standard format will usually return:
+        "app.add_model", "app.change_model", "app.delete_model", "app.view_model"
+        with "app" being the app name and "model" being the name of the model.
+        """
+
+        return [get_perm_label(perm) for perm in cls.get_permissions()]
 
     @classmethod
     def get_fields_list(
@@ -278,3 +302,10 @@ class SocialProfileBase(ModelBase):
             self.social_type = SocialType.OTHER
 
         return super().save(*args, **kwargs)
+
+
+class MajorType(models.TextChoices):
+    """Different types of academic majors."""
+
+    CS = "cs", _("Computer Science")
+    OTHER = "other", ("Other")

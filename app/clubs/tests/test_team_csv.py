@@ -1,4 +1,4 @@
-from clubs.consts import INITIAL_TEAM_ROLES
+from clubs.defaults import INITIAL_TEAM_ROLES
 from clubs.models import Team, TeamRole
 from clubs.serializers import TeamCsvSerializer
 from clubs.tests.utils import create_test_club, create_test_team

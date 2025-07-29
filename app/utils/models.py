@@ -97,7 +97,7 @@ class OneToOneOrNoneField(models.OneToOneField[T]):
     related_accessor_class = ReverseOneToOneOrNoneDescriptor
 
 
-class ChoiceArrayField(ArrayField):
+class ArrayChoiceField(ArrayField):
     """
     A field that allows us to store an array of choices.
     Uses Django's Postgres ArrayField

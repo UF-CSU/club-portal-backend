@@ -17,6 +17,7 @@ Welcome to Club Portal!
    pages/Emails.md
    pages/Conventions.md
    pages/Permissions.md
+   pages/Authorization.md
    pages/Resources.md
 
 .. toctree::

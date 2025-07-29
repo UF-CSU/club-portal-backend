@@ -16,6 +16,15 @@ from rest_framework import serializers
 
 from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 
+ReadSerializerType = Type[SerializerBase]
+CreateSerializerType = Type[SerializerBase]
+UpdateSerializerType = Type[SerializerBase]
+
+InputSerializerType = (
+    Type[SerializerBase]
+    | tuple[ReadSerializerType, CreateSerializerType, UpdateSerializerType]
+)
+
 DRF_FIELD_TO_TS_MAP = {
     serializers.IntegerField: "number",
     serializers.BooleanField: "boolean",
@@ -129,8 +138,8 @@ class TypeGenerator:
 
     def __init__(
         self,
-        serializer_classes: list[Type[ModelSerializerBase]],
-        readonly_serializer_classes: Optional[list[Type[ModelSerializerBase]]] = None,
+        serializer_classes: list[InputSerializerType],
+        readonly_serializer_classes: Optional[list[InputSerializerType]] = None,
     ):
 
         self.types_doc = ""
@@ -630,6 +639,13 @@ class TypeGenerator:
 
         serializer = serializer_class()
         model_name = serializer_class.__name__.replace("Serializer", "")
+
+        match mode:
+            case "create":
+                model_name = model_name.replace("Create", "")
+            case "update":
+                model_name = model_name.replace("Update", "")
+
         interface_name = None
         idoc = ""
         read_interface_name = interface_name = INTERFACE_NAME_TPL % (model_name)
@@ -702,9 +718,15 @@ class TypeGenerator:
         self.types_doc += FILE_DOC_TPL % datetime.now()
 
         for serializer_class in self.serializer_classes:
-            idoc_read = self._generate_interface(serializer_class, mode="read")
-            idoc_create = self._generate_interface(serializer_class, mode="create")
-            idoc_update = self._generate_interface(serializer_class, mode="update")
+            if isinstance(serializer_class, tuple):
+                read_s, create_s, update_s = serializer_class
+                idoc_read = self._generate_interface(read_s, mode="read")
+                idoc_create = self._generate_interface(create_s, mode="create")
+                idoc_update = self._generate_interface(update_s, mode="update")
+            else:
+                idoc_read = self._generate_interface(serializer_class, mode="read")
+                idoc_create = self._generate_interface(serializer_class, mode="create")
+                idoc_update = self._generate_interface(serializer_class, mode="update")
 
             self.types_doc += idoc_read
             self.types_doc += "\n"

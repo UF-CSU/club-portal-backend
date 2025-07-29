@@ -93,9 +93,9 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.middleware.common.CommonMiddleware",
     # "django.middleware.csrf.CsrfViewMiddleware", # TODO: Enable CSRF, implement with frontend
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -116,7 +116,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "core/templates"),
             os.path.join(BASE_DIR, "dashboard/templates"),
         ],
-        # "APP_DIRS": True,
+        "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -124,11 +124,11 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
-            "loaders": [
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
-                "admin_tools.template_loaders.Loader",
-            ],
+            # "loaders": [
+            #     "django.template.loaders.filesystem.Loader",
+            #     "django.template.loaders.app_directories.Loader",
+            #     "admin_tools.template_loaders.Loader",
+            # ],
         },
     },
 ]
@@ -146,6 +146,7 @@ DATABASES = {
         "NAME": os.environ.get("POSTGRES_NAME"),
         "USER": os.environ.get("POSTGRES_USER"),
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
     }
 }
 
@@ -242,8 +243,8 @@ FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
 ###############################
 
 # Allows handling csrf and session cookies in external requests
-CSRF_COOKIE_SAMESITE = "None"
-SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
 
 # Prevent csrf and session cookies from being set by JS
 CSRF_COOKIE_HTTPONLY = False
@@ -395,21 +396,31 @@ if environ_bool("AWS_EXECUTION_ENV", 1):
 if DEV:
     import socket
 
-    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("debug_toolbar")
+    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
-    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    # Insert near top, adjust pos as needed
+    MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
-    CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
+    CSRF_TRUSTED_ORIGINS.extend(
+        ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
+    )
 
-    INTERNAL_IPS = [
-        "127.0.0.1",
-        "10.0.2.2",
-        "localhost"
-    ]
+    INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
+
+if DEV and not TESTING:
+
+    # Ref: https://stackoverflow.com/a/64726422/10914922
+    def show_toolbar(*args, **kwargs):
+        return not TESTING and environ_bool("DJANGO_SHOW_TOOLBAR", 1)
+
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+        "IS_RUNNING_TESTS": False,
+    }
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
@@ -425,6 +436,14 @@ if TESTING:
     EMAIL_HOST_PASSWORD = None
     # Suppress logs in test mode
     logging.disable(logging.ERROR)
+
+    # Disable caching
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }
+
 
 if DEV or TESTING:
     # Allow for migrations during dev mode

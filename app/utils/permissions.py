@@ -1,8 +1,13 @@
+from typing import Optional
+
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 
 
-def get_permission(perm_label: str, obj=None, fail_silently=True):
+def get_permission(
+    perm_label: str, obj=None, fail_silently=True
+) -> Optional[Permission]:
     """
     Returns a permission object based on the app label and codename.
 
@@ -10,6 +15,9 @@ def get_permission(perm_label: str, obj=None, fail_silently=True):
     ----------
         perm_label (str) : Permission label syntax, ex: app.view_model
     """
+    cache_res = cache.get(perm_label)
+    if cache_res is not None:
+        return cache_res
 
     app_label, codename = perm_label.split(".")
     try:
@@ -17,6 +25,7 @@ def get_permission(perm_label: str, obj=None, fail_silently=True):
         permission = Permission.objects.get(
             content_type__in=content_types, codename=codename
         )
+        cache.set(perm_label, permission)
         return permission
     except (ContentType.DoesNotExist, Permission.DoesNotExist) as e:
         if fail_silently:

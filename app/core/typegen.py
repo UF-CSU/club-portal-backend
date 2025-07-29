@@ -5,6 +5,7 @@ should function.
 
 from clubs.serializers import (
     ClubFileSerializer,
+    ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
     ClubPhotoSerializer,
     ClubPreviewSerializer,
@@ -20,12 +21,17 @@ from events.serializers import (
     EventTagSerializer,
     RecurringEventSerializer,
 )
+from lib.serializer_typegen import InputSerializerType
 from polls.serializers import PollSerializer
 from users.serializers import SocialProviderSerializer, UserSerializer
 
-SERIALIZERS_CREATE_READ_UPDATE = [
+SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     ClubSerializer,
-    ClubMembershipSerializer,
+    (
+        ClubMembershipSerializer,
+        ClubMembershipCreateSerializer,
+        ClubMembershipSerializer,
+    ),
     ClubFileSerializer,
     ClubPhotoSerializer,
     TeamSerializer,
@@ -44,7 +50,7 @@ List of serializers to create interfaces for:
 - Updating object
 """
 
-SERIALIZERS_READONLY = [
+SERIALIZERS_READONLY: list[InputSerializerType] = [
     ClubTagSerializer,
     ClubPreviewSerializer,
     SocialProviderSerializer,
