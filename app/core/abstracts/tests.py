@@ -133,6 +133,8 @@ class TestsBase(TestCase):
 class PublicApiTestsBase(TestsBase):
     """Abstract testing utilities for api testing."""
 
+    client: APIClient
+
     def setUp(self):
         self.client = APIClient()
 
@@ -191,8 +193,6 @@ class PrivateApiTestsBase(PublicApiTestsBase):
 
     A user is automatically set in each request.
     """
-
-    client: APIClient
 
     def create_authenticated_user(self):
         """Create the user that is authenticated in the api."""
