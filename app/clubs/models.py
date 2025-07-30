@@ -143,11 +143,10 @@ class Club(ClubScopedModel, UniqueModel):
         validators=[MinValueValidator(1900), validate_max_founding_year],
     )
 
-    organization_id = models.IntegerField(null=True, blank=True)
-    organization_guid = models.TextField(null=True, blank=True)
+    gatorconnect_organization_id = models.IntegerField(null=True, blank=True)
+    gatorconnect_organization_guid = models.TextField(null=True, blank=True)
     # 200, as some goofballs put their full and very long name as the acronym
-    organization_state = models.CharField(max_length=10, null=True, blank=True)
-    organization_url = models.TextField(null=True, blank=True)
+    gatorconnect_organization_url = models.TextField(null=True, blank=True)
     instagram_followers = models.IntegerField(null=True, blank=True)
 
     tags = models.ManyToManyField(ClubTag, blank=True)
