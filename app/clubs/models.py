@@ -126,7 +126,7 @@ class ClubManager(ManagerBase["Club"]):
 class Club(ClubScopedModel, UniqueModel):
     """Group of users."""
 
-    name = models.TextField(unique=True)
+    name = models.CharField(max_length=100, unique=True)
 
     logo: "ClubFile" = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
@@ -135,7 +135,7 @@ class Club(ClubScopedModel, UniqueModel):
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
 
-    alias = models.CharField(max_length=7, null=True, blank=True)
+    alias = models.CharField(max_length=15, null=True, blank=True)
 
     about = models.TextField(blank=True, null=True)
     founding_year = models.IntegerField(
@@ -146,14 +146,9 @@ class Club(ClubScopedModel, UniqueModel):
     organization_id = models.IntegerField(null=True, blank=True)
     organization_guid = models.TextField(null=True, blank=True)
     # 200, as some goofballs put their full and very long name as the acronym
-    acronym = models.CharField(max_length=200, null=True, blank=True)
     date_created = models.CharField(max_length=64, null=True, blank=True)
-    last_updated = models.CharField(max_length=64, null=True, blank=True)
     organization_state = models.CharField(max_length=10, null=True, blank=True)
-    organization_typename = models.TextField(null=True, blank=True)
-    supporting_institution = models.TextField(null=True, blank=True)
     organization_url = models.TextField(null=True, blank=True)
-    category_ids = models.TextField(null=True, blank=True)
     instagram_followers = models.IntegerField(null=True, blank=True)
 
     tags = models.ManyToManyField(ClubTag, blank=True)
