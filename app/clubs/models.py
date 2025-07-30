@@ -146,7 +146,6 @@ class Club(ClubScopedModel, UniqueModel):
     organization_id = models.IntegerField(null=True, blank=True)
     organization_guid = models.TextField(null=True, blank=True)
     # 200, as some goofballs put their full and very long name as the acronym
-    date_created = models.CharField(max_length=64, null=True, blank=True)
     organization_state = models.CharField(max_length=10, null=True, blank=True)
     organization_url = models.TextField(null=True, blank=True)
     instagram_followers = models.IntegerField(null=True, blank=True)
