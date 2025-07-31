@@ -16,6 +16,12 @@ class ViewSetBase(GenericViewSet):
     Provide core functionality, additional type hints, and improved documentaton for viewsets.
     """
 
+    authentication_classes = [authentication.TokenAuthentication]
+    """Determines how a user is considered logged in, or authenticated."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    """Determines what a user can do."""
+
     action: Literal["list", "create", "retrieve", "update", "partial_update", "destroy"]
     """
     What request method is being called for the viewset.
@@ -46,12 +52,6 @@ class ViewSetBase(GenericViewSet):
 
     filterset_fields = []
     """Optionally define which fields can be filtered against in the url."""
-
-    authentication_classes = [authentication.TokenAuthentication]
-    """Determines how a user is considered logged in, or authenticated."""
-
-    permission_classes = [permissions.IsAuthenticated]
-    """Determines what a user can do."""
 
     def filter_queryset(self, queryset: models.QuerySet) -> models.QuerySet:
         return super().filter_queryset(queryset)

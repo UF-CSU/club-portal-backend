@@ -126,20 +126,30 @@ class ClubManager(ManagerBase["Club"]):
 class Club(ClubScopedModel, UniqueModel):
     """Group of users."""
 
-    name = models.CharField(max_length=64, unique=True)
-    alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
+    name = models.CharField(max_length=100, unique=True)
+
     logo: "ClubFile" = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     banner = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+
+    alias = models.CharField(max_length=15, null=True, blank=True)
+
     about = models.TextField(blank=True, null=True)
     founding_year = models.IntegerField(
         default=get_default_founding_year,
         validators=[MinValueValidator(1900), validate_max_founding_year],
     )
 
+    gatorconnect_organization_id = models.IntegerField(null=True, blank=True)
+    gatorconnect_organization_guid = models.TextField(null=True, blank=True)
+    # 200, as some goofballs put their full and very long name as the acronym
+    gatorconnect_organization_url = models.TextField(null=True, blank=True)
+    instagram_followers = models.IntegerField(null=True, blank=True)
+
+    tags = models.ManyToManyField(ClubTag, blank=True)
     contact_email = models.EmailField(null=True, blank=True)
     gatorconnect_url = models.URLField(
         null=True,

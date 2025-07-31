@@ -8,6 +8,7 @@ from django.core.validators import validate_email
 from django.db import models
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlencode, urlsafe_base64_decode, urlsafe_base64_encode
 
@@ -15,7 +16,7 @@ from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
 from core.abstracts.services import ServiceBase
 from lib.emails import send_html_mail
 from users.models import EmailVerificationCode, User, VerifiedEmail
-from utils.helpers import get_client_url
+from utils.helpers import get_client_url, get_full_url
 
 
 class UserService(ServiceBase[User]):
@@ -78,14 +79,27 @@ class UserService(ServiceBase[User]):
             to=[self.obj.email],
         )
 
-    def send_account_setup_link(self, next_url: Optional[str] = None):
+    def send_account_setup_link(
+        self, next_url: Optional[str] = None, send_to_client=True
+    ):
         """Send link to user for setting up account."""
 
-        url = get_client_url(
-            "account-setup/"
-            f"?uidb64={urlsafe_base64_encode(force_bytes(self.obj.pk))}"
-            f"&code={default_token_generator.make_token(self.obj)}"
-        )
+        uidb64 = urlsafe_base64_encode(force_bytes(self.obj.pk))
+        code = default_token_generator.make_token(self.obj)
+
+        if send_to_client:
+            url = get_client_url(f"account-setup/?uidb64={uidb64}&code={code}")
+        else:
+            url = get_full_url(
+                # reverse(
+                #     "users:verify_setup_account",
+                #     kwargs={"uidb64": uidb64, "token": code},
+                # )
+                reverse(
+                    "users-auth:resetpassword_confirm",
+                    kwargs={"uidb64": uidb64, "token": code},
+                )
+            )
 
         if next_url:
             url += "?" + urlencode({"next": next_url})

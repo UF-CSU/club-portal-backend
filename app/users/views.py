@@ -143,7 +143,8 @@ def verify_account_setup_view(request: HttpRequest, uidb64: str, token: str):
     if next:
         return redirect(next + f"?token={auth_token}")
 
-    return redirect("users:setup_account")
+    # return redirect("users:setup_account")
+    return redirect("users-auth:changepassword")
 
 
 @login_required()
@@ -152,4 +153,8 @@ def account_setup_view(request: HttpRequest):
 
     form = SetPasswordForm(request.user)
 
-    return render(request, "users/setup_account.html", context={"form": form})
+    return render(
+        request,
+        "users/setup_account.html",
+        context={"form": form, "user": request.user},
+    )
