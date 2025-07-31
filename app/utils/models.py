@@ -115,6 +115,15 @@ class ArrayChoiceField(ArrayField):
         defaults.update(kwargs)
         return super(ArrayField, self).formfield(**defaults)
 
+    def clean(self, value, model_instance):
+
+        if isinstance(value, list):
+            for i, item in enumerate(value):
+                if isinstance(item, str) and str(item).isnumeric():
+                    value[i] = int(item)
+
+        return super().clean(value, model_instance)
+
 
 def save_file_to_model(model: models.Model, filepath, field="file"):
     """

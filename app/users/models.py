@@ -181,6 +181,8 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
                 try:
                     if backend.has_global_perm(self, perm):
                         return True
+                    else:
+                        return False
                 except PermissionDenied:
                     return False
 

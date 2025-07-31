@@ -380,6 +380,10 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 self.instance = ModelClass.objects.get(id=pk_value)
                 return
 
+            unique_data_fields = [
+                field for field in self.unique_fields if field in data.keys()
+            ]
+
             # Find object containing all unique fields (AND)
             for field in self.unique_fields:
                 value = data.get(field, None)
@@ -390,8 +394,13 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 elif isinstance(value, str):
                     value = value.strip()
 
-                # The value must exist and match, or be None
-                query = models.Q(**{field: value}) | models.Q(**{field: None})
+                # The value must exist and match
+                query = models.Q(**{f"{field}__exact": value})
+
+                # Allow updating unique fields if not set, but only if
+                # there's another unique field to use as a lookup
+                if field not in self.required_fields and len(unique_data_fields) > 1:
+                    query = query | models.Q(**{f"{field}": None})
 
                 if search_query is None:
                     search_query = query
@@ -399,6 +408,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     search_query = search_query & query
 
             # Find object containing all sets of unique_together fields (AND)
+            # FIXME: This will probably break for fields greater than 2
             for field_1, field_2 in self.unique_together_fields:
                 values = {
                     field_1: data.get(field_1, None),

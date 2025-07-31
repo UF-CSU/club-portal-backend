@@ -225,6 +225,29 @@ class UploadCsvTests(UploadCsvTestsBase):
         self.assertLength(success, 1)
         self.assertLength(failed, 1)
 
+    def test_uploading_unique_null_fields(self):
+        """When uploading csv, should handle unique null fields."""
+
+        payload = [
+            {
+                "name": fake.title(),
+                "unique_email": fake.safe_email(),
+            },
+        ]
+
+        # Situation 1: Optional unique field is null, create new object
+        # Example: unique_name is null in db, and unique_name is provided in csv,
+        # ignore the null value and continue creating new object
+        obj = self.repo.create(name=fake.title(), unique_email=None)
+
+        self.assertUploadPayload(payload)
+        self.assertEqual(self.repo.count(), 2)
+
+        # Should have created new object, not update existing one
+        obj.refresh_from_db()
+        self.assertIsNone(obj.unique_email)
+        self.assertTrue(self.repo.filter(unique_email=payload[0]["unique_email"]))
+
     def test_handles_parsing_error(self):
         """Should safely handle an error that doesn't relate to the serializer."""
 
