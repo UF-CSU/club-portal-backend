@@ -33,20 +33,29 @@ class EventViewset(ModelViewSetBase):
         hosts = serializer.validated_data.get("hosts", [])
 
         if len(hosts) == 0 and not self.request.user.has_perm(
-            "events.create_event", is_global=True
+            "events.add_event", is_global=True
         ):
             self.permission_denied(self.request, message="Cannot create global events")
 
         club_ids = [host.get("club").id for host in hosts]
+        user_clubs = Club.objects.filter_for_user(self.request.user)
 
-        if (
-            not Club.objects.filter_for_user(self.request.user)
-            .filter(id__in=club_ids)
-            .exists()
-        ):
-            self.permission_denied(
-                self.request, message="Cannot create event without being a host"
-            )
+        primary_club = None
+        for host in hosts:
+            if host.get("is_primary", False):
+                primary_club = host.get("club")
+
+        if not self.request.user.has_perm("events.add_recurringevent", is_global=True):
+            if not user_clubs.filter(id__in=club_ids).exists():
+                self.permission_denied(
+                    self.request,
+                    "Can only create recurring events which include the user's club as a host",
+                )
+            elif not primary_club or not user_clubs.filter(id=primary_club.id).exists():
+                self.permission_denied(
+                    self.request,
+                    "Need recurring event creation priviledge for primary host club.",
+                )
 
         return super().perform_create(serializer)
 
@@ -70,15 +79,17 @@ class RecurringEventViewSet(ModelViewSetBase):
         user_clubs = Club.objects.filter_for_user(self.request.user)
 
         # If the user's club is not a host, permission denied
-        if not user_clubs.filter(
-            id__in=club_ids
-        ).exists() and not self.request.user.has_perm(
-            "events.create_recurringevent", is_global=True
-        ):
-            self.permission_denied(
-                self.request,
-                "Can only create recurring events which include the user's club as a host",
-            )
+        if not self.request.user.has_perm("events.add_recurringevent", is_global=True):
+            if not user_clubs.filter(id__in=club_ids).exists():
+                self.permission_denied(
+                    self.request,
+                    "Can only create recurring events which include the user's club as a host",
+                )
+            elif not user_clubs.filter(id=club.id).exists():
+                self.permission_denied(
+                    self.request,
+                    "Need recurring event creation priviledge for primary host club.",
+                )
 
         return super().perform_create(serializer)
 
