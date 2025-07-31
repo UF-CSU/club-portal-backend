@@ -25,14 +25,12 @@ class CustomBackend(ModelBackend):
     def get_club_permissions(self, user_obj, clubs, obj=None):
         """Get list of permissions user has with a club."""
 
-        # TODO: Optimize this query
-        perm_ids = list(
-            user_obj.club_memberships.filter(club__in=clubs).values_list(
-                "roles__permissions__id", flat=True
-            )
+        perm_ids = set(
+            user_obj.club_memberships.filter(club__in=clubs)
+            .prefetch_related("roles", "roles__permissions")
+            .values_list("roles__permissions__id", flat=True)
         )
-
-        return set(Permission.objects.filter(id__in=perm_ids))
+        return Permission.objects.filter(id__in=perm_ids).distinct()
 
     def has_global_perm(self, user_obj, perm):
         """
@@ -59,9 +57,9 @@ class CustomBackend(ModelBackend):
 
         elif obj is None:
             perm_ids = set(
-                user_obj.club_memberships.all().values_list(
-                    "roles__permissions__id", flat=True
-                )
+                user_obj.club_memberships.all()
+                .prefetch_related("roles", "roles__permissions")
+                .values_list("roles__permissions__id", flat=True)
             )
             perms = Permission.objects.filter(id__in=perm_ids).distinct()
 
@@ -98,7 +96,6 @@ class CustomBackend(ModelBackend):
 
     def has_perm(self, user_obj, perm, obj=None):
         """Runs when checking any user's permissions."""
-        # TODO: Optimize/cache this process, too many queries being made
 
         if user_obj.is_superuser:
             return True
