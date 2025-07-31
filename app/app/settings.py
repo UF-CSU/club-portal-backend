@@ -265,8 +265,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Other auth settings
 AUTH_USER_MODEL = "users.User"
-LOGIN_REDIRECT_URL = "/"
-LOGIN_URL = "/auth/login/"
+LOGIN_REDIRECT_URL = "/admin/"
+LOGIN_URL = "/admin/login/"
 AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
     "core.backend.CustomBackend",

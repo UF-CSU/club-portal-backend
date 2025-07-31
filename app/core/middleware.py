@@ -33,7 +33,10 @@ class TokenAuthMiddleware(BaseMiddleware):
     def on_request(self, request, *args, **kwargs):
         token_str = request.COOKIES.get("clubportal-token", None)
         if token_str is not None:
-            token = Token.objects.get(key=token_str)
-            request.user = token.user
+            try:
+                token = Token.objects.get(key=token_str)
+                request.user = token.user
+            except Token.DoesNotExist:
+                pass
 
         return super().on_request(request, *args, **kwargs)

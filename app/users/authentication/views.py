@@ -19,20 +19,20 @@ class AuthLoginView(LoginView):
     Extends FormView.
     """
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields["username"].widget.attrs.update({"class": "field-text"})
-        form.fields["username"].widget.attrs.update({"placeholder": "Username"})
-        form.fields["password"].widget.attrs.update({"class": "field-text"})
-        form.fields["password"].widget.attrs.update({"placeholder": "Password"})
-        return form
+    # def get_form(self, form_class=None):
+    #     form = super().get_form(form_class)
+    #     form.fields["username"].widget.attrs.update({"class": "field-text"})
+    #     form.fields["username"].widget.attrs.update({"placeholder": "Username"})
+    #     form.fields["password"].widget.attrs.update({"class": "field-text"})
+    #     form.fields["password"].widget.attrs.update({"placeholder": "Password"})
+    #     return form
 
     redirect_authenticated_user = True
-    template_name = "users/authentication/login_user.html"
+    # template_name = "users/authentication/login_user.html"
 
-    def get_context_data(self, **kwargs):
-        kwargs["next"] = self.request.GET.get("next", None)
-        return super().get_context_data(**kwargs)
+    # def get_context_data(self, **kwargs):
+    #     kwargs["next"] = self.request.GET.get("next", None)
+    #     return super().get_context_data(**kwargs)
 
 
 class AuthLogoutView(LogoutView):
@@ -54,7 +54,7 @@ class AuthPassResetView(PasswordResetView):
     extra_context = {"submit_button": "Reset Password"}
     success_url = reverse_lazy("users-auth:resetpassword_done")
     email_template_name = "users/authentication/reset_pass_email.html"
-    template_name = "users/authentication/reset_pass_request_form.html"
+    # template_name = "users/authentication/reset_pass_request_form.html"
 
 
 class AuthPassResetDoneView(PasswordResetDoneView):
@@ -63,7 +63,7 @@ class AuthPassResetDoneView(PasswordResetDoneView):
     Extends TemplateView.
     """
 
-    template_name = "users/authentication/reset_pass_done.html"
+    # template_name = "users/authentication/reset_pass_done.html"
 
 
 class AuthPassResetConfirmView(PasswordResetConfirmView):
@@ -74,7 +74,7 @@ class AuthPassResetConfirmView(PasswordResetConfirmView):
 
     extra_context = {"submit_button": "Confirm"}
     success_url = reverse_lazy("users-auth:resetpassword_complete")
-    template_name = "users/authentication/reset_pass_confirm_form.html"
+    # template_name = "users/authentication/reset_pass_confirm_form.html"
 
 
 class AuthPassResetCompleteView(PasswordResetCompleteView):
@@ -83,7 +83,7 @@ class AuthPassResetCompleteView(PasswordResetCompleteView):
     Extends TemplateView.
     """
 
-    template_name = "users/authentication/reset_pass_complete.html"
+    # template_name = "users/authentication/reset_pass_complete.html"
 
 
 class AuthChangePasswordView(PasswordChangeView):
@@ -99,4 +99,4 @@ class AuthChangePasswordView(PasswordChangeView):
 class AuthPasswordChangeDoneView(PasswordChangeDoneView):
     """Wrap default password change done view."""
 
-    template_name = "users/authentication/change_pass_done.html"
+    # template_name = "users/authentication/change_pass_done.html"
