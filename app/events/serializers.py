@@ -106,7 +106,8 @@ class EventSerializer(ModelSerializerBase):
             )
 
         return event
-    
+
+
 class EventAttendanceSerializer(ModelSerializerBase):
     """Represents event attendance"""
 

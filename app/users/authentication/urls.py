@@ -5,12 +5,12 @@ from . import views
 app_name = "users-auth"
 
 urlpatterns = [
-    path(
-        "login/",
-        views.AuthLoginView.as_view(),
-        name="login",
-    ),
-    path("logout/", views.AuthLogoutView.as_view(), name="logout"),
+    # path(
+    #     "login/",
+    #     views.AuthLoginView.as_view(),
+    #     name="login",
+    # ),
+    # path("logout/", views.AuthLogoutView.as_view(), name="logout"),
     path("resetpassword/", views.AuthPassResetView.as_view(), name="resetpassword"),
     path(
         "resetpassword/done/",
@@ -33,7 +33,7 @@ urlpatterns = [
         name="changepassword",
     ),
     path(
-        "change-password/done/",
+        "changepassword/done/",
         views.AuthPasswordChangeDoneView.as_view(),
         name="changepassword_done",
     ),

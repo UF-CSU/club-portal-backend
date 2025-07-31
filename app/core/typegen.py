@@ -22,7 +22,7 @@ from events.serializers import (
     RecurringEventSerializer,
 )
 from lib.serializer_typegen import InputSerializerType
-from polls.serializers import PollSerializer
+from polls.serializers import PollFieldSerializer, PollSerializer
 from users.serializers import SocialProviderSerializer, UserSerializer
 
 SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
@@ -41,6 +41,7 @@ SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     RecurringEventSerializer,
     UserSerializer,
     PollSerializer,
+    PollFieldSerializer,
 ]
 """
 List of serializers to create interfaces for:

@@ -11,6 +11,7 @@ from django.core import exceptions
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from rest_framework.authtoken.models import Token
@@ -125,20 +126,30 @@ class ClubManager(ManagerBase["Club"]):
 class Club(ClubScopedModel, UniqueModel):
     """Group of users."""
 
-    name = models.CharField(max_length=64, unique=True)
-    alias = models.CharField(max_length=7, unique=True, null=True, blank=True)
+    name = models.CharField(max_length=100, unique=True)
+
     logo: "ClubFile" = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     banner = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+
+    alias = models.CharField(max_length=15, null=True, blank=True)
+
     about = models.TextField(blank=True, null=True)
     founding_year = models.IntegerField(
         default=get_default_founding_year,
         validators=[MinValueValidator(1900), validate_max_founding_year],
     )
 
+    gatorconnect_organization_id = models.IntegerField(null=True, blank=True)
+    gatorconnect_organization_guid = models.TextField(null=True, blank=True)
+    # 200, as some goofballs put their full and very long name as the acronym
+    gatorconnect_organization_url = models.TextField(null=True, blank=True)
+    instagram_followers = models.IntegerField(null=True, blank=True)
+
+    tags = models.ManyToManyField(ClubTag, blank=True)
     contact_email = models.EmailField(null=True, blank=True)
     gatorconnect_url = models.URLField(
         null=True,
@@ -177,7 +188,7 @@ class Club(ClubScopedModel, UniqueModel):
         """Used for permissions checking."""
         return self
 
-    @property
+    @cached_property
     def member_count(self) -> int:
         return self.memberships.count()
 
@@ -189,9 +200,9 @@ class Club(ClubScopedModel, UniqueModel):
         # On save, set default alias from name
         try:
             if self.alias is None and len(self.name) >= 3:
-                self.alias = self.name[0:3].capitalize()
+                self.alias = self.name[0:3].upper()
             elif self.alias is None:
-                self.alias = self.name.capitalize()
+                self.alias = self.name.upper()
         except Exception:
             pass
 
@@ -199,7 +210,7 @@ class Club(ClubScopedModel, UniqueModel):
 
     def clean(self):
         if self.alias is not None and not self.alias.isupper():
-            self.alias = self.alias.capitalize()
+            self.alias = self.alias.upper()
         return super().clean()
 
 
@@ -235,12 +246,12 @@ class ClubFile(ClubScopedModel, ModelBase):
         """Get the web url for the file."""
         return get_full_url(self.file.url)
 
-    @property
+    @cached_property
     def size(self) -> str:
         """Get a string representation of the size of the file."""
         return format_bytes(self.file.size)
 
-    @property
+    @cached_property
     def file_type(self) -> str:
         """Get the type of file stored (using file extension)."""
         try:
@@ -630,6 +641,9 @@ class TeamRole(ClubScopedModel, ModelBase):
     objects: ClassVar[TeamRoleManager] = TeamRoleManager()
 
     class Meta:
+        ordering = [
+            "order",
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=("default", "team"),
@@ -724,13 +738,13 @@ class TeamMembership(ClubScopedModel, ModelBase):
 
         return roles.first().order
 
-    @property
-    def club(self):
-        return self.team.club
-
     @order.setter
     def order(self, value: int):
         self.order_override = value
+
+    @property
+    def club(self):
+        return self.team.club
 
     # Overrides
     objects: ClassVar["TeamMembershipManager"] = TeamMembershipManager()

@@ -3,50 +3,76 @@
 {% load socialaccount %}
 
 {% block body %}
-{% user_display user %}
+
 
 <section>
+  <h1>Account Setup</h1>
   <!-- <a href="{% url 'socialaccount_connections' %}">Connect Social Account</a> -->
+   
+  <div>
+    <h2>Admin</h2>
+    <p>Authenticated user: {% user_display user %}</p>
+    {% if user.has_usable_password %}
+    <p>
+      <a href="{% url 'admin:index' %}">Continue to admin</a>
+    </p>
+    {% else %}
+    <p>Must set a password before continuing to admin.</p>
+    {% endif %}
+  </div>
   
-  {% get_social_accounts user as accounts %}
-  Connected Accounts:
-  <ul> 
-    {% for account in accounts %}
-    <li>{{ account }}</li>
-    {% endfor %}
-  </ul>
+  <div>
+    <h2>Password Auth</h2>
+    <p>Please enter your new password twice so we can verify you typed it in correctly.</p>
   
-  Connect new account:
-  {% get_providers as socialaccount_providers %}
-  <ul>
-    {% for provider in socialaccount_providers %}
-    <li>
-      <a href="{% provider_login_url provider process='connect' %}">{{ provider }}</a>
-    </li>
-    {% endfor %}
-  </ul>
+    <form method="post">
+      {% csrf_token %}
+    <fieldset class="module aligned">
+        <input class="hidden" autocomplete="username" value="{{ form.user.get_username }}">
+        <div class="form-row field-password1">
+            {{ form.new_password1.errors }}
+            <label for="id_new_password1">New password:</label>
+            {{ form.new_password1 }}
+        </div>
+        <div class="form-row field-password2">
+            {{ form.new_password2.errors }}
+            <label for="id_new_password2">Confirm password:</label>
+            {{ form.new_password2 }}
+        </div>
+        {% if user.has_usable_password %}
+        <input type="submit" value="Change my password">
+        {% else %}
+        <input type="submit" value="Set my password">
+        {% endif %}
+    </fieldset>
+    </form>
+  </div>
   
+  <div>
+    <h2>OAuth</h2>
+    {% get_social_accounts user as accounts %}
+    Connected Accounts:
+    <ul> 
+      {% for account in accounts %}
+      <li>{{ account }}</li>
+      {% endfor %}
+      {% if accounts|length == 0 %}
+      <li>No accounts connected</li>
+      {% endif %}
+    </ul>
+    
+    Connect new account:
+    {% get_providers as socialaccount_providers %}
+    <ul>
+      {% for provider in socialaccount_providers %}
+      <li>
+        <a href="{% provider_login_url provider process='connect' %}">{{ provider }}</a>
+      </li>
+      {% endfor %}
+    </ul>   
+  </div>
 
   
-  <p>Please enter your new password twice so we can verify you typed it in correctly.</p>
-
-  <form method="post">
-    {% csrf_token %}
-  <fieldset class="module aligned">
-      <input class="hidden" autocomplete="username" value="{{ form.user.get_username }}">
-      <div class="form-row field-password1">
-          {{ form.new_password1.errors }}
-          <label for="id_new_password1">New password:</label>
-          {{ form.new_password1 }}
-      </div>
-      <div class="form-row field-password2">
-          {{ form.new_password2.errors }}
-          <label for="id_new_password2">Confirm password:</label>
-          {{ form.new_password2 }}
-      </div>
-      <input type="submit" value="Change my password">
-  </fieldset>
-  </form>
 </section>
 
 {% endblock %}

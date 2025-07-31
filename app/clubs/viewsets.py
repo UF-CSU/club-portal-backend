@@ -97,7 +97,11 @@ class ClubViewSet(ModelViewSetBase):
 class ClubPreviewViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet
 ):
-    queryset = Club.objects.all()
+    queryset = (
+        Club.objects.all()
+        .select_related("logo", "banner")
+        .prefetch_related("tags", "socials")
+    )
     serializer_class = ClubPreviewSerializer
     pagination_class = CustomLimitOffsetPagination
 
@@ -191,7 +195,12 @@ class TeamViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for Team objects."""
 
     serializer_class = TeamSerializer
-    queryset = Team.objects.all()
+    queryset = Team.objects.all().prefetch_related(
+        "memberships",
+        "memberships__user",
+        "memberships__user__socials",
+        "memberships__roles",
+    )
 
 
 class InviteClubMemberView(GenericAPIView):

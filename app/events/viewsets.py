@@ -11,8 +11,23 @@ from . import models, serializers
 class EventViewset(ModelViewSetBase):
     """CRUD Api routes for Event models."""
 
-    queryset = models.Event.objects.all()
+    queryset = models.Event.objects.all().prefetch_related(
+        "hosts", "hosts__club", "tags"
+    )
     serializer_class = serializers.EventSerializer
+
+    def filter_queryset(self, queryset):
+        clubs = self.request.query_params.getlist("clubs", None)
+
+        if clubs:
+            queryset = queryset.filter(hosts__club__id__in=clubs)
+
+        return super().filter_queryset(queryset)
+
+    def check_object_permissions(self, request, obj):
+        if self.action == "retrieve":
+            return True
+        return super().check_object_permissions(request, obj)
 
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])
@@ -67,9 +82,11 @@ class RecurringEventViewSet(ModelViewSetBase):
 
         return super().perform_create(serializer)
 
+
 class EventAttendanceViewSet(ModelViewSetBase):
     queryset = EventAttendance.objects.all()
     serializer_class = serializers.EventAttendanceSerializer
+
 
 class EventCancellationViewSet(ModelViewSetBase):
     queryset = EventCancellation.objects.all()

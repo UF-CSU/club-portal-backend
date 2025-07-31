@@ -55,6 +55,7 @@ ALLOWED_HOSTS.extend([os.environ.get("DJANGO_BASE_URL")])
 BASE_URL = os.environ.get("DJANGO_BASE_URL", "")
 ALLOWED_HOSTS.extend([BASE_URL])
 CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:5173")
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 
 
 # Application definition
@@ -92,12 +93,13 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.middleware.common.CommonMiddleware",
     # "django.middleware.csrf.CsrfViewMiddleware", # TODO: Enable CSRF, implement with frontend
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
+    "core.middleware.TokenAuthMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.TimezoneMiddleware",
 ]
@@ -115,7 +117,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, "core/templates"),
             os.path.join(BASE_DIR, "dashboard/templates"),
         ],
-        # "APP_DIRS": True,
+        "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -123,11 +125,11 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
-            "loaders": [
-                "django.template.loaders.filesystem.Loader",
-                "django.template.loaders.app_directories.Loader",
-                "admin_tools.template_loaders.Loader",
-            ],
+            # "loaders": [
+            #     "django.template.loaders.filesystem.Loader",
+            #     "django.template.loaders.app_directories.Loader",
+            #     "admin_tools.template_loaders.Loader",
+            # ],
         },
     },
 ]
@@ -145,6 +147,7 @@ DATABASES = {
         "NAME": os.environ.get("POSTGRES_NAME"),
         "USER": os.environ.get("POSTGRES_USER"),
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
+        "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
     }
 }
 
@@ -262,8 +265,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Other auth settings
 AUTH_USER_MODEL = "users.User"
-LOGIN_REDIRECT_URL = "/"
-LOGIN_URL = "/auth/login/"
+LOGIN_REDIRECT_URL = "/admin/"
+LOGIN_URL = "/admin/login/"
 AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
     "core.backend.CustomBackend",
@@ -300,6 +303,7 @@ HEADLESS_SERVE_SPECIFICATION = True
 # Enable to force email verification
 # ACCOUNT_EMAIL_REQUIRED = True
 # ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
 
 ############################
 # ==  Production Config == #
@@ -394,11 +398,12 @@ if environ_bool("AWS_EXECUTION_ENV", 1):
 if DEV:
     import socket
 
-    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("debug_toolbar")
+    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
-    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    # Insert near top, adjust pos as needed
+    MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(
         ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
@@ -407,6 +412,17 @@ if DEV:
     INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
+
+if DEV and not TESTING:
+
+    # Ref: https://stackoverflow.com/a/64726422/10914922
+    def show_toolbar(*args, **kwargs):
+        return not TESTING and environ_bool("DJANGO_SHOW_TOOLBAR", 1)
+
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+        "IS_RUNNING_TESTS": False,
+    }
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
@@ -427,3 +443,10 @@ if TESTING:
 if DEV or TESTING:
     # Allow for migrations during dev mode
     INSTALLED_APPS.append("core.mock")
+
+    # Disable caching
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        }
+    }
