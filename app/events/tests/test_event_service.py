@@ -239,3 +239,28 @@ class RecurringEventTests(TestsBase):
         expected_count_after = rec.expected_event_count
         self.assertEqual(expected_count_after, 2)
         self.assertEqual(Event.objects.count(), expected_count_after)
+
+    def test_multi_day_events(self):
+        """Should properly create events that stretch multiple days."""
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            days=[DayChoice.MONDAY, DayChoice.WEDNESDAY],
+            start_date=timezone.datetime(2025, 7, 20),
+            end_date=timezone.datetime(2025, 8, 2),
+            event_start_time=datetime.time(hour=23, minute=0, second=0),
+            event_end_time=datetime.time(hour=1, minute=0, second=0),
+        )
+        service = RecurringEventService(rec)
+        service.sync_events()
+
+        event = Event.objects.first()
+        self.assertEqual(event.recurring_event.id, rec.id)
+
+        self.assertDatesEqual(
+            event.start_at, datetime.datetime(2025, 7, 21, hour=23, minute=0, second=0)
+        )
+        self.assertDatesEqual(
+            event.end_at, datetime.datetime(2025, 7, 22, hour=1, minute=0, second=0)
+        )
