@@ -99,6 +99,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
+    "core.middleware.TokenAuthMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.TimezoneMiddleware",
 ]
@@ -264,8 +265,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Other auth settings
 AUTH_USER_MODEL = "users.User"
-LOGIN_REDIRECT_URL = "/"
-LOGIN_URL = "/auth/login/"
+LOGIN_REDIRECT_URL = "/admin/"
+LOGIN_URL = "/admin/login/"
 AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
     "core.backend.CustomBackend",
@@ -302,6 +303,7 @@ HEADLESS_SERVE_SPECIFICATION = True
 # Enable to force email verification
 # ACCOUNT_EMAIL_REQUIRED = True
 # ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
 
 ############################
 # ==  Production Config == #
