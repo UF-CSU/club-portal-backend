@@ -1,5 +1,6 @@
 from typing import Optional
 
+from django import forms
 from django.contrib import admin
 
 from clubs.forms import TeamMembershipForm
@@ -12,6 +13,7 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
+    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -22,6 +24,7 @@ from clubs.serializers import (
     TeamCsvSerializer,
 )
 from core.abstracts.admin import ModelAdminBase
+from utils.formatting import plural_noun
 
 
 class ClubMembershipInlineAdmin(admin.StackedInline):
@@ -93,11 +96,49 @@ class ClubAdmin(ModelAdminBase):
         return obj.memberships.count()
 
 
+class ClubRoleForm(forms.ModelForm):
+    """Defines how roles should be edited."""
+
+    class Meta:
+        model = ClubRole
+        fields = "__all__"
+
+    def clean(self):
+        super().clean()
+
+        # Prevent manual setting of permissions if there is a permissions preset
+        if self.cleaned_data.get("role_type", RoleType.CUSTOM) != RoleType.CUSTOM:
+            self.cleaned_data.pop("permissions")
+
+
 class ClubRoleAdmin(ModelAdminBase):
     """Manage club roles in admin."""
 
+    form = ClubRoleForm
+
     list_display = ("name", "club", "role_type", "default")
     prefetch_related_fields = ("permissions",)
+    search_fields = (
+        "name",
+        "club__name",
+        "club__alias",
+    )
+    actions = ("sync_roles",)
+
+    @admin.action
+    def sync_roles(self, request, queryset):
+        """Sync role permissions."""
+
+        queryset.update(cached_role_type=None)
+        for role in queryset:
+            role.save()
+
+        self.message_user(
+            request,
+            message=f'Synced {queryset.count()} {plural_noun(queryset.count(), "role")}',
+        )
+
+        return
 
 
 class ClubTagAdmin(ModelAdminBase):
