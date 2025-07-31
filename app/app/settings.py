@@ -99,6 +99,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
+    "core.middleware.TokenAuthMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.TimezoneMiddleware",
 ]
@@ -302,6 +303,7 @@ HEADLESS_SERVE_SPECIFICATION = True
 # Enable to force email verification
 # ACCOUNT_EMAIL_REQUIRED = True
 # ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
 
 ############################
 # ==  Production Config == #
