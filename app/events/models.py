@@ -328,7 +328,6 @@ class Event(EventFields):
             )
         ]
 
-
 class EventHost(ClubScopedModel, ModelBase):
     """Attach clubs to events."""
 

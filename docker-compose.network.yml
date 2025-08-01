@@ -145,7 +145,6 @@ services:
     environment:
       - SERVER_URI=club-app-network:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
-      - DELAY=${PROXY_DELAY:-'15s'}
 
 volumes:
   # postgres-clubs-network:
