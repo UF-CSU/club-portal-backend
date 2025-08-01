@@ -123,12 +123,12 @@ class RecurringEvent(EventFields):
     days = ArrayChoiceField(models.IntegerField(choices=DayChoice.choices))
     event_start_time = models.TimeField(
         blank=True,
-        help_text="Each event will start at this time",
+        help_text="Each event will start at this time, in UTC",
         default=get_default_start_time,
     )
     event_end_time = models.TimeField(
         blank=True,
-        help_text="Each event will end at this time",
+        help_text="Each event will end at this time, in UTC",
         default=get_default_end_time,
     )
 
@@ -246,6 +246,7 @@ class Event(EventFields):
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
     attendance_links: models.QuerySet["EventAttendanceLink"]
     hosts: models.QuerySet["EventHost"]
+    attendances: models.QuerySet["EventAttendance"]
 
     @property
     def primary_club(self):
@@ -374,12 +375,12 @@ class EventAttendance(ClubScopedModel, ModelBase):
     event = models.ForeignKey(
         Event,
         on_delete=models.CASCADE,
-        related_name="user_attendance",
+        related_name="attendances",
         blank=True,
         null=True,
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="event_attendance"
+        User, on_delete=models.CASCADE, related_name="event_attendances"
     )
 
     @property

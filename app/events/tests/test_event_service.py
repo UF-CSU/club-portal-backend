@@ -10,10 +10,11 @@ from django_celery_beat.models import PeriodicTask
 from clubs.models import ClubFile
 from clubs.tests.utils import create_test_club, create_test_clubfile, create_test_clubs
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
-from events.models import DayChoice, Event, RecurringEvent
+from events.models import DayChoice, Event, EventAttendance, RecurringEvent
 from events.services import RecurringEventService
 from events.tests.utils import create_test_event
 from lib.faker import fake
+from users.tests.utils import create_test_user
 
 
 class EventServiceTests(PeriodicTaskTestsBase):
@@ -230,6 +231,7 @@ class RecurringEventTests(TestsBase):
         self.assertEqual(expected_count_before, 4)
         self.assertEqual(Event.objects.count(), expected_count_before)
 
+        # Check 1 less day
         rec.days = [DayChoice.MONDAY]
         rec.save()
         rec.refresh_from_db()
@@ -239,6 +241,32 @@ class RecurringEventTests(TestsBase):
         expected_count_after = rec.expected_event_count
         self.assertEqual(expected_count_after, 2)
         self.assertEqual(Event.objects.count(), expected_count_after)
+
+        # Check different times
+        rec.event_start_time = datetime.time(hour=17, minute=0, second=0)
+        rec.event_end_time = datetime.time(hour=18, minute=0, second=0)
+        rec.save()
+        rec.refresh_from_db()
+        service.refresh_from_db()
+        service.sync_events()
+
+        self.assertEqual(Event.objects.count(), expected_count_after)
+
+        for event in Event.objects.all():
+            self.assertEqual(event.start_at.hour, 17)
+            self.assertEqual(event.end_at.hour, 18)
+
+        rec.event_start_time = datetime.time(hour=18, minute=0, second=0)
+        rec.event_end_time = datetime.time(hour=19, minute=0, second=0)
+        rec.save()
+        service.refresh_from_db()
+        service.sync_events()
+
+        self.assertEqual(Event.objects.count(), expected_count_after)
+
+        for event in Event.objects.all():
+            self.assertEqual(event.start_at.hour, 18)
+            self.assertEqual(event.end_at.hour, 19)
 
     def test_multi_day_events(self):
         """Should properly create events that stretch multiple days."""
@@ -264,3 +292,41 @@ class RecurringEventTests(TestsBase):
         self.assertDatesEqual(
             event.end_at, datetime.datetime(2025, 7, 22, hour=1, minute=0, second=0)
         )
+
+    def test_syncing_events_deleting_event_data(self):
+        """When syncing events, should be careful when deleting events."""
+
+        # 2 Mondays, 2 Wednesdays between 7/20/25 - 8/2/25
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            days=[DayChoice.MONDAY, DayChoice.WEDNESDAY],
+            start_date=timezone.datetime(2025, 7, 20),
+            end_date=timezone.datetime(2025, 8, 2),
+            event_start_time=datetime.time(hour=18, minute=0, second=0),
+            event_end_time=datetime.time(hour=19, minute=0, second=0),
+        )
+        service = RecurringEventService(rec)
+        service.sync_events()
+
+        expected_count = Event.objects.count()
+
+        # User attends event
+        u1 = create_test_user()
+        e1 = Event.objects.first()
+        EventAttendance.objects.create(event=e1, user=u1)
+
+        self.assertEqual(e1.attendances.count(), 1)
+
+        # Recurring event updates
+        rec.event_start_time = datetime.time(hour=17, minute=0, second=0)
+        rec.event_end_time = datetime.time(hour=18, minute=0, second=0)
+        rec.save()
+
+        service.refresh_from_db()
+        service.sync_events()
+        self.assertEqual(Event.objects.count(), expected_count)
+
+        # Make sure event still exists
+        self.assertTrue(Event.objects.filter(id=e1.pk).exists())
+        self.assertTrue(e1.attendances.count(), 1)

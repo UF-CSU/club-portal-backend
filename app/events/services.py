@@ -39,10 +39,12 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # Remove extra events
         # Get all dates assigned to recurring,
         # delete if they don't overlap with the start/end dates
-        range_start = datetime.datetime.combine(
-            rec_ev.start_date, rec_ev.event_start_time
-        )
-        range_end = datetime.datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
+        # range_start = datetime.datetime.combine(
+        #     rec_ev.start_date, rec_ev.event_start_time
+        # )
+        range_start = rec_ev.start_date
+        # range_end = datetime.datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
+        range_end = rec_ev.end_date
 
         # Django filter starts at Sun=1, python starts Mon=0
         query_days = [day + 2 if day > 0 else 6 for day in rec_ev.days]
@@ -50,9 +52,11 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # Delete events outside of range
         query = rec_ev.events.filter(
             ~models.Q(start_at__date__range=(range_start, range_end))
-            | ~models.Q(start_at__week_day__in=query_days)
+            # | ~models.Q(start_at__week_day__in=query_days)
         )
+        print("query:", query)
         query.delete()
+        # deletion_query = rec_ev.events.filter(~models.Q(start_at__date))
 
         # Sync events for each day
         start = rec_ev.start_date
@@ -71,17 +75,58 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
                 if event_date < start or event_date > end:
                     continue
+                
+                # Start/end times
+                start_time = rec_ev.event_start_time
+                end_time = rec_ev.event_end_time
 
+                # Start/end dates, accounting for multiple days
                 event_start = datetime.datetime.combine(
-                    event_date, rec_ev.event_start_time, tzinfo=timezone.utc
+                    event_date, start_time, tzinfo=timezone.utc
                 )
 
                 if rec_ev.event_start_time > rec_ev.event_end_time:
                     event_date += datetime.timedelta(days=1)
 
                 event_end = datetime.datetime.combine(
-                    event_date, rec_ev.event_end_time, tzinfo=timezone.utc
+                    event_date, end_time, tzinfo=timezone.utc
                 )
+
+                # Find existing event
+                query_date_start = timezone.datetime(
+                    year=event_date.year,
+                    month=event_date.month,
+                    day=event_date.day,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                )
+                query_date_end = timezone.datetime(
+                    year=event_date.year,
+                    month=event_date.month,
+                    day=event_date.day,
+                    hour=23,
+                    minute=59,
+                    second=59,
+                )
+                event_query = rec_ev.events.filter(
+                    start_at__date__gte=query_date_start,
+                    start_at__date__lte=query_date_end,
+                )
+
+                if event_query.exists():
+                    # Event exists
+                    # TODO: Account for mulitple events returned
+                    event = event_query.first()
+                    
+                else:
+                    # Event doesn't exist
+                    event = Event.objects.create(name=rec_ev.name, start_at)
+                    
+                    
+                
+
+                
 
                 # These fields must all be unique together
                 event, _ = Event.objects.update_or_create(
