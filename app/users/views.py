@@ -14,7 +14,6 @@ from rest_framework.authtoken.models import Token
 from clubs.models import Club, ClubMembership
 from clubs.services import ClubService
 from events.models import Event
-from events.services import EventService
 from users.forms import RegisterForm
 from users.services import UserService
 
@@ -58,7 +57,9 @@ def register_user_view(request: HttpRequest):
                 # TODO: Should event attendance add user to all clubs hosting event?
                 for club in event.clubs.all():
                     ClubService(club).add_member(user)
-                EventService(event).record_event_attendance(user)
+                # TODO: We can't just record attendance here, as some events might require
+                # an additional poll submission.
+                # EventService(event).record_event_attendance(user)
 
             if "next" in request.GET:
                 return redirect(request.GET.get("next"))
