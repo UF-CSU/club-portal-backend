@@ -7,7 +7,7 @@ from django.db import models
 
 
 def get_permission(
-    perm_label: str, obj=None, fail_silently=True
+    perm_label: str, obj=None, fail_silently=False
 ) -> Optional[Permission]:
     """
     Returns a permission object based on the app label and codename.
@@ -32,10 +32,11 @@ def get_permission(
         if fail_silently:
             return None
         else:
+            e.add_note(f"With perm label: {perm_label}")
             raise e
 
 
-def parse_permissions(perms: list | None, fail_silently=True) -> list[Permission]:
+def parse_permissions(perms: list | None, fail_silently=False) -> list[Permission]:
     """
     Returns a list of permissions based in perms argument.
 
