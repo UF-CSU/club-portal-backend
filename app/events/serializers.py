@@ -63,11 +63,11 @@ class EventSerializer(ModelSerializerBase):
 
     attachments = ClubFileNestedSerializer(many=True, required=False)
 
-    attachment_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        write_only=True,
-        required=False
-    )
+    #attachment_ids = serializers.ListField(
+    #    child=serializers.IntegerField(),
+    #    write_only=True,
+    #    required=False
+    #)
 
     class Meta:
         model = Event
@@ -106,7 +106,7 @@ class EventSerializer(ModelSerializerBase):
 
     def create(self, validated_data):
         hosts_data = validated_data.pop("hosts", [])
-        attachment_data = validated_data.pop("attachment_ids", [])
+        attachment_data = validated_data.pop("attachments", [])
 
         event = Event.objects.create(**validated_data)
 
@@ -116,7 +116,8 @@ class EventSerializer(ModelSerializerBase):
                 event=event, club=host["club"], is_primary=host.get("is_primary", False)
             )
 
-        for attachment_id in attachment_data:
+        for attachment in attachment_data:
+            attachment_id = attachment["id"]
             
             event.attachments.add(attachment_id)
 
