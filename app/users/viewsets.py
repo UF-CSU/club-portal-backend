@@ -2,10 +2,14 @@
 Views for the user API.
 """
 
+from allauth.headless.base.views import APIView
+from allauth.headless.socialaccount.forms import RedirectToProviderForm
+from allauth.socialaccount.helpers import render_authentication_error
 from allauth.socialaccount.models import SocialAccount
-from django.core.exceptions import BadRequest
+from django.core.exceptions import BadRequest, ValidationError
 from django.http import HttpRequest
-from django.urls import reverse_lazy
+from django.shortcuts import redirect
+from django.urls import reverse, reverse_lazy
 from drf_spectacular.utils import extend_schema
 from rest_framework import authentication, generics, mixins, permissions, status
 from rest_framework.authtoken.models import Token
@@ -136,3 +140,64 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
 
     def get_queryset(self):
         return SocialAccount.objects.filter(user=self.request.user)
+
+
+class RedirectToProviderView(APIView):
+    """
+    Override allauth's redirect logic to authenticate existing users
+    with their token as a query param.
+    """
+
+    handle_json_input = False
+
+    def post(self, request, *args, **kwargs):
+        # Authenticate via token in url query params
+        token = request.GET.get("token", None)
+
+        if token:
+            user_service = UserService.get_from_token(token)
+            user_service.login(request)
+
+        # Continue to provider
+        form = RedirectToProviderForm(request.POST)
+        if not form.is_valid():
+            return render_authentication_error(
+                request,
+                provider=request.POST.get("provider"),
+                exception=ValidationError(form.errors),
+            )
+        provider = form.cleaned_data["provider"]
+        next_url = (
+            reverse("api-users:oauth_return")
+            + "?next="
+            + form.cleaned_data["callback_url"]
+        )
+        process = form.cleaned_data["process"]
+        return provider.redirect(
+            request,
+            process,
+            next_url=next_url,
+            headless=True,
+        )
+
+
+class ReturnFromOauthView(APIView):
+    """
+    Override allauth's logic for redirecting back to client side to provide
+    the user's token as a query param. No matter if the token was provided initially,
+    the user will be authenticated at this point so it will always have a token.
+    """
+
+    def get(self, request, *args, **kwargs):
+        next_url: str = request.GET.get("next")
+        user = request.user
+
+        if user.is_anonymous:
+            next_url += "?error=Error authenticating user with oauth"
+            return redirect(next_url)
+
+        token, _ = Token.objects.get_or_create(user=user)
+
+        next_url += f"?token={token.key}"
+
+        return redirect(next_url)

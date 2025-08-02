@@ -159,6 +159,13 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
             and self.profile.name is not None
         )
 
+    @property
+    def is_club_admin(self) -> bool:
+        """User is an admin at least one club."""
+        for membership in self.club_memberships.all():
+            if membership.is_admin:
+                return True
+
     # Overrides
     def __str__(self):
         return self.username
