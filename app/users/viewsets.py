@@ -143,9 +143,22 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
 
 
 class RedirectToProviderView(APIView):
+    """
+    Override allauth's redirect logic to authenticate existing users
+    with their token as a query param.
+    """
+
     handle_json_input = False
 
     def post(self, request, *args, **kwargs):
+        # Authenticate via token in url query params
+        token = request.GET.get("token", None)
+
+        if token:
+            user_service = UserService.get_from_token(token)
+            user_service.login(request)
+
+        # Continue to provider
         form = RedirectToProviderForm(request.POST)
         if not form.is_valid():
             return render_authentication_error(
@@ -169,10 +182,20 @@ class RedirectToProviderView(APIView):
 
 
 class ReturnFromOauthView(APIView):
+    """
+    Override allauth's logic for redirecting back to client side to provide
+    the user's token as a query param. No matter if the token was provided initially,
+    the user will be authenticated at this point so it will always have a token.
+    """
 
     def get(self, request, *args, **kwargs):
         next_url: str = request.GET.get("next")
         user = request.user
+
+        if user.is_anonymous:
+            next_url += "?error=Error authenticating user with oauth"
+            return redirect(next_url)
+
         token, _ = Token.objects.get_or_create(user=user)
 
         next_url += f"?token={token.key}"
