@@ -27,4 +27,10 @@ urlpatterns = [
     path("me/", viewsets.ManageUserView.as_view(), name="me"),
     path("oauth-directory/", viewsets.OauthDirectoryView.as_view()),
     path("me/providers/", viewsets.SocialProviderViewSet.as_view({"get": "list"})),
+    path("oauth/provider/", viewsets.RedirectToProviderView.as_view()),
+    path(
+        "oauth/provider/redirect/",
+        viewsets.ReturnFromOauthView.as_view(),
+        name="oauth_return",
+    ),
 ]
