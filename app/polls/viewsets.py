@@ -13,6 +13,10 @@ class PollViewset(ModelViewSetBase):
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
 
+    def check_permissions(self, request):
+        # FIXME: Configure poll permissions
+        return True
+
 
 class PollSubmissionViewSet(ModelViewSetBase):
     """Submit polls via api."""

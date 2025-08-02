@@ -5,6 +5,7 @@ Event models.
 from datetime import date, time
 from typing import ClassVar, Optional
 
+from django.core import exceptions
 from django.db import models
 from django.utils import timezone
 from django.utils.timezone import datetime
@@ -291,6 +292,11 @@ class Event(EventFields):
         return super().__str__()
 
     def full_clean(self, *args, **kwargs):
+        if self.start_at > self.end_at:
+            raise exceptions.ValidationError(
+                "Start date cannot be greater than end date"
+            )
+
         # If creating event, ensure no name clashes
         if self.pk is None and Event.objects.filter(
             name=self.name, start_at=self.start_at, end_at=self.end_at

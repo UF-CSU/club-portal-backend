@@ -1,12 +1,13 @@
-from typing import Optional
+from typing import Optional, Type
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
+from django.db import models
 
 
 def get_permission(
-    perm_label: str, obj=None, fail_silently=True
+    perm_label: str, obj=None, fail_silently=False
 ) -> Optional[Permission]:
     """
     Returns a permission object based on the app label and codename.
@@ -31,10 +32,11 @@ def get_permission(
         if fail_silently:
             return None
         else:
+            e.add_note(f"With perm label: {perm_label}")
             raise e
 
 
-def parse_permissions(perms: list | None, fail_silently=True) -> list[Permission]:
+def parse_permissions(perms: list | None, fail_silently=False) -> list[Permission]:
     """
     Returns a list of permissions based in perms argument.
 
@@ -77,3 +79,12 @@ def get_perm_label(perm: Permission):
     codename, app_label, _ = perm.natural_key()
 
     return "%s.%s" % (app_label, codename)
+
+
+def get_perm_labels_for_model(model: Type[models.Model]):
+    """Return a list of permission labels for model."""
+
+    content_type = ContentType.objects.get_for_model(model)
+    permissions = Permission.objects.filter(content_type=content_type)
+
+    return [get_perm_label(perm) for perm in permissions]

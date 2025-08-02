@@ -16,11 +16,16 @@ class RolePayloadType(TypedDict):
 
 VIEWER_ROLE_PERMISSIONS = [
     # Clubs
+    "clubs.view_club",
     "clubs.view_club_details",
     "clubs.view_team",
     "clubs.view_clubfile",
     "clubs.view_clubmembership",
+    "clubs.view_clubrole",
+    "clubs.view_clubphoto",
+    "clubs.view_clubtag",
     # Events
+    "events.view_event",
     "events.view_private_event",
 ]
 ADMIN_ROLE_PERMISSIONS = [

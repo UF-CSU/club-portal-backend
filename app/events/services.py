@@ -76,6 +76,10 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 event_start = datetime.datetime.combine(
                     event_date, rec_ev.event_start_time, tzinfo=timezone.utc
                 )
+
+                if rec_ev.event_start_time > rec_ev.event_end_time:
+                    event_date += datetime.timedelta(days=1)
+
                 event_end = datetime.datetime.combine(
                     event_date, rec_ev.event_end_time, tzinfo=timezone.utc
                 )

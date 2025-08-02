@@ -12,6 +12,7 @@ from core.abstracts.admin import ModelAdminBase
 from users.models import Profile, SocialProfile, User, VerifiedEmail
 from users.serializers import UserCsvSerializer
 from users.services import UserService
+from utils.formatting import plural_noun
 
 
 class UserProfileInline(admin.StackedInline):
@@ -67,7 +68,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         "profile_image",
         "is_onboarded",
     )
-    actions = ("send_account_setup_link",)
+    actions = ("send_account_setup_link", "send_admin_setup_link")
 
     fieldsets = (
         (None, {"fields": ("username", "email", "password", "profile_image")}),
@@ -108,6 +109,27 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
         for user in queryset:
             UserService(user).send_account_setup_link()
+
+        self.message_user(
+            request,
+            f'Successfully sent setup link to {queryset.count()} {plural_noun(queryset.count(), "user")}',
+        )
+
+        return
+
+    @admin.action
+    def send_admin_setup_link(self, request, queryset):
+        """Send link to setup admin account."""
+
+        queryset.update(is_staff=True)
+
+        for user in queryset:
+            UserService(user).send_account_setup_link(send_to_client=False)
+
+        self.message_user(
+            request,
+            f'Successfully sent admin setup link to {queryset.count()} {plural_noun(queryset.count(), "user")}',
+        )
 
         return
 
