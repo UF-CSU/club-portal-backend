@@ -1,7 +1,7 @@
 from django.core import exceptions
 from rest_framework import serializers
 
-from clubs.models import Club, ClubFile
+from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
 from core.abstracts.serializers import ModelSerializerBase
 from events.models import (
@@ -63,17 +63,18 @@ class EventSerializer(ModelSerializerBase):
 
     attachments = ClubFileNestedSerializer(many=True, required=False)
 
-    #attachment_ids = serializers.ListField(
+    # attachment_ids = serializers.ListField(
     #    child=serializers.IntegerField(),
     #    write_only=True,
     #    required=False
-    #)
+    # )
 
     class Meta:
         model = Event
-        fields = '__all__'
-        
-        #[
+        # fields = "__all__"
+        exclude = ["clubs", "make_public_task"]
+
+        # [
         #    "id",
         #    "name",
         #    "description",
@@ -86,7 +87,7 @@ class EventSerializer(ModelSerializerBase):
         #    "all_day",
         #    "created_at",
         #    "updated_at",
-        #]
+        # ]
 
     def validate(self, attrs):
         # Ensure that there are not only secondary hosts
@@ -118,9 +119,8 @@ class EventSerializer(ModelSerializerBase):
 
         for attachment in attachment_data:
             attachment_id = attachment["id"]
-            
-            event.attachments.add(attachment_id)
 
+            event.attachments.add(attachment_id)
 
         return event
 
