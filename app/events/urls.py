@@ -7,11 +7,6 @@ app_name = "events"
 
 urlpatterns = [
     path(
-        "events/<int:id>/attendance/",
-        views.RecordAttendanceView.as_view(),
-        name="attendance",
-    ),
-    path(
         "events/<int:id>/attendance/done/",
         TemplateView.as_view(
             template_name="events/attendance_done.html",

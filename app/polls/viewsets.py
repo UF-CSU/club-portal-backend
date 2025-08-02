@@ -39,7 +39,6 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
         # Mark attendance if poll contains related event
         if hasattr(poll, "event"):
-            # NOTE: If user has already been marked as attended for the event, should we raise an error here instead?
             EventAttendance.objects.update_or_create(event=poll.event, user=user)
 
         return submission

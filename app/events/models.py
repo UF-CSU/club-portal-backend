@@ -261,7 +261,7 @@ class Event(EventFields):
 
     @property
     def poll(self):
-        if not hasattr(self, '_poll'):
+        if not hasattr(self, "_poll"):
             return None
         return self._poll
 

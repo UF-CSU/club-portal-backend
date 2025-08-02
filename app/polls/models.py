@@ -108,7 +108,9 @@ class Poll(ModelBase):
 
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
-    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True)
+    event = models.OneToOneField(
+        Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
+    )
 
     # Overrides
     objects: ClassVar[PollManager] = PollManager()

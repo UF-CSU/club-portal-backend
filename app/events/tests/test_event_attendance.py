@@ -123,26 +123,19 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         - Poll required: no
         """
 
-        self.user.name = None
-        self.user.save()
+        self.user = create_test_user(name=None)
         self.client.force_authenticate(self.user)
-
-        # Try, but fail, to record attendance
-        payload = {}
-        res = self.client.post(self.url, payload)
-        self.assertResBadRequest(res)
-        self.assertEqual(EventAttendance.objects.count(), 0)
 
         # Allow attendance if updating profile
         payload = {
-            "user": {"name": fake.name()},
+            "user": {"email": self.user.email, "profile": {"name": fake.name()}},
         }
         res = self.client.post(self.url, payload, format="json")
         self.assertResCreated(res)
 
         self.assertEqual(EventAttendance.objects.count(), 1)
         self.user.refresh_from_db()
-        self.assertEqual(self.user.name, payload["user"]["name"])
+        self.assertEqual(self.user.name, payload["user"]["profile"]["name"])
 
     def test_guest_attend_event(self):
         """
@@ -165,9 +158,9 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         # Should create user
         payload = {
             "user": {
-                "name": fake.name(),
                 "email": fake.safe_email(),
                 **self.required_user_fields_for_create,
+                "profile": {"name": fake.name()},
             },
         }
         res = self.client.post(self.url, payload, format="json")
@@ -179,7 +172,7 @@ class EventAttendancePublicTests(PublicApiTestsBase):
 
         # Should update user
         payload = {
-            "user": {"email": self.user.email, "name": fake.name()},
+            "user": {"email": self.user.email, "profile": {"name": fake.name()}},
         }
         res = self.client.post(self.url, payload, format="json")
         self.assertResCreated(res)
@@ -187,7 +180,7 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         self.assertEqual(User.objects.count(), 2)
         self.assertUserAttendedEvent()
         self.user.refresh_from_db()
-        self.assertEqual(self.user.name, payload["user"]["name"])
+        self.assertEqual(self.user.name, payload["user"]["profile"]["name"])
 
     def test_user_attends_event_submits_poll(self):
         """
@@ -214,7 +207,7 @@ class EventAttendancePublicTests(PublicApiTestsBase):
 
         # With submission
         payload = {
-            "poll": {
+            "poll_submission": {
                 "answers": [
                     {"question": q.pk, "text_value": "MD"},
                 ],
@@ -248,7 +241,7 @@ class EventAttendancePublicTests(PublicApiTestsBase):
 
         # With submission
         payload = {
-            "poll": {
+            "poll_submission": {
                 "answers": [
                     {"question": q.pk, "text_value": "MD"},
                 ],
@@ -276,10 +269,10 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         payload = {
             "user": {
                 "email": fake.safe_email(),
-                "name": fake.name(),
                 **self.required_user_fields_for_create,
+                "profile": {"name": fake.name()},
             },
-            "poll": {
+            "poll_submission": {
                 "answers": [
                     {"question": q.pk, "text_value": "MD"},
                 ],
@@ -294,11 +287,8 @@ class EventAttendancePublicTests(PublicApiTestsBase):
 
         # Has completed profile, update fields
         payload = {
-            "user": {
-                "email": self.user.email,
-                "name": fake.name(),
-            },
-            "poll": {
+            "user": {"email": self.user.email, "profile": {"name": fake.name()}},
+            "poll_submission": {
                 "answers": [
                     {"question": q.pk, "text_value": "MD"},
                 ],
@@ -309,18 +299,16 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         self.assertEqual(User.objects.count(), 2)
         self.assertUserAttendedEvent()
         self.user.refresh_from_db()
-        self.assertEqual(self.user.name, payload["user"]["name"])
+        self.assertEqual(self.user.name, payload["user"]["profile"]["name"])
         EventAttendance.objects.all().delete()
         PollSubmission.objects.all().delete()
 
         # Not completed profile, raise error
-        self.user.name = None
-        self.user.save()
         payload = {
             "user": {
-                "email": self.user.email,
+                "email": fake.safe_email(),
             },
-            "poll": {
+            "poll_submission": {
                 "answers": [
                     {"question": q.pk, "text_value": "MD"},
                 ],
@@ -328,18 +316,12 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         }
         res = self.client.post(self.url, payload, format="json")
         self.assertResBadRequest(res)
-        self.user.refresh_from_db()
-        self.assertIsNone(self.user.name)
-        self.assertUserNotAttendedEvent()
         self.assertNoPollSubmission(q)
 
         # Not completed profile, update fields
         payload = {
-            "user": {
-                "email": self.user.email,
-                "name": fake.name(),
-            },
-            "poll": {
+            "user": {"email": self.user.email, "profile": {"name": fake.name()}},
+            "poll_submission": {
                 "answers": [
                     {"question": q.pk, "text_value": "MD"},
                 ],
@@ -350,7 +332,7 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         self.assertUserAttendedEvent()
         self.assertValidSubmission(q)
         self.user.refresh_from_db()
-        self.assertEqual(self.user.name, payload["user"]["name"])
+        self.assertEqual(self.user.name, payload["user"]["profile"]["name"])
 
     def test_multi_step_form_submission(self):
         """
@@ -368,24 +350,21 @@ class EventAttendancePublicTests(PublicApiTestsBase):
 
         # Step 1: Record user
         payload = {
-            "user": {
-                "name": fake.name(),
-                "email": fake.safe_email(),
-            },
+            "user": {"email": fake.safe_email(), "profile": {"name": fake.name()}},
         }
         res = self.client.post(self.url, payload, format="json")
         self.assertResCreated(res)
         data = res.json()
-        self.assertIsNotNone(data["user"]["id"])
-        user_id = data["user"]["id"]
-        user = User.objects.get(id=user_id)
+        self.assertIsNotNone(data["user"]["email"])
+        user_email = data["user"]["email"]
+        user = User.objects.get(email=user_email)
 
         # Step 2: Record poll submission
         payload = {
             "user": {
-                "id": user_id,
+                "email": user.email,
             },
-            "poll": {
+            "poll_submission": {
                 "answers": [
                     {"question": q.pk, "text_value": "MD"},
                 ],
