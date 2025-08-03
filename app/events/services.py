@@ -72,14 +72,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         self.obj.refresh_from_db()
         rec_ev = self.obj
 
-        # Remove extra events
-        # Get all dates assigned to recurring,
-        # delete if they don't overlap with the start/end dates
-        # range_start = datetime.datetime.combine(
-        #     rec_ev.start_date, rec_ev.event_start_time
-        # )
         range_start = rec_ev.start_date
-        # range_end = datetime.datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
         range_end = rec_ev.end_date
 
         # Delete events outside of range
@@ -146,14 +139,17 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                     start_at__date__lte=query_date_end,
                 )
 
-                if event_query.exists():
+                if event_query.exists() and event_query.count() == 1:
                     # Event exists
-                    # TODO: Account for mulitple events returned
                     event = event_query.first()
                     event.start_at = event_start
                     event.end_at = event_end
                     event.name = rec_ev.name
                     event.save()
+                elif event_query.exists():
+                    raise Event.MultipleObjectsReturned(
+                        "Multiple events exists for the same day in recurring event"
+                    )
 
                 else:
                     # Event doesn't exist
