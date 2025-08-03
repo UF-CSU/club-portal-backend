@@ -10,7 +10,13 @@ from django.utils import timezone
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
-from events.models import Event, EventAttendance, EventAttendanceLink, RecurringEvent
+from events.models import (
+    DayChoice,
+    Event,
+    EventAttendance,
+    EventAttendanceLink,
+    RecurringEvent,
+)
 from users.models import User
 from utils.dates import get_day_count
 from utils.helpers import get_full_url
@@ -20,6 +26,36 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
     """Business logic for Recurring Events."""
 
     model = RecurringEvent
+
+    def _get_weekday_from_daytype(self, day: DayChoice):
+        """
+        Convert number from day type to number used for django lookups.
+
+        Mapping:
+        Day       => S M T W R F S
+        DayChoice => 6 0 1 2 3 4 5
+        Django    => 1 2 3 4 5 6 7
+
+        Ref: https://docs.djangoproject.com/en/dev/ref/models/querysets/#week-day
+        """
+
+        match day:
+            case DayChoice.MONDAY:
+                return 2
+            case DayChoice.TUESDAY:
+                return 3
+            case DayChoice.WEDNESDAY:
+                return 4
+            case DayChoice.THURSDAY:
+                return 5
+            case DayChoice.FRIDAY:
+                return 6
+            case DayChoice.SATURDAY:
+                return 7
+            case DayChoice.SUNDAY:
+                return 1
+            case _:
+                raise ValueError(f"Invalid day type: {day}")
 
     def sync_events(self):
         """
@@ -46,17 +82,13 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # range_end = datetime.datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
         range_end = rec_ev.end_date
 
-        # Django filter starts at Sun=1, python starts Mon=0
-        query_days = [day + 2 if day > 0 else 6 for day in rec_ev.days]
-
         # Delete events outside of range
+        query_days = [self._get_weekday_from_daytype(day) for day in rec_ev.days]
         query = rec_ev.events.filter(
             ~models.Q(start_at__date__range=(range_start, range_end))
-            # | ~models.Q(start_at__week_day__in=query_days)
+            | ~models.Q(start_at__week_day__in=query_days)
         )
-        print("query:", query)
         query.delete()
-        # deletion_query = rec_ev.events.filter(~models.Q(start_at__date))
 
         # Sync events for each day
         start = rec_ev.start_date
@@ -75,7 +107,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
                 if event_date < start or event_date > end:
                     continue
-                
+
                 # Start/end times
                 start_time = rec_ev.event_start_time
                 end_time = rec_ev.event_end_time
@@ -118,24 +150,25 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                     # Event exists
                     # TODO: Account for mulitple events returned
                     event = event_query.first()
-                    
+                    event.start_at = event_start
+                    event.end_at = event_end
+                    event.name = rec_ev.name
+                    event.save()
+
                 else:
                     # Event doesn't exist
-                    event = Event.objects.create(name=rec_ev.name, start_at)
-                    
-                    
-                
+                    event = Event.objects.create(
+                        name=rec_ev.name,
+                        start_at=event_start,
+                        end_at=event_end,
+                        recurring_event=rec_ev,
+                    )
 
-                
+                # Update event with rest of fields
+                for key, value in rec_ev.get_event_update_kwargs().items():
+                    setattr(event, key, value)
 
-                # These fields must all be unique together
-                event, _ = Event.objects.update_or_create(
-                    name=rec_ev.name,
-                    start_at=event_start,
-                    end_at=event_end,
-                    recurring_event=rec_ev,
-                    defaults=rec_ev.get_event_update_kwargs(),
-                )
+                event.save()
 
                 # Sync hosts
                 if rec_ev.club:
