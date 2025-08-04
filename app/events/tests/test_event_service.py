@@ -140,7 +140,12 @@ class RecurringEventTests(TestsBase):
 
         Event.objects.all().delete()
         self.assertEqual(Event.objects.count(), 0)
+        service.sync_events()
 
+        # Check resyncing
+        self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
+        service.sync_events()
+        self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
         service.sync_events()
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
 
@@ -293,6 +298,14 @@ class RecurringEventTests(TestsBase):
         self.assertDatesEqual(
             event.end_at, datetime.datetime(2025, 7, 22, hour=1, minute=0, second=0)
         )
+
+        # Check resyncing events
+        count_before = Event.objects.count()
+        service.sync_events()
+        service.sync_events()
+        service.sync_events()
+
+        self.assertEqual(Event.objects.count(), count_before)
 
     def test_syncing_events_deleting_event_data(self):
         """When syncing events, should be careful when deleting events."""

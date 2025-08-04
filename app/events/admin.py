@@ -20,6 +20,7 @@ class RecurringEventAdmin(admin.ModelAdmin):
     list_display = (
         "__str__",
         "days",
+        "event_count",
         "location",
         "start_date",
         "end_date",
@@ -35,6 +36,9 @@ class RecurringEventAdmin(admin.ModelAdmin):
             # RecurringEventService(recurring).sync_events()
 
         return
+
+    def event_count(self, obj):
+        return obj.events.all().count()
 
 
 class EventAttendanceAdmin(ModelAdminBase):

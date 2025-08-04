@@ -43,6 +43,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             + datetime.timedelta(days=day)
             + datetime.timedelta(weeks=week_offset)
         )
+        # print("event date:", event_date)
 
         if event_date < start or event_date > end:
             # Skip if date outside of range
@@ -64,25 +65,28 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
         # Find existing event
         query_date_start = timezone.datetime(
-            year=event_date.year,
-            month=event_date.month,
-            day=event_date.day,
+            year=event_start.year,
+            month=event_start.month,
+            day=event_start.day,
             hour=0,
             minute=0,
             second=0,
         )
         query_date_end = timezone.datetime(
-            year=event_date.year,
-            month=event_date.month,
-            day=event_date.day,
+            year=event_start.year,
+            month=event_start.month,
+            day=event_start.day,
             hour=23,
             minute=59,
             second=59,
         )
-        event_query = rec_ev.events.filter(
-            start_at__date__gte=query_date_start,
-            start_at__date__lte=query_date_end,
+        # print("initial events:", rec_ev.events.all())
+        event_query = rec_ev.events.all().filter(
+            models.Q(start_at__date__gte=query_date_start)
+            & models.Q(start_at__date__lte=query_date_end)
         )
+        # print("event query:", event_query)
+        # event_query = rec_ev.events.filter(models.Q(start_at__week_day=day.to_query_weekday()) & models.Q(start_at))
 
         if (
             event_query.exists()
@@ -92,18 +96,18 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             # Don't update past events if prevented
             return
 
-        elif event_query.exists() and event_query.count() == 1:
+        elif event_query.exists():
+            if event_query.count() > 1:
+                event = event_query.order_by("id").first()
+                event_query.filter(~models.Q(id=event.pk)).delete()
+            else:
+                event = event_query.first()
+
             # Event exists
-            event = event_query.first()
             event.start_at = event_start
             event.end_at = event_end
             event.name = rec_ev.name
             event.save()
-        elif event_query.exists():
-            raise Event.MultipleObjectsReturned(
-                "Multiple events exists for the same day in recurring event"
-            )
-
         else:
             # Event doesn't exist
             event = Event.objects.create(
