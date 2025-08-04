@@ -59,7 +59,7 @@ class EventSerializer(ModelSerializerBase):
 
     hosts = EventHostSerializer(many=True, required=False)
     tags = EventTagSerializer(many=True, required=False)
-
+    is_all_day = serializers.BooleanField(read_only=True)
     attachments = ClubFileNestedSerializer(many=True, required=False)
 
     # attachment_ids = serializers.ListField(
@@ -145,6 +145,7 @@ class RecurringEventSerializer(ModelSerializerBase):
     """Defines repeating events."""
 
     attachments = ClubFileNestedSerializer(many=True, required=False)
+    is_all_day = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = RecurringEvent
