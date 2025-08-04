@@ -98,7 +98,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
         elif event_query.exists():
             if event_query.count() > 1:
-                event = event_query.order_by('id').first()
+                event = event_query.order_by("id").first()
                 event_query.filter(~models.Q(id=event.pk)).delete()
             else:
                 event = event_query.first()
