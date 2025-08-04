@@ -200,6 +200,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
         model = Club
         fields = [
             "id",
+            "gatorconnect_url",
             "gatorconnect_organization_url",
             "name",
             "logo",
@@ -209,6 +210,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "socials",
             "instagram_followers",
             "about",
+            "member_count",
         ]
 
 

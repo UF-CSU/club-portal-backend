@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlencode, urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework.authtoken.models import Token
 
 from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
 from core.abstracts.services import ServiceBase
@@ -21,6 +22,11 @@ from utils.helpers import get_client_url, get_full_url
 
 class UserService(ServiceBase[User]):
     """Manage business logic for users domain."""
+
+    @classmethod
+    def get_from_token(cls, token: str):
+        token = Token.objects.get(key=token)
+        return cls(token.user)
 
     @classmethod
     def register_user(cls, email: str, password: str, name=None):
@@ -34,7 +40,7 @@ class UserService(ServiceBase[User]):
     def login_user(cls, request: HttpRequest, user: User):
         """Creates a new user session."""
 
-        return login(request, user, backend=DEFAULT_AUTH_BACKEND)
+        return cls(user).login(request)
 
     @classmethod
     def authenticate_user(
@@ -53,6 +59,11 @@ class UserService(ServiceBase[User]):
             raise ValidationError("Invalid user credentials.")
 
         return user
+
+    def login(self, request):
+        """Creates a new user session."""
+
+        return login(request, self.obj, backend=DEFAULT_AUTH_BACKEND)
 
     def send_password_reset(self):
         """Send password reset email."""

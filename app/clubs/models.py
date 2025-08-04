@@ -444,6 +444,11 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
 
         return membership
 
+    def filter_is_admin(self):
+        """Filter memberships that are admin memberships."""
+
+        return self.filter(roles__role_type=RoleType.ADMIN)
+
 
 class ClubMembership(ClubScopedModel, ModelBase):
     """Connection between user and club."""

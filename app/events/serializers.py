@@ -67,25 +67,34 @@ class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
     hosts = EventHostSerializer(many=True, required=False)
-    all_day = serializers.BooleanField(read_only=True)
     tags = EventTagSerializer(many=True, required=False)
+    is_all_day = serializers.BooleanField(read_only=True)
+    attachments = ClubFileNestedSerializer(many=True, required=False)
+
+    # attachment_ids = serializers.ListField(
+    #    child=serializers.IntegerField(),
+    #    write_only=True,
+    #    required=False
+    # )
 
     class Meta:
         model = Event
-        fields = [
-            "id",
-            "name",
-            "description",
-            "location",
-            "event_type",
-            "start_at",
-            "end_at",
-            "tags",
-            "hosts",
-            "all_day",
-            "created_at",
-            "updated_at",
-        ]
+        exclude = ["clubs", "make_public_task"]
+
+        # [
+        #    "id",
+        #    "name",
+        #    "description",
+        #    "location",
+        #    "event_type",
+        #    "start_at",
+        #    "end_at",
+        #    "tags",
+        #    "hosts",
+        #    "all_day",
+        #    "created_at",
+        #    "updated_at",
+        # ]
 
     def validate(self, attrs):
         # Ensure that there are not only secondary hosts
@@ -105,6 +114,7 @@ class EventSerializer(ModelSerializerBase):
 
     def create(self, validated_data):
         hosts_data = validated_data.pop("hosts", [])
+        attachment_data = validated_data.pop("attachments", [])
 
         event = Event.objects.create(**validated_data)
 
@@ -113,6 +123,11 @@ class EventSerializer(ModelSerializerBase):
             EventHost.objects.create(
                 event=event, club=host["club"], is_primary=host.get("is_primary", False)
             )
+
+        for attachment in attachment_data:
+            attachment_id = attachment["id"]
+
+            event.attachments.add(attachment_id)
 
         return event
 
@@ -246,6 +261,7 @@ class RecurringEventSerializer(ModelSerializerBase):
     """Defines repeating events."""
 
     attachments = ClubFileNestedSerializer(many=True, required=False)
+    is_all_day = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = RecurringEvent

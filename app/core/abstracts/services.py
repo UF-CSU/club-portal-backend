@@ -19,3 +19,6 @@ class ServiceBase(Generic[T]):
         self.obj = obj
 
         super().__init__()
+
+    def refresh_from_db(self):
+        self.obj.refresh_from_db()

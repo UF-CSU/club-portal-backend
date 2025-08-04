@@ -10,7 +10,7 @@ from django.utils import timezone
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
-from events.models import Event, EventAttendanceLink, RecurringEvent
+from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
 from utils.dates import get_day_count
 from utils.helpers import get_full_url
 
@@ -19,6 +19,112 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
     """Business logic for Recurring Events."""
 
     model = RecurringEvent
+
+    def _sync_event(
+        self,
+        week_offset: int,
+        start: datetime.date,
+        end: datetime.date,
+        day: DayType,
+    ):
+        """Sync individual event for a recurring event."""
+        rec_ev = self.obj
+
+        # Calculate event date using timedelta from index
+        event_date = (
+            (start - datetime.timedelta(days=start.weekday()))
+            + datetime.timedelta(days=day)
+            + datetime.timedelta(weeks=week_offset)
+        )
+
+        if event_date < start or event_date > end:
+            # Skip if date outside of range
+            return
+
+        # Start/end times
+        start_time = rec_ev.event_start_time
+        end_time = rec_ev.event_end_time
+
+        # Start/end dates, accounting for multiple days
+        event_start = datetime.datetime.combine(
+            event_date, start_time, tzinfo=timezone.utc
+        )
+
+        if rec_ev.event_start_time > rec_ev.event_end_time:
+            event_date += datetime.timedelta(days=1)
+
+        event_end = datetime.datetime.combine(event_date, end_time, tzinfo=timezone.utc)
+
+        # Find existing event
+        query_date_start = timezone.datetime(
+            year=event_date.year,
+            month=event_date.month,
+            day=event_date.day,
+            hour=0,
+            minute=0,
+            second=0,
+        )
+        query_date_end = timezone.datetime(
+            year=event_date.year,
+            month=event_date.month,
+            day=event_date.day,
+            hour=23,
+            minute=59,
+            second=59,
+        )
+        event_query = rec_ev.events.filter(
+            start_at__date__gte=query_date_start,
+            start_at__date__lte=query_date_end,
+        )
+
+        if (
+            event_query.exists()
+            and rec_ev.prevent_sync_past_events
+            and event_start <= timezone.now()
+        ):
+            # Don't update past events if prevented
+            return
+
+        elif event_query.exists() and event_query.count() == 1:
+            # Event exists
+            event = event_query.first()
+            event.start_at = event_start
+            event.end_at = event_end
+            event.name = rec_ev.name
+            event.save()
+        elif event_query.exists():
+            raise Event.MultipleObjectsReturned(
+                "Multiple events exists for the same day in recurring event"
+            )
+
+        else:
+            # Event doesn't exist
+            event = Event.objects.create(
+                name=rec_ev.name,
+                start_at=event_start,
+                end_at=event_end,
+                recurring_event=rec_ev,
+            )
+
+        # Update event with rest of fields
+        for key, value in rec_ev.get_event_update_kwargs().items():
+            setattr(event, key, value)
+
+        event.save()
+
+        # Sync hosts
+        if rec_ev.club:
+            event.add_host(rec_ev.club, is_primary=True)
+
+        if rec_ev.other_clubs.all().count() > 0:
+            event.add_hosts(*rec_ev.other_clubs.all())
+
+        # Sync attachments
+        # TODO: Should admins be allowed to set custom attachments for individual events?
+        rec_ev.refresh_from_db()
+        event.attachments.set(rec_ev.attachments.all())
+
+        event.save()
 
     def sync_events(self):
         """
@@ -35,22 +141,22 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         self.obj.refresh_from_db()
         rec_ev = self.obj
 
-        # Remove extra events
-        # Get all dates assigned to recurring,
-        # delete if they don't overlap with the start/end dates
-        range_start = datetime.datetime.combine(
-            rec_ev.start_date, rec_ev.event_start_time
-        )
-        range_end = datetime.datetime.combine(rec_ev.end_date, rec_ev.event_start_time)
-
-        # Django filter starts at Sun=1, python starts Mon=0
-        query_days = [day + 2 if day > 0 else 6 for day in rec_ev.days]
+        range_start = rec_ev.start_date
+        range_end = rec_ev.end_date
 
         # Delete events outside of range
-        query = rec_ev.events.filter(
+        query_days = [DayType(day).to_query_weekday() for day in rec_ev.days]
+        query = rec_ev.events.all()
+
+        if rec_ev.prevent_sync_past_events:
+            # Exclude past events if necessary
+            query = query.filter(start_at__date__gt=timezone.now())
+
+        query = query.filter(
             ~models.Q(start_at__date__range=(range_start, range_end))
             | ~models.Q(start_at__week_day__in=query_days)
         )
+
         query.delete()
 
         # Sync events for each day
@@ -60,50 +166,8 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         for day in rec_ev.days:
             # Buffer in first and last date
             for i in range(get_day_count(start, end, day) + 2):
-
-                # Calculate event date using timedelta from index
-                event_date = (
-                    (start - datetime.timedelta(days=start.weekday()))
-                    + datetime.timedelta(days=day)
-                    + datetime.timedelta(weeks=i)
-                )
-
-                if event_date < start or event_date > end:
-                    continue
-
-                event_start = datetime.datetime.combine(
-                    event_date, rec_ev.event_start_time, tzinfo=timezone.utc
-                )
-
-                if rec_ev.event_start_time > rec_ev.event_end_time:
-                    event_date += datetime.timedelta(days=1)
-
-                event_end = datetime.datetime.combine(
-                    event_date, rec_ev.event_end_time, tzinfo=timezone.utc
-                )
-
-                # These fields must all be unique together
-                event, _ = Event.objects.update_or_create(
-                    name=rec_ev.name,
-                    start_at=event_start,
-                    end_at=event_end,
-                    recurring_event=rec_ev,
-                    defaults=rec_ev.get_event_update_kwargs(),
-                )
-
-                # Sync hosts
-                if rec_ev.club:
-                    event.add_host(rec_ev.club, is_primary=True)
-
-                if rec_ev.other_clubs.all().count() > 0:
-                    event.add_hosts(*rec_ev.other_clubs.all())
-
-                # Sync attachments
-                # TODO: Should admins be allowed to set custom attachments for individual events?
-                rec_ev.refresh_from_db()
-                event.attachments.set(rec_ev.attachments.all())
-
-                event.save()
+                # Sync individual events for each day type
+                self._sync_event(week_offset=i, start=start, end=end, day=day)
 
         rec_ev.last_synced = timezone.now()
         rec_ev.save()

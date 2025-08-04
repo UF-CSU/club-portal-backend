@@ -6,14 +6,16 @@ import datetime
 
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
+from freezegun import freeze_time
 
 from clubs.models import ClubFile
 from clubs.tests.utils import create_test_club, create_test_clubfile, create_test_clubs
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
-from events.models import DayChoice, Event, RecurringEvent
+from events.models import DayType, Event, EventAttendance, RecurringEvent
 from events.services import RecurringEventService
 from events.tests.utils import create_test_event
 from lib.faker import fake
+from users.tests.utils import create_test_user
 
 
 class EventServiceTests(PeriodicTaskTestsBase):
@@ -86,7 +88,7 @@ class RecurringEventTests(TestsBase):
             "name": fake.title(),
             "start_date": timezone.datetime(2024, 9, 1),
             "end_date": timezone.datetime(2024, 12, 1),
-            "days": [DayChoice.TUESDAY, DayChoice.THURSDAY],
+            "days": [DayType.TUESDAY, DayType.THURSDAY],
             "event_start_time": datetime.time(17, 0, 0),
             "event_end_time": datetime.time(19, 0, 0),
             "club": primary_club,
@@ -149,7 +151,7 @@ class RecurringEventTests(TestsBase):
 
         rec = RecurringEvent.objects.create(
             name=fake.title(),
-            days=[DayChoice.MONDAY],
+            days=[DayType.MONDAY],
             start_date=timezone.datetime(2025, 3, 16),
             end_date=timezone.datetime(2025, 3, 18),
         )
@@ -173,7 +175,7 @@ class RecurringEventTests(TestsBase):
         rec = RecurringEvent.objects.create(
             name=fake.title(),
             description=fake.sentence(),
-            days=[DayChoice.MONDAY, DayChoice.WEDNESDAY],
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
             start_date=timezone.datetime(2025, 3, 16),
             end_date=timezone.datetime(2025, 4, 16),
         )
@@ -219,7 +221,7 @@ class RecurringEventTests(TestsBase):
         rec = RecurringEvent.objects.create(
             name=fake.title(),
             description=fake.sentence(),
-            days=[DayChoice.MONDAY, DayChoice.WEDNESDAY],
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
             start_date=timezone.datetime(2025, 7, 20),
             end_date=timezone.datetime(2025, 8, 2),
         )
@@ -230,7 +232,8 @@ class RecurringEventTests(TestsBase):
         self.assertEqual(expected_count_before, 4)
         self.assertEqual(Event.objects.count(), expected_count_before)
 
-        rec.days = [DayChoice.MONDAY]
+        # Check 1 less day
+        rec.days = [DayType.MONDAY]
         rec.save()
         rec.refresh_from_db()
 
@@ -240,13 +243,39 @@ class RecurringEventTests(TestsBase):
         self.assertEqual(expected_count_after, 2)
         self.assertEqual(Event.objects.count(), expected_count_after)
 
+        # Check different times
+        rec.event_start_time = datetime.time(hour=17, minute=0, second=0)
+        rec.event_end_time = datetime.time(hour=18, minute=0, second=0)
+        rec.save()
+        rec.refresh_from_db()
+        service.refresh_from_db()
+        service.sync_events()
+
+        self.assertEqual(Event.objects.count(), expected_count_after)
+
+        for event in Event.objects.all():
+            self.assertEqual(event.start_at.hour, 17)
+            self.assertEqual(event.end_at.hour, 18)
+
+        rec.event_start_time = datetime.time(hour=18, minute=0, second=0)
+        rec.event_end_time = datetime.time(hour=19, minute=0, second=0)
+        rec.save()
+        service.refresh_from_db()
+        service.sync_events()
+
+        self.assertEqual(Event.objects.count(), expected_count_after)
+
+        for event in Event.objects.all():
+            self.assertEqual(event.start_at.hour, 18)
+            self.assertEqual(event.end_at.hour, 19)
+
     def test_multi_day_events(self):
         """Should properly create events that stretch multiple days."""
 
         rec = RecurringEvent.objects.create(
             name=fake.title(),
             description=fake.sentence(),
-            days=[DayChoice.MONDAY, DayChoice.WEDNESDAY],
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
             start_date=timezone.datetime(2025, 7, 20),
             end_date=timezone.datetime(2025, 8, 2),
             event_start_time=datetime.time(hour=23, minute=0, second=0),
@@ -264,3 +293,129 @@ class RecurringEventTests(TestsBase):
         self.assertDatesEqual(
             event.end_at, datetime.datetime(2025, 7, 22, hour=1, minute=0, second=0)
         )
+
+    def test_syncing_events_deleting_event_data(self):
+        """When syncing events, should be careful when deleting events."""
+
+        # 2 Mondays, 2 Wednesdays between 7/20/25 - 8/2/25
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
+            start_date=timezone.datetime(2025, 7, 20),
+            end_date=timezone.datetime(2025, 8, 2),
+            event_start_time=datetime.time(hour=18, minute=0, second=0),
+            event_end_time=datetime.time(hour=19, minute=0, second=0),
+        )
+        service = RecurringEventService(rec)
+        service.sync_events()
+
+        expected_count = Event.objects.count()
+
+        # User attends event
+        u1 = create_test_user()
+        e1 = Event.objects.first()
+        EventAttendance.objects.create(event=e1, user=u1)
+
+        self.assertEqual(e1.attendances.count(), 1)
+
+        # Recurring event updates
+        rec.event_start_time = datetime.time(hour=17, minute=0, second=0)
+        rec.event_end_time = datetime.time(hour=18, minute=0, second=0)
+        rec.save()
+
+        service.refresh_from_db()
+        service.sync_events()
+        self.assertEqual(Event.objects.count(), expected_count)
+
+        # Make sure event still exists
+        self.assertTrue(Event.objects.filter(id=e1.pk).exists())
+        self.assertTrue(e1.attendances.count(), 1)
+
+    @freeze_time("2025-08-03")
+    # @patch("django.utils.timezone.now")
+    def test_sync_events_prevent_past_updates(self):
+        """Should not update/delete past events."""
+
+        # Sanity check
+        self.assertDatesEqual(timezone.now(), timezone.datetime(2025, 8, 3))
+
+        # Setup data
+        rec_start = timezone.datetime(year=2025, month=7, day=20)
+        rec_end = timezone.datetime(year=2025, month=8, day=17)
+
+        name1 = fake.title()
+        desc1 = fake.paragraph()
+        start1 = datetime.time(hour=17, minute=0)
+        end1 = datetime.time(hour=19, minute=0)
+
+        # 2 tues/thurs before, 2 after
+        rec = RecurringEvent.objects.create(
+            name=name1,
+            description=desc1,
+            days=[DayType.TUESDAY, DayType.THURSDAY],
+            start_date=rec_start,
+            end_date=rec_end,
+            event_start_time=start1,
+            event_end_time=end1,
+            prevent_sync_past_events=True,
+        )
+        service = RecurringEventService(rec)
+        service.sync_events()
+
+        # Update recurring
+        name2 = fake.title()
+        desc2 = fake.paragraph()
+        start2 = datetime.time(hour=17, minute=0)
+        end2 = datetime.time(hour=19, minute=0)
+
+        rec.days = [DayType.TUESDAY]  # Remove a day
+        rec.name = name2
+        rec.description = desc2
+        rec.event_start_time = start2
+        rec.event_end_time = end2
+        rec.start_date = timezone.datetime(year=2025, month=7, day=27)
+        rec.save()
+
+        # Resync events
+        service.refresh_from_db()
+        service.sync_events()
+
+        # Check past Thursdays weren't deleted
+        past_thursday_events = (
+            Event.objects.filter_for_day(DayType.THURSDAY)
+            .filter(recurring_event=rec)
+            .filter(start_at__date__lt=timezone.now())
+        )
+        self.assertTrue(past_thursday_events.exists())
+        self.assertEqual(past_thursday_events.count(), 2)
+
+        # Check past events weren't updated
+        past_events = Event.objects.filter(
+            recurring_event=rec, start_at__date__lt=timezone.now()
+        ).all()
+        self.assertEqual(past_events.count(), 4)  # 2 Tuesdays + 2 Thursdays
+        for event in past_events:
+            self.assertEqual(event.name, name1)
+            self.assertEqual(event.description, desc1)
+            self.assertEqual(event.start_at.time(), start1)
+            self.assertEqual(event.end_at.time(), end1)
+
+        # Check future Thursdays were deleted
+        future_thursday_events = (
+            Event.objects.filter_for_day(DayType.THURSDAY)
+            .filter(recurring_event=rec)
+            .filter(start_at__date__gt=timezone.now())
+        )
+        self.assertFalse(future_thursday_events.exists())
+
+        # Check future Tuesdays were updated
+        future_events = Event.objects.filter(
+            recurring_event=rec, start_at__date__gt=timezone.now()
+        ).all()
+        self.assertEqual(future_events.count(), 2)  # 2 Tuesdays
+        for event in future_events:
+            self.assertEqual(event.name, name2)
+            self.assertEqual(event.description, desc2)
+            self.assertEqual(event.start_at.time(), start2)
+            self.assertEqual(event.end_at.time(), end2)
