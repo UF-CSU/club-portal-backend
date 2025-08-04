@@ -20,7 +20,7 @@ from utils.dates import get_day_count
 from utils.models import ArrayChoiceField
 
 
-class DayChoice(models.IntegerChoices):
+class DayType(models.IntegerChoices):
     MONDAY = 0, _("Monday")
     TUESDAY = 1, _("Tuesday")
     WEDNESDAY = 2, _("Wednesday")
@@ -28,6 +28,36 @@ class DayChoice(models.IntegerChoices):
     FRIDAY = 4, _("Friday")
     SATURDAY = 5, _("Saturday")
     SUNDAY = 6, _("Sunday")
+
+    def to_query_weekday(self):
+        """
+        Convert number from day type to number used for django lookups.
+
+        Mapping:
+        Day       => S M T W R F S
+        DayChoice => 6 0 1 2 3 4 5
+        Django    => 1 2 3 4 5 6 7
+
+        Ref: https://docs.djangoproject.com/en/dev/ref/models/querysets/#week-day
+        """
+
+        match self.value:
+            case DayType.MONDAY:
+                return 2
+            case DayType.TUESDAY:
+                return 3
+            case DayType.WEDNESDAY:
+                return 4
+            case DayType.THURSDAY:
+                return 5
+            case DayType.FRIDAY:
+                return 6
+            case DayType.SATURDAY:
+                return 7
+            case DayType.SUNDAY:
+                return 1
+            case _:
+                raise ValueError(f"Invalid day type: {self.value}")
 
 
 class EventType(models.TextChoices):
@@ -43,6 +73,8 @@ class EventType(models.TextChoices):
 
 class EventTag(Tag):
     """Group together different types of events."""
+
+    pass
 
 
 class EventFields(ClubScopedModel, ModelBase):
@@ -69,7 +101,7 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
     def create(
         self,
         name: str,
-        days: list[DayChoice],
+        days: list[DayType],
         start_date: date,
         end_date: date,
         club: Optional[Club] = None,
@@ -120,7 +152,7 @@ class RecurringEvent(EventFields):
         blank=True,
     )
 
-    days = ArrayChoiceField(models.IntegerField(choices=DayChoice.choices))
+    days = ArrayChoiceField(models.IntegerField(choices=DayType.choices))
     event_start_time = models.TimeField(
         blank=True,
         help_text="Each event will start at this time, in UTC",
@@ -135,7 +167,12 @@ class RecurringEvent(EventFields):
     start_date = models.DateField(help_text="Date of the first occurance of this event")
     # TODO: Allow no end date
     end_date = models.DateField(help_text="Date of the last occurance of this event")
-    is_public = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True, blank=True)
+    prevent_sync_past_events = models.BooleanField(
+        blank=True,
+        default=False,
+        help_text="When syncing events, should past events be prevented from updating?",
+    )
 
     # TODO: add skip_dates field
 
@@ -158,7 +195,7 @@ class RecurringEvent(EventFields):
         )
 
     @property
-    def all_day(self):
+    def is_all_day(self) -> bool:
         return (
             self.event_start_time == get_default_start_time()
             and self.event_end_time == get_default_end_time()
@@ -213,6 +250,12 @@ class EventManager(ManagerBase["Event"]):
 
         return Event.objects.filter(clubs__id=club.id)
 
+    def filter_for_day(self, day: DayType | int):
+        """Get events that match a day choice."""
+
+        day_value = DayType(day).to_query_weekday()
+        return self.filter(start_at__week_day=day_value)
+
 
 class Event(EventFields):
     """
@@ -259,7 +302,7 @@ class Event(EventFields):
         return host.first().club
 
     @property
-    def all_day(self) -> bool:
+    def is_all_day(self) -> bool:
         return (
             self.start_at.time() == get_default_start_time()
             and self.end_at.time() == get_default_end_time()
@@ -376,8 +419,8 @@ class EventAttendance(ClubScopedModel, ModelBase):
         Event,
         on_delete=models.CASCADE,
         related_name="attendances",
-        blank=True,
-        null=True,
+        # blank=True,
+        # null=True,
     )
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="event_attendances"

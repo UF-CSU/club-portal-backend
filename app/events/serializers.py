@@ -58,7 +58,6 @@ class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
     hosts = EventHostSerializer(many=True, required=False)
-    all_day = serializers.BooleanField(read_only=True)
     tags = EventTagSerializer(many=True, required=False)
 
     class Meta:
@@ -73,7 +72,7 @@ class EventSerializer(ModelSerializerBase):
             "end_at",
             "tags",
             "hosts",
-            "all_day",
+            "is_all_day",
             "created_at",
             "updated_at",
         ]
