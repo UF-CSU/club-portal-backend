@@ -16,6 +16,10 @@ class PollViewset(ModelViewSetBase):
         # FIXME: Configure poll permissions
         return True
 
+    def check_object_permissions(self, request, obj):
+        # FIXME: Configure poll object permissions
+        return True
+
 
 class PollSubmissionViewSet(ModelViewSetBase):
     """Submit polls via api."""

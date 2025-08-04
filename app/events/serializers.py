@@ -58,7 +58,6 @@ class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
     hosts = EventHostSerializer(many=True, required=False)
-    all_day = serializers.BooleanField(read_only=True)
     tags = EventTagSerializer(many=True, required=False)
 
     attachments = ClubFileNestedSerializer(many=True, required=False)
@@ -71,7 +70,6 @@ class EventSerializer(ModelSerializerBase):
 
     class Meta:
         model = Event
-        # fields = "__all__"
         exclude = ["clubs", "make_public_task"]
 
         # [
