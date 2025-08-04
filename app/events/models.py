@@ -74,8 +74,6 @@ class EventType(models.TextChoices):
 class EventTag(Tag):
     """Group together different types of events."""
 
-    pass
-
 
 class EventFields(ClubScopedModel, ModelBase):
     """Common fields for club event models."""
