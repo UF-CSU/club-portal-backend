@@ -11,7 +11,7 @@ router.register(
     basename="pollsubmission",
 )
 router.register(
-    r"polls/(?P<poll_id>.+)/fields", viewsets.PollFieldViewSet, basename="poll_field"
+    r"polls/(?P<poll_id>.+)/fields", viewsets.PollFieldViewSet, basename="pollfield"
 )
 
 app_name = "api-polls"
