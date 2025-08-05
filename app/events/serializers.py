@@ -70,6 +70,8 @@ class EventSerializer(ModelSerializerBase):
     tags = EventTagSerializer(many=True, required=False)
     is_all_day = serializers.BooleanField(read_only=True)
     attachments = ClubFileNestedSerializer(many=True, required=False)
+    status = serializers.CharField(read_only=True)
+    duration = serializers.CharField(read_only=True)
 
     # attachment_ids = serializers.ListField(
     #    child=serializers.IntegerField(),
@@ -94,6 +96,8 @@ class EventSerializer(ModelSerializerBase):
         #    "all_day",
         #    "created_at",
         #    "updated_at",
+        #    "status",
+        #    "duration",
         # ]
 
     def validate(self, attrs):

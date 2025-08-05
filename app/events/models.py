@@ -17,6 +17,7 @@ from clubs.models import Club, ClubFile, ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase, Tag
 from users.models import User
 from utils.dates import get_day_count
+from utils.formatting import format_timedelta
 from utils.models import ArrayChoiceField
 
 
@@ -323,6 +324,23 @@ class Event(EventFields):
     @property
     def is_cancelled(self):
         return hasattr(self, "cancellation")
+
+    @property
+    def status(self):
+        if timezone.now() < self.start_at:
+            return "SCHEDULED"
+        elif self.start_at <= timezone.now() < self.end_at:
+            return "IN_PROGRESS"
+        else:
+            return "ENDED"
+
+    @property
+    def duration(self):
+        return self.end_at - self.start_at
+
+    @property
+    def duration_display(self):
+        format_timedelta(self.duration)
 
     # Overrides
     objects: ClassVar[EventManager] = EventManager()
