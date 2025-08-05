@@ -46,9 +46,11 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
             *ModelSerializerBase.default_fields,
             "user_id",
             "username",
+            "is_admin",
             "is_owner",
             "points",
             "roles",
+            "is_pinned",
         ]
 
 
@@ -132,6 +134,9 @@ class ClubSerializer(ModelSerializerBase):
         required=False,
         many=True,
     )
+    # user_membership = ClubMemberNestedSerializer(
+    #     required=False,
+    # )
 
     member_count = serializers.IntegerField(read_only=True)
 
@@ -153,6 +158,7 @@ class ClubSerializer(ModelSerializerBase):
             "majors",
             "primary_color",
             "text_color",
+            # "user_membership",
         ]
 
     def update(self, instance, validated_data):
@@ -323,6 +329,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "is_admin",
             "team_memberships",
             "roles",
+            "is_pinned",
         ]
 
 
