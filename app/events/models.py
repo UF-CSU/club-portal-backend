@@ -337,8 +337,8 @@ class Event(EventFields):
     @property
     def duration(self):
         return self.end_at - self.start_at
-    
-    @property 
+
+    @property
     def duration_display(self):
         format_timedelta(self.duration)
 
