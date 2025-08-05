@@ -81,7 +81,7 @@ class NumberInputNestedSerializer(ModelSerializerBase):
         ]
 
 
-class PollQuestionNestedSerializer(ModelSerializerBase):
+class PollQuestionSerializer(ModelSerializerBase):
     """Show questions nested in poll fields."""
 
     text_input = TextInputNestedSerializer(required=False)
@@ -226,7 +226,7 @@ class PollMarkupNestedSerializer(ModelSerializerBase):
 class PollFieldSerializer(ModelSerializerBase):
     """Show poll fields  in polls."""
 
-    question = PollQuestionNestedSerializer(required=False)
+    question = PollQuestionSerializer(required=False)
     markup = PollMarkupNestedSerializer(required=False)
 
     class Meta:
@@ -246,13 +246,13 @@ class PollFieldSerializer(ModelSerializerBase):
         if question_data is not None:
             try:
                 existing_question = field._question
-                serializer = PollQuestionNestedSerializer(
+                serializer = PollQuestionSerializer(
                     existing_question, data=question_data, partial=True
                 )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
             except models.PollQuestion.DoesNotExist:
-                serializer = PollQuestionNestedSerializer(
+                serializer = PollQuestionSerializer(
                     data={**question_data, "field": field.id}
                 )
                 serializer.is_valid(raise_exception=True)
@@ -300,7 +300,7 @@ class PollSerializer(ModelSerializer):
             field = models.PollField.objects.create(poll=poll, **field_data)
 
             if question:
-                serializer = PollQuestionNestedSerializer(
+                serializer = PollQuestionSerializer(
                     data={**question, "field": field.id}
                 )
                 serializer.is_valid(raise_exception=True)
