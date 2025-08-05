@@ -327,9 +327,9 @@ class Event(EventFields):
     
     @property
     def status(self):
-        if datetime.now() < self.start_at:
-            return self.status == "SCHEDULED"
-        elif self.start_at <= datetime.now() < self.end_at:
+        if timezone.now() < self.start_at:
+            return "SCHEDULED"
+        elif self.start_at <= timezone.now() < self.end_at:
             return "IN_PROGRESS"
         else:
             return "ENDED"
