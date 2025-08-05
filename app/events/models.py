@@ -335,8 +335,12 @@ class Event(EventFields):
             return "ENDED"
 
     @property
+    def duration(self):
+        return self.end_at - self.start_at
+    
+    @property 
     def duration_display(self):
-        return format_timedelta(self.end_at - self.start_at)
+        format_timedelta(self.duration)
 
     # Overrides
     objects: ClassVar[EventManager] = EventManager()

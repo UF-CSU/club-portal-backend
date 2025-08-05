@@ -103,6 +103,8 @@ class EventAdmin(ModelAdminBase):
         "location",
         "host_clubs",
         "start_at",
+        "status",
+        "duration",
     )
     ordering = ("-start_at",)
 
