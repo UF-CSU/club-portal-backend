@@ -42,7 +42,7 @@ class PollSubmissionViewSet(ModelViewSetBase):
         submission = PollService(poll).validate_submission(submission)
 
         # Mark attendance if poll contains related event
-        if hasattr(poll, "event"):
+        if poll.event is not None:
             EventAttendance.objects.update_or_create(event=poll.event, user=user)
 
         return submission
