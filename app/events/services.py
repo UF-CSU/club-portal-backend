@@ -10,14 +10,7 @@ from django.utils import timezone
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
-from events.models import (
-    DayType,
-    Event,
-    EventAttendance,
-    EventAttendanceLink,
-    RecurringEvent,
-)
-from users.models import User
+from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
 from utils.dates import get_day_count
 from utils.helpers import get_full_url
 
@@ -193,17 +186,11 @@ class EventService(ServiceBase[Event]):
 
     @property
     def attendance_url(self):
-        return reverse("events:attendance", args=[self.obj.id])
+        return reverse("api-events:attendance-list", args=[self.obj.id])
 
     @property
     def full_attendance_url(self):
         return get_full_url(self.attendance_url)
-
-    def record_event_attendance(self, user: User):
-        """Record user's attendance for event."""
-
-        attendence, _ = EventAttendance.objects.get_or_create(user=user, event=self.obj)
-        return attendence
 
     def create_attendance_link(self, club: Club, generate_qrcode=True, **kwargs):
         """

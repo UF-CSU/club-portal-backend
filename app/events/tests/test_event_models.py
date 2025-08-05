@@ -44,7 +44,7 @@ class ClubEventTests(TestsBase):
         self.assertEqual(Link.objects.count(), 1)
         link = event.attendance_links.first()
 
-        expected_url_path = reverse("events:attendance", args=[event.id])
+        expected_url_path = reverse("api-events:attendance-list", args=[event.id])
         expected_url = get_full_url(expected_url_path)
         self.assertEqual(link.target_url, expected_url)
 
