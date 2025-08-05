@@ -8,7 +8,6 @@ from typing import ClassVar, Optional
 from django.core import exceptions
 from django.db import models
 from django.utils import timezone
-from utils.formatting import format_timedelta
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
@@ -18,6 +17,7 @@ from clubs.models import Club, ClubFile, ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase, Tag
 from users.models import User
 from utils.dates import get_day_count
+from utils.formatting import format_timedelta
 from utils.models import ArrayChoiceField
 
 
@@ -324,7 +324,7 @@ class Event(EventFields):
     @property
     def is_cancelled(self):
         return hasattr(self, "cancellation")
-    
+
     @property
     def status(self):
         if timezone.now() < self.start_at:
