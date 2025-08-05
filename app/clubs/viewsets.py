@@ -106,6 +106,21 @@ class ClubViewSet(ModelViewSetBase):
         return super().filter_queryset(queryset)
 
 
+class UserClubMembershipsViewSet(ModelViewSetBase):
+    """API for managing a use's club memberships."""
+
+    queryset = ClubMembership.objects.none()
+    serializer_class = ClubMembershipSerializer
+
+    def get_queryset(self):
+        return ClubMembership.objects.filter(user=self.request.user)
+
+    def check_object_permissions(self, request, obj):
+        if request.user.id == obj.user.id:
+            return True
+        return super().check_object_permissions(request, obj)
+
+
 class ClubPreviewViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet
 ):
