@@ -8,6 +8,7 @@ from typing import ClassVar, Optional
 from django.core import exceptions
 from django.db import models
 from django.utils import timezone
+from utils.formatting import format_timedelta
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
@@ -323,6 +324,19 @@ class Event(EventFields):
     @property
     def is_cancelled(self):
         return hasattr(self, "cancellation")
+    
+    @property
+    def status(self):
+        if datetime.now() < self.start_at:
+            return self.status == "SCHEDULED"
+        elif self.start_at <= datetime.now() < self.end_at:
+            return "IN_PROGRESS"
+        else:
+            return "ENDED"
+
+    @property
+    def duration_display(self):
+        return format_timedelta(self.end_at - self.start_at)
 
     # Overrides
     objects: ClassVar[EventManager] = EventManager()
