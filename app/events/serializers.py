@@ -21,7 +21,7 @@ from polls.models import (
     PollQuestionAnswer,
     PollSubmission,
 )
-from polls.serializers import PollSubmissionSerializer
+from polls.serializers import PollSubmissionSerializer, PollSerializer
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import Profile, User
 from users.serializers import ProfileNestedSerializer
@@ -72,6 +72,7 @@ class EventSerializer(ModelSerializerBase):
     attachments = ClubFileNestedSerializer(many=True, required=False)
     status = serializers.CharField(read_only=True)
     duration = serializers.CharField(read_only=True)
+    poll = PollSerializer(read_only=True, required=False)
 
     # attachment_ids = serializers.ListField(
     #    child=serializers.IntegerField(),
