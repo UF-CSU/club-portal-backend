@@ -14,6 +14,7 @@ from polls.models import (
     PollInputType,
     PollMarkup,
     PollQuestion,
+    PollQuestionAnswer,
     PollSubmission,
     RangeInput,
     TextInput,
@@ -117,10 +118,22 @@ class ChoiceInputAdmin(admin.ModelAdmin):
 
     def options_count(self, obj):
         return obj.options.count()
+    
+class PollQuestionAnswerInlineAdmin(admin.TabularInline):
+    """Manage poll question answers in submissions admin."""
 
+    model = PollQuestionAnswer
+    extra = 0
+    readonly_fields = ('question', 'text_value', 'number_value', 'options_value')
+    exclude = ('error',)
+    
+class PollSubmissionAdmin(admin.ModelAdmin):
+    """Manage poll submissions in admin."""
+
+    inlines = (PollQuestionAnswerInlineAdmin,)
 
 admin.site.register(Poll, PollAdmin)
 admin.site.register(PollQuestion, PollQuestionAdmin)
 admin.site.register(PollMarkup)
 admin.site.register(ChoiceInput, ChoiceInputAdmin)
-admin.site.register(PollSubmission)
+admin.site.register(PollSubmission, PollSubmissionAdmin)
