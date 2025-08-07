@@ -77,18 +77,18 @@ class PollChoiceType(models.TextChoices):
     SELECT = "radio", _("Input Select")
 
 
-# class PollSingleChoiceType(models.TextChoices):
-#     """Different ways of showing single choice fields."""
+class QuestionCustomType(models.TextChoices):
+    """Categorize different types of text fields."""
 
-#     SELECT = "select", _("Single Dropdown Select")
-#     RADIO = "radio", _("Single Radio Select")
-
-
-# class PollMultiChoiceType(models.TextChoices):
-#     """Different ways of showing multichoice fields."""
-
-#     SELECT = "select", _("Multi Select Box")
-#     CHECKBOX = "checkbox", _("Multi Checkbox Select")
+    NAME = "name", _("Name")
+    EMAIL = "email", _("Email")
+    UFL_EMAIL = "ufl_email", _("UFL Email")
+    MAJOR = "major", _("Major")
+    MINOR = "minor", _("Minor")
+    COLLEGE = "college", _("College")
+    PHONE = "phone", _("Phone")
+    GRADUATION_DATE = "graduation_date", _("Graduation Date")
+    DEPARTMENT = "department", _("Department")
 
 
 class PollManager(ManagerBase["Poll"]):
@@ -280,6 +280,10 @@ class PollQuestion(ModelBase):
     description = models.TextField(null=True, blank=True)
     image = models.ImageField(null=True, blank=True)
     required = models.BooleanField(default=False)
+
+    custom_type = models.CharField(
+        choices=QuestionCustomType.choices, null=True, blank=True
+    )
 
     @property
     def html_name(self):
