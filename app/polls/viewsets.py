@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from rest_framework import permissions
 
 from core.abstracts.viewsets import ModelViewSetBase
 from events.models import EventAttendance
@@ -16,14 +17,7 @@ class PollViewset(ModelViewSetBase):
 
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
-
-    def check_permissions(self, request):
-        # FIXME: Configure poll permissions
-        return True
-
-    def check_object_permissions(self, request, obj):
-        # FIXME: Configure poll object permissions
-        return True
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
 class PollSubmissionViewSet(ModelViewSetBase):
@@ -31,6 +25,7 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
     queryset = PollSubmission.objects.all()
     serializer_class = PollSubmissionSerializer
+    permission_classes = []
 
     def get_queryset(self):
         poll_id = self.kwargs.get("poll_id", None)
@@ -63,6 +58,7 @@ class PollFieldViewSet(ModelViewSetBase):
 
     queryset = PollField.objects.all()
     serializer_class = PollFieldSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         poll_id = self.kwargs.get("poll_id", None)
