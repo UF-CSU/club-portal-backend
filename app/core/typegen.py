@@ -16,6 +16,7 @@ from clubs.serializers import (
     TeamSerializer,
 )
 from events.serializers import (
+    EventAttendanceSerializer,
     EventHostSerializer,
     EventSerializer,
     EventTagSerializer,
@@ -42,6 +43,7 @@ SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     UserSerializer,
     PollSerializer,
     PollFieldSerializer,
+    EventAttendanceSerializer,
 ]
 """
 List of serializers to create interfaces for:

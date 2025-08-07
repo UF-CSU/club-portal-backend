@@ -7,6 +7,7 @@ from core.abstracts.serializers import ModelSerializerBase
 from events.models import (
     Event,
     EventAttendance,
+    EventAttendanceLink,
     EventCancellation,
     EventHost,
     EventTag,
@@ -63,6 +64,14 @@ class EventHostSerializer(ModelSerializerBase):
         ]
 
 
+class EventAttendanceLinkSerializer(ModelSerializerBase):
+    """Represent attendance links for events."""
+
+    class Meta:
+        model = EventAttendanceLink
+        fields = "__all__"
+
+
 class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
@@ -73,33 +82,11 @@ class EventSerializer(ModelSerializerBase):
     status = serializers.CharField(read_only=True)
     duration = serializers.CharField(read_only=True)
     poll = PollSerializer(required=False, allow_null=True)
-
-    # attachment_ids = serializers.ListField(
-    #    child=serializers.IntegerField(),
-    #    write_only=True,
-    #    required=False
-    # )
+    # attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
 
     class Meta:
         model = Event
         exclude = ["clubs", "make_public_task"]
-
-        # [
-        #    "id",
-        #    "name",
-        #    "description",
-        #    "location",
-        #    "event_type",
-        #    "start_at",
-        #    "end_at",
-        #    "tags",
-        #    "hosts",
-        #    "all_day",
-        #    "created_at",
-        #    "updated_at",
-        #    "status",
-        #    "duration",
-        # ]
 
     def validate(self, attrs):
         # Ensure that there are not only secondary hosts
