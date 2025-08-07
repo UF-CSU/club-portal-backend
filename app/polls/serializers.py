@@ -232,6 +232,7 @@ class PollFieldSerializer(ModelSerializerBase):
     class Meta:
         model = models.PollField
         fields = ["id", "field_type", "order", "question", "markup"]
+        extra_kwargs = {"field_type": {"allow_null": False}}
 
     def create(self, validated_data):
         question_data = validated_data.pop("question", None)
