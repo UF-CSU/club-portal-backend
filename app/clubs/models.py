@@ -193,6 +193,10 @@ class Club(ClubScopedModel, UniqueModel):
     def member_count(self) -> int:
         return self.memberships.count()
 
+    @property
+    def default_role(self) -> str:
+        return self.roles.get(default=True).name
+
     class Meta:
         permissions = [("view_club_details", "Can view club details")]
         ordering = ["name", "-id"]
@@ -357,6 +361,9 @@ class ClubRole(ClubScopedModel, ModelBase):
     role_type = models.CharField(
         choices=RoleType.choices, default=RoleType.VIEWER, blank=True
     )
+    order = models.PositiveIntegerField(
+        default=0, help_text="Used to determine the list ordering of a member"
+    )
 
     # Meta fields
     cached_role_type = models.CharField(
@@ -376,6 +383,7 @@ class ClubRole(ClubScopedModel, ModelBase):
     objects: ClassVar[ClubRoleManager] = ClubRoleManager()
 
     class Meta:
+        ordering = ["order"]
         constraints = [
             models.UniqueConstraint(
                 fields=("default", "club"),
@@ -487,6 +495,13 @@ class ClubMembership(ClubScopedModel, ModelBase):
     def is_admin(self) -> bool:
         """Indicates if user automatically gets all permissions for the club."""
         return self.is_owner or self.roles.filter(role_type=RoleType.ADMIN).exists()
+
+    @property
+    def is_viewer(self) -> bool:
+        """Indicates if a user has no special permissions for a club."""
+        return not self.roles.filter(
+            models.Q(role_type=RoleType.ADMIN) | models.Q(role_type=RoleType.CUSTOM)
+        ).exists()
 
     # Overrides
     objects: ClassVar[ClubMembershipManager] = ClubMembershipManager()
