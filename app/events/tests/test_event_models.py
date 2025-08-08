@@ -1,11 +1,10 @@
-from django.urls import reverse
 from django.utils import timezone
 
 from analytics.models import Link
+from app.settings import EVENT_ATTENDANCE_URL
 from clubs.tests.utils import create_test_club, create_test_clubs
 from core.abstracts.tests import TestsBase
 from events.models import Event
-from utils.helpers import get_full_url
 
 
 class ClubEventTests(TestsBase):
@@ -44,8 +43,10 @@ class ClubEventTests(TestsBase):
         self.assertEqual(Link.objects.count(), 1)
         link = event.attendance_links.first()
 
-        expected_url_path = reverse("api-events:attendance-list", args=[event.id])
-        expected_url = get_full_url(expected_url_path)
+        # expected_url_path = reverse("api-events:attendance-list", args=[event.id])
+        # expected_url = get_full_url(expected_url_path)
+        expected_url = EVENT_ATTENDANCE_URL % {"id": event.id}
+
         self.assertEqual(link.target_url, expected_url)
 
     def test_get_events_for_club(self):

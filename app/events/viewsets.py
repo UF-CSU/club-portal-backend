@@ -1,9 +1,10 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, permissions, status
 from rest_framework.response import Response
 
 from clubs.models import Club
-from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
+from core.abstracts.viewsets import ModelViewSetBase, ObjectViewPermissions, ViewSetBase
 from events.models import Event, EventAttendance, EventCancellation
 
 from . import models, serializers
@@ -16,6 +17,15 @@ class EventViewset(ModelViewSetBase):
         "hosts", "hosts__club", "tags"
     )
     serializer_class = serializers.EventSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        if self.request.user.is_anonymous:
+            return qs.filter(Q(is_public=True) & Q(is_draft=False))
+
+        return qs
 
     def filter_queryset(self, queryset):
         clubs = self.request.query_params.getlist("clubs", None)
@@ -25,10 +35,31 @@ class EventViewset(ModelViewSetBase):
 
         return super().filter_queryset(queryset)
 
+    def check_permissions(self, request):
+        if self.action == "list":
+            return super().check_permissions(request)
+
+        obj_permission = ObjectViewPermissions()
+        if not obj_permission.has_permission(request, self):
+            self.permission_denied(
+                request,
+                message=getattr(obj_permission, "message", None),
+                code=getattr(obj_permission, "code", None),
+            )
+
     def check_object_permissions(self, request, obj):
+        # For GET method, just check if is authenticated
         if self.action == "retrieve":
-            return True
-        return super().check_object_permissions(request, obj)
+            return super().check_object_permissions(request, obj)
+
+        # Otherwise, check for individual permissions
+        obj_permission = ObjectViewPermissions()
+        if not obj_permission.has_object_permission(request, self, obj):
+            self.permission_denied(
+                request,
+                message=getattr(obj_permission, "message", None),
+                code=getattr(obj_permission, "code", None),
+            )
 
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])

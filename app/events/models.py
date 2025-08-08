@@ -308,6 +308,11 @@ class Event(EventFields):
             return None
         return self._poll
 
+    @poll.setter
+    def poll(self, value):
+        value.event = self
+        value.save()
+
     @property
     def submissions(self):
         if not self.poll:
@@ -466,6 +471,15 @@ class EventAttendance(ClubScopedModel, ModelBase):
     def clubs(self):
         return self.event.clubs
 
+    @property
+    def poll_submission(self):
+        from polls.models import PollSubmission
+
+        if not self.event.poll:
+            return None
+
+        return PollSubmission.objects.find_one(poll=self.event.poll, user=self.user)
+
     class Meta:
 
         constraints = [
@@ -505,6 +519,8 @@ class EventAttendanceLink(Link):
     and the reference is used as a unique key to use in tracking.
     """
 
+    # TODO: How to handle permissions with multiple clubs and event hosts?
+
     event = models.ForeignKey(
         Event, on_delete=models.CASCADE, related_name="attendance_links"
     )
@@ -524,6 +540,10 @@ class EventAttendanceLink(Link):
             return f"{super().__str__()} ({self.reference})"
         else:
             return super().__str__()
+
+    def save(self, *args, **kwargs):
+        self.is_tracked = False  # Tracking is done on the frontend
+        return super().save(*args, **kwargs)
 
     class Meta:
         constraints = [

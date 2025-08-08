@@ -4,15 +4,14 @@ from zoneinfo import ZoneInfo
 
 import icalendar
 from django.db import models
-from django.urls import reverse
 from django.utils import timezone
 
+from app.settings import EVENT_ATTENDANCE_URL
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
 from utils.dates import get_day_count
-from utils.helpers import get_full_url
 
 
 class RecurringEventService(ServiceBase[RecurringEvent]):
@@ -185,12 +184,8 @@ class EventService(ServiceBase[Event]):
     model = Event
 
     @property
-    def attendance_url(self):
-        return reverse("api-events:attendance-list", args=[self.obj.id])
-
-    @property
     def full_attendance_url(self):
-        return get_full_url(self.attendance_url)
+        return EVENT_ATTENDANCE_URL % {"id": self.obj.pk}
 
     def create_attendance_link(self, club: Club, generate_qrcode=True, **kwargs):
         """
@@ -212,12 +207,14 @@ class EventService(ServiceBase[Event]):
         return link
 
     def sync_hosts_attendance_links(self):
-        """For each club hosting the event, make sure they have at least one attendance link."""
+        """For each club hosting the event, recreate their attendance links."""
 
         for club in self.obj.clubs.all():
-            if EventAttendanceLink.objects.filter(event=self.obj, club=club).exists():
-                continue
+            # if EventAttendanceLink.objects.filter(event=self.obj, club=club).exists():
+            #     continue
 
+            # Delete existing links and create new ones (helps if we change the attendance link format)
+            EventAttendanceLink.objects.filter(event=self.obj, club=club).delete()
             self.create_attendance_link(club)
 
     @staticmethod

@@ -29,6 +29,7 @@ from users.serializers import (
     UserSerializer,
 )
 from users.services import UserService
+from utils.urls import prepare_url
 
 
 class UserViewSet(mixins.RetrieveModelMixin, ViewSetBase):
@@ -189,15 +190,13 @@ class ReturnFromOauthView(APIView):
     """
 
     def get(self, request, *args, **kwargs):
-        next_url: str = request.GET.get("next")
         user = request.user
+        next_url = request.GET.get("next")
 
         if user.is_anonymous:
-            next_url += "?error=Error authenticating user with oauth"
-            return redirect(next_url)
+            return redirect(
+                prepare_url(next_url, {"error": "Error authenticating user with oauth"})
+            )
 
         token, _ = Token.objects.get_or_create(user=user)
-
-        next_url += f"?token={token.key}"
-
-        return redirect(next_url)
+        return redirect(prepare_url(next_url, {"token": token.key}))

@@ -17,7 +17,7 @@ class TextInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.TextInput
-        fields = ["id", "text_type", "min_length", "max_length"]
+        exclude = ["question"]
 
 
 class ChoiceInputOptionNestedSerializer(ModelSerializerBase):
@@ -27,7 +27,7 @@ class ChoiceInputOptionNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.ChoiceInputOption
-        fields = ["id", "label", "value", "image", "order"]
+        exclude = ["input"]
 
 
 class ChoiceInputNestedSerializer(ModelSerializerBase):
@@ -37,7 +37,7 @@ class ChoiceInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.ChoiceInput
-        fields = ["id", "options"]
+        exclude = ["question"]
 
 
 class RangeInputNestedSerializer(ModelSerializerBase):
@@ -45,16 +45,7 @@ class RangeInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.RangeInput
-        fields = [
-            "id",
-            "min_value",
-            "max_value",
-            "left_label",
-            "right_label",
-            "step",
-            "initial_value",
-            "unit",
-        ]
+        exclude = ["question"]
 
 
 class UploadInputNestedSerializer(ModelSerializerBase):
@@ -64,7 +55,7 @@ class UploadInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.UploadInput
-        fields = ["id", "file_types", "max_files"]
+        exclude = ["question"]
 
 
 class NumberInputNestedSerializer(ModelSerializerBase):
@@ -72,13 +63,7 @@ class NumberInputNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.NumberInput
-        fields = [
-            "id",
-            "min_value",
-            "max_value",
-            "unit",
-            "decimal_places",
-        ]
+        exclude = ["question"]
 
 
 class PollQuestionSerializer(ModelSerializerBase):
