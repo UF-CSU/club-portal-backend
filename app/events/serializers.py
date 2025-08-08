@@ -67,22 +67,33 @@ class EventHostSerializer(ModelSerializerBase):
 class EventAttendanceLinkSerializer(ModelSerializerBase):
     """Represent attendance links for events."""
 
+    qrcode_url = serializers.ImageField(
+        source="qrcode.image", read_only=True, help_text="URL for the QRCode SVG"
+    )
+
     class Meta:
         model = EventAttendanceLink
-        fields = "__all__"
+        fields = [
+            "id",
+            "url",
+            "reference",
+            "is_tracked",
+            "display_name",
+            "qrcode_url",
+        ]
 
 
 class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
-    hosts = EventHostSerializer(many=True, required=False)
-    tags = EventTagSerializer(many=True, required=False)
-    is_all_day = serializers.BooleanField(read_only=True)
-    attachments = ClubFileNestedSerializer(many=True, required=False)
     status = serializers.CharField(read_only=True)
     duration = serializers.CharField(read_only=True)
+    is_all_day = serializers.BooleanField(read_only=True)
+    hosts = EventHostSerializer(many=True, required=False)
+    tags = EventTagSerializer(many=True, required=False)
+    attachments = ClubFileNestedSerializer(many=True, required=False)
     poll = PollSerializer(required=False, allow_null=True)
-    # attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
+    attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
 
     class Meta:
         model = Event
@@ -137,7 +148,7 @@ class EventAttendanceSerializer(ModelSerializerBase):
     """Represents event attendance"""
 
     user = EventAttendanceUserSerializer(required=False)
-    poll_submission = PollSubmissionSerializer(required=False)
+    poll_submission = PollSubmissionSerializer(required=False, allow_null=True)
 
     def create(self, validated_data):
         request_user = validated_data.pop("request_user", None)

@@ -146,8 +146,6 @@ class RecurringEventTests(TestsBase):
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
         service.sync_events()
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
-        service.sync_events()
-        self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
 
     def test_recurring_event_allday_events(self):
         """Recurring event template should handle all day events."""

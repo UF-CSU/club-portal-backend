@@ -519,6 +519,8 @@ class EventAttendanceLink(Link):
     and the reference is used as a unique key to use in tracking.
     """
 
+    # TODO: How to handle permissions with multiple clubs and event hosts?
+
     event = models.ForeignKey(
         Event, on_delete=models.CASCADE, related_name="attendance_links"
     )

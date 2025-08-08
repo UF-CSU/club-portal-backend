@@ -35,8 +35,7 @@ class Link(ClubScopedModel, ModelBase):
     target_url = models.URLField(help_text="The final url we want to track clicks to.")
     display_name = models.CharField(null=True, blank=True)
     is_tracked = models.BooleanField(
-        default=True,
-        help_text="Should clicking this url create a `LinkVisit` object?"
+        default=True, help_text="Should clicking this url create a `LinkVisit` object?"
     )
 
     # Relationships
@@ -54,7 +53,7 @@ class Link(ClubScopedModel, ModelBase):
         return get_full_url(self.tracking_url_path)
 
     @property
-    def url(self):
+    def url(self) -> str:
         """
         Primary url for the link.
 

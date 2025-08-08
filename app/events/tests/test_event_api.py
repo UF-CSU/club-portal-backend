@@ -20,7 +20,16 @@ class EventPublicApiTests(PublicApiTestsBase):
         url = EVENT_LIST_URL
         res = self.client.get(url)
 
-        self.assertResUnauthorized(res)
+        self.assertResOk(res)
+        data = res.json()
+        self.assertEqual(len(data), 5)
+
+        # Check private events not in api
+        create_test_events(count=5, is_public=False)
+        res = self.client.get(url)
+        self.assertResOk(res)
+        data = res.json()
+        self.assertEqual(len(data), 5)
 
 
 class EventPrivateApiTests(PrivateApiTestsBase):
