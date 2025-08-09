@@ -136,7 +136,7 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
 
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["name", "alias"]
-    filterset_fields = ["is_csu_partner", "majors", "tags"]
+    filterset_fields = ["is_csu_partner", "majors__name", "tags"]
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]

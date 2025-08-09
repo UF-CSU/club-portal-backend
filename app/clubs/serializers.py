@@ -216,6 +216,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
     # banner = ClubFileNestedSerializer(required=False)
     tags = ClubTagSerializer(many=True, read_only=True)
     socials = ClubSocialSerializer(many=True, read_only=True)
+    majors = serializers.SlugRelatedField(many=True, slug_field="name", read_only=True)
 
     class Meta:
         model = Club
@@ -232,6 +233,9 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "instagram_followers",
             "about",
             "member_count",
+            "is_csu_partner",
+            "is_claimed",
+            "majors",
         ]
 
 
