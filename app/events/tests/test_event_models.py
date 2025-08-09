@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from analytics.models import Link
-from app.settings import EVENT_ATTENDANCE_URL
+from app.settings import EVENT_ATTENDANCE_REDIRECT_URL
 from clubs.tests.utils import create_test_club, create_test_clubs
 from core.abstracts.tests import TestsBase
 from events.models import Event
@@ -45,7 +45,7 @@ class ClubEventTests(TestsBase):
 
         # expected_url_path = reverse("api-events:attendance-list", args=[event.id])
         # expected_url = get_full_url(expected_url_path)
-        expected_url = EVENT_ATTENDANCE_URL % {"id": event.id}
+        expected_url = EVENT_ATTENDANCE_REDIRECT_URL % {"id": event.id}
 
         self.assertEqual(link.target_url, expected_url)
 
