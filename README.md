@@ -1,7 +1,7 @@
 # Club Portal Backend
 
 [![Django Tests](https://github.com/ufosc/Club-Manager/actions/workflows/django-test.yml/badge.svg)](https://github.com/ufosc/Club-Manager/actions/workflows/django-test.yml)
-[![Code Linting](https://github.com/UF-CSU/club-portal-backend/actions/workflows/code-lint.yml/badge.svg)](https://github.com/UF-CSU/club-portal-backend/actions/workflows/code-lint.yml)
+[![Code Checks](https://github.com/UF-CSU/club-portal-backend/actions/workflows/code-check.yml/badge.svg)](https://github.com/UF-CSU/club-portal-backend/actions/workflows/code-check.yml)
 
 ## Table of Contents
 
