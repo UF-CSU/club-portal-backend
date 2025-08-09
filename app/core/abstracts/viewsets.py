@@ -1,11 +1,14 @@
-from typing import Literal
+from typing import Literal, Optional, Type, TypedDict
 
 from django.db import models
-from rest_framework import authentication, permissions
+from django.template import loader
+from rest_framework import authentication, filters, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet, ModelViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
+
+from app.settings import DJANGO_ENABLE_API_SESSION_AUTH
 
 
 class ViewSetBase(GenericViewSet):
@@ -44,14 +47,26 @@ class ViewSetBase(GenericViewSet):
     They are defined in the same place the url is defined.
     """
 
-    filterset_class = None
+    filterset_class: Type
     """Optionally pass a filterset class to define complex filtering."""
 
-    filterset_fields = []
+    filterset_fields: list
     """Optionally define which fields can be filtered against in the url."""
+
+    filter_backends: list
+    """Define (list) what backends to use for filtering."""
+
+    search_fields: list
+    """Define (list) what model fields to search against. Needs `filters.SearchFilter` in `filter_backends` to work."""
 
     def filter_queryset(self, queryset: models.QuerySet) -> models.QuerySet:
         return super().filter_queryset(queryset)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        if DJANGO_ENABLE_API_SESSION_AUTH:
+            self.authentication_classes += [authentication.SessionAuthentication]
 
 
 class ObjectViewPermissions(permissions.DjangoObjectPermissions):
@@ -138,3 +153,65 @@ class CustomLimitOffsetPagination(LimitOffsetPagination):
         }
 
         return res_schema
+
+
+class FilterBackendBase(filters.BaseFilterBackend):
+    """Provide additional functionality and typing for the base filter backend."""
+
+    class ParamType(TypedDict):
+        name: str
+        schema_type: str
+        required: Optional[bool] = False
+        description: Optional[str] = None
+
+    filter_fields: list[ParamType] = []
+    """Define fields to show in documentation."""
+
+    template = "core/filters/query.html"
+
+    def filter_queryset(
+        self, request: Request, queryset: models.QuerySet, view: ViewSet
+    ):
+        return super().filter_queryset(request, queryset, view)
+
+    def to_html(self, request, queryset, view):
+        # Used to display query params in browsable api view
+
+        template = loader.get_template(self.template)
+        context = {"fields": []}
+
+        for field in self.filter_fields:
+
+            if field.get("schema_type", "string") == "boolean":
+                html_field_template = "core/filters/boolean_input.html"
+            else:
+                html_field_template = "core/filters/text_input.html"
+
+            html_field_template = loader.get_template(html_field_template)
+
+            context["fields"].append(
+                {
+                    "param": field["name"],
+                    "name": field["name"].capitalize().replace("_", " "),
+                    "input": html_field_template.render({"field": field}),
+                }
+            )
+
+        return template.render(context, request)
+
+    def get_schema_operation_parameters(self, view):
+        # Used to display query params in swagger spec
+
+        params = super().get_schema_operation_parameters(view)
+        params += [
+            {
+                "name": field["name"],
+                "in": "query",
+                "required": field.get("required", False),
+                "description": field.get("description", ""),
+                "schema": {"type": field.get("schema_type", "string")},
+            }
+            for field in self.filter_fields
+        ]
+
+        return params

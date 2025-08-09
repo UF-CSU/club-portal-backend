@@ -1,0 +1,14 @@
+{% load i18n %}
+<h2>{% trans name %}</h2>
+<form class="form">
+  <!-- <input type="text" class="form-control" style="width: 350px" name="{{ param }}" value="{{ term }}"> -->
+    {% for field in fields %}
+    <div class="form-group">
+      <label for="{{field.param}}">{{field.name}}</label>
+      <!-- <input type="text" class="form-control" style="width: 350px" name="{{ field.param }}"> -->
+       {{ field.input }}
+    </div>
+    {% endfor %}
+
+  <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-filter" aria-hidden="true"></span> {% trans "Filter" %}</button>  
+</form>
