@@ -1,0 +1,26 @@
+{
+  "name": "email_templates",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:emails": "ts-node ./scripts/build.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@react-email/render": "^1.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@react-email/components": "^0.5.0",
+    "@types/node": "^24.2.1",
+    "@types/react": "^19.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
