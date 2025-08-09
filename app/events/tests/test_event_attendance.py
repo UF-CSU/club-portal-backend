@@ -1,11 +1,14 @@
+from django.utils import timezone
+
+from clubs.services import ClubService
 from clubs.tests.utils import create_test_club
-from core.abstracts.tests import PublicApiTestsBase
+from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from events.models import EventAttendance
 from events.tests.utils import create_test_event, event_attendance_list_url
 from lib.faker import fake
 from polls.models import Poll, PollField, PollInputType, PollQuestion, PollSubmission
 from users.models import User
-from users.tests.utils import create_test_user
+from users.tests.utils import create_test_user, create_test_users
 
 
 class EventAttendancePublicTests(PublicApiTestsBase):
@@ -374,3 +377,38 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         self.assertResCreated(res)
         self.assertUserAttendedEvent(user=user, attendance_count=1)
         self.assertValidSubmission(q, user=user, text_value="MD")
+
+
+class EventAttendancePrivateTests(PrivateApiTestsBase):
+    """Test admin interactions with event attendance data."""
+
+    def create_authenticated_user(self):
+        self.club = create_test_club()
+        self.club_service = ClubService(self.club)
+
+        user = create_test_user()
+        self.membership = self.club_service.add_member(user, roles=["Officer"])
+        return user
+
+    def test_attendance_analytics_api(self):
+        """Should return attendance analytics for an event."""
+
+        event = create_test_event(
+            host=self.club,
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
+        )
+        users = create_test_users(5)
+
+        for user in users:
+            EventAttendance.objects.create(user=user, event=event)
+
+        self.assertEqual(EventAttendance.objects.count(), 5)
+
+        # Check getting attendance info via api
+        url = event_attendance_list_url(event.id)
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertLength(data["results"], 5)

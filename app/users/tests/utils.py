@@ -34,6 +34,13 @@ def create_test_user(**kwargs):
     return User.objects.create_user(**payload)
 
 
+def create_test_users(count=5, **kwargs):
+    """Create multiple test users."""
+
+    ids = [create_test_user(**kwargs).id for _ in range(count)]
+    return User.objects.filter(id__in=ids).all()
+
+
 def register_user_url():
     """Get user register url."""
 
