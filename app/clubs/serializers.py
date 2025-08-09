@@ -47,8 +47,11 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
             "user_id",
             "username",
             "is_owner",
+            "is_admin",
+            "is_viewer",
             "points",
             "roles",
+            "is_pinned",
         ]
 
 
@@ -118,6 +121,14 @@ class ClubTagSerializer(ModelSerializerBase):
         fields = ["id", "name", "color", "order"]
 
 
+class ClubRoleSerializer(ModelSerializerBase):
+    """Represents a group of permissions users can have in a club."""
+
+    class Meta:
+        model = ClubRole
+        fields = ["id", "name", "default", "order", "role_type"]
+
+
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
@@ -132,6 +143,13 @@ class ClubSerializer(ModelSerializerBase):
         required=False,
         many=True,
     )
+    roles = ClubRoleSerializer(many=True, required=False)
+    # roles = serializers.SlugRelatedField(
+    #     many=True, slug_field="name", queryset=ClubRole.objects.all()
+    # )
+    # user_membership = ClubMemberNestedSerializer(
+    #     required=False,
+    # )
 
     member_count = serializers.IntegerField(read_only=True)
 
@@ -153,6 +171,9 @@ class ClubSerializer(ModelSerializerBase):
             "majors",
             "primary_color",
             "text_color",
+            "default_role",
+            "roles",
+            # "user_membership",
         ]
 
     def update(self, instance, validated_data):
@@ -200,6 +221,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
         model = Club
         fields = [
             "id",
+            "gatorconnect_url",
             "gatorconnect_organization_url",
             "name",
             "logo",
@@ -209,6 +231,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
             "socials",
             "instagram_followers",
             "about",
+            "member_count",
         ]
 
 
@@ -317,10 +340,12 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "user",
             "club_id",
             "is_owner",
-            "points",
             "is_admin",
+            "is_viewer",
+            "points",
             "team_memberships",
             "roles",
+            "is_pinned",
         ]
 
 

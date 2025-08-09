@@ -57,6 +57,11 @@ ALLOWED_HOSTS.extend([BASE_URL])
 CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:5173")
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 
+EVENT_ATTENDANCE_REDIRECT_URL = os.environ.get(
+    "EVENT_ATTENDANCE_REDIRECT_URL", CLIENT_URL + "/events/%(id)s"
+)
+"""Where should user go when attending event? Supports formatting variable `%(id)s`."""
+
 
 # Application definition
 
@@ -68,11 +73,11 @@ INSTALLED_APPS = [
     "drf_standardized_errors",
     "django_filters",
     "allauth",
-    "allauth.headless",
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.github",
+    "allauth.headless",
     "core",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -99,7 +104,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
-    "core.middleware.TokenAuthMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.TimezoneMiddleware",
 ]

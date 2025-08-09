@@ -17,10 +17,11 @@ from clubs.models import Club, ClubFile, ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase, Tag
 from users.models import User
 from utils.dates import get_day_count
+from utils.formatting import format_timedelta
 from utils.models import ArrayChoiceField
 
 
-class DayChoice(models.IntegerChoices):
+class DayType(models.IntegerChoices):
     MONDAY = 0, _("Monday")
     TUESDAY = 1, _("Tuesday")
     WEDNESDAY = 2, _("Wednesday")
@@ -28,6 +29,36 @@ class DayChoice(models.IntegerChoices):
     FRIDAY = 4, _("Friday")
     SATURDAY = 5, _("Saturday")
     SUNDAY = 6, _("Sunday")
+
+    def to_query_weekday(self):
+        """
+        Convert number from day type to number used for django lookups.
+
+        Mapping:
+        Day       => S M T W R F S
+        DayChoice => 6 0 1 2 3 4 5
+        Django    => 1 2 3 4 5 6 7
+
+        Ref: https://docs.djangoproject.com/en/dev/ref/models/querysets/#week-day
+        """
+
+        match self.value:
+            case DayType.MONDAY:
+                return 2
+            case DayType.TUESDAY:
+                return 3
+            case DayType.WEDNESDAY:
+                return 4
+            case DayType.THURSDAY:
+                return 5
+            case DayType.FRIDAY:
+                return 6
+            case DayType.SATURDAY:
+                return 7
+            case DayType.SUNDAY:
+                return 1
+            case _:
+                raise ValueError(f"Invalid day type: {self.value}")
 
 
 class EventType(models.TextChoices):
@@ -69,7 +100,7 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
     def create(
         self,
         name: str,
-        days: list[DayChoice],
+        days: list[DayType],
         start_date: date,
         end_date: date,
         club: Optional[Club] = None,
@@ -120,22 +151,27 @@ class RecurringEvent(EventFields):
         blank=True,
     )
 
-    days = ArrayChoiceField(models.IntegerField(choices=DayChoice.choices))
+    days = ArrayChoiceField(models.IntegerField(choices=DayType.choices))
     event_start_time = models.TimeField(
         blank=True,
-        help_text="Each event will start at this time",
+        help_text="Each event will start at this time, in UTC",
         default=get_default_start_time,
     )
     event_end_time = models.TimeField(
         blank=True,
-        help_text="Each event will end at this time",
+        help_text="Each event will end at this time, in UTC",
         default=get_default_end_time,
     )
 
     start_date = models.DateField(help_text="Date of the first occurance of this event")
     # TODO: Allow no end date
     end_date = models.DateField(help_text="Date of the last occurance of this event")
-    is_public = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=True, blank=True)
+    prevent_sync_past_events = models.BooleanField(
+        blank=True,
+        default=False,
+        help_text="When syncing events, should past events be prevented from updating?",
+    )
 
     # TODO: add skip_dates field
 
@@ -158,7 +194,7 @@ class RecurringEvent(EventFields):
         )
 
     @property
-    def all_day(self):
+    def is_all_day(self) -> bool:
         return (
             self.event_start_time == get_default_start_time()
             and self.event_end_time == get_default_end_time()
@@ -213,6 +249,12 @@ class EventManager(ManagerBase["Event"]):
 
         return Event.objects.filter(clubs__id=club.id)
 
+    def filter_for_day(self, day: DayType | int):
+        """Get events that match a day choice."""
+
+        day_value = DayType(day).to_query_weekday()
+        return self.filter(start_at__week_day=day_value)
+
 
 class Event(EventFields):
     """
@@ -242,10 +284,13 @@ class Event(EventFields):
         PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
     )
 
+    is_poll_submission_required = models.BooleanField(default=True)
+
     # Foreign Relationships
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
     attendance_links: models.QuerySet["EventAttendanceLink"]
     hosts: models.QuerySet["EventHost"]
+    attendances: models.QuerySet["EventAttendance"]
 
     @property
     def primary_club(self):
@@ -258,7 +303,24 @@ class Event(EventFields):
         return host.first().club
 
     @property
-    def all_day(self) -> bool:
+    def poll(self):
+        if not hasattr(self, "_poll"):
+            return None
+        return self._poll
+
+    @poll.setter
+    def poll(self, value):
+        value.event = self
+        value.save()
+
+    @property
+    def submissions(self):
+        if not self.poll:
+            return None
+        return self.poll.submissions.all()
+
+    @property
+    def is_all_day(self) -> bool:
         return (
             self.start_at.time() == get_default_start_time()
             and self.end_at.time() == get_default_end_time()
@@ -267,6 +329,23 @@ class Event(EventFields):
     @property
     def is_cancelled(self):
         return hasattr(self, "cancellation")
+
+    @property
+    def status(self):
+        if timezone.now() < self.start_at:
+            return "SCHEDULED"
+        elif self.start_at <= timezone.now() < self.end_at:
+            return "IN_PROGRESS"
+        else:
+            return "ENDED"
+
+    @property
+    def duration(self):
+        return self.end_at - self.start_at
+
+    @property
+    def duration_display(self):
+        format_timedelta(self.duration)
 
     # Overrides
     objects: ClassVar[EventManager] = EventManager()
@@ -295,6 +374,12 @@ class Event(EventFields):
                 index += 1
 
             self.name = f"{self.name} {index}"
+
+        # Constraint: if poll is None, is_poll_submission_required must be False
+        # NOTE: This is not a regular Constraint since poll is a virtual property
+        if not self.poll and self.is_poll_submission_required:
+            self.is_poll_submission_required = False
+
         return super().full_clean(*args, **kwargs)
 
     # Methods
@@ -373,17 +458,26 @@ class EventAttendance(ClubScopedModel, ModelBase):
     event = models.ForeignKey(
         Event,
         on_delete=models.CASCADE,
-        related_name="user_attendance",
-        blank=True,
-        null=True,
+        related_name="attendances",
+        # blank=True,
+        # null=True,
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="event_attendance"
+        User, on_delete=models.CASCADE, related_name="event_attendances"
     )
 
     @property
     def clubs(self):
         return self.event.clubs
+
+    @property
+    def poll_submission(self):
+        from polls.models import PollSubmission
+
+        if not self.event.poll:
+            return None
+
+        return PollSubmission.objects.find_one(poll=self.event.poll, user=self.user)
 
     class Meta:
 
@@ -424,6 +518,8 @@ class EventAttendanceLink(Link):
     and the reference is used as a unique key to use in tracking.
     """
 
+    # TODO: How to handle permissions with multiple clubs and event hosts?
+
     event = models.ForeignKey(
         Event, on_delete=models.CASCADE, related_name="attendance_links"
     )
@@ -443,6 +539,10 @@ class EventAttendanceLink(Link):
             return f"{super().__str__()} ({self.reference})"
         else:
             return super().__str__()
+
+    def save(self, *args, **kwargs):
+        self.is_tracked = False  # Tracking is done on the frontend
+        return super().save(*args, **kwargs)
 
     class Meta:
         constraints = [

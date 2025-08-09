@@ -15,6 +15,7 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import JsonLexer
 
+from core.abstracts.models import ModelBase
 from querycsv.serializers import CsvModelSerializer
 from querycsv.services import QueryCsvService
 from querycsv.views import QueryCsvViewSet
@@ -50,8 +51,9 @@ class AdminBase:
 
         return url
 
-    def as_link(self, url, text):
+    def as_link(self, url, text=None):
         """Create anchor tag for a url."""
+        text = text or url
 
         return mark_safe(f'<a href="{url}" target="_blank">{text}</a>')
 
@@ -64,6 +66,12 @@ class AdminBase:
             f"<image  xlink:href={image.url} width='100%'>"
             "</svg>"
         )
+
+    def as_model_link(self, obj: ModelBase, text="%(model)s"):
+        """Show object as a link to it's detail/edit page."""
+
+        text = text % {"model": obj.__str__()}
+        return self.as_link(obj.admin_edit_url, text=text)
 
     def as_json(self, obj):
         """

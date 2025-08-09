@@ -12,6 +12,10 @@ EVENT_LIST_URL = reverse("api-events:event-list")
 RECURRINGEVENT_LIST_URL = reverse("api-events:recurringevent-list")
 
 
+def event_attendance_list_url(event_id: int):
+    return reverse("api-events:attendance-list", args=[event_id])
+
+
 def event_detail_url(event_id: int):
     return reverse("api-events:event-detail", args=[event_id])
 

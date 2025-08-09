@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from core.abstracts.admin import ModelAdminBase, StackedInlineBase
 from polls.models import (
     ChoiceInput,
     ChoiceInputOption,
@@ -14,6 +15,7 @@ from polls.models import (
     PollInputType,
     PollMarkup,
     PollQuestion,
+    PollQuestionAnswer,
     PollSubmission,
     RangeInput,
     TextInput,
@@ -21,16 +23,29 @@ from polls.models import (
 )
 
 
-class PollFieldInlineAdmin(admin.StackedInline):
+class PollFieldInlineAdmin(StackedInlineBase):
     """Manage fields in poll admin."""
 
     model = PollField
     extra = 0
-    readonly_fields = ("question",)
+    readonly_fields = ("question", "edit_link")
     ordering = ("order",)
 
+    def edit_link(self, obj):
+        if obj.question:
+            return self.as_link(
+                obj.question.admin_edit_url,
+                text=f"Edit {obj.question} ({obj.question.id})",
+            )
+        elif obj.markup:
+            return self.as_link(
+                obj.markup.admin_edit_url, text=f"Edit {obj.markup} ({obj.markup.id})"
+            )
 
-class PollAdmin(admin.ModelAdmin):
+        return "-"
+
+
+class PollAdmin(ModelAdminBase):
     """Manage poll objects in admin."""
 
     list_display = ("__str__", "field_count", "view_poll")
@@ -77,7 +92,7 @@ class UploadInputInlineAdmin(admin.TabularInline):
     extra = 0
 
 
-class PollQuestionAdmin(admin.ModelAdmin):
+class PollQuestionAdmin(ModelAdminBase):
     """Manage poll questions in admin."""
 
     list_display = ("__str__", "field", "input_type", "widget")
@@ -109,7 +124,7 @@ class ChoiceOptionInlineAdmin(admin.TabularInline):
     extra = 1
 
 
-class ChoiceInputAdmin(admin.ModelAdmin):
+class ChoiceInputAdmin(ModelAdminBase):
     """Manage poll choice inputs in admin."""
 
     list_display = ("__str__", "options_count")
@@ -119,8 +134,23 @@ class ChoiceInputAdmin(admin.ModelAdmin):
         return obj.options.count()
 
 
+class PollQuestionAnswerInlineAdmin(admin.TabularInline):
+    """Manage poll question answers in submissions admin."""
+
+    model = PollQuestionAnswer
+    extra = 0
+    readonly_fields = ("question", "text_value", "number_value", "options_value")
+    exclude = ("error",)
+
+
+class PollSubmissionAdmin(ModelAdminBase):
+    """Manage poll submissions in admin."""
+
+    inlines = (PollQuestionAnswerInlineAdmin,)
+
+
 admin.site.register(Poll, PollAdmin)
 admin.site.register(PollQuestion, PollQuestionAdmin)
 admin.site.register(PollMarkup)
 admin.site.register(ChoiceInput, ChoiceInputAdmin)
-admin.site.register(PollSubmission)
+admin.site.register(PollSubmission, PollSubmissionAdmin)
