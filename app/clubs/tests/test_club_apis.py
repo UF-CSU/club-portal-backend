@@ -98,7 +98,7 @@ class ClubsApiPublicTests(PublicApiTestsBase):
 
         url = CLUBS_PREVIEW_LIST_URL + "?majors__name=Computer%20Science"
         res = self.client.get(url)
-        data = res.json()['results']
+        data = res.json()["results"]
 
         self.assertLength(data, 5)
         for club in data:
