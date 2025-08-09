@@ -1,4 +1,4 @@
-name: Code Linting
+name: Code Checksg
 on:
   pull_request:
     branches:
@@ -78,4 +78,5 @@ jobs:
 
       - name: Check migrations
         run: |
+          cp sample.env .env
           task makemigrations:check
