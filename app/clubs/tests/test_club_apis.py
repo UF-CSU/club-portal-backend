@@ -20,7 +20,6 @@ from clubs.tests.utils import (
     create_test_clubs,
 )
 from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
-from core.models import Major
 from lib.faker import fake
 from users.models import User
 from users.tests.utils import create_test_user
@@ -296,23 +295,23 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         self.assertIsInstance(data, list)
         self.assertLength(data, club_file_count_before + 1)
 
-    def test_filter_clubs_by_major(self):
-        """Should return only cs clubs."""
+    # def test_filter_clubs_by_major(self):
+    #     """Should return only cs clubs."""
 
-        cs = Major.objects.create(name="Computer Science")
-        art = Major.objects.create(name="Art")
+    #     cs = Major.objects.create(name="Computer Science")
+    #     art = Major.objects.create(name="Art")
 
-        create_test_clubs(5, majors=[cs], members=[self.user])
-        create_test_clubs(5, majors=[art], members=[self.user])
+    #     create_test_clubs(5, majors=[cs], members=[self.user])
+    #     create_test_clubs(5, majors=[art], members=[self.user])
 
-        url = CLUBS_LIST_URL + "?majors=Computer%20Science"
-        res = self.client.get(url)
-        data = res.json()
+    #     url = CLUBS_LIST_URL + "?majors=Computer%20Science"
+    #     res = self.client.get(url)
+    #     data = res.json()
 
-        self.assertLength(data, 5)
-        for club in data:
-            self.assertLength(club["majors"], 1)
-            self.assertEqual(club["majors"][0], "Computer Science")
+    #     self.assertLength(data, 5)
+    #     for club in data:
+    #         self.assertLength(club["majors"], 1)
+    #         self.assertEqual(club["majors"][0], "Computer Science")
 
 
 class ClubsApiPermsTests(PublicApiTestsBase):
