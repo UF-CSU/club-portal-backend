@@ -57,6 +57,11 @@ ALLOWED_HOSTS.extend([BASE_URL])
 CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:5173")
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 
+EVENT_ATTENDANCE_URL = os.environ.get(
+    "EVENT_ATTENDANCE_URL", CLIENT_URL + "/events/%(id)s"
+)
+"""Where should user go when attending event? Supports formatting variable `%(id)s`."""
+
 
 # Application definition
 

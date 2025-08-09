@@ -34,6 +34,9 @@ class Link(ClubScopedModel, ModelBase):
     )
     target_url = models.URLField(help_text="The final url we want to track clicks to.")
     display_name = models.CharField(null=True, blank=True)
+    is_tracked = models.BooleanField(
+        default=True, help_text="Should clicking this url create a `LinkVisit` object?"
+    )
 
     # Relationships
     visits: models.QuerySet["LinkVisit"]
@@ -41,13 +44,23 @@ class Link(ClubScopedModel, ModelBase):
 
     # Dynamic Properties
     @property
-    def url_path(self) -> str:
+    def tracking_url_path(self) -> str:
         # Extended models use link_id
         return reverse("redirect-link", kwargs={"link_id": self.id or self.link_id})
 
     @property
     def tracking_url(self):
-        return get_full_url(self.url_path)
+        return get_full_url(self.tracking_url_path)
+
+    @property
+    def url(self) -> str:
+        """
+        Primary url for the link.
+
+        If `is_masked=True` will return a proxy url to this server,
+        otherwise will return the target url.
+        """
+        return self.tracking_url if self.is_tracked else self.target_url
 
     @property
     def link_visits(self):

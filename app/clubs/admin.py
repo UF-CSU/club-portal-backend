@@ -116,7 +116,7 @@ class ClubRoleAdmin(ModelAdminBase):
 
     form = ClubRoleForm
 
-    list_display = ("name", "club", "role_type", "default")
+    list_display = ("name", "club", "role_type", "default", "order")
     prefetch_related_fields = ("permissions",)
     search_fields = (
         "name",

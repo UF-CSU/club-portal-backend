@@ -87,11 +87,38 @@ class ClubViewSet(ModelViewSetBase):
         return Club.objects.filter_for_user(self.request.user)
 
     def filter_queryset(self, queryset):
+        # Filter by whether user is admin
+        is_admin = self.request.query_params.get("is_admin", None)
+
+        if is_admin is not None:
+            admin_clubs = list(
+                self.request.user.club_memberships.filter_is_admin().values_list(
+                    "club__id", flat=True
+                )
+            )
+            queryset = queryset.filter(id__in=admin_clubs)
+
+        # Filter by major
         majors = self.request.query_params.getlist("majors", None)
 
         if majors:
             queryset = queryset.filter(majors__name__in=majors)
         return super().filter_queryset(queryset)
+
+
+class UserClubMembershipsViewSet(ModelViewSetBase):
+    """API for managing a use's club memberships."""
+
+    queryset = ClubMembership.objects.none()
+    serializer_class = ClubMembershipSerializer
+
+    def get_queryset(self):
+        return ClubMembership.objects.filter(user=self.request.user)
+
+    def check_object_permissions(self, request, obj):
+        if request.user.id == obj.user.id:
+            return True
+        return super().check_object_permissions(request, obj)
 
 
 class ClubPreviewViewSet(

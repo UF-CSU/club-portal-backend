@@ -26,6 +26,14 @@ def pollsubmissions_list_url(poll_id: int):
     return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
 
 
+def pollfield_list_url(poll_id: int):
+    return reverse("api-polls:pollfield-list", args=[poll_id])
+
+
+def pollfield_detail_url(poll_id: int, pollfield_id: int):
+    return reverse("api-polls:pollfield-detail", args=[poll_id, pollfield_id])
+
+
 class PollViewAuthTests(PrivateApiTestsBase):
     """Test managing polls via REST api and views."""
 
@@ -35,208 +43,214 @@ class PollViewAuthTests(PrivateApiTestsBase):
         payload = {
             "name": fake.title(),
             "description": fake.paragraph(),
-            "fields": [
-                {
-                    "order": 0,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example short text question?",
-                        "description": fake.paragraph(),
-                        "input_type": "text",
-                        "text_input": {
-                            "text_type": "short",
-                            "min_length": 5,
-                            "max_length": 15,
-                        },
-                    },
-                },
-                {
-                    "order": 1,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example long text question?",
-                        "description": fake.paragraph(),
-                        "input_type": "text",
-                        "text_input": {
-                            "text_type": "long",
-                            "min_length": 5,
-                            "max_length": 500,
-                        },
-                    },
-                },
-                {
-                    "order": 2,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example rich text question?",
-                        "description": fake.paragraph(),
-                        "input_type": "text",
-                        "text_input": {
-                            "text_type": "rich",
-                            "min_length": 5,
-                            "max_length": 500,
-                        },
-                    },
-                },
-                {
-                    "order": 3,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example single choice question?",
-                        "description": fake.paragraph(),
-                        "input_type": "choice",
-                        "choice_input": {
-                            "multiple": False,
-                            "single_choice_type": "select",
-                            "options": [
-                                {
-                                    "order": 0,
-                                    "label": "Option 1",
-                                },
-                                {
-                                    "order": 1,
-                                    "label": "Option 2",
-                                    "value": "option2",
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    "order": 4,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example single choice question?",
-                        "description": fake.paragraph(),
-                        "input_type": "choice",
-                        "choice_input": {
-                            "multiple": False,
-                            "single_choice_type": "radio",
-                            "options": [
-                                {
-                                    "order": 0,
-                                    "label": "Option 1",
-                                },
-                                {
-                                    "order": 1,
-                                    "label": "Option 2",
-                                    "value": "option2",
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    "order": 5,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example choice question?",
-                        "description": fake.paragraph(),
-                        "input_type": "choice",
-                        "choice_input": {
-                            "multiple": True,
-                            "multiple_choice_type": "checkbox",
-                            "options": [
-                                {
-                                    "order": 0,
-                                    "label": "Option 1",
-                                },
-                                {
-                                    "order": 1,
-                                    "label": "Option 2",
-                                    "value": "option2",
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    "order": 6,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example choice question?",
-                        "description": fake.paragraph(),
-                        "input_type": "choice",
-                        "choice_input": {
-                            "multiple": True,
-                            "multiple_choice_type": "select",
-                            "options": [
-                                {
-                                    "order": 0,
-                                    "label": "Option 1",
-                                },
-                                {
-                                    "order": 1,
-                                    "label": "Option 2",
-                                    "value": "option2",
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    "order": 7,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example range question?",
-                        "description": fake.paragraph(),
-                        "input_type": "range",
-                        "range_input": {
-                            "min_value": 0,
-                            "max_value": 100,
-                            "initial_value": 50,
-                        },
-                    },
-                },
-                {
-                    "order": 8,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example upload question?",
-                        "description": fake.paragraph(),
-                        "input_type": "upload",
-                        "upload_input": {
-                            "file_types": ["pdf", "docx"],
-                            "max_files": 1,
-                        },
-                    },
-                },
-                {
-                    "order": 9,
-                    "field_type": "page_break",
-                },
-                {
-                    "order": 10,
-                    "field_type": "markup",
-                    "markup": {
-                        "content": "# Hello World",
-                    },
-                },
-                {
-                    "order": 11,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Example number question?",
-                        "description": fake.paragraph(),
-                        "input_type": "number",
-                        "number_input": {
-                            "min_value": 1,
-                            "max_value": 5,
-                            "decimal_places": 3,
-                        },
-                    },
-                },
-            ],
         }
+        fields_payload = [
+            {
+                "order": 0,
+                "field_type": "question",
+                "question": {
+                    "label": "Example short text question?",
+                    "description": fake.paragraph(),
+                    "input_type": "text",
+                    "text_input": {
+                        "text_type": "short",
+                        "min_length": 5,
+                        "max_length": 15,
+                    },
+                },
+            },
+            {
+                "order": 1,
+                "field_type": "question",
+                "question": {
+                    "label": "Example long text question?",
+                    "description": fake.paragraph(),
+                    "input_type": "text",
+                    "text_input": {
+                        "text_type": "long",
+                        "min_length": 5,
+                        "max_length": 500,
+                    },
+                },
+            },
+            {
+                "order": 2,
+                "field_type": "question",
+                "question": {
+                    "label": "Example rich text question?",
+                    "description": fake.paragraph(),
+                    "input_type": "text",
+                    "text_input": {
+                        "text_type": "rich",
+                        "min_length": 5,
+                        "max_length": 500,
+                    },
+                },
+            },
+            {
+                "order": 3,
+                "field_type": "question",
+                "question": {
+                    "label": "Example single choice question?",
+                    "description": fake.paragraph(),
+                    "input_type": "choice",
+                    "choice_input": {
+                        "multiple": False,
+                        "single_choice_type": "select",
+                        "options": [
+                            {
+                                "order": 0,
+                                "label": "Option 1",
+                            },
+                            {
+                                "order": 1,
+                                "label": "Option 2",
+                                "value": "option2",
+                            },
+                        ],
+                    },
+                },
+            },
+            {
+                "order": 4,
+                "field_type": "question",
+                "question": {
+                    "label": "Example single choice question?",
+                    "description": fake.paragraph(),
+                    "input_type": "choice",
+                    "choice_input": {
+                        "multiple": False,
+                        "single_choice_type": "radio",
+                        "options": [
+                            {
+                                "order": 0,
+                                "label": "Option 1",
+                            },
+                            {
+                                "order": 1,
+                                "label": "Option 2",
+                                "value": "option2",
+                            },
+                        ],
+                    },
+                },
+            },
+            {
+                "order": 5,
+                "field_type": "question",
+                "question": {
+                    "label": "Example choice question?",
+                    "description": fake.paragraph(),
+                    "input_type": "choice",
+                    "choice_input": {
+                        "multiple": True,
+                        "multiple_choice_type": "checkbox",
+                        "options": [
+                            {
+                                "order": 0,
+                                "label": "Option 1",
+                            },
+                            {
+                                "order": 1,
+                                "label": "Option 2",
+                                "value": "option2",
+                            },
+                        ],
+                    },
+                },
+            },
+            {
+                "order": 6,
+                "field_type": "question",
+                "question": {
+                    "label": "Example choice question?",
+                    "description": fake.paragraph(),
+                    "input_type": "choice",
+                    "choice_input": {
+                        "multiple": True,
+                        "multiple_choice_type": "select",
+                        "options": [
+                            {
+                                "order": 0,
+                                "label": "Option 1",
+                            },
+                            {
+                                "order": 1,
+                                "label": "Option 2",
+                                "value": "option2",
+                            },
+                        ],
+                    },
+                },
+            },
+            {
+                "order": 7,
+                "field_type": "question",
+                "question": {
+                    "label": "Example range question?",
+                    "description": fake.paragraph(),
+                    "input_type": "range",
+                    "range_input": {
+                        "min_value": 0,
+                        "max_value": 100,
+                        "initial_value": 50,
+                    },
+                },
+            },
+            {
+                "order": 8,
+                "field_type": "question",
+                "question": {
+                    "label": "Example upload question?",
+                    "description": fake.paragraph(),
+                    "input_type": "upload",
+                    "upload_input": {
+                        "file_types": ["pdf", "docx"],
+                        "max_files": 1,
+                    },
+                },
+            },
+            {
+                "order": 9,
+                "field_type": "page_break",
+            },
+            {
+                "order": 10,
+                "field_type": "markup",
+                "markup": {
+                    "content": "# Hello World",
+                },
+            },
+            {
+                "order": 11,
+                "field_type": "question",
+                "question": {
+                    "label": "Example number question?",
+                    "description": fake.paragraph(),
+                    "input_type": "number",
+                    "number_input": {
+                        "min_value": 1,
+                        "max_value": 5,
+                        "decimal_places": 3,
+                    },
+                },
+            },
+        ]
 
         self.assertEqual(Poll.objects.count(), 0)
 
         url = POLLS_URL
         res = self.client.post(url, data=payload, format="json")
         self.assertEqual(res.status_code, 201, res.content)
-
         self.assertEqual(Poll.objects.count(), 1)
-        self.assertEqual(PollField.objects.count(), len(payload["fields"]))
+        poll = Poll.objects.first()
+
+        field_url = pollfield_list_url(poll.pk)
+        for field in fields_payload:
+            res = self.client.post(field_url, field, format="json")
+            self.assertResCreated(res)
+
+        self.assertEqual(PollField.objects.count(), len(fields_payload))
         self.assertEqual(PollQuestion.objects.count(), 10)
         self.assertEqual(TextInput.objects.count(), 3)
         self.assertEqual(ChoiceInput.objects.count(), 4)
@@ -280,73 +294,71 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(Poll.objects.count(), 1)
 
         payload = {
-            "name": "Blake's Poll",
-            "description": "This is a description for Blake's Poll.",
-            "fields": [
-                {
-                    "order": 0,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Updated question?",
-                        "description": fake.paragraph(),
-                        "input_type": "text",
-                        "text_input": {
-                            "text_type": "short",
-                            "min_length": 5,
-                            "max_length": 15,
-                        },
-                    },
+            "order": 0,
+            "field_type": "question",
+            "question": {
+                "label": "Updated question?",
+                "description": fake.paragraph(),
+                "input_type": "text",
+                "text_input": {
+                    "text_type": "short",
+                    "min_length": 5,
+                    "max_length": 15,
                 },
-            ],
+            },
         }
 
-        url = polls_detail_url(poll.pk)
+        url = pollfield_list_url(poll.pk)
 
-        res = self.client.patch(url, data=payload, format="json")
-        self.assertEqual(res.status_code, 200, res.content)
+        res = self.client.post(url, data=payload, format="json")
+        self.assertResCreated(res)
 
         poll.refresh_from_db()
-        self.assertEqual(poll.name, payload["name"])
-        self.assertEqual(poll.description, payload["description"])
         self.assertEqual(poll.fields.count(), 1)
         self.assertEqual(poll.fields.first().field_type, "question")
         self.assertEqual(poll.fields.first().question.label, "Updated question?")
 
-        payload = {
-            "fields": [
-                {
-                    "order": 0,
-                    "field_type": "question",
-                    "question": {
-                        "label": "Updated question again?",
-                        "description": fake.paragraph(),
-                        "input_type": "text",
-                        "text_input": {
-                            "text_type": "short",
-                            "min_length": 5,
-                            "max_length": 15,
-                        },
-                    },
+        update_field_payload = {
+            "order": 0,
+            "field_type": "question",
+            "question": {
+                "label": "Updated question again?",
+                "description": fake.paragraph(),
+                "input_type": "text",
+                "text_input": {
+                    "text_type": "short",
+                    "min_length": 5,
+                    "max_length": 15,
                 },
-                {
-                    "order": 1,
-                    "field_type": "question",
-                    "question": {
-                        "label": "New question?",
-                        "description": fake.paragraph(),
-                        "input_type": "text",
-                        "text_input": {
-                            "text_type": "short",
-                            "min_length": 5,
-                            "max_length": 15,
-                        },
-                    },
-                },
-            ],
+            },
         }
+        update_field_url = pollfield_detail_url(poll.pk, poll.fields.first().pk)
 
-        res = self.client.patch(url, data=payload, format="json")
-        self.assertEqual(res.status_code, 200, res.content)
+        update_field_res = self.client.patch(
+            update_field_url, data=update_field_payload, format="json"
+        )
+        self.assertResOk(update_field_res)
+
+        add_field_payload = {
+            "order": 1,
+            "field_type": "question",
+            "question": {
+                "label": "New question?",
+                "description": fake.paragraph(),
+                "input_type": "text",
+                "text_input": {
+                    "text_type": "short",
+                    "min_length": 5,
+                    "max_length": 15,
+                },
+            },
+        }
+        add_field_url = pollfield_list_url(poll.pk)
+        add_field_res = self.client.post(
+            add_field_url, add_field_payload, format="json"
+        )
+        self.assertResCreated(add_field_res)
+
         poll.refresh_from_db()
         self.assertEqual(poll.fields.count(), 2)
         self.assertEqual(poll.fields.first().field_type, "question")

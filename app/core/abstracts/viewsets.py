@@ -1,9 +1,6 @@
 from typing import Literal
 
 from django.db import models
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
 from rest_framework import authentication, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
@@ -100,15 +97,15 @@ class ModelViewSetBase(ModelViewSet, ViewSetBase):
     # Enable permissions checking in API
     permission_classes = ViewSetBase.permission_classes + [ObjectViewPermissions]
 
-    # Cache detail view for 2 minutes for each different Authorization header
-    @method_decorator(cache_page(60 * 60 * 2))
-    @method_decorator(vary_on_headers("Authorization"))
+    # # Cache detail view for 2 minutes for each different Authorization header
+    # @method_decorator(cache_page(60 * 60 * 2))
+    # @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    # Cache list view for 2 minutes for each different Authorization header
-    @method_decorator(cache_page(60 * 60 * 2))
-    @method_decorator(vary_on_headers("Authorization"))
+    # # Cache list view for 2 minutes for each different Authorization header
+    # @method_decorator(cache_page(60 * 60 * 2))
+    # @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 

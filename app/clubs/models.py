@@ -127,6 +127,7 @@ class Club(ClubScopedModel, UniqueModel):
     """Group of users."""
 
     name = models.CharField(max_length=100, unique=True)
+    alias = models.CharField(max_length=15, null=True, blank=True)
 
     logo: "ClubFile" = models.ForeignKey(
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
@@ -135,34 +136,14 @@ class Club(ClubScopedModel, UniqueModel):
         "ClubFile", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
 
-    alias = models.CharField(max_length=15, null=True, blank=True)
-
     about = models.TextField(blank=True, null=True)
     founding_year = models.IntegerField(
         default=get_default_founding_year,
         validators=[MinValueValidator(1900), validate_max_founding_year],
     )
 
-    gatorconnect_organization_id = models.IntegerField(null=True, blank=True)
-    gatorconnect_organization_guid = models.TextField(null=True, blank=True)
-    # 200, as some goofballs put their full and very long name as the acronym
-    gatorconnect_organization_url = models.TextField(null=True, blank=True)
     instagram_followers = models.IntegerField(null=True, blank=True)
-
-    tags = models.ManyToManyField(ClubTag, blank=True)
     contact_email = models.EmailField(null=True, blank=True)
-    gatorconnect_url = models.URLField(
-        null=True,
-        blank=True,
-        validators=[
-            RegexValidator(
-                r"^https:\/\/orgs\.studentinvolvement\.ufl\.edu\/Organization\/"
-            )
-        ],
-    )
-    majors = models.ManyToManyField(
-        Major, related_name="clubs", blank=True, help_text="Focused majors"
-    )
     primary_color = models.CharField(
         blank=True, null=True, validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
     )
@@ -170,8 +151,28 @@ class Club(ClubScopedModel, UniqueModel):
         blank=True, null=True, validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
     )
 
+    # GatorConnect fields
+    gatorconnect_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="Link to the gatorconnect page",
+        validators=[
+            RegexValidator(
+                r"^https:\/\/orgs\.studentinvolvement\.ufl\.edu\/Organization\/"
+            )
+        ],
+    )
+    gatorconnect_organization_id = models.IntegerField(null=True, blank=True)
+    gatorconnect_organization_guid = models.TextField(null=True, blank=True)
+    gatorconnect_organization_url = models.TextField(
+        null=True, blank=True, help_text="How they assign links to clubs"
+    )
+
     # Relationships
     tags = models.ManyToManyField(ClubTag, blank=True)
+    majors = models.ManyToManyField(
+        Major, related_name="clubs", blank=True, help_text="Focused majors"
+    )
 
     # Foreign Relationships
     memberships: models.QuerySet["ClubMembership"]
@@ -191,6 +192,10 @@ class Club(ClubScopedModel, UniqueModel):
     @cached_property
     def member_count(self) -> int:
         return self.memberships.count()
+
+    @property
+    def default_role(self) -> str:
+        return self.roles.get(default=True).name
 
     class Meta:
         permissions = [("view_club_details", "Can view club details")]
@@ -356,6 +361,9 @@ class ClubRole(ClubScopedModel, ModelBase):
     role_type = models.CharField(
         choices=RoleType.choices, default=RoleType.VIEWER, blank=True
     )
+    order = models.PositiveIntegerField(
+        default=0, help_text="Used to determine the list ordering of a member"
+    )
 
     # Meta fields
     cached_role_type = models.CharField(
@@ -375,6 +383,7 @@ class ClubRole(ClubScopedModel, ModelBase):
     objects: ClassVar[ClubRoleManager] = ClubRoleManager()
 
     class Meta:
+        ordering = ["order"]
         constraints = [
             models.UniqueConstraint(
                 fields=("default", "club"),
@@ -444,6 +453,11 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
 
         return membership
 
+    def filter_is_admin(self):
+        """Filter memberships that are admin memberships."""
+
+        return self.filter(roles__role_type=RoleType.ADMIN)
+
 
 class ClubMembership(ClubScopedModel, ModelBase):
     """Connection between user and club."""
@@ -452,14 +466,17 @@ class ClubMembership(ClubScopedModel, ModelBase):
     user = models.ForeignKey(
         User, related_name="club_memberships", on_delete=models.CASCADE
     )
+    points = models.IntegerField(default=0, blank=True)
+    roles = models.ManyToManyField(ClubRole, blank=True)
 
     is_owner = models.BooleanField(
         default=False,
         blank=True,
         help_text="Determines whether user is the sole superadmin for the club",
     )
-    points = models.IntegerField(default=0, blank=True)
-    roles = models.ManyToManyField(ClubRole, blank=True)
+    is_pinned = models.BooleanField(
+        default=False, blank=True, help_text="Club is pinned on user's dashboard"
+    )
 
     # Meta fields
     cached_is_owner = models.BooleanField(
@@ -478,6 +495,13 @@ class ClubMembership(ClubScopedModel, ModelBase):
     def is_admin(self) -> bool:
         """Indicates if user automatically gets all permissions for the club."""
         return self.is_owner or self.roles.filter(role_type=RoleType.ADMIN).exists()
+
+    @property
+    def is_viewer(self) -> bool:
+        """Indicates if a user has no special permissions for a club."""
+        return not self.roles.filter(
+            models.Q(role_type=RoleType.ADMIN) | models.Q(role_type=RoleType.CUSTOM)
+        ).exists()
 
     # Overrides
     objects: ClassVar[ClubMembershipManager] = ClubMembershipManager()

@@ -11,6 +11,7 @@ SendGrid: Versioning (later)
 API Inspiration: https://developers.google.com/workspace/forms/api/reference/rest/v1/forms
 
 Structure:
+```
 Poll
 -- Field
 -- -- Page Break
@@ -21,7 +22,7 @@ Poll
 -- -- -- Range Input
 -- -- -- Upload Input
 -- -- -- Number Input
-
+```
 """
 
 from typing import ClassVar, Optional
@@ -32,7 +33,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.abstracts.models import ManagerBase, ModelBase
-from events.models import EventType
+from events.models import Event, EventType
 from users.models import User
 
 
@@ -76,18 +77,18 @@ class PollChoiceType(models.TextChoices):
     SELECT = "radio", _("Input Select")
 
 
-# class PollSingleChoiceType(models.TextChoices):
-#     """Different ways of showing single choice fields."""
+class QuestionCustomType(models.TextChoices):
+    """Categorize different types of text fields."""
 
-#     SELECT = "select", _("Single Dropdown Select")
-#     RADIO = "radio", _("Single Radio Select")
-
-
-# class PollMultiChoiceType(models.TextChoices):
-#     """Different ways of showing multichoice fields."""
-
-#     SELECT = "select", _("Multi Select Box")
-#     CHECKBOX = "checkbox", _("Multi Checkbox Select")
+    NAME = "name", _("Name")
+    EMAIL = "email", _("Email")
+    UFL_EMAIL = "ufl_email", _("UFL Email")
+    MAJOR = "major", _("Major")
+    MINOR = "minor", _("Minor")
+    COLLEGE = "college", _("College")
+    PHONE = "phone", _("Phone")
+    GRADUATION_DATE = "graduation_date", _("Graduation Date")
+    DEPARTMENT = "department", _("Department")
 
 
 class PollManager(ManagerBase["Poll"]):
@@ -108,6 +109,9 @@ class Poll(ModelBase):
 
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
+    event = models.OneToOneField(
+        Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
+    )
 
     # Overrides
     objects: ClassVar[PollManager] = PollManager()
@@ -276,6 +280,10 @@ class PollQuestion(ModelBase):
     description = models.TextField(null=True, blank=True)
     image = models.ImageField(null=True, blank=True)
     required = models.BooleanField(default=False)
+
+    custom_type = models.CharField(
+        choices=QuestionCustomType.choices, null=True, blank=True
+    )
 
     @property
     def html_name(self):
