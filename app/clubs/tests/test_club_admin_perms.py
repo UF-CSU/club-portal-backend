@@ -513,7 +513,9 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         res = self.client.patch(url, payload)
         self.assertResOk(res)
 
-        self.assertTrue(self.member_membership.roles.filter(name="Vice-President").exists())
+        self.assertTrue(
+            self.member_membership.roles.filter(name="Vice-President").exists()
+        )
         self.assertTrue(self.member_membership.is_admin)
 
         # Our club, change owner
@@ -538,7 +540,9 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         res = self.client.patch(url, payload)
         self.assertResNotFound(res)
 
-        self.assertFalse(other_member_membership.roles.filter(name="Vice-President").exists())
+        self.assertFalse(
+            other_member_membership.roles.filter(name="Vice-President").exists()
+        )
 
         # Our club, change self (downgrade self to member)
         payload = {"roles": ["Member"]}
