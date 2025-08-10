@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, filters, mixins, permissions, status
+from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
@@ -13,6 +14,7 @@ from clubs.serializers import (
     ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
     ClubPreviewSerializer,
+    ClubRosterSerializer,
     ClubSerializer,
     ClubTagSerializer,
     InviteClubMemberSerializer,
@@ -106,6 +108,17 @@ class ClubViewSet(ModelViewSetBase):
 
     def get_queryset(self):
         return Club.objects.filter_for_user(self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == "get_roster":
+            return ClubRosterSerializer
+        return super().get_serializer_class()
+
+    @action(methods=["GET"], detail=True, url_name="roster", url_path="roster")
+    def get_roster(self, request, pk=None, *args, **kwargs):
+        club = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = self.get_serializer_class()(club)
+        return Response(serializer.data)
 
 
 class UserClubMembershipsViewSet(ModelViewSetBase):

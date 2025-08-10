@@ -26,7 +26,7 @@ class ClubPermsBasicTests(TestsBase):
         self.assertIsNotNone(member_role)
         self.assertTrue(member_role.is_default)
 
-        officer_role = ClubRole.objects.find_one(name="Officer")
+        officer_role = ClubRole.objects.find_one(name="President")
         self.assertIsNotNone(officer_role)
         self.assertFalse(officer_role.is_default)
 
@@ -44,7 +44,7 @@ class ClubPermsBasicTests(TestsBase):
     def test_club_role_change_access(self):
         """Member should inherit change perms from club role."""
 
-        role = self.club.roles.get(name="Officer")
+        role = self.club.roles.get(name="President")
         self.service.add_member(self.user, roles=[role])
 
         self.assertTrue(self.user.has_perm("clubs.change_club", self.club))
@@ -55,7 +55,7 @@ class ClubPermsBasicTests(TestsBase):
         self.service.add_member(self.user)
         self.assertFalse(self.user.has_perm("clubs.change_club", self.club))
 
-        role = self.club.roles.get(name="Officer")
+        role = self.club.roles.get(name="President")
         self.service.set_member_role(self.user, role)
         self.assertTrue(self.user.has_perm("clubs.change_club", self.club))
 
@@ -94,7 +94,7 @@ class ClubScopedPermsTests(TestsBase):
         self.assertFalse(self.user.has_perm("events.change_event", event1))
 
         # Check officer's permissions
-        self.service1.set_member_role(self.user, "Officer")
+        self.service1.set_member_role(self.user, "President")
         self.assertTrue(self.user.has_perm("events.change_event", event1))
 
         # Test access to other club's events
@@ -113,7 +113,7 @@ class ClubScopedPermsTests(TestsBase):
         self.assertFalse(self.user.has_perm("clubs.change_team", team1))
 
         # Check officer's permission
-        self.service1.set_member_role(self.user, "Officer")
+        self.service1.set_member_role(self.user, "President")
         self.assertTrue(self.user.has_perm("clubs.change_team", team1))
 
         # Test access to other club's teams

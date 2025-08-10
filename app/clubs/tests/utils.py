@@ -10,6 +10,10 @@ from users.models import User
 from utils.files import get_file_from_path
 from utils.testing import create_test_image
 
+####################################################
+# URLS
+####################################################
+
 
 def club_invite_url(club_id: int):
     return reverse("api-clubs:invite", args=[club_id])
@@ -46,6 +50,15 @@ def club_file_list_url(club_id: int):
 
 def club_file_detail_url(club_id: int, file_id: int):
     return reverse("api-clubs:file-detail", args=[club_id, file_id])
+
+
+def club_roster_url(club_id: int):
+    return reverse("api-clubs:club-roster", args=[club_id])
+
+
+####################################################
+# Utilities
+####################################################
 
 
 def create_test_clubfile(club: Club, **kwargs):
@@ -90,7 +103,7 @@ def create_test_clubrole(club: Club, role_type=RoleType.VIEWER, **kwargs):
 
     payload = {
         "name": " ".join(fake.words(2)),
-        "default": False,
+        "is_default": False,
         **kwargs,
     }
     return ClubRole.objects.create(club=club, role_type=role_type, **payload)

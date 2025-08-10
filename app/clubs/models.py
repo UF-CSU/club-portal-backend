@@ -213,7 +213,7 @@ class Club(ClubScopedModel, UniqueModel):
             return None
 
     @property
-    def is_claimed(self):
+    def is_claimed(self) -> bool:
         """Club has an owner and that owner can authenticate."""
         if self.owner:
             return self.owner.can_authenticate
@@ -223,6 +223,14 @@ class Club(ClubScopedModel, UniqueModel):
     @property
     def default_role(self) -> str:
         return self.roles.get(is_default=True).name
+
+    @property
+    def executives(self):
+        return self.memberships.filter(roles__is_executive=True)
+
+    @property
+    def roster_teams(self):
+        return self.teams.filter(show_on_roster=True)
 
     class Meta:
         permissions = [
@@ -332,7 +340,7 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         self,
         club: Club,
         name: str,
-        default=False,
+        is_default=False,
         perm_labels=None,
         role_type=None,
         **kwargs,
@@ -363,7 +371,7 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
             perm_labels = parse_permissions(VIEWER_ROLE_PERMISSIONS)
 
         role = super().create(
-            club=club, name=name, default=default, role_type=role_type, **kwargs
+            club=club, name=name, is_default=is_default, role_type=role_type, **kwargs
         )
 
         role.permissions.set(permissions)
@@ -425,8 +433,8 @@ class ClubRole(ClubScopedModel, ModelBase):
         ordering = ["order"]
         constraints = [
             models.UniqueConstraint(
-                fields=("default", "club"),
-                condition=models.Q(default=True),
+                fields=("is_default", "club"),
+                condition=models.Q(is_default=True),
                 name="only_one_default_club_role_per_club",
             ),
             models.UniqueConstraint(
@@ -441,7 +449,7 @@ class ClubRole(ClubScopedModel, ModelBase):
         """Validate and sync club roles on save."""
         if self.is_default:
             # Force all other roles to be false
-            self.club.roles.exclude(id=self.id).update(default=False)
+            self.club.roles.exclude(id=self.id).update(is_default=False)
 
         return super().clean()
 
@@ -468,7 +476,7 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
         membership = super().create(club=club, user=user, **kwargs)
 
         if len(roles) < 1:
-            default_role = club.roles.get(default=True)
+            default_role = club.roles.get(is_default=True)
             roles.append(default_role)
 
         for role in roles:
@@ -648,6 +656,10 @@ class Team(ClubScopedModel, ModelBase):
         choices=TeamAccessType.choices, default=TeamAccessType.OPEN
     )
 
+    show_on_roster = models.BooleanField(
+        default=False, help_text="Show this team on the club's roster."
+    )
+
     # Foreign Relationships
     memberships: models.QuerySet["TeamMembership"]
     roles: models.QuerySet["TeamRole"]
@@ -664,7 +676,9 @@ class Team(ClubScopedModel, ModelBase):
 class TeamRoleManager(ManagerBase["TeamRole"]):
     """Manage queries for team roles."""
 
-    def create(self, team: Team, name: str, default=False, perm_labels=None, **kwargs):
+    def create(
+        self, team: Team, name: str, is_default=False, perm_labels=None, **kwargs
+    ):
         """
         Create new team role.
 
@@ -674,7 +688,7 @@ class TeamRoleManager(ManagerBase["TeamRole"]):
         perm_labels = perm_labels if perm_labels is not None else []
         permissions = kwargs.pop("permissions", [])
 
-        role = super().create(team=team, name=name, default=default, **kwargs)
+        role = super().create(team=team, name=name, is_default=is_default, **kwargs)
 
         for perm in perm_labels:
             perm = get_permission(perm)
@@ -691,16 +705,17 @@ class TeamRole(ClubScopedModel, ModelBase):
 
     name = models.CharField(max_length=32)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="roles")
-    default = models.BooleanField(
-        default=False,
-        help_text="New members would be automatically assigned this role.",
-    )
     permissions = models.ManyToManyField(Permission, blank=True)
     order = models.PositiveIntegerField(
         default=0, help_text="Used to determine the list ordering of a team member"
     )
     role_type = models.CharField(
         choices=RoleType.choices, default=RoleType.VIEWER, blank=True
+    )
+
+    is_default = models.BooleanField(
+        default=False,
+        help_text="New members would be automatically assigned this role.",
     )
 
     # TODO: Implement cached_role_type, signals
@@ -719,8 +734,8 @@ class TeamRole(ClubScopedModel, ModelBase):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=("default", "team"),
-                condition=models.Q(default=True),
+                fields=("is_default", "team"),
+                condition=models.Q(is_default=True),
                 name="only_one_default_team_role_per_team",
             ),
             models.UniqueConstraint(
@@ -733,15 +748,15 @@ class TeamRole(ClubScopedModel, ModelBase):
 
     def clean(self):
         """Validate and sync team roles on save."""
-        if self.default:
+        if self.is_default:
             # Force all other roles to be false
-            self.team.roles.exclude(id=self.id).update(default=False)
+            self.team.roles.exclude(id=self.id).update(is_default=False)
 
         return super().clean()
 
     def delete(self, *args, **kwargs):
         """Preconditions for team role deletion."""
-        assert not self.default, "Cannot delete default team role."
+        assert not self.is_default, "Cannot delete default team role."
 
         return super().delete(*args, **kwargs)
 
@@ -762,7 +777,7 @@ class TeamMembershipManager(ManagerBase["TeamMembership"]):
 
         if len(roles) < 1:
             try:
-                default_role = team.roles.get(default=True)
+                default_role = team.roles.get(is_default=True)
                 roles.append(default_role)
             except Exception:
                 pass

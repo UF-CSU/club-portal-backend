@@ -467,6 +467,17 @@ class JoinClubsSerializer(SerializerBase):
     )
 
 
+class ClubRosterSerializer(ModelSerializerBase):
+    """Used to display a club's members."""
+
+    executives = ClubMembershipSerializer(many=True)
+    teams = TeamSerializer(many=True, source="roster_teams")
+
+    class Meta:
+        model = Club
+        fields = ["executives", "teams"]
+
+
 ##############################################################
 # MARK: CSV SERIALIZERS
 ##############################################################
@@ -662,3 +673,13 @@ class TeamCsvSerializer(CsvModelSerializer):
         self.fields["members"].child.fields["roles"].child_relation.queryset = (
             TeamRole.objects.filter(team=self.instance)
         )
+
+
+class ClubRoleCsvSerializer(CsvModelSerializer):
+    """Allow uploading/downloading club roles."""
+
+    club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
+
+    class Meta:
+        model = ClubRole
+        fields = "__all__"

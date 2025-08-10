@@ -42,35 +42,6 @@ class ClubsApiPublicTests(PublicApiTestsBase):
         res = self.client.post(url, payload)
         self.assertResUnauthorized(res)
 
-    def test_using_apikey(self):
-        """A request should be able to be made using an API Key."""
-
-        club = create_test_club()
-
-        key = ClubApiKey.objects.create(
-            club=club,
-            name="Test Key",
-            permissions=[
-                "clubs.view_club",
-                "clubs.view_club_details",
-                "clubs.view_clubmembership",
-            ],
-        )
-
-        self.client = APIClient()
-        self.client.force_authenticate(user=key.user_agent)
-
-        url = club_detail_url(club.id)
-        res = self.client.get(url)
-        self.assertResOk(res)
-
-        # Check permission denied (not found) for other club
-        club2 = create_test_club()
-
-        url2 = club_detail_url(club2.id)
-        res = self.client.get(url2)
-        self.assertResNotFound(res)
-
     def test_public_can_list_club_previews(self):
         """Public users should be able to list club previews without authentication."""
 

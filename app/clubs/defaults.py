@@ -7,10 +7,19 @@ from typing import TypedDict
 from clubs.models import RoleType
 
 
-class RolePayloadType(TypedDict):
+class ClubRolePayloadType(TypedDict):
     name: str
-    default: bool
     role_type: RoleType
+    is_default: bool
+    is_executive: bool
+    is_official: bool
+    is_voter: bool
+
+
+class TeamRolePayloadType(TypedDict):
+    name: str
+    role_type: RoleType
+    is_default: bool
 
 
 FOLLOWER_ROLE_PERMISSIONS = []
@@ -74,33 +83,53 @@ EDITOR_ROLE_PERMISSIONS.sort()
 ADMIN_ROLE_PERMISSIONS.sort()
 
 
-INITIAL_CLUB_ROLES: list[RolePayloadType] = [
-    {
-        "name": "Member",
-        "role_type": RoleType.VIEWER,
-        "default": True,
-    },
-    {
-        "name": "Officer",
-        "role_type": RoleType.ADMIN,
-        "default": False,
-    },
-    {
-        "name": "Vice President",
-        "role_type": RoleType.ADMIN,
-        "default": False,
-    },
+INITIAL_CLUB_ROLES: list[ClubRolePayloadType] = [
     {
         "name": "President",
         "role_type": RoleType.ADMIN,
-        "default": False,
+        "is_default": False,
+        "is_executive": True,
+        "is_official": True,
+        "is_voter": True,
     },
-]
-
-INITIAL_TEAM_ROLES: list[RolePayloadType] = [
+    {
+        "name": "Vice-President",
+        "role_type": RoleType.ADMIN,
+        "is_default": False,
+        "is_executive": True,
+        "is_official": True,
+        "is_voter": True,
+    },
+    {
+        "name": "Officer",
+        "role_type": RoleType.EDITOR,
+        "is_default": False,
+        "is_executive": False,
+        "is_official": True,
+        "is_voter": True,
+    },
     {
         "name": "Member",
         "role_type": RoleType.VIEWER,
-        "default": True,
+        "is_default": True,
+        "is_executive": False,
+        "is_official": True,
+        "is_voter": False,
+    },
+    {
+        "name": "Follower",
+        "role_type": RoleType.FOLLOWER,
+        "is_default": False,
+        "is_executive": False,
+        "is_official": False,
+        "is_voter": False,
+    },
+]
+
+INITIAL_TEAM_ROLES: list[TeamRolePayloadType] = [
+    {
+        "name": "Member",
+        "role_type": RoleType.VIEWER,
+        "is_default": True,
     }
 ]
