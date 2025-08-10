@@ -29,6 +29,7 @@ router.register(
     basename="user_clubmembership",
 )
 
+
 app_name = "api-clubs"
 
 urlpatterns = [
