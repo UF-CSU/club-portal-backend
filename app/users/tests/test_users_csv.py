@@ -23,10 +23,12 @@ class UserCsvTests(UploadCsvTestsBase):
         c1 = create_test_club(name="Test Club 1")
         c2 = create_test_club(name="Test Club 2")
 
-        ClubRole.objects.create(club=c1, name="Test Role 1", default=True)
+        ClubRole.objects.create(club=c1, name="Test Role 1", is_default=True)
         ClubRole.objects.create(club=c1, name="Test Role 2")
-        ClubRole.objects.create(club=c2, name="Test Role 3", default=True)
+        ClubRole.objects.create(club=c1, name="Test Role Same")
+        ClubRole.objects.create(club=c2, name="Test Role 3", is_default=True)
         ClubRole.objects.create(club=c2, name="Test Role 4")
+        ClubRole.objects.create(club=c2, name="Test Role Same")
         t1 = Team.objects.create(club=c2, name="Test Team 1")
         t2 = Team.objects.create(club=c2, name="Test Team 2")
 
@@ -42,9 +44,9 @@ class UserCsvTests(UploadCsvTestsBase):
                 "username": fake.user_name(),
                 "profile.name": fake.name(),
                 "club_memberships[0].club": c1.name,
-                "club_memberships[0].roles": "Test Role 1",
+                "club_memberships[0].roles": "Test Role 1, Test Role Same",
                 "club_memberships[1].club": c2.name,
-                "club_memberships[1].roles": "Test Role 3, Test Role 4",
+                "club_memberships[1].roles": "Test Role 3, Test Role 4, Test Role Same",
                 "club_memberships[1].teams": "Test Team 1, Test Team 2",
                 "socials[0].social_type": "linkedin",
                 "socials[0].username": "@example",
@@ -73,9 +75,9 @@ class UserCsvTests(UploadCsvTestsBase):
         c1 = create_test_club(name="Test Club 1")
         c2 = create_test_club(name="Test Club 2")
 
-        ClubRole.objects.create(club=c1, name="Test Role 1", default=True)
+        ClubRole.objects.create(club=c1, name="Test Role 1", is_default=True)
         ClubRole.objects.create(club=c1, name="Test Role 2")
-        ClubRole.objects.create(club=c2, name="Test Role 3", default=True)
+        ClubRole.objects.create(club=c2, name="Test Role 3", is_default=True)
         ClubRole.objects.create(club=c2, name="Test Role 4")
 
         roles_before = ClubRole.objects.count()

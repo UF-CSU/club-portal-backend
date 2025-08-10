@@ -536,8 +536,24 @@ class ClubMembership(ClubScopedModel, ModelBase):
         editable=False,
         help_text="Used to determine if is_owner has changed",
     )
+    order_override = models.PositiveIntegerField(null=True, blank=True)
 
     # Dynamic Properties
+    @property
+    def order(self) -> int:
+        if self.order_override:
+            return self.order_override
+
+        roles = self.roles.order_by("order")
+        if not roles.exists():
+            return 0
+
+        return roles.first().order
+
+    @order.setter
+    def order(self, value: int):
+        self.order_override = value
+
     @property
     def team_memberships(self):
         return self.user.team_memberships.filter(team__club__id=self.club.id)

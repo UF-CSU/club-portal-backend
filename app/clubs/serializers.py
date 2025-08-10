@@ -350,6 +350,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "team_memberships",
             "roles",
             "is_pinned",
+            "order",
         ]
 
 

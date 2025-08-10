@@ -186,6 +186,18 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
 
         return membership
 
+    def run_prevalidation(self, data=None):
+        data.pop("roles", [])
+
+        res = super().run_prevalidation(data)
+
+        club = res.get("club")
+        self.fields["roles"].child_relation.queryset = ClubRole.objects.filter(
+            club=club
+        )
+
+        return res
+
 
 class UserSocialNestedCsvSerializer(CsvModelSerializer):
     """Manage user social profiles in a csv."""

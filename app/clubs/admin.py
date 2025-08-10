@@ -127,7 +127,7 @@ class ClubRoleAdmin(ModelAdminBase):
     csv_serializer_class = ClubRoleCsvSerializer
     form = ClubRoleForm
 
-    list_display = ("name", "club", "role_type", "is_default", "order")
+    list_display = ("name", "club", "role_type", "is_default", "is_executive", "order")
     prefetch_related_fields = ("permissions",)
     search_fields = (
         "name",
