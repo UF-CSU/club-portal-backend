@@ -35,7 +35,7 @@ class EventViewset(ModelViewSetBase):
         return qs
 
     def check_permissions(self, request):
-        if self.action == "list":
+        if self.action == "list" or self.action == "retrieve":
             return super().check_permissions(request)
 
         obj_permission = ObjectViewPermissions()
