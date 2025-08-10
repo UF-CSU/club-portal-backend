@@ -12,8 +12,8 @@ from users.tests.utils import create_test_user
 class EventPublicApiTests(PublicApiTestsBase):
     """Events api tests for guest users."""
 
-    def test_events_unauthorized(self):
-        """Should return 403 if accessing events without authentication."""
+    def test_list_public_events(self):
+        """Should list public events."""
 
         create_test_events(count=5)
 
@@ -30,6 +30,23 @@ class EventPublicApiTests(PublicApiTestsBase):
         self.assertResOk(res)
         data = res.json()
         self.assertEqual(len(data), 5)
+
+    def test_detail_public_events(self):
+        """Should return event if it's marked public."""
+
+        e1 = create_test_event(is_public=True)
+        e2 = create_test_event(is_public=False)
+
+        url1 = event_detail_url(e1.pk)
+        url2 = event_detail_url(e2.pk)
+
+        # Returns public event
+        res1 = self.client.get(url1)
+        self.assertResOk(res1)
+
+        # Returns 404 not found
+        res2 = self.client.get(url2)
+        self.assertResNotFound(res2)
 
 
 class EventPrivateApiTests(PrivateApiTestsBase):
