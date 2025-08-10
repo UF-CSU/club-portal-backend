@@ -11,10 +11,13 @@ class RolePayloadType(TypedDict):
     name: str
     default: bool
     role_type: RoleType
-    # permissions: list[str]
 
+
+FOLLOWER_ROLE_PERMISSIONS = []
+"""View public club info."""
 
 VIEWER_ROLE_PERMISSIONS = [
+    *FOLLOWER_ROLE_PERMISSIONS,
     # Clubs
     "clubs.view_club",
     "clubs.view_club_details",
@@ -28,35 +31,46 @@ VIEWER_ROLE_PERMISSIONS = [
     "events.view_event",
     "events.view_private_event",
 ]
-ADMIN_ROLE_PERMISSIONS = [
+"""View internal club info & stats."""
+
+EDITOR_ROLE_PERMISSIONS = [
     *VIEWER_ROLE_PERMISSIONS,
     # Clubs
     "clubs.change_club",
     "clubs.add_team",
     "clubs.change_team",
-    "clubs.delete_team",
     "clubs.add_clubfile",
     "clubs.change_clubfile",
-    "clubs.delete_clubfile",
     "clubs.add_clubmembership",
     "clubs.change_clubmembership",
+    # Events
+    "events.add_event",
+    "events.change_event",
+    "events.view_recurringevent",
+]
+"""Edit and add permissions with some restrictions."""
+
+ADMIN_ROLE_PERMISSIONS = [
+    *EDITOR_ROLE_PERMISSIONS,
+    # Clubs
+    "clubs.delete_team",
+    "clubs.delete_clubfile",
     "clubs.delete_clubmembership",
     "clubs.add_clubapikey",
     "clubs.view_clubapikey",
     "clubs.change_clubapikey",
     "clubs.delete_clubapikey",
     # Events
-    "events.add_event",
-    "events.change_event",
     "events.delete_event",
-    "events.view_recurringevent",
     "events.add_recurringevent",
     "events.change_recurringevent",
     "events.delete_recurringevent",
 ]
+"""All permissions for a club"""
 
 # Sort permissions lists to use for testing, assertions, etc
 VIEWER_ROLE_PERMISSIONS.sort()
+EDITOR_ROLE_PERMISSIONS.sort()
 ADMIN_ROLE_PERMISSIONS.sort()
 
 

@@ -37,12 +37,16 @@ class RoleType(models.TextChoices):
     """Different types of club roles."""
 
     ADMIN = "admin", _("Admin")
+    EDITOR = "editor", _("Editor")
     VIEWER = "viewer", _("Viewer")
+    FOLLOWER = "follower", _("Follower")
     CUSTOM = "custom", _("Custom")
 
 
 class ClubTag(Tag):
     """Group clubs together based on topics."""
+
+    pass
 
 
 def get_default_founding_year():
@@ -65,12 +69,6 @@ class ClubScopedModel:
     """Attributes required for an object scoped for clubs."""
 
     scope = ScopeType.CLUB
-
-    # @property
-    # def club(self) -> "Club":
-    #     raise NotImplementedError(
-    #         "Club scoped objects must have pointer to primary club."
-    #     )
 
     @property
     def clubs(self) -> models.QuerySet["Club"]:
@@ -224,10 +222,13 @@ class Club(ClubScopedModel, UniqueModel):
 
     @property
     def default_role(self) -> str:
-        return self.roles.get(default=True).name
+        return self.roles.get(is_default=True).name
 
     class Meta:
-        permissions = [("view_club_details", "Can view club details")]
+        permissions = [
+            ("view_club_details", "Can view club details"),
+            ("can_vote", "Can vote"),
+        ]
         ordering = ["name", "-id"]
 
     def save(self, *args, **kwargs):
@@ -365,12 +366,6 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
             club=club, name=name, default=default, role_type=role_type, **kwargs
         )
 
-        # for perm in perm_labels:
-        #     perm = get_permission(perm)
-        #     role.permissions.add(perm)
-
-        # for perm in permissions:
-        #     role.permissions.add(perm)
         role.permissions.set(permissions)
         role.save()
 
@@ -382,16 +377,31 @@ class ClubRole(ClubScopedModel, ModelBase):
 
     name = models.CharField(max_length=32)
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="roles")
-    default = models.BooleanField(
-        default=False,
-        help_text="New members would be automatically assigned this role.",
-    )
-    permissions = models.ManyToManyField(Permission, blank=True)
+
     role_type = models.CharField(
         choices=RoleType.choices, default=RoleType.VIEWER, blank=True
     )
     order = models.PositiveIntegerField(
         default=0, help_text="Used to determine the list ordering of a member"
+    )
+    permissions = models.ManyToManyField(Permission, blank=True)
+
+    # Flags
+    is_default = models.BooleanField(
+        default=False,
+        help_text="New members would be automatically assigned this role.",
+    )
+    is_official = models.BooleanField(
+        default=True,
+        help_text="Users with this role are counted towards official membership tallies.",
+    )
+    is_voter = models.BooleanField(
+        default=False,
+        help_text="Users with this role will be marked as able to vote.",
+    )
+    is_executive = models.BooleanField(
+        default=False,
+        help_text="Users with this role will be returned when a club's executives are queried.",
     )
 
     # Meta fields
@@ -429,7 +439,7 @@ class ClubRole(ClubScopedModel, ModelBase):
 
     def clean(self):
         """Validate and sync club roles on save."""
-        if self.default:
+        if self.is_default:
             # Force all other roles to be false
             self.club.roles.exclude(id=self.id).update(default=False)
 
@@ -437,7 +447,7 @@ class ClubRole(ClubScopedModel, ModelBase):
 
     def delete(self, *args, **kwargs):
         """Preconditions for club role deletion."""
-        assert not self.default, "Cannot delete default club role."
+        assert not self.is_default, "Cannot delete default club role."
 
         return super().delete(*args, **kwargs)
 
@@ -498,13 +508,17 @@ class ClubMembership(ClubScopedModel, ModelBase):
     points = models.IntegerField(default=0, blank=True)
     roles = models.ManyToManyField(ClubRole, blank=True)
 
+    # Flags
     is_owner = models.BooleanField(
         default=False,
         blank=True,
-        help_text="Determines whether user is the sole superadmin for the club",
+        help_text="Determines whether user is the sole superadmin for the club.",
     )
     is_pinned = models.BooleanField(
-        default=False, blank=True, help_text="Club is pinned on user's dashboard"
+        default=False, blank=True, help_text="Club is pinned on user's dashboard."
+    )
+    enable_notifications = models.BooleanField(
+        default=True, help_text="The user get notifications for this club."
     )
 
     # Meta fields
@@ -532,6 +546,11 @@ class ClubMembership(ClubScopedModel, ModelBase):
             models.Q(role_type=RoleType.ADMIN) | models.Q(role_type=RoleType.CUSTOM)
         ).exists()
 
+    @property
+    def is_voter(self) -> bool:
+        """Indicates if a user has a voter role."""
+        return self.roles.filter(is_voter=True).exists()
+
     # Overrides
     objects: ClassVar[ClubMembershipManager] = ClubMembershipManager()
 
@@ -539,6 +558,7 @@ class ClubMembership(ClubScopedModel, ModelBase):
         return self.user.__str__()
 
     class Meta:
+        permissions = [("view_executive_clubmembership", "View executive members")]
         constraints = [
             models.UniqueConstraint(
                 fields=(

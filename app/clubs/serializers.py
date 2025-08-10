@@ -126,7 +126,7 @@ class ClubRoleSerializer(ModelSerializerBase):
 
     class Meta:
         model = ClubRole
-        fields = ["id", "name", "default", "order", "role_type"]
+        fields = ["id", "name", "is_default", "order", "role_type"]
 
 
 class ClubSerializer(ModelSerializerBase):

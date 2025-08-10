@@ -24,11 +24,11 @@ class ClubPermsBasicTests(TestsBase):
 
         member_role = ClubRole.objects.find_one(name="Member")
         self.assertIsNotNone(member_role)
-        self.assertTrue(member_role.default)
+        self.assertTrue(member_role.is_default)
 
         officer_role = ClubRole.objects.find_one(name="Officer")
         self.assertIsNotNone(officer_role)
-        self.assertFalse(officer_role.default)
+        self.assertFalse(officer_role.is_default)
 
     def test_clubs_view_access(self):
         """All users should have view access to allow previews, but only members can see details."""
