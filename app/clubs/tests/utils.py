@@ -33,6 +33,7 @@ def club_apikey_list_url(club_id: int):
 
 CLUBS_LIST_URL = reverse("api-clubs:club-list")
 CLUBS_JOIN_URL = reverse("api-clubs:join")
+CLUBS_PREVIEW_LIST_URL = reverse("api-clubs:clubpreview-list")
 
 
 def club_list_url_member():

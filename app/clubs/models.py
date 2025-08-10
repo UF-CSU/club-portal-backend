@@ -100,7 +100,12 @@ class ClubManager(ManagerBase["Club"]):
 
         if user.is_superuser:
             return self.all()
-        elif user.is_useragent and user.useragent.apikey_type == "club":
+        elif user.is_anonymous:
+            return self.none()
+        elif (
+            getattr(user, "is_useragent", False)
+            and user.useragent.apikey_type == "club"
+        ):
             # TODO: Abstract this useragent club
             return self.filter(id=user.useragent.club_apikey.club.id)
 
@@ -151,6 +156,14 @@ class Club(ClubScopedModel, UniqueModel):
         blank=True, null=True, validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")]
     )
 
+    is_csu_partner = models.BooleanField(
+        default=False, help_text="Is this club shown on the csu site?"
+    )
+    mirror_gatorconnect = models.BooleanField(
+        default=True,
+        help_text="Should this club be updated based on info from gatorconnect?",
+    )
+
     # GatorConnect fields
     gatorconnect_url = models.URLField(
         null=True,
@@ -192,6 +205,22 @@ class Club(ClubScopedModel, UniqueModel):
     @cached_property
     def member_count(self) -> int:
         return self.memberships.count()
+
+    @property
+    def owner(self):
+        """User with a membership marked with `is_owner`."""
+        try:
+            return self.memberships.get(is_owner=True).user
+        except ClubMembership.DoesNotExist:
+            return None
+
+    @property
+    def is_claimed(self):
+        """Club has an owner and that owner can authenticate."""
+        if self.owner:
+            return self.owner.can_authenticate
+        else:
+            return False
 
     @property
     def default_role(self) -> str:

@@ -1,9 +1,9 @@
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, mixins, status
+from rest_framework import exceptions, filters, mixins, permissions, status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
 
 from clubs.models import Club, ClubApiKey, ClubFile, ClubMembership, ClubTag, Team
 from clubs.serializers import (
@@ -22,6 +22,7 @@ from clubs.serializers import (
 from clubs.services import ClubService
 from core.abstracts.viewsets import (
     CustomLimitOffsetPagination,
+    FilterBackendBase,
     ModelViewSetBase,
     ObjectViewDetailsPermissions,
     ViewSetBase,
@@ -63,15 +64,34 @@ class ClubNestedViewSetBase(ModelViewSetBase):
         serializer.save(club=self.club, **kwargs)
 
 
+class IsClubAdminFilter(FilterBackendBase):
+    """Get clubs that a user is an admin of."""
+
+    filter_fields = [{"name": "is_admin", "schema_type": "boolean"}]
+
+    def filter_queryset(self, request, queryset, view):
+        is_admin = request.query_params.get("is_admin", None)
+
+        if is_admin is not None:
+            admin_clubs = list(
+                request.user.club_memberships.filter_is_admin().values_list(
+                    "club__id", flat=True
+                )
+            )
+            queryset = queryset.filter(id__in=admin_clubs)
+
+        return queryset
+
+
 class ClubViewSet(ModelViewSetBase):
     """CRUD Api routes for Club models."""
 
     serializer_class = ClubSerializer
     queryset = Club.objects.all()
     permission_classes = [*ViewSetBase.permission_classes, ObjectViewDetailsPermissions]
+    filter_backends = [IsClubAdminFilter]
 
     def check_permissions(self, request):
-
         if self.detail:
             # Check if the user is a member of specified club
             club_id = int(self.kwargs.get("pk"))
@@ -79,31 +99,13 @@ class ClubViewSet(ModelViewSetBase):
         elif self.action == "list":
             # List permissions are done by queryset, otherwise users without a club
             # would get 403 instead of an empty list.
-            return
+            if not request.user.is_anonymous:
+                return
 
         return super().check_permissions(request)
 
     def get_queryset(self):
         return Club.objects.filter_for_user(self.request.user)
-
-    def filter_queryset(self, queryset):
-        # Filter by whether user is admin
-        is_admin = self.request.query_params.get("is_admin", None)
-
-        if is_admin is not None:
-            admin_clubs = list(
-                self.request.user.club_memberships.filter_is_admin().values_list(
-                    "club__id", flat=True
-                )
-            )
-            queryset = queryset.filter(id__in=admin_clubs)
-
-        # Filter by major
-        majors = self.request.query_params.getlist("majors", None)
-
-        if majors:
-            queryset = queryset.filter(majors__name__in=majors)
-        return super().filter_queryset(queryset)
 
 
 class UserClubMembershipsViewSet(ModelViewSetBase):
@@ -121,9 +123,9 @@ class UserClubMembershipsViewSet(ModelViewSetBase):
         return super().check_object_permissions(request, obj)
 
 
-class ClubPreviewViewSet(
-    mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet
-):
+class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase):
+    """Access limited club data via the API."""
+
     queryset = (
         Club.objects.all()
         .select_related("logo", "banner")
@@ -131,6 +133,13 @@ class ClubPreviewViewSet(
     )
     serializer_class = ClubPreviewSerializer
     pagination_class = CustomLimitOffsetPagination
+
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["name", "alias"]
+    filterset_fields = ["is_csu_partner", "majors__name", "tags"]
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
 
 
 class ClubTagsView(GenericAPIView):
