@@ -24,6 +24,7 @@ class EventViewset(ModelViewSetBase):
     )
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filterset_fields = ["clubs"]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -33,16 +34,8 @@ class EventViewset(ModelViewSetBase):
 
         return qs
 
-    def filter_queryset(self, queryset):
-        clubs = self.request.query_params.getlist("clubs", None)
-
-        if clubs:
-            queryset = queryset.filter(hosts__club__id__in=clubs)
-
-        return super().filter_queryset(queryset)
-
     def check_permissions(self, request):
-        if self.action == "list":
+        if self.action == "list" or self.action == "retrieve":
             return super().check_permissions(request)
 
         obj_permission = ObjectViewPermissions()

@@ -194,19 +194,19 @@ class ClubTeamTests(TestsBase):
         # Sanity check initial role
         self.assertEqual(team.roles.count(), 1)
         r1 = team.roles.first()
-        self.assertTrue(r1.default)
+        self.assertTrue(r1.is_default)
 
         # Create new role
-        r2 = TeamRole.objects.create(team=team, name="Team Admin", default=False)
+        r2 = TeamRole.objects.create(team=team, name="Team Admin", is_default=False)
         self.assertEqual(team.roles.count(), 2)
-        self.assertFalse(r2.default)
+        self.assertFalse(r2.is_default)
 
         # Check setting default
-        r2.default = True
+        r2.is_default = True
         r2.save()
 
         r2.refresh_from_db()
         r1.refresh_from_db()
 
-        self.assertTrue(r2.default)
-        self.assertFalse(r1.default)
+        self.assertTrue(r2.is_default)
+        self.assertFalse(r1.is_default)

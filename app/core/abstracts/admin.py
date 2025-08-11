@@ -215,7 +215,12 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
     def upload_csv(self, request: HttpRequest, extra_context=None):
         """Custom action for uploading csvs through admin."""
 
-        context = {**get_admin_context(request, extra_context)}
+        context = {
+            **get_admin_context(request, extra_context),
+            "object_name": self.opts.object_name,
+            "verbose_name_plural": self.opts.verbose_name_plural,
+        }
+
         return self.csv_views.upload_csv(request, extra_context=context)
 
     def map_upload_csv_headers(self, request: HttpRequest, id: int, extra_context=None):

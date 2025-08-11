@@ -37,9 +37,11 @@ def on_save_club(sender, instance: Club, created=False, **kwargs):
         ClubRole.objects.create(
             club=instance,
             name=role["name"],
-            default=role["default"],
             role_type=role["role_type"],
-            # perm_labels=role["permissions"],
+            is_default=role["is_default"],
+            is_executive=role["is_executive"],
+            is_official=role["is_official"],
+            is_voter=role["is_voter"],
         )
 
 
@@ -54,9 +56,8 @@ def on_save_team(sender, instance: Team, created=False, **kwargs):
         TeamRole.objects.create(
             team=instance,
             name=role["name"],
-            default=role["default"],
             role_type=role["role_type"],
-            # perm_labels=role["permissions"],
+            is_default=role["is_default"],
         )
 
 

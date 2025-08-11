@@ -21,6 +21,7 @@ from clubs.models import (
 from clubs.serializers import (
     ClubCsvSerializer,
     ClubMembershipCsvSerializer,
+    ClubRoleCsvSerializer,
     TeamCsvSerializer,
 )
 from core.abstracts.admin import ModelAdminBase
@@ -63,6 +64,14 @@ class ClubSocialInlineAdmin(admin.TabularInline):
     extra = 0
 
 
+class ClubRoleInlineAdmin(admin.TabularInline):
+    """Manage roles for a club."""
+
+    model = ClubRole
+    extra = 0
+    exclude = ["permissions"]
+
+
 class ClubAdmin(ModelAdminBase):
     """Admin config for Clubs."""
 
@@ -71,6 +80,7 @@ class ClubAdmin(ModelAdminBase):
     inlines = (
         ClubSocialInlineAdmin,
         ClubPhotoInlineAdmin,
+        ClubRoleInlineAdmin,
     )
     filter_horizontal = (
         "tags",
@@ -114,9 +124,10 @@ class ClubRoleForm(forms.ModelForm):
 class ClubRoleAdmin(ModelAdminBase):
     """Manage club roles in admin."""
 
+    csv_serializer_class = ClubRoleCsvSerializer
     form = ClubRoleForm
 
-    list_display = ("name", "club", "role_type", "default", "order")
+    list_display = ("name", "club", "role_type", "is_default", "is_executive", "order")
     prefetch_related_fields = ("permissions",)
     search_fields = (
         "name",
