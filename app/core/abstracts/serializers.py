@@ -24,6 +24,7 @@ class FieldType(Enum):
     UNIQUE = "unique"
     LIST = "list"
     IMAGE = "image"
+    BOOLEAN = "boolean"
 
 
 class SerializerBase(serializers.Serializer):
@@ -103,6 +104,16 @@ class SerializerBase(serializers.Serializer):
             key
             for key, value in self.get_fields().items()
             if isinstance(value, serializers.ImageField)
+        ]
+
+    @cached_property
+    def boolean_fields(self) -> list[str]:
+        """List of fields that are of type BooleanField."""
+
+        return [
+            key
+            for key, value in self.get_fields().items()
+            if isinstance(value, serializers.BooleanField)
         ]
 
     @cached_property
@@ -218,6 +229,9 @@ class SerializerBase(serializers.Serializer):
 
         if field_name in serializer.image_fields:
             field_types.append(FieldType.IMAGE)
+
+        if field_name in serializer.boolean_fields:
+            field_types.append(FieldType.BOOLEAN)
 
         return field_types
 
