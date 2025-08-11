@@ -133,6 +133,21 @@ class EventSerializer(ModelSerializerBase):
             event.attachments.add(attachment_id)
 
         return event
+    
+    def update(self, instance, validated_data):
+        attachment_data = validated_data.pop("attachments", [])
+
+        event = super().update(instance, validated_data)
+
+        event.attachments.clear()
+        
+        for attachment in attachment_data:
+            attachment_id = attachment["id"]
+            event.attachments.add(attachment_id)
+
+
+        return event
+
 
 
 class EventAttendanceUserSerializer(ModelSerializerBase):
