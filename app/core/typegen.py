@@ -24,10 +24,17 @@ from events.serializers import (
 )
 from lib.serializer_typegen import InputSerializerType
 from polls.serializers import (
+    PollChoiceInputOptionSerializer,
+    PollChoiceInputSerializer,
     PollFieldSerializer,
+    PollNumberInputSerializer,
+    PollQuestionSerializer,
+    PollRangeInputSerializer,
     PollSerializer,
     PollSubmissionAnswerSerializer,
     PollSubmissionSerializer,
+    PollTextInputSerializer,
+    PollUploadInputSerializer,
 )
 from users.serializers import SocialProviderSerializer, UserSerializer
 
@@ -49,6 +56,13 @@ SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     UserSerializer,
     PollSerializer,
     PollFieldSerializer,
+    PollQuestionSerializer,
+    PollTextInputSerializer,
+    PollChoiceInputSerializer,
+    PollChoiceInputOptionSerializer,
+    PollRangeInputSerializer,
+    PollUploadInputSerializer,
+    PollNumberInputSerializer,
     PollSubmissionSerializer,
     PollSubmissionAnswerSerializer,
 ]

@@ -27,6 +27,7 @@ Poll
 
 from typing import ClassVar, Optional
 
+from django.contrib.postgres.fields import ArrayField
 from django.core import exceptions
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -205,20 +206,32 @@ class PollField(ModelBase):
         return super().clean()
 
     def save(self, *args, **kwargs):
+        if not self.order:
+            self.set_order()
+
         if self.field_type is None:
             if self.question is not None:
                 self.field_type = PollFieldType.QUESTION
-            elif self.page_break is not None:
-                self.field_type = PollFieldType.PAGE_BREAK
             elif self.markup is not None:
                 self.field_type = PollFieldType.MARKUP
+            elif self.page_break is not None:
+                self.field_type = PollFieldType.PAGE_BREAK
 
         return super().save(*args, **kwargs)
+
+    def set_order(self):
+        """Set order to be last in list."""
+
+        if self.poll.fields.count() > 0:
+            self.order = self.poll.fields.order_by("-order").first().order + 1
+        else:
+            self.order = 1
 
 
 class PollMarkup(ModelBase):
     """Store markdown content for a poll."""
 
+    label = models.CharField(null=True, blank=True)
     field = models.OneToOneField(
         PollField, on_delete=models.CASCADE, related_name="_markup"
     )
@@ -403,6 +416,7 @@ class ChoiceInput(ModelBase):
 
     # Foreign relations
     selections: models.QuerySet["PollQuestionAnswer"]
+    options: models.QuerySet["ChoiceInputOption"]
 
     # Dyanmic properties
     @property
@@ -428,6 +442,7 @@ class ChoiceInputOption(ModelBase):
     label = models.CharField(max_length=100)
     value = models.CharField(blank=True, default="", max_length=100)
     image = models.ImageField(null=True, blank=True)
+    is_default = models.BooleanField(default=False, blank=True)
 
     @property
     def html_name(self):
@@ -440,6 +455,13 @@ class ChoiceInputOption(ModelBase):
     # Overrides
     class Meta:
         ordering = ["order", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_default_option_per_choicefield",
+                fields=["input", "is_default"],
+                condition=models.Q(is_default=True),
+            )
+        ]
 
     def clean(self):
         """Validate data before it hits database."""
@@ -447,6 +469,9 @@ class ChoiceInputOption(ModelBase):
         # Allow user to only provide label, value will sync
         if self.value is None or self.value.strip() == "":
             self.value = self.label
+
+        if not self.input.options.filter(is_default=True).exists():
+            self.is_default = True
 
         return super().clean()
 
@@ -480,8 +505,9 @@ class UploadInput(ModelBase):
         PollQuestion, on_delete=models.CASCADE, related_name="_upload_input"
     )
 
-    # TODO: How to handle list of file types?
-    file_types = models.CharField(default="any")
+    file_types = ArrayField(
+        base_field=models.CharField(max_length=32), blank=True, default=list
+    )
     max_files = models.IntegerField(default=1)
 
     @property

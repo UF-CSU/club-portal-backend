@@ -4,15 +4,11 @@ Convert poll models to json objects.
 
 from rest_framework import serializers
 
-from core.abstracts.serializers import (
-    ModelSerializer,
-    ModelSerializerBase,
-    StringListField,
-)
+from core.abstracts.serializers import ModelSerializer, ModelSerializerBase
 from polls import models
 
 
-class TextInputNestedSerializer(ModelSerializerBase):
+class PollTextInputSerializer(ModelSerializerBase):
     """Show text input in poll question json."""
 
     class Meta:
@@ -20,7 +16,7 @@ class TextInputNestedSerializer(ModelSerializerBase):
         exclude = ["question"]
 
 
-class ChoiceInputOptionNestedSerializer(ModelSerializerBase):
+class PollChoiceInputOptionSerializer(ModelSerializerBase):
     """Show choice input options in poll question json."""
 
     value = serializers.CharField(required=False)
@@ -30,17 +26,17 @@ class ChoiceInputOptionNestedSerializer(ModelSerializerBase):
         exclude = ["input"]
 
 
-class ChoiceInputNestedSerializer(ModelSerializerBase):
+class PollChoiceInputSerializer(ModelSerializerBase):
     """Show choice input in poll question json."""
 
-    options = ChoiceInputOptionNestedSerializer(many=True)
+    options = PollChoiceInputOptionSerializer(many=True)
 
     class Meta:
         model = models.ChoiceInput
         exclude = ["question"]
 
 
-class RangeInputNestedSerializer(ModelSerializerBase):
+class PollRangeInputSerializer(ModelSerializerBase):
     """Show range input in poll question json."""
 
     class Meta:
@@ -48,17 +44,17 @@ class RangeInputNestedSerializer(ModelSerializerBase):
         exclude = ["question"]
 
 
-class UploadInputNestedSerializer(ModelSerializerBase):
+class PollUploadInputSerializer(ModelSerializerBase):
     """Show upload input in poll question json."""
 
-    file_types = StringListField(required=False)
+    # file_types = StringListField(required=False)
 
     class Meta:
         model = models.UploadInput
         exclude = ["question"]
 
 
-class NumberInputNestedSerializer(ModelSerializerBase):
+class PollNumberInputSerializer(ModelSerializerBase):
     """Show number input in poll question json."""
 
     class Meta:
@@ -69,11 +65,11 @@ class NumberInputNestedSerializer(ModelSerializerBase):
 class PollQuestionSerializer(ModelSerializerBase):
     """Show questions nested in poll fields."""
 
-    text_input = TextInputNestedSerializer(required=False)
-    choice_input = ChoiceInputNestedSerializer(required=False)
-    range_input = RangeInputNestedSerializer(required=False)
-    upload_input = UploadInputNestedSerializer(required=False)
-    number_input = NumberInputNestedSerializer(required=False)
+    text_input = PollTextInputSerializer(required=False, allow_null=True)
+    choice_input = PollChoiceInputSerializer(required=False, allow_null=True)
+    range_input = PollRangeInputSerializer(required=False, allow_null=True)
+    upload_input = PollUploadInputSerializer(required=False, allow_null=True)
+    number_input = PollNumberInputSerializer(required=False, allow_null=True)
 
     created_at = None
     updated_at = None
@@ -204,15 +200,16 @@ class PollMarkupNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.PollMarkup
-        fields = ["id", "content", "field"]
+        fields = ["id", "content", "field", "label"]
         extra_kwargs = {"field": {"required": False}}
 
 
 class PollFieldSerializer(ModelSerializerBase):
     """Show poll fields  in polls."""
 
-    question = PollQuestionSerializer(required=False)
-    markup = PollMarkupNestedSerializer(required=False)
+    question = PollQuestionSerializer(required=False, allow_null=True)
+    markup = PollMarkupNestedSerializer(required=False, allow_null=True)
+    order = serializers.IntegerField(required=False)
 
     class Meta:
         model = models.PollField
