@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from core.abstracts.serializers import ModelSerializer, ModelSerializerBase
 from polls import models
+from users.serializers import UserNestedSerializer
 
 
 class PollTextInputSerializer(ModelSerializerBase):
@@ -306,6 +307,8 @@ class PollSerializer(ModelSerializer):
     """JSON definition for polls."""
 
     fields = PollFieldSerializer(many=True, read_only=True)
+    submissions_count = serializers.IntegerField(read_only=True)
+    last_submission_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta:
         model = models.Poll
@@ -337,16 +340,17 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
         ]
 
 
-class PollSubmissionSerializer(ModelSerializer):
+class PollSubmissionSerializer(ModelSerializerBase):
     """A user's submission for a form."""
 
     # Poll id is set in the url
     poll = serializers.PrimaryKeyRelatedField(read_only=True)
     answers = PollSubmissionAnswerSerializer(many=True)
+    user = UserNestedSerializer(read_only=True)
 
     class Meta:
         model = models.PollSubmission
-        fields = ["poll", "answers", "created_at", "updated_at"]
+        fields = ["id", "poll", "user", "answers", "created_at", "updated_at"]
 
     def create(self, validated_data):
         answers = validated_data.pop("answers", None)

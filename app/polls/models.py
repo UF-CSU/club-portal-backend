@@ -25,6 +25,7 @@ Poll
 ```
 """
 
+from datetime import datetime
 from typing import ClassVar, Optional
 
 from django.contrib.postgres.fields import ArrayField
@@ -107,12 +108,25 @@ class Poll(ModelBase):
     poll_type = models.CharField(
         choices=PollType.choices, default=PollType.STANDARD, editable=False
     )
-
-    # Foreign Relationships
-    fields: models.QuerySet["PollField"]
     event = models.OneToOneField(
         Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
     )
+
+    # Foreign Relationships
+    fields: models.QuerySet["PollField"]
+    submissions: models.QuerySet["PollSubmission"]
+
+    # Dynamic properties
+    @property
+    def submissions_count(self):
+        return self.submissions.count()
+
+    @property
+    def last_submission_at(self) -> Optional[datetime]:
+        if not self.submissions.all().exists():
+            return None
+        else:
+            return self.submissions.all().order_by("-created_at").first().created_at
 
     # Overrides
     objects: ClassVar[PollManager] = PollManager()

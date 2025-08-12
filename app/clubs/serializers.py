@@ -387,7 +387,7 @@ class ClubMembershipCreateSerializer(ClubMembershipSerializer):
         return membership
 
 
-class UserNestedSerializer(ModelSerializerBase):
+class ClubUserNestedSerializer(ModelSerializerBase):
     """Display a user within memberships."""
 
     id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
@@ -403,7 +403,7 @@ class UserNestedSerializer(ModelSerializerBase):
 class TeamMembershipSerializer(ModelSerializerBase):
     """List members of a specific team."""
 
-    user = UserNestedSerializer()
+    user = ClubUserNestedSerializer()
     roles = serializers.SlugRelatedField(
         slug_field="name",
         many=True,
@@ -488,7 +488,7 @@ class ClubSocialNestedCsvSerializer(CsvModelSerializer, ClubSocialSerializer):
     """Represents a club's social accounts in a csv."""
 
 
-class UserNestedCsvSerializer(CsvModelSerializer, UserNestedSerializer):
+class UserNestedCsvSerializer(CsvModelSerializer, ClubUserNestedSerializer):
     """Represents a user in a csv."""
 
     id = serializers.CharField(required=False)

@@ -48,7 +48,7 @@ class PollFieldInlineAdmin(StackedInlineBase):
 class PollAdmin(ModelAdminBase):
     """Manage poll objects in admin."""
 
-    list_display = ("__str__", "field_count", "view_poll")
+    list_display = ("__str__", "field_count", "view_poll", "last_submission_at")
 
     inlines = (PollFieldInlineAdmin,)
     readonly_fields = ("field_count", "view_poll")

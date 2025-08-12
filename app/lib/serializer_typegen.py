@@ -114,7 +114,7 @@ declare interface %(name)s {
 FIELD_TPL = TAB + "%(property)s: %(type)s;\n"
 OPTIONAL_FIELD_TPL = TAB + "%(property)s?: %(type)s | null;\n"
 READONLY_FIELD_TPL = TAB + "readonly %(property)s: %(type)s;\n"
-READONLY_OPTIONAL_FIELD_TPL = TAB + "readonly %(property)s?: %(type)s;\n"
+READONLY_OPTIONAL_FIELD_TPL = TAB + "readonly %(property)s?: %(type)s | null;\n"
 
 FIELD_DOC_TPL = TAB + "/** %s */\n"
 
