@@ -127,7 +127,7 @@ class ChoiceOptionInlineAdmin(admin.TabularInline):
 class ChoiceInputAdmin(ModelAdminBase):
     """Manage poll choice inputs in admin."""
 
-    list_display = ("__str__", "options_count")
+    list_display = ("__str__", "poll", "options_count")
     inlines = (ChoiceOptionInlineAdmin,)
 
     def options_count(self, obj):

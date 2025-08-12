@@ -34,6 +34,14 @@ def pollfield_detail_url(poll_id: int, pollfield_id: int):
     return reverse("api-polls:pollfield-detail", args=[poll_id, pollfield_id])
 
 
+def polloption_list_url(poll_id: int, pollfield_id: int):
+    return reverse("api-polls:pollchoiceoption-list", args=[poll_id, pollfield_id])
+
+
+def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
+    return reverse("api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id])
+
+
 class PollViewAuthTests(PrivateApiTestsBase):
     """Test managing polls via REST api and views."""
 
@@ -338,12 +346,13 @@ class PollViewAuthTests(PrivateApiTestsBase):
             update_field_url, data=update_field_payload, format="json"
         )
         self.assertResOk(update_field_res)
+        self.assertEqual(PollQuestion.objects.count(), 1)
 
         add_field_payload = {
             "order": 1,
             "field_type": "question",
             "question": {
-                "label": "New question?",
+                "label": "Second question?",
                 "description": fake.paragraph(),
                 "input_type": "text",
                 "text_input": {
@@ -364,7 +373,84 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(poll.fields.first().field_type, "question")
         self.assertEqual(poll.fields.first().question.label, "Updated question again?")
         self.assertEqual(poll.fields.last().field_type, "question")
-        self.assertEqual(poll.fields.last().question.label, "New question?")
+        self.assertEqual(poll.fields.last().question.label, "Second question?")
+
+    def test_update_choice_options(self):
+        """Should be able to update the options for a choice field."""
+
+        # Create initial poll and choice field
+        poll = Poll.objects.create(
+            name=fake.title(),
+            description=fake.paragraph(),
+        )
+
+        payload = {
+            "order": 0,
+            "field_type": "question",
+            "question": {
+                "label": "Updated question?",
+                "description": fake.paragraph(),
+                "input_type": "choice",
+                "choice_input": {
+                    "multiple": True,
+                    "multiple_choice_type": "select",
+                    "options": [
+                        {
+                            "label": "Option 1",
+                        },
+                        {
+                            "label": "Option 2",
+                        },
+                    ],
+                },
+            },
+        }
+
+        url = pollfield_list_url(poll.pk)
+
+        res = self.client.post(url, data=payload)
+        self.assertResCreated(res)
+
+        # Add field to another poll
+        poll2 = Poll.objects.create(
+            name=fake.title(),
+            description=fake.paragraph(),
+        )
+        url = pollfield_list_url(poll2.pk)
+        res = self.client.post(url, data=payload)
+        self.assertResCreated(res)
+
+        # Get options
+        field = poll.fields.first()
+        self.assertIsNotNone(field)
+        url = polloption_list_url(poll.id, field.id)
+
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertLength(data, 2)
+
+        # Add option
+        payload = {"label": "Option 3", "value": "three"}
+        res = self.client.post(url, payload)
+        self.assertResCreated(res)
+        self.assertEqual(field.question.choice_input.options.count(), 3)
+
+        # Update option
+        choice = ChoiceInputOption.objects.get(label="Option 3")
+        url = polloption_detail_url(poll.id, field.id, choice.id)
+        payload = {"label": "Option 03 updated"}
+        res = self.client.patch(url, payload)
+        self.assertResOk(res)
+
+        choice.refresh_from_db()
+        self.assertEqual(choice.label, "Option 03 updated")
+
+        # Remove option
+        res = self.client.delete(url)
+        self.assertResNoContent(res)
+        self.assertFalse(ChoiceInputOption.objects.filter(id=choice.id).exists())
 
     def test_delete_poll(self):
         """Should delete poll via api."""

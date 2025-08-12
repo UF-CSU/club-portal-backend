@@ -206,7 +206,7 @@ class PollField(ModelBase):
         return super().clean()
 
     def save(self, *args, **kwargs):
-        if not self.order:
+        if self.order is None:
             self.set_order()
 
         if self.field_type is None:
@@ -428,7 +428,11 @@ class ChoiceInput(ModelBase):
         ordering = ["question__field", "-id"]
 
     def __str__(self):
-        return f"{self.question.field} - {self.widget}"
+        return f"{self.question} - {self.widget}"
+
+    @property
+    def poll(self):
+        return self.question.field.poll
 
 
 class ChoiceInputOption(ModelBase):
@@ -438,7 +442,7 @@ class ChoiceInputOption(ModelBase):
         ChoiceInput, on_delete=models.CASCADE, related_name="options"
     )
 
-    order = models.IntegerField()
+    order = models.IntegerField(blank=True)
     label = models.CharField(max_length=100)
     value = models.CharField(blank=True, default="", max_length=100)
     image = models.ImageField(null=True, blank=True)
@@ -463,6 +467,11 @@ class ChoiceInputOption(ModelBase):
             )
         ]
 
+    def save(self, *args, **kwargs):
+        if self.order is None:
+            self.set_order()
+        return super().save(*args, **kwargs)
+
     def clean(self):
         """Validate data before it hits database."""
 
@@ -474,6 +483,15 @@ class ChoiceInputOption(ModelBase):
             self.is_default = True
 
         return super().clean()
+
+    # Methods
+    def set_order(self):
+        """Set order to be last in list."""
+
+        if self.input.options.count() > 0:
+            self.order = self.input.options.order_by("-order").first().order + 1
+        else:
+            self.order = 1
 
 
 class RangeInput(ModelBase):

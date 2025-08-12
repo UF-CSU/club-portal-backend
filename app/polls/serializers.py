@@ -136,7 +136,7 @@ class PollQuestionSerializer(ModelSerializerBase):
         # Update or create inputs based on input_type
         if question.input_type == "text" and text_input is not None:
             try:
-                existing_input = question._text_input
+                existing_input = question.text_input
                 for attr, value in text_input.items():
                     setattr(existing_input, attr, value)
                 existing_input.save()

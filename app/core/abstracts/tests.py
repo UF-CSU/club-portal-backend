@@ -234,7 +234,7 @@ class PrivateApiTestsBase(PublicApiTestsBase):
 
         self.user = self.create_authenticated_user()
 
-        self.client = APIClient()
+        self.client = APIClientWrapper()
         self.client.force_authenticate(user=self.user)
 
 
