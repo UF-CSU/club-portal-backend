@@ -150,6 +150,8 @@ class Poll(ModelBase):
         related_name="+",
     )
 
+    # TODO: Add enable_profile_fields to allow adding base user form
+
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
     submissions: models.QuerySet["PollSubmission"]

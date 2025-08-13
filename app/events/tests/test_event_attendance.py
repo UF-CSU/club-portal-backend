@@ -6,7 +6,7 @@ from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from events.models import EventAttendance
 from events.tests.utils import create_test_event, event_attendance_list_url
 from lib.faker import fake
-from polls.models import Poll, PollField, PollInputType, PollQuestion, PollSubmission
+from polls.models import PollField, PollInputType, PollQuestion, PollSubmission
 from users.models import User
 from users.tests.utils import create_test_user, create_test_users
 
@@ -76,7 +76,8 @@ class EventAttendancePublicTests(PublicApiTestsBase):
     def create_event_poll(self, require_submission: bool = True):
         """Create mock poll for event."""
 
-        poll = Poll.objects.create(name="Test poll", event=self.event)
+        # poll = Poll.objects.create(name="Test poll", event=self.event)
+        poll = self.event.poll
         field = PollField.objects.create(poll, order=0)
         # This would probably be a choice field, but use text for simplicity
         question = PollQuestion.objects.create(
@@ -377,6 +378,23 @@ class EventAttendancePublicTests(PublicApiTestsBase):
         self.assertResCreated(res)
         self.assertUserAttendedEvent(user=user, attendance_count=1)
         self.assertValidSubmission(q, user=user, text_value="MD")
+
+
+class EventAttendanceEdgeCasesTests(PublicApiTestsBase):
+    """Check various edge cases with attendance tracking."""
+
+    def test_event_attendance_not_enabled(self):
+        """Should not allow attendance if disabled."""
+
+        event = create_test_event(enable_attendance=False)
+        self.assertIsNone(event.poll)
+
+        url = event_attendance_list_url(event.pk)
+        payload = {
+            "user": {"email": fake.safe_email(), "profile": {"name": fake.name()}},
+        }
+        res = self.client.post(url, payload, format="json")
+        self.assertResBadRequest(res)
 
 
 class EventAttendancePrivateTests(PrivateApiTestsBase):

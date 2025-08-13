@@ -344,7 +344,6 @@ class RecurringEventTests(TestsBase):
         self.assertTrue(e1.attendances.count(), 1)
 
     @freeze_time("2025-08-03")
-    # @patch("django.utils.timezone.now")
     def test_sync_events_prevent_past_updates(self):
         """Should not update/delete past events."""
 

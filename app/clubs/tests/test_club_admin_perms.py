@@ -109,7 +109,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         # Other club
         payload = {"file": create_test_uploadable_image()}
         url = club_file_list_url(self.other_club.id)
-        res = self.client.post(url, payload)
+        res = self.client.post(url, payload, format=None)
         self.assertResNotFound(res)
 
         self.assertEqual(ClubFile.objects.count(), file_count_before)

@@ -1,7 +1,7 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
-from rest_framework import mixins, permissions, status
+from rest_framework import exceptions, mixins, permissions, status
 from rest_framework.response import Response
 
 from clubs.models import Club
@@ -140,8 +140,12 @@ class EventAttendanceViewSet(
         event_id = int(self.kwargs.get("event_id"))
         self.event = get_object_or_404(Event, id=event_id)
 
-        if self.action == "create":
+        if self.action == "create" and self.event.enable_attendance:
             return True
+        elif self.action == "create" and not self.event.enable_attendance:
+            raise exceptions.ParseError(
+                detail=f"Attendance is disabled for event with id {event_id}"
+            )
 
         super().check_permissions(request)
 

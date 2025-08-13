@@ -3,6 +3,7 @@ from django.dispatch import receiver
 
 from events.models import Event
 from events.services import EventService
+from polls.models import Poll
 
 
 @receiver(post_save, sender=Event)
@@ -11,10 +12,14 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
 
     service = EventService(instance)
 
-    # Create an attendance link for each club.
-    # Each link will create the same attendance object, but
-    # this allows each club to track their own marketing effectiveness.
-    service.sync_hosts_attendance_links()
+    if instance.enable_attendance:
+        # Create an attendance link for each club.
+        # Each link will create the same attendance object, but
+        # this allows each club to track their own marketing effectiveness.
+        service.sync_hosts_attendance_links()
+
+        if not instance.poll:
+            Poll.objects.create(name=f'Form for "{instance.name}"', event=instance)
 
     # Make a job for scheduling event as public
     if instance.make_public_task is None and instance.make_public_at is not None:

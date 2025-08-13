@@ -89,6 +89,9 @@ class EventFields(ClubScopedModel, ModelBase):
     attachments = models.ManyToManyField(
         ClubFile, blank=True, related_name="%(class)ss"
     )
+    enable_attendance = models.BooleanField(
+        default=True, help_text="Create poll for event and users to attend."
+    )
 
     class Meta:
         abstract = True
@@ -218,6 +221,7 @@ class RecurringEvent(EventFields):
             "event_type": self.event_type,
             "is_public": self.is_public,
             "description": self.description,
+            "enable_attendance": self.enable_attendance,
         }
 
 
