@@ -1,3 +1,4 @@
+from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from polls.models import (
     ChoiceInput,
@@ -7,6 +8,7 @@ from polls.models import (
     PollInputType,
     PollMarkup,
     PollQuestion,
+    PollStatusType,
     PollSubmission,
     PollTemplate,
     TextInput,
@@ -75,3 +77,83 @@ class PollService(ServiceBase[Poll]):
 
         for answer in submission.answers.all():
             pass
+
+    def _remove_task(self, field):
+        task = getattr(self.obj, field)
+        setattr(self.obj, field, None)
+        task.delete()
+
+    def _schedule_poll_open(self):
+        """Maked a periodic task for opening the poll."""
+
+        if self.obj.open_task is not None:
+            self._remove_task("open_task")
+
+        task = schedule_clocked_func(
+            name=f"Set {self.obj.name} as open",
+            due_at=self.obj.open_at,
+            func=set_poll_status,
+            kwargs={"poll_id": self.obj.id, "status": PollStatusType.OPEN},
+        )
+        self.obj.open_task = task
+
+    def _schedule_poll_close(self):
+        """Maked a periodic task for closing the poll."""
+
+        if self.obj.close_task is not None:
+            self._remove_task("close_task")
+
+        task = schedule_clocked_func(
+            name=f"Set {self.obj.name} as closed",
+            due_at=self.obj.close_at,
+            func=set_poll_status,
+            kwargs={"poll_id": self.obj.id, "status": PollStatusType.CLOSED},
+        )
+        self.obj.close_task = task
+
+    def sync_status_tasks(self):
+        """
+        Ensure the poll has periodic tasks if `open_at` and/or `close_at` are set.
+        """
+
+        poll = self.obj
+        poll.refresh_from_db()
+
+        has_open_at = poll.open_at is not None
+        has_open_task = poll.open_task is not None
+        has_close_at = poll.close_at is not None
+        has_close_task = poll.close_task is not None
+
+        # Sync open task
+        if not has_open_at and has_open_task:
+            self._remove_task("open_task")
+        elif has_open_at and not has_open_task:
+            self._schedule_poll_open()
+        elif (
+            has_open_at
+            and has_open_task
+            and poll.open_at != poll.open_task.clocked.clocked_time
+        ):
+            self._schedule_poll_open()
+
+        # Sync close task
+        if not has_close_at and has_close_task:
+            self._remove_task("close_task")
+        elif has_close_at and not has_close_task:
+            self._schedule_poll_close()
+        elif (
+            has_close_at
+            and has_close_task
+            and poll.close_at != poll.close_task.clocked.clocked_time
+        ):
+            self._schedule_poll_close()
+
+        poll.save()
+
+
+def set_poll_status(poll_id: int, status: PollStatusType):
+    """Set a poll as open."""
+
+    poll = Poll.objects.get_by_id(poll_id)
+    poll.status = status
+    poll.save()

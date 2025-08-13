@@ -1,6 +1,161 @@
-from core.abstracts.tests import TestsBase
-from polls.models import PollTemplate
+from unittest.mock import patch
+
+import pytz
+from django.utils import timezone
+
+from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
+from lib.faker import fake
+from polls.models import Poll, PollStatusType, PollTemplate
 from polls.services import PollTemplateService
+
+
+def create_test_poll(**kwargs):
+    """Create mock poll for testing."""
+
+    payload = {"name": fake.title(), "description": fake.paragraph(), **kwargs}
+
+    return Poll.objects.create(**payload)
+
+
+class PollServiceTests(PeriodicTaskTestsBase):
+    """Unit tests for poll services."""
+
+    def assertOpenDatesSynced(self, poll: Poll):
+        """Poll's `open_at` field should equal time on open periodic task."""
+
+        self.assertFalse(poll.are_tasks_out_of_sync)
+
+        if poll.open_at is not None:
+            self.assertIsNotNone(poll.open_task)
+            self.assertEqual(poll.open_at, poll.open_task.clocked.clocked_time)
+        else:
+            self.assertIsNone(poll.open_task)
+
+    def assertCloseDatesSynced(self, poll: Poll):
+        """Poll's `open_at` field should equal time on open periodic task."""
+
+        self.assertFalse(poll.are_tasks_out_of_sync)
+
+        if poll.close_at is not None:
+            self.assertIsNotNone(poll.close_task)
+            self.assertEqual(poll.close_at, poll.close_task.clocked.clocked_time)
+        else:
+            self.assertIsNone(poll.close_task)
+
+    def assertDatesSynced(self, poll: Poll):
+        """Check `open_at` and `close_at` dates are synced."""
+
+        self.assertOpenDatesSynced(poll)
+        self.assertCloseDatesSynced(poll)
+
+    def test_set_poll_open_at(self):
+        """Setting poll open date should change status to scheduled."""
+
+        poll = create_test_poll()
+        self.assertEqual(poll.status, PollStatusType.DRAFT)
+        self.assertDatesSynced(poll)
+
+        # Publish poll
+        poll.is_published = True
+        poll.save()
+        self.assertEqual(poll.status, PollStatusType.OPEN)
+        self.assertIsNone(poll.open_task)
+        self.assertIsNone(poll.close_task)
+
+        # Test setting to future date
+        poll.open_at = timezone.now() + timezone.timedelta(days=1)
+        poll.save()
+        poll.refresh_from_db()
+        self.assertEqual(poll.status, PollStatusType.SCHEDULED)
+        self.assertDatesSynced(poll)
+
+        # Test setting to past date
+        poll.open_at = timezone.now() - timezone.timedelta(days=1)
+        poll.save()
+        poll.refresh_from_db()
+        self.assertEqual(poll.status, PollStatusType.OPEN)
+        self.assertDatesSynced(poll)
+
+        # Test setting close date
+        poll.close_at = timezone.now() - timezone.timedelta(hours=1)
+        poll.save()
+        poll.refresh_from_db()
+        self.assertEqual(poll.status, PollStatusType.CLOSED)
+        self.assertDatesSynced(poll)
+
+    def test_poll_scheduling(self):
+        """Periodic tasks should be created when setting open/close dates."""
+
+        poll = create_test_poll()
+        self.assertIsNone(poll.open_task)
+        self.assertIsNone(poll.close_task)
+        poll.is_published = True
+        poll.save()
+        poll.refresh_from_db()
+
+        # Setting open, not closed
+        poll.open_at = timezone.now() + timezone.timedelta(days=1)
+        poll.save()
+        poll.refresh_from_db()
+        self.assertIsNotNone(poll.open_at)
+        self.assertIsNone(poll.close_at)
+        self.assertDatesSynced(poll)
+        self.assertEqual(poll.status, PollStatusType.SCHEDULED)
+
+        # Changing open time
+        poll.open_at = timezone.now() + timezone.timedelta(days=1)
+        poll.save()
+        poll.refresh_from_db()
+        self.assertDatesSynced(poll)
+        self.assertEqual(poll.status, PollStatusType.SCHEDULED)
+
+        # Removing open time
+        poll.open_at = None
+        poll.save()
+        poll.refresh_from_db()
+        self.assertDatesSynced(poll)
+        self.assertEqual(poll.status, PollStatusType.OPEN)
+
+    @patch("django.utils.timezone.now")
+    def test_poll_scheduled_task(self, timezone_now):
+        """Should set poll to open or close after a delay."""
+
+        timezone_now.return_value = timezone.datetime.now(tz=pytz.utc)
+
+        poll = create_test_poll()
+        poll.is_published = True
+        poll.open_at = timezone.now() + timezone.timedelta(days=1)
+        poll.close_at = timezone.now() + timezone.timedelta(days=2)
+        poll.save()
+        poll.refresh_from_db()
+
+        self.assertIsNotNone(poll.open_task)
+        self.assertIsNotNone(poll.close_task)
+        self.assertEqual(poll.status, PollStatusType.SCHEDULED)
+
+        # Set time to be within poll open time
+        timezone_now.return_value = timezone.datetime.now(
+            tz=pytz.utc
+        ) + timezone.timedelta(days=1, hours=1)
+
+        # Check running open task
+        self.assertRunPeriodicTask(
+            poll.open_task, check_params={"status": PollStatusType.OPEN}
+        )
+        poll.refresh_from_db()
+        self.assertEqual(poll.status, PollStatusType.OPEN)
+
+        # Set time to be after poll open time
+        timezone_now.return_value = timezone.datetime.now(
+            tz=pytz.utc
+        ) + timezone.timedelta(days=2, hours=1)
+
+        # Check running close task
+        self.assertRunPeriodicTask(
+            poll.open_task, check_params={"status": PollStatusType.OPEN}
+        )
+        poll.refresh_from_db()
+        self.assertEqual(poll.status, PollStatusType.CLOSED)
 
 
 class PollTemplateServiceTests(TestsBase):

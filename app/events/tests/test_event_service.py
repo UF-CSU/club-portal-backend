@@ -34,7 +34,7 @@ class EventServiceTests(PeriodicTaskTestsBase):
         self.assertEqual(PeriodicTask.objects.count(), pt_before + 1)
 
         event.refresh_from_db()
-        self.run_clocked_func(event.make_public_task)
+        self.assertRunPeriodicTask(event.make_public_task)
 
         event.refresh_from_db()
         self.assertTrue(event.is_public)

@@ -32,7 +32,9 @@ from django.contrib.postgres.fields import ArrayField
 from django.core import exceptions
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django_celery_beat.models import PeriodicTask
 
 from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
@@ -44,6 +46,16 @@ class PollType(models.TextChoices):
 
     STANDARD = "standard", _("Standard")
     TEMPLATE = "template", _("Template")
+
+
+class PollStatusType(models.TextChoices):
+    """Different states the poll can exist in."""
+
+    OPEN = "open", _("Open")
+    CLOSED = "closed", _("Closed")
+    SCHEDULED = "scheduled", _("Scheduled")
+    DRAFT = "draft", _("Draft")
+    # CANCELED = "canceled", _("Canceled")
 
 
 class PollInputType(models.TextChoices):
@@ -112,6 +124,32 @@ class Poll(ModelBase):
         Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
     )
 
+    status = models.CharField(
+        choices=PollStatusType.choices,
+        default=PollStatusType.DRAFT,
+        blank=True,
+        editable=False,
+    )
+    open_at = models.DateTimeField(null=True, blank=True)
+    close_at = models.DateTimeField(null=True, blank=True)
+
+    open_task = models.ForeignKey(
+        PeriodicTask,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+    close_task = models.ForeignKey(
+        PeriodicTask,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
     submissions: models.QuerySet["PollSubmission"]
@@ -128,6 +166,45 @@ class Poll(ModelBase):
         else:
             return self.submissions.all().order_by("-created_at").first().created_at
 
+    @property
+    def are_tasks_out_of_sync(self):
+        """Returns true if open/close schedules need to be synced."""
+
+        if self.open_at is not None and self.open_task is None:
+            return True
+        elif self.open_at is None and self.open_task is not None:
+            return True
+        elif self.close_at is not None and self.close_task is None:
+            return True
+        elif self.close_at is None and self.close_task is not None:
+            return True
+        elif (
+            self.open_at is not None
+            and self.open_task is not None
+            and self.open_at != self.open_task.clocked.clocked_time
+        ):
+            return True
+        elif (
+            self.close_at is not None
+            and self.close_task is not None
+            and self.close_at != self.close_task.clocked.clocked_time
+        ):
+            return True
+
+        return False
+
+    @property
+    def is_published(self):
+        return self.status != PollStatusType.DRAFT
+
+    @is_published.setter
+    def is_published(self, value: bool):
+        if value is False:
+            self.status = PollStatusType.DRAFT
+            return
+
+        self.sync_status(override_draft=True, commit=False)
+
     # Overrides
     objects: ClassVar[PollManager] = PollManager()
 
@@ -135,7 +212,57 @@ class Poll(ModelBase):
         if hasattr(self, "polltemplate"):
             self.poll_type = PollType.TEMPLATE
 
+        self.sync_status(commit=False)
+
+        # if self.open_at is not None and self.status == PollStatusType.DRAFT:
+        #     # Set status to scheduled if just added open at date
+        #     self.status = PollStatusType.SCHEDULED
+        # elif self.open_at is None and self.status == PollStatusType.OPEN:
+        #     # If user set status to open, automatically set open_at to now
+        #     self.open_at = timezone.now()
+
         return super().save(*args, **kwargs)
+
+    def clean(self):
+        if (
+            self.open_at is not None and self.close_at is not None
+        ) and self.open_at > self.close_at:
+            raise exceptions.ValidationError(
+                "Open date cannot be greater than the close date"
+            )
+
+        return super().clean()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="poll_close_date_must_have_start_date",
+                check=(
+                    ~(models.Q(close_at__isnull=False) & models.Q(open_at__isnull=True))
+                ),
+            ),
+        ]
+
+    # Methods
+    def sync_status(self, override_draft=False, commit=True):
+        """Set status based on open/close dates."""
+
+        if not override_draft and self.status == PollStatusType.DRAFT:
+            return
+
+        if self.open_at is None and self.close_at is None:
+            self.status = PollStatusType.OPEN
+        elif self.open_at <= timezone.now() and (
+            self.close_at is None or self.close_at > timezone.now()
+        ):
+            self.status = PollStatusType.OPEN
+        elif self.open_at <= timezone.now() and self.close_at <= timezone.now():
+            self.status = PollStatusType.CLOSED
+        elif self.open_at > timezone.now():
+            self.status = PollStatusType.SCHEDULED
+
+        if commit:
+            self.save()
 
     def add_field(self, field_type: PollFieldType):
         """Add new question, markup, or page break to a poll."""
@@ -183,7 +310,7 @@ class PollField(ModelBase):
     field_type = models.CharField(
         choices=PollFieldType.choices, default=PollFieldType.QUESTION
     )
-    order = models.IntegerField()
+    order = models.IntegerField(blank=True)
 
     # Dynamic properties
     @property
@@ -461,6 +588,7 @@ class ChoiceInputOption(ModelBase):
     value = models.CharField(blank=True, default="", max_length=100)
     image = models.ImageField(null=True, blank=True)
     is_default = models.BooleanField(default=False, blank=True)
+    # is_other = models.BooleanField(default=False, blank=True)
 
     @property
     def html_name(self):
@@ -581,6 +709,7 @@ class PollSubmission(ModelBase):
     )
 
     error = models.CharField(null=True, blank=True)
+    is_complete = models.BooleanField(default=True, blank=True)
 
     # Foreign relations
     answers: models.QuerySet["PollQuestionAnswer"]
@@ -588,6 +717,14 @@ class PollSubmission(ModelBase):
     # Overrides
     def __str__(self):
         return f"Submission from {self.user or 'anonymous'}"
+
+    # class Meta:
+    #     constraints = [
+    #         models.CheckConstraint(
+    #             name="submission_cant_have_error_and_be_complete",
+    #             check=(~(models.Q(error__isnull=False) & models.Q(is_complete=True))),
+    #         )
+    #     ]
 
     # Dynamic properties
     @property
@@ -629,6 +766,9 @@ class PollQuestionAnswer(ModelBase):
     options_value = models.ManyToManyField(
         ChoiceInputOption, blank=True, related_name="selections"
     )
+
+    # # Only one other option is allowed for a question
+    # other_option_value = models.CharField(null=True, blank=True)
 
     # Validation
     error = models.CharField(

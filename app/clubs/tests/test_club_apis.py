@@ -97,7 +97,7 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
         url = club_invite_url(self.club.id)
         payload = {"emails": [fake.safe_email() for _ in range(email_count)]}
 
-        res = self.client.post(url, payload)
+        res = self.client.post(url, payload, format=None)
         self.assertResAccepted(res)
         self.assertEmailsSent(email_count)
 
