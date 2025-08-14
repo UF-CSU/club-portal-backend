@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@react-email/render": "^1.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.1"
+  }
+}
