@@ -436,12 +436,13 @@ class TypeGenerator:
             properties.append(field_prop)
             ignore_fields.append(serializer.pk_field)  # No on else should handle it
 
+        simple_fields = [
+            field for field in serializer.simple_fields if field not in ignore_fields
+        ]
+
         # Generate required fields
         for field_name in serializer.required_fields:
-            if (
-                field_name not in serializer.simple_fields
-                or field_name in ignore_fields
-            ):
+            if field_name not in simple_fields:
                 continue
 
             field_prop = gen_prop(field_name, required=True)
@@ -449,10 +450,7 @@ class TypeGenerator:
 
         # Generate optional fields
         for field_name in serializer.optional_fields:
-            if (
-                field_name not in serializer.simple_fields
-                or field_name in ignore_fields
-            ):
+            if field_name not in simple_fields:
                 continue
 
             field_prop = gen_prop(field_name, required=False)

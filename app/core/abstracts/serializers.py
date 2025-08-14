@@ -117,6 +117,16 @@ class SerializerBase(serializers.Serializer):
         ]
 
     @cached_property
+    def choice_fields(self) -> list[str]:
+        """List of fields that have choices."""
+
+        return [
+            key
+            for key, value in self.get_fields().items()
+            if isinstance(value, serializers.ChoiceField)
+        ]
+
+    @cached_property
     def simple_fields(self) -> list[str]:
         """List of all fields that are not lists or nested objects."""
 

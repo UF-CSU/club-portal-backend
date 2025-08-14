@@ -1,5 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 from events.models import Event
 from events.services import EventService
@@ -19,7 +20,13 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
         service.sync_hosts_attendance_links()
 
         if not instance.poll:
-            Poll.objects.create(name=f'Form for "{instance.name}"', event=instance)
+            Poll.objects.create(
+                name=instance.__str__(),
+                event=instance,
+                open_at=instance.start_at - timezone.timedelta(minutes=30),
+                close_at=instance.end_at,
+                is_published=True,
+            )
 
     # Make a job for scheduling event as public
     if instance.make_public_task is None and instance.make_public_at is not None:

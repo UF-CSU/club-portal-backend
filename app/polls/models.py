@@ -109,7 +109,14 @@ class PollManager(ManagerBase["Poll"]):
     """Manage queries for polls."""
 
     def create(self, name: str, **kwargs):
-        return super().create(name=name, **kwargs)
+        is_published = kwargs.pop("is_published", False)
+        poll = super().create(name=name, **kwargs)
+
+        if is_published:
+            poll.is_published = True
+            poll.save()
+
+        return poll
 
 
 class Poll(ModelBase):
@@ -127,7 +134,6 @@ class Poll(ModelBase):
     status = models.CharField(
         choices=PollStatusType.choices,
         default=PollStatusType.DRAFT,
-        blank=True,
         editable=False,
     )
     open_at = models.DateTimeField(null=True, blank=True)
@@ -236,6 +242,7 @@ class Poll(ModelBase):
         return super().clean()
 
     class Meta:
+        ordering = ["-open_at"]
         constraints = [
             models.CheckConstraint(
                 name="poll_close_date_must_have_start_date",

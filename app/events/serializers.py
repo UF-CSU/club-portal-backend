@@ -16,8 +16,6 @@ from events.models import (
 from events.tasks import sync_recurring_event_task
 from lib.celery import delay_task
 from polls.models import (
-    ChoiceInput,
-    ChoiceInputOption,
     PollInputType,
     PollQuestionAnswer,
     PollSubmission,
@@ -233,20 +231,28 @@ class EventAttendanceSerializer(ModelSerializerBase):
                                 number_value=answer["number_value"],
                             )
                         case PollInputType.CHOICE:
-                            choice_input = ChoiceInput.objects.get(
-                                question=poll_question
-                            )
+                            # choice_input = ChoiceInput.objects.get(
+                            #     question=poll_question
+                            # )
                             options_data = answer.pop("options_value", [])
-                            selected_options = [
-                                ChoiceInputOption.objects.get(
-                                    input=choice_input, value=selected_option
-                                )
-                                for selected_option in options_data
-                            ]
+                            # print("input:", choice_input)
+                            # print(
+                            #     "options:",
+                            #     ChoiceInputOption.objects.filter(
+                            #         input=choice_input
+                            #     ).values_list("value", flat=True),
+                            # )
+                            # print('selected options:', options_data)
+                            # selected_options = [
+                            #     ChoiceInputOption.objects.get(
+                            #         input__id=choice_input.id, value=selected_option
+                            #     )
+                            #     for selected_option in options_data
+                            # ]
                             PollQuestionAnswer.objects.create(
                                 question=poll_question,
                                 submission=submission,
-                                options_value=selected_options,
+                                options_value=options_data,
                             )
                         case _:
                             raise serializers.ValidationError(

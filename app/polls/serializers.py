@@ -5,6 +5,7 @@ Convert poll models to json objects.
 from rest_framework import serializers
 
 from core.abstracts.serializers import ModelSerializer, ModelSerializerBase
+from events.models import Event
 from polls import models
 from users.serializers import UserNestedSerializer
 
@@ -303,16 +304,30 @@ class PollFieldSerializer(ModelSerializerBase):
         return field
 
 
+class PollEventNestedSerializer(ModelSerializerBase):
+    """Show event for a poll."""
+
+    class Meta:
+        model = Event
+        fields = ["id", "name", "start_at", "end_at"]
+
+
 class PollSerializer(ModelSerializer):
     """JSON definition for polls."""
 
     fields = PollFieldSerializer(many=True, read_only=True)
     submissions_count = serializers.IntegerField(read_only=True)
     last_submission_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    is_published = serializers.BooleanField(required=False)
+    status = serializers.ChoiceField(
+        choices=models.PollStatusType.choices, read_only=True
+    )
+    poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
+    event = PollEventNestedSerializer(required=False, allow_null=True)
 
     class Meta:
         model = models.Poll
-        fields = "__all__"
+        exclude = ["open_task", "close_task"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
