@@ -48,10 +48,20 @@ class PollFieldInlineAdmin(StackedInlineBase):
 class PollAdmin(ModelAdminBase):
     """Manage poll objects in admin."""
 
-    list_display = ("__str__", "field_count", "view_poll", "last_submission_at")
+    list_display = (
+        "__str__",
+        "field_count",
+        "view_poll",
+        "submissions_count",
+        "last_submission_at",
+    )
 
     inlines = (PollFieldInlineAdmin,)
-    readonly_fields = ("field_count", "view_poll")
+    readonly_fields = (
+        "field_count",
+        "view_poll",
+        "submissions_download_link",
+    )
 
     def field_count(self, obj):
         return obj.fields.count()
@@ -62,6 +72,9 @@ class PollAdmin(ModelAdminBase):
         return mark_safe(
             f"<a href=\"{reverse('polls:poll', kwargs={'poll_id': obj.id})}\" target='_blank'>View Poll</a>"
         )
+
+    def submissions_download_link(self, obj):
+        return self.as_link(obj.submissions_download_url)
 
 
 class TextInputInlineAdmin(admin.TabularInline):

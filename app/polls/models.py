@@ -32,13 +32,16 @@ from django.contrib.postgres.fields import ArrayField
 from django.core import exceptions
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 
 from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
 from users.models import User
+from utils.helpers import get_full_url
 
 
 class PollType(models.TextChoices):
@@ -173,6 +176,10 @@ class Poll(ModelBase):
             return None
         else:
             return self.submissions.all().order_by("-created_at").first().created_at
+
+    @cached_property
+    def submissions_download_url(self):
+        return get_full_url(reverse("polls:poll_submissions", args=[self.pk]))
 
     @property
     def are_tasks_out_of_sync(self):
@@ -792,6 +799,10 @@ class PollQuestionAnswer(ModelBase):
             or self.number_value
             or list(self.options_value.values_list("value", flat=True))
         )
+
+    @property
+    def label(self):
+        return self.question.label
 
     @property
     def is_valid(self) -> bool:

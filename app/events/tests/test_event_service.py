@@ -25,13 +25,14 @@ class EventServiceTests(PeriodicTaskTestsBase):
         """Should set event as public at given date."""
 
         pt_before = PeriodicTask.objects.count()
+        EXPECTED_TASK_COUNT = pt_before + 3  # public_task, open_task, close_task
 
         event = create_test_event()
         event.is_public = False
         event.make_public_at = timezone.now() + timezone.timedelta(days=1)
         event.save()
 
-        self.assertEqual(PeriodicTask.objects.count(), pt_before + 1)
+        self.assertEqual(PeriodicTask.objects.count(), EXPECTED_TASK_COUNT)
 
         event.refresh_from_db()
         self.assertRunPeriodicTask(event.make_public_task)

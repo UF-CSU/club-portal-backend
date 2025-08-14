@@ -1,3 +1,7 @@
+import pandas as pd
+import pytz
+from django.utils import timezone
+
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from polls.models import (
@@ -13,6 +17,7 @@ from polls.models import (
     PollTemplate,
     TextInput,
 )
+from utils.logging import print_error
 
 
 class PollTemplateService(ServiceBase[PollTemplate]):
@@ -149,6 +154,35 @@ class PollService(ServiceBase[Poll]):
             self._schedule_poll_close()
 
         poll.save()
+
+    def get_submissions_df(self, tzname=None) -> pd.DataFrame:
+        """Convert submissions to pandas dataframe."""
+
+        data = []
+        tzname = tzname or "UTC"
+
+        for submission in self.obj.submissions.all():
+            try:
+                row = {
+                    "User ID": submission.user.id,
+                    "User Email": submission.user.email,
+                    "User School Email": submission.user.profile.school_email,
+                    "Submission Date": timezone.localtime(
+                        submission.created_at, timezone=pytz.timezone(tzname)
+                    ),
+                    **{
+                        answer.label: answer.value
+                        for answer in submission.answers.all()
+                    },
+                }
+            except Exception as e:
+                row = {"User ID": submission.user.id}
+                print_error()
+                print(e)
+
+            data.append(row)
+
+        return pd.DataFrame(data)
 
 
 def set_poll_status(poll_id: int, status: PollStatusType):

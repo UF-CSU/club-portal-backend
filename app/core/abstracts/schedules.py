@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import datetime
 
 from celery import shared_task
@@ -143,7 +144,7 @@ def schedule_clocked_func(
     schedule = ClockedSchedule.objects.create(clocked_time=due_at)
     periodic_task = PeriodicTask.objects.create(
         clocked=schedule,
-        name=name,
+        name=f"{name} {uuid.uuid4().__str__()}",
         args=json.dumps([get_import_path(func), *args]),
         kwargs=json.dumps(kwargs),
         one_off=True,

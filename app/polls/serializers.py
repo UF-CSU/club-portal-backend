@@ -324,6 +324,7 @@ class PollSerializer(ModelSerializer):
     )
     poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
+    submissions_download_url = serializers.URLField(read_only=True)
 
     class Meta:
         model = models.Poll
