@@ -90,6 +90,8 @@ class EventFields(ClubScopedModel, ModelBase):
         ClubFile, blank=True, related_name="%(class)ss"
     )
 
+    mark_attendance = models.BooleanField(default=True)
+
     class Meta:
         abstract = True
 
@@ -418,6 +420,7 @@ class Event(EventFields):
                 fields=["name", "start_at", "end_at"],
             )
         ]
+
 
 class EventHost(ClubScopedModel, ModelBase):
     """Attach clubs to events."""

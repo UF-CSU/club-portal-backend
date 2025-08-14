@@ -14,7 +14,8 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
     # Create an attendance link for each club.
     # Each link will create the same attendance object, but
     # this allows each club to track their own marketing effectiveness.
-    service.sync_hosts_attendance_links()
+    if instance.mark_attendance:
+        service.sync_hosts_attendance_links()
 
     # Make a job for scheduling event as public
     if instance.make_public_task is None and instance.make_public_at is not None:
