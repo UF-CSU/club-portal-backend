@@ -99,6 +99,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             event.start_at = event_start
             event.end_at = event_end
             event.name = rec_ev.name
+            event.mark_attendance = rec_ev.mark_attendance
             event.save()
         else:
             # Event doesn't exist
@@ -107,6 +108,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 start_at=event_start,
                 end_at=event_end,
                 recurring_event=rec_ev,
+                mark_attendance=rec_ev.mark_attendance,
             )
 
         # Update event with rest of fields

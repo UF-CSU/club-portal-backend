@@ -9,9 +9,9 @@ def sync_event_attendance_links_task(event_ids=None):
     # event_ids = event_ids or list(Event.objects.all().values_list("id", flat=True))
 
     if event_ids:
-        events = Event.objects.filter(id__in=event_ids).all()
+        events = Event.objects.filter(id__in=event_ids, mark_attendance=True).all()
     else:
-        events = Event.objects.all()
+        events = Event.objects.filter(mark_attendance=True).all()
 
     for event in events:
         EventService(event).sync_hosts_attendance_links()
