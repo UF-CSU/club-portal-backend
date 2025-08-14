@@ -6,7 +6,7 @@ import icalendar
 from django.db import models
 from django.utils import timezone
 
-from app.settings import EVENT_ATTENDANCE_URL
+from app.settings import EVENT_ATTENDANCE_REDIRECT_URL
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
@@ -185,7 +185,7 @@ class EventService(ServiceBase[Event]):
 
     @property
     def full_attendance_url(self):
-        return EVENT_ATTENDANCE_URL % {"id": self.obj.pk}
+        return EVENT_ATTENDANCE_REDIRECT_URL % {"id": self.obj.pk}
 
     def create_attendance_link(self, club: Club, generate_qrcode=True, **kwargs):
         """

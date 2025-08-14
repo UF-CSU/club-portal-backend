@@ -1,10 +1,16 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, status
 from rest_framework.response import Response
 
 from clubs.models import Club
-from core.abstracts.viewsets import ModelViewSetBase, ObjectViewPermissions, ViewSetBase
+from core.abstracts.viewsets import (
+    CustomLimitOffsetPagination,
+    ModelViewSetBase,
+    ObjectViewPermissions,
+    ViewSetBase,
+)
 from events.models import Event, EventAttendance, EventCancellation
 
 from . import models, serializers
@@ -18,6 +24,7 @@ class EventViewset(ModelViewSetBase):
     )
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filterset_fields = ["clubs"]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -27,16 +34,8 @@ class EventViewset(ModelViewSetBase):
 
         return qs
 
-    def filter_queryset(self, queryset):
-        clubs = self.request.query_params.getlist("clubs", None)
-
-        if clubs:
-            queryset = queryset.filter(hosts__club__id__in=clubs)
-
-        return super().filter_queryset(queryset)
-
     def check_permissions(self, request):
-        if self.action == "list":
+        if self.action == "list" or self.action == "retrieve":
             return super().check_permissions(request)
 
         obj_permission = ObjectViewPermissions()
@@ -126,10 +125,13 @@ class RecurringEventViewSet(ModelViewSetBase):
         return super().perform_create(serializer)
 
 
-class EventAttendanceViewSet(mixins.CreateModelMixin, ViewSetBase):
+class EventAttendanceViewSet(
+    mixins.CreateModelMixin, mixins.ListModelMixin, ViewSetBase
+):
     queryset = EventAttendance.objects.all()
     serializer_class = serializers.EventAttendanceSerializer
-    permission_classes = [permissions.AllowAny]
+    # permission_classes = [permissions.IsAuthenticated, ObjectViewPermissions]
+    pagination_class = CustomLimitOffsetPagination
 
     def check_permissions(self, request):
         # This runs before `get_queryset`, will short-circuit out if event
@@ -137,6 +139,9 @@ class EventAttendanceViewSet(mixins.CreateModelMixin, ViewSetBase):
 
         event_id = int(self.kwargs.get("event_id"))
         self.event = get_object_or_404(Event, id=event_id)
+
+        if self.action == "create":
+            return True
 
         super().check_permissions(request)
 
@@ -148,6 +153,10 @@ class EventAttendanceViewSet(mixins.CreateModelMixin, ViewSetBase):
             data["request_user"] = self.request.user
 
         serializer.save(**data)
+
+    @extend_schema(auth=[{"security": []}, {}])
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
 
 class EventCancellationViewSet(ModelViewSetBase):

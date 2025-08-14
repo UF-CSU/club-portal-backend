@@ -151,7 +151,7 @@ volumes:
   # static-clubs-network:
   postgres-clubs-dev:
   static-clubs-dev:
-  mailhog-clubs-dev:
+  mail-clubs-dev:
 
 
 networks:
