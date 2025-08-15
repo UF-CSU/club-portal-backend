@@ -85,6 +85,9 @@ class PollTextInputType(models.TextChoices):
     SHORT = "short", _("Short Text Input")
     LONG = "long", _("Long Text Input")
     RICH = "rich", _("Rich Text Input")
+    # EMAIL
+    # PHONE
+    # NAME
 
 
 class PollChoiceType(models.TextChoices):
@@ -455,6 +458,9 @@ class PollQuestion(ModelBase):
         choices=QuestionCustomType.choices, null=True, blank=True
     )
 
+    # is_user_lookup = models.BooleanField(default=True)
+    # link_user_field = models.CharField(choices=PollUserFieldType.choices)
+
     @property
     def html_name(self):
         return f"field-{self.field.id}"
@@ -681,6 +687,7 @@ class UploadInput(ModelBase):
         PollQuestion, on_delete=models.CASCADE, related_name="_upload_input"
     )
 
+    # TODO: make enum
     file_types = ArrayField(
         base_field=models.CharField(max_length=32), blank=True, default=list
     )
@@ -734,7 +741,9 @@ class PollSubmission(ModelBase):
     def __str__(self):
         return f"Submission from {self.user or 'anonymous'}"
 
-    # class Meta:
+    class Meta:
+        ordering = ["-created_at"]
+
     #     constraints = [
     #         models.CheckConstraint(
     #             name="submission_cant_have_error_and_be_complete",

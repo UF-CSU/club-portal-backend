@@ -355,6 +355,17 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
             "created_at",
         ]
 
+    def run_prevalidation(self, data=None):
+        data.pop("options_value", [])
+        question_id = data.get("question")
+
+        res = super().run_prevalidation(data)
+        self.fields["options_value"].child_relation.queryset = (
+            models.ChoiceInputOption.objects.filter(input__question__id=question_id)
+        )
+
+        return res
+
 
 class PollSubmissionSerializer(ModelSerializerBase):
     """A user's submission for a form."""
