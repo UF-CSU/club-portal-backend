@@ -1,17 +1,13 @@
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, mixins, permissions, status
+from rest_framework import permissions, status
 from rest_framework.response import Response
 
 from clubs.models import Club
 from core.abstracts.viewsets import (
-    CustomLimitOffsetPagination,
     ModelViewSetBase,
     ObjectViewPermissions,
-    ViewSetBase,
 )
-from events.models import Event, EventAttendance, EventCancellation
+from events.models import Event, EventCancellation
 
 from . import models, serializers
 
@@ -123,44 +119,6 @@ class RecurringEventViewSet(ModelViewSetBase):
                 )
 
         return super().perform_create(serializer)
-
-
-class EventAttendanceViewSet(
-    mixins.CreateModelMixin, mixins.ListModelMixin, ViewSetBase
-):
-    queryset = EventAttendance.objects.all()
-    serializer_class = serializers.EventAttendanceSerializer
-    # permission_classes = [permissions.IsAuthenticated, ObjectViewPermissions]
-    pagination_class = CustomLimitOffsetPagination
-
-    def check_permissions(self, request):
-        # This runs before `get_queryset`, will short-circuit out if event
-        # does not exist
-
-        event_id = int(self.kwargs.get("event_id"))
-        self.event = get_object_or_404(Event, id=event_id)
-
-        if self.action == "create" and self.event.enable_attendance:
-            return True
-        elif self.action == "create" and not self.event.enable_attendance:
-            raise exceptions.ParseError(
-                detail=f"Attendance is disabled for event with id {event_id}"
-            )
-
-        super().check_permissions(request)
-
-    def perform_create(self, serializer):
-        data = {"event": self.event}
-
-        # Pass request user if authenticated
-        if self.request.user.is_authenticated:
-            data["request_user"] = self.request.user
-
-        serializer.save(**data)
-
-    @extend_schema(auth=[{"security": []}, {}])
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
 
 class EventCancellationViewSet(ModelViewSetBase):
