@@ -38,6 +38,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 
+from clubs.models import Club
 from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
 from users.models import User
@@ -82,12 +83,9 @@ class PollFieldType(models.TextChoices):
 class PollTextInputType(models.TextChoices):
     """Different ways of inputing text responses."""
 
-    SHORT = "short", _("Short Text Input")
-    LONG = "long", _("Long Text Input")
-    RICH = "rich", _("Rich Text Input")
-    # EMAIL
-    # PHONE
-    # NAME
+    SHORT = "short", _("Short Text")
+    LONG = "long", _("Long Text")
+    RICH = "rich", _("Rich Text")
 
 
 class PollChoiceType(models.TextChoices):
@@ -97,18 +95,31 @@ class PollChoiceType(models.TextChoices):
     SELECT = "radio", _("Input Select")
 
 
-class QuestionCustomType(models.TextChoices):
-    """Categorize different types of text fields."""
+# class QuestionCustomType(models.TextChoices):
+#     """Categorize different types of text fields."""
+
+#     NAME = "name", _("Name")
+#     EMAIL = "email", _("Email")
+#     UFL_EMAIL = "ufl_email", _("UFL Email")
+#     MAJOR = "major", _("Major")
+#     MINOR = "minor", _("Minor")
+#     COLLEGE = "college", _("College")
+#     PHONE = "phone", _("Phone")
+#     GRADUATION_DATE = "graduation_year", _("Graduation Year")
+#     DEPARTMENT = "department", _("Department")
+
+
+class PollUserFieldType(models.TextChoices):
+    """User fields that can be populated by values of form questions."""
 
     NAME = "name", _("Name")
-    EMAIL = "email", _("Email")
-    UFL_EMAIL = "ufl_email", _("UFL Email")
+    # EMAIL = "email", _("Email")
+    # SCHOOL_EMAIL = "school_email", _("School Email")
     MAJOR = "major", _("Major")
     MINOR = "minor", _("Minor")
     COLLEGE = "college", _("College")
     PHONE = "phone", _("Phone")
-    GRADUATION_DATE = "graduation_date", _("Graduation Date")
-    DEPARTMENT = "department", _("Department")
+    GRADUATION_YEAR = "graduation_date", _("Graduation Year")
 
 
 class PollManager(ManagerBase["Poll"]):
@@ -136,6 +147,9 @@ class Poll(ModelBase):
     event = models.OneToOneField(
         Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
     )
+    club = models.ForeignKey(
+        Club, on_delete=models.CASCADE, related_name="polls", null=True, blank=True
+    )
 
     status = models.CharField(
         choices=PollStatusType.choices,
@@ -162,13 +176,15 @@ class Poll(ModelBase):
         related_name="+",
     )
 
-    # TODO: Add enable_profile_fields to allow adding base user form
-
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
     submissions: models.QuerySet["PollSubmission"]
 
     # Dynamic properties
+    @property
+    def questions(self):
+        return PollQuestion.objects.filter(field__poll=self).all()
+
     @property
     def submissions_count(self):
         return self.submissions.count()
@@ -260,6 +276,15 @@ class Poll(ModelBase):
                     ~(models.Q(close_at__isnull=False) & models.Q(open_at__isnull=True))
                 ),
             ),
+            models.CheckConstraint(
+                name="only_poll_templates_allow_null_club",
+                check=(
+                    ~(
+                        models.Q(club__isnull=True)
+                        & models.Q(poll_type=PollType.STANDARD)
+                    )
+                ),
+            ),
         ]
 
     # Methods
@@ -344,7 +369,7 @@ class PollField(ModelBase):
     objects: ClassVar[PollFieldManager] = PollFieldManager()
 
     class Meta:
-        ordering = ["order", "-id"]
+        ordering = ["order", "id"]
 
     def __str__(self):
         return f"{self.poll} - {self.order}"
@@ -357,11 +382,11 @@ class PollField(ModelBase):
         """
 
         # Check order field
-        order_query = PollField.objects.filter(poll=self.poll, order=self.order)
-        if order_query.count() > 1:
-            raise exceptions.ValidationError(
-                f"Multiple fields are set to order {self.order}."
-            )
+        # order_query = PollField.objects.filter(poll=self.poll, order=self.order)
+        # if order_query.count() > 1:
+        #     raise exceptions.ValidationError(
+        #         f"Multiple fields are set to order {self.order}."
+        #     )
 
         return super().clean()
 
@@ -452,14 +477,16 @@ class PollQuestion(ModelBase):
     label = models.CharField()
     description = models.TextField(null=True, blank=True)
     image = models.ImageField(null=True, blank=True)
-    required = models.BooleanField(default=False)
+    is_required = models.BooleanField(default=False)
 
-    custom_type = models.CharField(
-        choices=QuestionCustomType.choices, null=True, blank=True
+    # custom_type = models.CharField(
+    #     choices=QuestionCustomType.choices, null=True, blank=True
+    # )
+
+    is_user_lookup = models.BooleanField(default=False, editable=False)
+    link_user_field = models.CharField(
+        choices=PollUserFieldType.choices, null=True, blank=True
     )
-
-    # is_user_lookup = models.BooleanField(default=True)
-    # link_user_field = models.CharField(choices=PollUserFieldType.choices)
 
     @property
     def html_name(self):
@@ -530,6 +557,37 @@ class PollQuestion(ModelBase):
     def __str__(self):
         return self.label
 
+    def clean(self):
+        if (
+            PollQuestion.objects.filter(
+                field__poll=self.field.poll, is_user_lookup=True
+            ).count()
+            > 1
+        ):
+            raise exceptions.ValidationError(
+                "Can only have one user lookup field per poll."
+            )
+
+        elif (
+            self.link_user_field is not None
+            and PollQuestion.objects.filter(
+                field__poll__id=self.field.poll.id, link_user_field=self.link_user_field
+            )
+            .exclude(id=self.id)
+            .count()
+            > 0
+        ):
+            raise exceptions.ValidationError(
+                "Cannot have multiple fields set to the same user field."
+            )
+
+        return super().clean()
+
+    def delete(self, *args, **kwargs):
+        assert self.is_user_lookup is False, "Cannot delete the user lookup question."
+
+        return super().delete(*args, **kwargs)
+
 
 class TextInput(ModelBase):
     """
@@ -563,6 +621,25 @@ class TextInput(ModelBase):
                 check=models.Q(min_length__lt=models.F("max_length")),
             ),
         ]
+
+
+# class EmailInput(ModelBase):
+#     pass
+
+# class PhoneInput(ModelBase):
+#     pass
+
+# class DateInput(ModelBase):
+#     pass
+
+# class TimeInput(ModelBase):
+#     pass
+
+# class UrlInput(ModelBase):
+#     pass
+
+# class CheckboxInput(ModelBase):
+#     pass
 
 
 class ChoiceInput(ModelBase):

@@ -213,6 +213,7 @@ class Profile(ModelBase):
 
     phone = models.CharField(max_length=20, blank=True, null=True)
     name = models.CharField(max_length=255, blank=True, null=True)
+    bio = models.TextField(null=True, blank=True)
 
     city = models.CharField(max_length=255, blank=True, null=True)
     state = models.CharField(max_length=2, blank=True, null=True)
@@ -227,7 +228,8 @@ class Profile(ModelBase):
         validators=[MinValueValidator(1900), MaxValueValidator(3000)],
     )
     major = models.CharField(blank=True, null=True, max_length=128)
-    bio = models.TextField(null=True, blank=True)
+    minor = models.CharField(blank=True, null=True, max_length=128)
+    college = models.CharField(blank=True, null=True, max_length=128)
 
     # Dynamic Properties
     @property

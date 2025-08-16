@@ -9,5 +9,10 @@ from polls.services import PollService
 def on_save_poll(sender, instance: Poll, created=False, **kwargs):
     """Automations to run when poll is saved."""
 
+    service = PollService(instance)
+
+    if not instance.questions.filter(is_user_lookup=True).exists():
+        service.create_question("Email", is_user_lookup=True)
+
     if instance.are_tasks_out_of_sync:
-        PollService(instance).sync_status_tasks()
+        service.sync_status_tasks()

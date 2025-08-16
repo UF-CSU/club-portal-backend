@@ -90,7 +90,7 @@ class EventFields(ClubScopedModel, ModelBase):
         ClubFile, blank=True, related_name="%(class)ss"
     )
     enable_attendance = models.BooleanField(
-        default=True, help_text="Create poll for event and users to attend."
+        default=False, help_text="Create poll for event and users to attend."
     )
 
     class Meta:
@@ -288,7 +288,7 @@ class Event(EventFields):
         PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
     )
 
-    is_poll_submission_required = models.BooleanField(default=True)
+    # is_poll_submission_required = models.BooleanField(default=True)
 
     # Foreign Relationships
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
@@ -360,7 +360,7 @@ class Event(EventFields):
 
         return super().__str__()
 
-    def full_clean(self, *args, **kwargs):
+    def clean(self, *args, **kwargs):
         if self.start_at > self.end_at:
             raise exceptions.ValidationError(
                 "Start date cannot be greater than end date"
@@ -379,12 +379,17 @@ class Event(EventFields):
 
             self.name = f"{self.name} {index}"
 
-        # Constraint: if poll is None, is_poll_submission_required must be False
-        # NOTE: This is not a regular Constraint since poll is a virtual property
-        if not self.poll and self.is_poll_submission_required:
-            self.is_poll_submission_required = False
+        # # Constraint: if poll is None, is_poll_submission_required must be False
+        # # NOTE: This is not a regular Constraint since poll is a virtual property
+        # if not self.poll and self.is_poll_submission_required:
+        #     self.is_poll_submission_required = False
 
-        return super().full_clean(*args, **kwargs)
+        if self.pk and self.enable_attendance is True and self.primary_club is None:
+            raise exceptions.ValidationError(
+                "Cannot measure attendance without a primary host club."
+            )
+
+        return super().clean(*args, **kwargs)
 
     # Methods
     def add_host(self, club: Club, is_primary=False, commit=True):

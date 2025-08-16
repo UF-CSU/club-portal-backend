@@ -200,10 +200,11 @@ class EventAttendanceSerializer(ModelSerializerBase):
 
         if event.poll is not None:
             if poll_submission_data is None:
-                if event.is_poll_submission_required:
-                    raise serializers.ValidationError(
-                        "Poll submission is required for this event."
-                    )
+                pass
+                # if event.is_poll_submission_required:
+                #     raise serializers.ValidationError(
+                #         "Poll submission is required for this event."
+                #     )
             else:
                 # Create poll submission
                 # NOTE: This should probably be moved into a service

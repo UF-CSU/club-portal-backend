@@ -1,8 +1,9 @@
 from django.db import models
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, permissions
 
-from core.abstracts.viewsets import ModelViewSetBase
+from core.abstracts.viewsets import CustomLimitOffsetPagination, ModelViewSetBase
 from events.models import EventAttendance
 from polls.models import ChoiceInputOption, Poll, PollField, PollSubmission
 from polls.serializers import (
@@ -27,7 +28,8 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
     queryset = PollSubmission.objects.all()
     serializer_class = PollSubmissionSerializer
-    permission_classes = []
+    pagination_class = CustomLimitOffsetPagination
+    # permission_classes = []
 
     def get_queryset(self):
         poll_id = self.kwargs.get("poll_id", None)
@@ -53,6 +55,10 @@ class PollSubmissionViewSet(ModelViewSetBase):
         submission = PollService(submission.poll).validate_submission(submission)
 
         return submission
+
+    @extend_schema(auth=[{"security": []}, {}])
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
 
 class PollFieldViewSet(ModelViewSetBase):

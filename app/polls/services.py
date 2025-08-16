@@ -55,7 +55,7 @@ class PollTemplateService(ServiceBase[PollTemplate]):
                     input_type=q_tpl.input_type,
                     create_input=False,
                     description=q_tpl.description,
-                    required=q_tpl.required,
+                    required=q_tpl.is_required,
                 )
                 self._clone_input(q_tpl, question)
             case PollFieldType.MARKUP:
@@ -165,7 +165,7 @@ class PollService(ServiceBase[Poll]):
             try:
                 row = {
                     "User ID": submission.user.id,
-                    "User Email": submission.user.email,
+                    # "User Email": submission.user.email,
                     "User School Email": submission.user.profile.school_email,
                     "Submission Date": timezone.localtime(
                         submission.created_at, timezone=pytz.timezone(tzname)
@@ -183,6 +183,23 @@ class PollService(ServiceBase[Poll]):
             data.append(row)
 
         return pd.DataFrame(data)
+
+    def create_question(self, label: str, input_type=PollInputType.TEXT, **kwargs):
+        """Create new question, with associated field and input for poll."""
+
+        poll = self.obj
+        field = kwargs.pop(
+            "field",
+            PollField.objects.create(poll, field_type="question"),
+        )
+        payload = {
+            "field": field,
+            "label": label,
+            "input_type": input_type,
+            "create_input": True,
+            **kwargs,
+        }
+        return PollQuestion.objects.create(**payload)
 
 
 def set_poll_status(poll_id: int, status: PollStatusType):

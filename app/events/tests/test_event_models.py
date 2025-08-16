@@ -65,7 +65,13 @@ class ClubEventTests(TestsBase):
             name="Test Event",
             start_at=timezone.now(),
             end_at=timezone.now() + timezone.timedelta(hours=2),
+            enable_attendance=False,
         )
+        self.assertEqual(event.attendance_links.count(), 0)
+
+        event.enable_attendance = True
+        event.save()
+        event.refresh_from_db()
 
         self.assertEqual(event.attendance_links.count(), 1)
         self.assertEqual(Link.objects.count(), 1)

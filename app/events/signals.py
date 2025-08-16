@@ -13,7 +13,7 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
 
     service = EventService(instance)
 
-    if instance.enable_attendance:
+    if instance.enable_attendance and instance.primary_club:
         # Create an attendance link for each club.
         # Each link will create the same attendance object, but
         # this allows each club to track their own marketing effectiveness.
@@ -26,6 +26,7 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
                 open_at=instance.start_at - timezone.timedelta(minutes=30),
                 close_at=instance.end_at,
                 is_published=True,
+                club=instance.primary_club,
             )
 
     # Make a job for scheduling event as public

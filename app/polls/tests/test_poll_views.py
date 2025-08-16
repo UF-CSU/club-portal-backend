@@ -1,5 +1,6 @@
 from django.urls import reverse
 
+from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase
 from lib.faker import fake
 from polls.models import (
@@ -14,6 +15,7 @@ from polls.models import (
     TextInput,
     UploadInput,
 )
+from polls.tests.utils import create_test_poll
 
 POLLS_URL = reverse("api-polls:poll-list")
 
@@ -22,7 +24,7 @@ def polls_detail_url(id: int):
     return reverse("api-polls:poll-detail", args=[id])
 
 
-def pollsubmissions_list_url(poll_id: int):
+def pollsubmission_list_url(poll_id: int):
     return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
 
 
@@ -39,11 +41,18 @@ def polloption_list_url(poll_id: int, pollfield_id: int):
 
 
 def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
-    return reverse("api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id])
+    return reverse(
+        "api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id]
+    )
 
 
 class PollViewAuthTests(PrivateApiTestsBase):
     """Test managing polls via REST api and views."""
+
+    def setUp(self):
+        super().setUp()
+
+        self.club = create_test_club()
 
     def test_create_poll(self):
         """Should create poll via api."""
@@ -51,6 +60,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         payload = {
             "name": fake.title(),
             "description": fake.paragraph(),
+            "club": self.club.id,
         }
         fields_payload = [
             {
@@ -252,15 +262,19 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(res.status_code, 201, res.content)
         self.assertEqual(Poll.objects.count(), 1)
         poll = Poll.objects.first()
+        initial_fields_count = poll.fields.count()
+        initial_question_count = poll.questions.count()
 
         field_url = pollfield_list_url(poll.pk)
         for field in fields_payload:
             res = self.client.post(field_url, field, format="json")
             self.assertResCreated(res)
 
-        self.assertEqual(PollField.objects.count(), len(fields_payload))
-        self.assertEqual(PollQuestion.objects.count(), 10)
-        self.assertEqual(TextInput.objects.count(), 3)
+        self.assertEqual(
+            PollField.objects.count(), len(fields_payload) + initial_fields_count
+        )
+        self.assertEqual(PollQuestion.objects.count(), initial_question_count + 10)
+        self.assertEqual(TextInput.objects.count(), 3 + 1)  # + default email field
         self.assertEqual(ChoiceInput.objects.count(), 4)
         self.assertEqual(RangeInput.objects.count(), 1)
         self.assertEqual(UploadInput.objects.count(), 1)
@@ -270,11 +284,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
     def test_update_poll(self):
         """Should update poll via api."""
 
-        poll = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
-
+        poll = create_test_poll(club=self.club)
         self.assertEqual(Poll.objects.count(), 1)
 
         payload = {
@@ -294,12 +304,10 @@ class PollViewAuthTests(PrivateApiTestsBase):
     def test_update_poll_fields(self):
         """Should update poll via api."""
 
-        poll = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
-
+        poll = create_test_poll(club=self.club)
         self.assertEqual(Poll.objects.count(), 1)
+        initial_field_count = poll.fields.count()
+        initial_question_count = poll.questions.count()
 
         payload = {
             "order": 0,
@@ -322,7 +330,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertResCreated(res)
 
         poll.refresh_from_db()
-        self.assertEqual(poll.fields.count(), 1)
+        self.assertEqual(poll.fields.count(), initial_field_count + 1)
         self.assertEqual(poll.fields.first().field_type, "question")
         self.assertEqual(poll.fields.first().question.label, "Updated question?")
 
@@ -346,7 +354,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             update_field_url, data=update_field_payload, format="json"
         )
         self.assertResOk(update_field_res)
-        self.assertEqual(PollQuestion.objects.count(), 1)
+        self.assertEqual(PollQuestion.objects.count(), initial_question_count + 1)
 
         add_field_payload = {
             "order": 1,
@@ -369,7 +377,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertResCreated(add_field_res)
 
         poll.refresh_from_db()
-        self.assertEqual(poll.fields.count(), 2)
+        self.assertEqual(poll.fields.count(), initial_field_count + 2)
         self.assertEqual(poll.fields.first().field_type, "question")
         self.assertEqual(poll.fields.first().question.label, "Updated question again?")
         self.assertEqual(poll.fields.last().field_type, "question")
@@ -379,20 +387,16 @@ class PollViewAuthTests(PrivateApiTestsBase):
         """Should be able to update the options for a choice field."""
 
         # Create initial poll and choice field
-        poll = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
+        poll = create_test_poll(club=self.club)
 
         payload = {
-            "order": 0,
             "field_type": "question",
             "question": {
                 "label": "Updated question?",
                 "description": fake.paragraph(),
                 "input_type": "choice",
                 "choice_input": {
-                    "multiple": True,
+                    "is_multiple": True,
                     "multiple_choice_type": "select",
                     "options": [
                         {
@@ -412,16 +416,13 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertResCreated(res)
 
         # Add field to another poll
-        poll2 = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
+        poll2 = create_test_poll(club=self.club)
         url = pollfield_list_url(poll2.pk)
         res = self.client.post(url, data=payload)
         self.assertResCreated(res)
 
         # Get options
-        field = poll.fields.first()
+        field = poll.fields.last()
         self.assertIsNotNone(field)
         url = polloption_list_url(poll.id, field.id)
 
@@ -455,11 +456,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
     def test_delete_poll(self):
         """Should delete poll via api."""
 
-        poll = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
-
+        poll = create_test_poll(club=self.club)
         self.assertEqual(Poll.objects.count(), 1)
 
         url = polls_detail_url(poll.pk)
@@ -473,10 +470,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         """Should submit poll via api."""
 
         # Create a poll with actual fields that match the submission payload
-        poll = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
+        poll = create_test_poll(club=self.club)
 
         # Create a poll field with a text question to match the submission
         poll_field = PollField.objects.create(poll=poll, field_type="question", order=0)
@@ -485,7 +479,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             field=poll_field,
             label="Example short text question?",
             input_type="text",
-            required=True,
+            is_required=True,
         )
 
         TextInput.objects.create(
@@ -503,7 +497,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             ]
         }
 
-        url = pollsubmissions_list_url(poll.pk)
+        url = pollsubmission_list_url(poll.pk)
 
         res = self.client.post(url, data=payload, format="json")
         self.assertEqual(res.status_code, 201, res.content)
@@ -529,10 +523,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         """Should submit poll with multiple question types via api."""
 
         # Create a poll with multiple field types
-        poll = Poll.objects.create(
-            name=fake.title(),
-            description=fake.paragraph(),
-        )
+        poll = create_test_poll(club=self.club)
 
         # Create text field
         text_field = PollField.objects.create(poll=poll, field_type="question", order=0)
@@ -541,7 +532,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             field=text_field,
             label="What is your name?",
             input_type="text",
-            required=True,
+            is_required=True,
         )
 
         TextInput.objects.create(
@@ -557,7 +548,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             field=choice_field,
             label="What is your favorite color?",
             input_type="choice",
-            required=True,
+            is_required=True,
         )
 
         # This would be rendered as a radio field
@@ -581,7 +572,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             field=number_field,
             label="Rate from 1 to 10",
             input_type="number",
-            required=False,
+            is_required=False,
         )
 
         NumberInput.objects.create(
@@ -608,7 +599,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             ]
         }
 
-        url = pollsubmissions_list_url(poll.pk)
+        url = pollsubmission_list_url(poll.pk)
 
         res = self.client.post(url, data=payload, format="json")
         self.assertEqual(res.status_code, 201, res.content)
