@@ -2,11 +2,12 @@
 Convert poll models to json objects.
 """
 
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 
 from core.abstracts.serializers import ModelSerializer, ModelSerializerBase
 from events.models import Event
 from polls import models
+from users.models import User
 from users.serializers import UserNestedSerializer
 
 
@@ -344,16 +345,7 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.PollQuestionAnswer
-        fields = [
-            "id",
-            "question",
-            "text_value",
-            "number_value",
-            "options_value",
-            "is_valid",
-            "error",
-            "created_at",
-        ]
+        exclude = ["submission"]
 
     def run_prevalidation(self, data=None):
         data.pop("options_value", [])
@@ -372,7 +364,7 @@ class PollSubmissionSerializer(ModelSerializerBase):
 
     # Poll id is set in the url
     poll = serializers.PrimaryKeyRelatedField(read_only=True)
-    answers = PollSubmissionAnswerSerializer(many=True)
+    answers = PollSubmissionAnswerSerializer(many=True, required=False)
     user = UserNestedSerializer(read_only=True)
 
     class Meta:
@@ -381,13 +373,38 @@ class PollSubmissionSerializer(ModelSerializerBase):
 
     def create(self, validated_data):
         answers = validated_data.pop("answers", None)
-        submission = super().create(validated_data)
+        user = validated_data.get("user", None)
+
+        if not user or user.is_anonymous:
+            email_answer = None
+            for answer in answers:
+                if answer.get("question").is_user_lookup:
+                    email_answer = answer.get("text_value", None)
+                    break
+
+            if not email_answer:
+                raise exceptions.ValidationError(
+                    {"answers": "Missing user lookup field"}, code="required"
+                )
+
+            try:
+                user = User.objects.get_by_email(email_answer)
+            except User.DoesNotExist:
+                user = User.objects.create(email=email_answer)
+
+        validated_data["user"] = user
+        submission, _ = models.PollSubmission.objects.get_or_create(
+            user=user, poll=validated_data["poll"]
+        )
 
         if not answers:
             return submission
 
         for answer in answers:
-            models.PollQuestionAnswer.objects.create(submission=submission, **answer)
+            question = answer.pop("question")
+            models.PollQuestionAnswer.objects.update_or_create(
+                submission=submission, question=question, defaults=answer
+            )
 
         return submission
 

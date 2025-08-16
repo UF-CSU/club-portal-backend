@@ -30,11 +30,9 @@ def create_test_pollquestion(poll: Poll, input_type=PollInputType.TEXT, **kwargs
     field = kwargs.pop("field", PollField.objects.create(poll, field_type="question"))
 
     payload = {"label": fake.title(2), **kwargs}
-    question = PollQuestion.objects.create(
+    return PollQuestion.objects.create(
         field=field, input_type=input_type, create_input=True, **payload
     )
-
-    return question
 
 
 def create_test_pollsubmission(poll: Poll, user=None, **kwargs):

@@ -101,6 +101,13 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
             defaults = defaults or {}
             return self.create(**defaults, **kwargs), True
 
+    def get_by_email(self, email: str):
+        """Get user by their email."""
+
+        return User.objects.get(
+            models.Q(email=email) | models.Q(profile__school_email=email)
+        )
+
 
 class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     """User model for system."""

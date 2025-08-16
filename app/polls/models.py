@@ -821,12 +821,13 @@ class PollSubmission(ModelBase):
     class Meta:
         ordering = ["-created_at"]
 
-    #     constraints = [
-    #         models.CheckConstraint(
-    #             name="submission_cant_have_error_and_be_complete",
-    #             check=(~(models.Q(error__isnull=False) & models.Q(is_complete=True))),
-    #         )
-    #     ]
+        constraints = [
+            # TODO: Add unique constraint for user/poll submission
+            #         models.CheckConstraint(
+            #             name="submission_cant_have_error_and_be_complete",
+            #             check=(~(models.Q(error__isnull=False) & models.Q(is_complete=True))),
+            #         )
+        ]
 
     # Dynamic properties
     @property
@@ -849,6 +850,17 @@ class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
             answer.options_value.add(value)
 
         return answer
+
+    def update_or_create(self, defaults=None, **kwargs):
+        defaults = defaults or {}
+        options = defaults.pop("options_value", None)
+
+        submission, created = super().update_or_create(defaults, **kwargs)
+
+        if options:
+            submission.options_value.set(options)
+
+        return submission, created
 
 
 class PollQuestionAnswer(ModelBase):
@@ -874,7 +886,10 @@ class PollQuestionAnswer(ModelBase):
 
     # Validation
     error = models.CharField(
-        null=True, blank=True, help_text="Error message if input is not valid."
+        null=True,
+        blank=True,
+        help_text="Error message if input is not valid.",
+        editable=False,
     )
 
     # Dynamic properties

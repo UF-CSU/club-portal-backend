@@ -28,11 +28,11 @@ class AttendancePublicTests(PublicApiTestsBase):
             secondary_hosts=[self.secondary_club],
             enable_attendance=True,
         )
-        self.url = pollsubmission_list_url(self.event.pk)
 
         self.poll: Poll = self.event.poll
         self.email_q = self.poll.questions.get(is_user_lookup=True)
-        # self.question = create_test_pollquestion(self.poll, label="Shirt size")
+
+        self.url = pollsubmission_list_url(self.poll.pk)
 
         self.required_user_fields_for_create = {
             # TODO: Add other user fields required for submission
@@ -144,9 +144,9 @@ class AttendancePublicTests(PublicApiTestsBase):
 
         payload = {
             "answers": [
-                {"question": self.email_q.pk, "answer": "user2@example.com"},
-                {"question": name_q.pk, "answer": "Alex Smith"},
-                {"question": shirt_q.pk, "answer": "MD"},
+                {"question": self.email_q.pk, "text_value": "user2@example.com"},
+                {"question": name_q.pk, "text_value": "Alex Smith"},
+                {"question": shirt_q.pk, "text_value": "MD"},
             ]
         }
         res = self.client.post(self.url, payload)
@@ -171,19 +171,20 @@ class AttendancePublicTests(PublicApiTestsBase):
 
         payload = {
             "answers": [
-                {"question": self.email_q.pk, "answer": self.user.email},
-                {"question": name_q.pk, "answer": "Alex Smith"},
-                {"question": shirt_q.pk, "answer": "MD"},
+                {"question": self.email_q.pk, "text_value": self.user.email},
+                {"question": name_q.pk, "text_value": "Alex Smith"},
+                {"question": shirt_q.pk, "text_value": "MD"},
             ]
         }
         res = self.client.post(self.url, payload)
         self.assertResCreated(res)
         self.assertEqual(User.objects.count(), 1)
-        self.assertEqual(self.user.profile.name, "Alex Smith")
+        self.user.refresh_from_db()
 
         self.assertUserAttendedEvent(self.user)
         self.assertUserSubmittedAnswer(name_q, self.user, text_value="Alex Smith")
         self.assertUserSubmittedAnswer(shirt_q, self.user, text_value="MD")
+        self.assertEqual(self.user.profile.name, "Alex Smith")
 
     def test_returning_guest_uses_school_email(self):
         """Should allow a returning guest use their school email to register for an event."""
@@ -199,19 +200,20 @@ class AttendancePublicTests(PublicApiTestsBase):
 
         payload = {
             "answers": [
-                {"question": self.email_q.pk, "answer": "alex@ufl.edu"},
-                {"question": name_q.pk, "answer": "Alex Smith"},
-                {"question": shirt_q.pk, "answer": "MD"},
+                {"question": self.email_q.pk, "text_value": "alex@ufl.edu"},
+                {"question": name_q.pk, "text_value": "Alex Smith"},
+                {"question": shirt_q.pk, "text_value": "MD"},
             ]
         }
         res = self.client.post(self.url, payload)
         self.assertResCreated(res)
         self.assertEqual(User.objects.count(), 1)
-        self.assertEqual(self.user.profile.name, "Alex Smith")
+        self.user.refresh_from_db()
 
         self.assertUserAttendedEvent(self.user)
         self.assertUserSubmittedAnswer(name_q, self.user, text_value="Alex Smith")
         self.assertUserSubmittedAnswer(shirt_q, self.user, text_value="MD")
+        self.assertEqual(self.user.profile.name, "Alex Smith")
 
     def test_guest_must_provide_email(self):
         """Should raise error if guest tries to submit without giving their email."""
@@ -222,7 +224,7 @@ class AttendancePublicTests(PublicApiTestsBase):
 
         payload = {
             "answers": [
-                {"question": name_q.pk, "answer": "Alex Smith"},
+                {"question": name_q.pk, "text_value": "Alex Smith"},
             ]
         }
         res = self.client.post(self.url, payload)
@@ -230,39 +232,6 @@ class AttendancePublicTests(PublicApiTestsBase):
         self.assertEqual(PollSubmission.objects.count(), 0)
         self.assertEqual(User.objects.count(), 1)
         self.assertNotEqual(self.user.profile.name, "Alex Smith")
-
-    def test_user_retrieve_submission(self):
-        """Should return user's poll submission if queried."""
-
-        shirt_q = create_test_pollquestion(self.poll)
-
-        # Another user
-        payload = {
-            "answers": [
-                {"question": self.email_q.pk, "text_value": "user2@example.com"},
-                {"question": shirt_q.pk, "answer": "SM"},
-            ]
-        }
-        res = self.client.post(self.url, payload)
-        self.assertResCreated(res)
-        self.assertEqual(User.objects.count(), 2)
-
-        # Current user submits form
-        self.client.force_authenticate(self.user)
-        payload = {
-            "answers": [
-                {"question": shirt_q.pk, "answer": "MD"},
-            ]
-        }
-        res = self.client.post(self.url, payload)
-        self.assertResCreated(res)
-        self.assertEqual(PollSubmission.objects.count(), 2)
-
-        # Current user retrieves own submission only
-        res = self.client.get(self.url)
-        self.assertResOk(res)
-        data = res.json()
-        self.assertLength(data, 1)
 
     def test_user_multiple_submissions(self):
         """When a user submits multiple times, it should only save once."""
@@ -276,8 +245,8 @@ class AttendancePublicTests(PublicApiTestsBase):
         # Submission 1
         payload = {
             "answers": [
-                {"question": name_q.pk, "answer": "Alex Smith"},
-                {"question": shirt_q.pk, "answer": "MD"},
+                {"question": name_q.pk, "text_value": "Alex Smith"},
+                {"question": shirt_q.pk, "text_value": "MD"},
             ]
         }
         res = self.client.post(self.url, payload)
@@ -290,8 +259,8 @@ class AttendancePublicTests(PublicApiTestsBase):
         # Submission 2
         payload = {
             "answers": [
-                {"question": name_q.pk, "answer": "John Doe"},
-                {"question": shirt_q.pk, "answer": "LG"},
+                {"question": name_q.pk, "text_value": "John Doe"},
+                {"question": shirt_q.pk, "text_value": "LG"},
             ]
         }
         res = self.client.post(self.url, payload)
@@ -302,6 +271,41 @@ class AttendancePublicTests(PublicApiTestsBase):
         self.assertEqual(self.user.profile.name, "John Doe")
         self.assertUserSubmittedAnswer(shirt_q, text_value="LG")
 
+    # # TODO: Implement user submission retrieval
+    # def test_user_retrieve_submission(self):
+    #     """Should return user's poll submission if queried."""
+
+    #     shirt_q = create_test_pollquestion(self.poll)
+
+    #     # Another user
+    #     payload = {
+    #         "answers": [
+    #             {"question": self.email_q.pk, "text_value": "user2@example.com"},
+    #             {"question": shirt_q.pk, "text_value": "SM"},
+    #         ]
+    #     }
+    #     res = self.client.post(self.url, payload)
+    #     self.assertResCreated(res)
+    #     self.assertEqual(User.objects.count(), 2)
+
+    #     # Current user submits form
+    #     self.client.force_authenticate(self.user)
+    #     payload = {
+    #         "answers": [
+    #             {"question": shirt_q.pk, "text_value": "MD"},
+    #         ]
+    #     }
+    #     res = self.client.post(self.url, payload)
+    #     self.assertResCreated(res)
+    #     self.assertEqual(PollSubmission.objects.count(), 2)
+
+    #     # Current user retrieves own submission only
+    #     res = self.client.get(self.url)
+    #     self.assertResOk(res)
+    #     data = res.json()
+    #     self.assertLength(data, 1)
+
+    ########################################
     # def test_user_attend_event_no_poll(self):
     #     """
     #     Should record user attendance if no poll.

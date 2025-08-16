@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
+from events.models import EventAttendance
 from polls.models import (
     ChoiceInput,
     Poll,
@@ -15,6 +16,7 @@ from polls.models import (
     PollStatusType,
     PollSubmission,
     PollTemplate,
+    PollUserFieldType,
     TextInput,
 )
 from utils.logging import print_error
@@ -77,11 +79,13 @@ class PollService(ServiceBase[Poll]):
 
     model = Poll
 
-    def validate_submission(self, submission: PollSubmission, raise_exception=False):
+    def _validate_submission(self, submission: PollSubmission, raise_exception=False):
         """Check if a poll submission is valid."""
 
         for answer in submission.answers.all():
             pass
+
+        return submission
 
     def _remove_task(self, field):
         task = getattr(self.obj, field)
@@ -200,6 +204,59 @@ class PollService(ServiceBase[Poll]):
             **kwargs,
         }
         return PollQuestion.objects.create(**payload)
+
+    def _update_user_fields_from_submission(self, submission: PollSubmission):
+        """For each answer with a linked user field in submission, update user field."""
+
+        answers = submission.answers.all()
+        user = submission.user
+
+        if not user:
+            return
+
+        for answer in answers:
+            if answer.question.link_user_field is None:
+                continue
+
+            match answer.question.link_user_field:
+                case PollUserFieldType.NAME:
+                    user.profile.name = answer.value or user.profile.name
+                    user.profile.save()
+                case PollUserFieldType.PHONE:
+                    user.profile.phone = answer.value or user.profile.phone
+                    user.profile.save()
+                case PollUserFieldType.MAJOR:
+                    user.profile.major = answer.value or user.profile.major
+                    user.profile.save()
+                case PollUserFieldType.MINOR:
+                    user.profile.minor = answer.value or user.profile.minor
+                    user.profile.save()
+                case PollUserFieldType.COLLEGE:
+                    user.profile.college = answer.value or user.profile.college
+                    user.profile.save()
+                case PollUserFieldType.GRADUATION_YEAR:
+                    user.profile.graduation_year = (
+                        answer.value or user.profile.graduation_year
+                    )
+                    user.profile.save()
+
+    def process_submission(self, submission: PollSubmission):
+        """Run all actions for submission object."""
+
+        assert (
+            submission.poll.pk == self.obj.pk
+        ), f"Invalid submission, expected poll id {self.obj.pk} but found {submission.poll.id}."
+
+        self._validate_submission(submission)
+        self._update_user_fields_from_submission(submission)
+
+        if self.obj.event is not None:
+            EventAttendance.objects.get_or_create(
+                user=submission.user, event=self.obj.event
+            )
+
+        submission.refresh_from_db()
+        return submission
 
 
 def set_poll_status(poll_id: int, status: PollStatusType):
