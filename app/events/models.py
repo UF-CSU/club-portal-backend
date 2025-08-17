@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
+from zoneinfo import ZoneInfo
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel
@@ -321,9 +322,10 @@ class Event(EventFields):
 
     @property
     def is_all_day(self) -> bool:
+        LOCAL_TZ = ZoneInfo("America/New_York")
         return (
-            self.start_at.time() == get_default_start_time()
-            and self.end_at.time() == get_default_end_time()
+            self.start_at.astimezone(LOCAL_TZ).time() == get_default_start_time()
+            and self.end_at.astimezone(LOCAL_TZ).time() == get_default_end_time()
         )
 
     @property
