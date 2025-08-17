@@ -19,15 +19,22 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
         # this allows each club to track their own marketing effectiveness.
         service.sync_hosts_attendance_links()
 
+        poll_open = instance.start_at - timezone.timedelta(minutes=30)
+        poll_close = instance.end_at
+
         if not instance.poll:
             Poll.objects.create(
                 name=instance.__str__(),
                 event=instance,
-                open_at=instance.start_at - timezone.timedelta(minutes=30),
-                close_at=instance.end_at,
+                open_at=poll_open,
+                close_at=poll_close,
                 is_published=True,
                 club=instance.primary_club,
             )
+        else:
+            instance.poll.open_at = poll_open
+            instance.poll.close_at = poll_close
+            instance.poll.save()
 
     # Make a job for scheduling event as public
     if instance.make_public_task is None and instance.make_public_at is not None:

@@ -205,7 +205,7 @@ class EventAdmin(ModelAdminBase):
                     "start_at",
                     "end_at",
                     "is_draft",
-                    "is_poll_submission_required",
+                    # "is_poll_submission_required",
                     "enable_attendance",
                 )
             },

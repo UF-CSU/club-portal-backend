@@ -115,10 +115,10 @@ class PollUserFieldType(models.TextChoices):
     NAME = "name", _("Name")
     # EMAIL = "email", _("Email")
     # SCHOOL_EMAIL = "school_email", _("School Email")
+    PHONE = "phone", _("Phone")
     MAJOR = "major", _("Major")
     MINOR = "minor", _("Minor")
     COLLEGE = "college", _("College")
-    PHONE = "phone", _("Phone")
     GRADUATION_YEAR = "graduation_date", _("Graduation Year")
 
 
@@ -581,6 +581,9 @@ class PollQuestion(ModelBase):
                 "Cannot have multiple fields set to the same user field."
             )
 
+        elif self.is_user_lookup and not self.is_required:
+            self.is_required = True
+
         return super().clean()
 
     def delete(self, *args, **kwargs):
@@ -711,6 +714,8 @@ class ChoiceInputOption(ModelBase):
     def save(self, *args, **kwargs):
         if self.order is None:
             self.set_order()
+        if not self.value or self.value.strip() == "":
+            self.value = self.label
         return super().save(*args, **kwargs)
 
     def clean(self):
@@ -895,11 +900,20 @@ class PollQuestionAnswer(ModelBase):
     # Dynamic properties
     @property
     def value(self):
-        return (
-            self.text_value
-            or self.number_value
-            or list(self.options_value.values_list("value", flat=True))
-        )
+        # return (
+        #     self.text_value
+        #     or self.number_value
+        #     or list(self.options_value.values_list("value", flat=True))
+        # )
+        if self.text_value is not None:
+            return self.text_value
+        elif self.number_value is not None:
+            return self.number_value
+        elif self.options_value.exists():
+            return ", ".join(
+                list(self.options_value.all().values_list("value", flat=True))
+            )
+        return None
 
     @property
     def label(self):

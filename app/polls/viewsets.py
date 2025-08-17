@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, permissions
 
-from core.abstracts.viewsets import CustomLimitOffsetPagination, ModelViewSetBase
+from core.abstracts.viewsets import ModelViewSetBase
 from polls.models import ChoiceInputOption, Poll, PollField, PollSubmission
 from polls.serializers import (
     PollChoiceInputOptionSerializer,
@@ -20,6 +20,11 @@ class PollViewset(ModelViewSetBase):
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def check_object_permissions(self, request, obj):
+        if self.action == "retrieve":
+            return True
+        return super().check_object_permissions(request, obj)
 
 
 class PollFieldViewSet(ModelViewSetBase):
@@ -77,7 +82,7 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
     queryset = PollSubmission.objects.all()
     serializer_class = PollSubmissionSerializer
-    pagination_class = CustomLimitOffsetPagination
+    # pagination_class = CustomLimitOffsetPagination
 
     def check_permissions(self, request):
         if self.action == "create":

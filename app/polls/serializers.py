@@ -2,8 +2,10 @@
 Convert poll models to json objects.
 """
 
+from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, serializers
 
+from clubs.models import Club
 from core.abstracts.serializers import ModelSerializer, ModelSerializerBase
 from events.models import Event
 from polls import models
@@ -308,9 +310,23 @@ class PollFieldSerializer(ModelSerializerBase):
 class PollEventNestedSerializer(ModelSerializerBase):
     """Show event for a poll."""
 
+    id = serializers.IntegerField()
+
     class Meta:
         model = Event
         fields = ["id", "name", "start_at", "end_at"]
+        read_only_fields = ["name", "start_at", "end_at"]
+
+
+class PollClubNestedSerializer(ModelSerializerBase):
+    """Display club fields for a poll."""
+
+    id = serializers.IntegerField()
+
+    class Meta:
+        model = Club
+        fields = ["id", "name"]
+        read_only_fields = ["name"]
 
 
 class PollSerializer(ModelSerializer):
@@ -326,11 +342,22 @@ class PollSerializer(ModelSerializer):
     poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     submissions_download_url = serializers.URLField(read_only=True)
+    club = PollClubNestedSerializer(required=True, allow_null=True)
 
     class Meta:
         model = models.Poll
         exclude = ["open_task", "close_task"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        club = validated_data.pop("club")
+        event = validated_data.pop("event", None)
+
+        validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
+        if event:
+            validated_data["event"] = get_object_or_404(Event, id=event.get("id"))
+
+        return super().create(validated_data)
 
 
 class PollSubmissionAnswerSerializer(ModelSerializerBase):
@@ -342,6 +369,7 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
         slug_field="value",
         queryset=models.ChoiceInputOption.objects.all(),
     )
+    is_valid = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = models.PollQuestionAnswer
@@ -369,7 +397,15 @@ class PollSubmissionSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.PollSubmission
-        fields = ["id", "poll", "user", "answers", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "poll",
+            "is_valid",
+            "user",
+            "answers",
+            "created_at",
+            "updated_at",
+        ]
 
     def create(self, validated_data):
         answers = validated_data.pop("answers", None)

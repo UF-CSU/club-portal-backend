@@ -2,7 +2,13 @@ from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from events.models import EventAttendance
 from events.tests.utils import create_test_event
-from polls.models import Poll, PollQuestion, PollSubmission, PollUserFieldType
+from polls.models import (
+    Poll,
+    PollInputType,
+    PollQuestion,
+    PollSubmission,
+    PollUserFieldType,
+)
 from polls.tests.test_poll_views import pollsubmission_list_url
 from polls.tests.utils import create_test_pollquestion
 from users.models import User
@@ -96,16 +102,48 @@ class AttendancePublicTests(PublicApiTestsBase):
     def test_user_finish_profile(self):
         """Should populate user's profile with poll answer."""
 
+        # Setup fields
         name_q = create_test_pollquestion(
             self.poll, link_user_field=PollUserFieldType.NAME
         )
+        phone_q = create_test_pollquestion(
+            self.poll, link_user_field=PollUserFieldType.PHONE
+        )
+        major_q = create_test_pollquestion(
+            self.poll,
+            input_type=PollInputType.CHOICE,
+            link_user_field=PollUserFieldType.MAJOR,
+        )
+        major_q.choice_input.is_multiple = False
+        major_q.choice_input.save()
+        major_q.choice_input.options.create(label="Computer Science")
+
+        minor_q = create_test_pollquestion(
+            self.poll,
+            input_type=PollInputType.CHOICE,
+            link_user_field=PollUserFieldType.MINOR,
+        )
+        minor_q.choice_input.is_multiple = True
+        minor_q.choice_input.save()
+        minor_q.choice_input.options.create(label="Mathematics")
+        minor_q.choice_input.options.create(label="Art")
+
+        college_q = create_test_pollquestion(
+            self.poll, link_user_field=PollUserFieldType.COLLEGE
+        )
+
+        # API Request
         self.client.force_authenticate(self.user)
         self.assertNotEqual(self.user.profile.name, "John Doe")
 
         payload = {
             "answers": [
                 {"question": name_q.pk, "text_value": "John Doe"},
-            ]
+                {"question": phone_q.pk, "text_value": "123-456-7890"},
+                {"question": major_q.pk, "options_value": ["Computer Science"]},
+                {"question": minor_q.pk, "options_value": ["Mathematics", "Art"]},
+                {"question": college_q.pk, "text_value": "Engineering"},
+            ],
         }
         res = self.client.post(self.url, payload)
         self.assertResCreated(res)
@@ -114,6 +152,10 @@ class AttendancePublicTests(PublicApiTestsBase):
         self.assertUserAttendedEvent()
         self.assertUserSubmittedAnswer(name_q, text_value="John Doe")
         self.assertEqual(self.user.profile.name, "John Doe")
+        self.assertEqual(self.user.profile.phone, "123-456-7890")
+        self.assertEqual(self.user.profile.major, "Computer Science")
+        self.assertEqual(self.user.profile.minor, "Mathematics, Art")
+        self.assertEqual(self.user.profile.college, "Engineering")
 
     def test_allow_user_skip_profile_fields(self):
         """Should allow a user to skip a profile field that they already have."""

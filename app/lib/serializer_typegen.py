@@ -499,6 +499,11 @@ class TypeGenerator:
 
             field = all_fields[field_name]
 
+            if mode == "read":
+                is_required = not field.allow_null and not force_optional
+            else:
+                is_required = field.required and not force_optional
+
             if isinstance(field, serializers.BaseSerializer) and type(field) in [
                 *self.serializer_classes,
                 *self.readonly_serializer_classes,
@@ -523,7 +528,7 @@ class TypeGenerator:
                 field_prop = gen_prop(
                     field_name,
                     prop_type=field_type,
-                    required=(field_name in serializer.required_fields),
+                    required=is_required,
                 )
                 properties.append(field_prop)
 
@@ -539,7 +544,7 @@ class TypeGenerator:
             if len(nested_properties) < 1:
                 continue
 
-            if field_name in serializer.required_fields and not force_optional:
+            if is_required:
                 properties.append(indent + TAB + "%s: {\n" % (field_name,))
                 properties += nested_properties
                 properties.append(indent + TAB + "}\n")

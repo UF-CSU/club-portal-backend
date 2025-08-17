@@ -60,7 +60,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         payload = {
             "name": fake.title(),
             "description": fake.paragraph(),
-            "club": self.club.id,
+            "club": {"id": self.club.id},
         }
         fields_payload = [
             {
