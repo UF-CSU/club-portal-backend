@@ -98,22 +98,8 @@ class PollTextInputType(models.TextChoices):
 class PollChoiceType(models.TextChoices):
     """Different ways of showing a choice field."""
 
-    DROPDOWN = "select", _("Dropdown Select")
-    SELECT = "radio", _("Input Select")
-
-
-# class QuestionCustomType(models.TextChoices):
-#     """Categorize different types of text fields."""
-
-#     NAME = "name", _("Name")
-#     EMAIL = "email", _("Email")
-#     UFL_EMAIL = "ufl_email", _("UFL Email")
-#     MAJOR = "major", _("Major")
-#     MINOR = "minor", _("Minor")
-#     COLLEGE = "college", _("College")
-#     PHONE = "phone", _("Phone")
-#     GRADUATION_DATE = "graduation_year", _("Graduation Year")
-#     DEPARTMENT = "department", _("Department")
+    DROPDOWN = "dropdown", _("Dropdown Select")
+    SELECT = "select", _("Input Select")
 
 
 class PollUserFieldType(models.TextChoices):
@@ -143,6 +129,16 @@ class UploadFileType(models.TextChoices):
     WORD = ".docx", _("Word")
     CSV = ".csv", _("Csv")
     EXCEL = ".xlsx,.xls", _("Excel")
+
+
+class AnswerFieldType(models.TextChoices):
+    """Which field to apply the answer value to."""
+
+    TEXT_VALUE = "text_value", _("Text Value")
+    NUMBER_VALUE = "number_value", _("Number Value")
+    OPTIONS_VALUE = "options_value", _("Options Value")
+    BOOLEAN_VALUE = "boolean_value", _("Boolean Value")
+    FILE_VALUE = "file_value", _("File Value")
 
 
 class PollManager(ManagerBase["Poll"]):
@@ -473,6 +469,9 @@ class PollQuestion(ModelBase):
         choices=PollUserFieldType.choices, null=True, blank=True
     )
 
+    # TODO: Add is_editable so we can disable editing of certain profile fields like major/minor
+    # is_editable = models.BooleaField(default=True, blank=True, editable=False)
+
     @property
     def input(self):
         match self.input_type:
@@ -501,12 +500,20 @@ class PollQuestion(ModelBase):
 
         return None
 
+    # Overrides
     @property
-    def widget(self):
-        if not self.input:
-            return None
-
-        return self.input.widget
+    def answer_field(self) -> AnswerFieldType:
+        match self.input_type:
+            case PollInputType.NUMBER | PollInputType.SCALE:
+                return AnswerFieldType.NUMBER_VALUE
+            case PollInputType.CHOICE:
+                return AnswerFieldType.OPTIONS_VALUE
+            case PollInputType.UPLOAD:
+                return AnswerFieldType.FILE_VALUE
+            case PollInputType.CHECKBOX:
+                return AnswerFieldType.BOOLEAN_VALUE
+            case _:
+                return AnswerFieldType.TEXT_VALUE
 
     # Foreign relationships
     @property
@@ -600,6 +607,9 @@ class PollQuestion(ModelBase):
     def create_input(self, **kwargs):
         """Create input based on input_type."""
 
+        if self.input is not None:
+            return self.input
+
         match self.input_type:
             case PollInputType.TEXT:
                 return TextInput.objects.create(question=self, **kwargs)
@@ -666,6 +676,13 @@ class InputBase(ModelBase):
     @property
     def poll(self):
         return self.question.field.poll
+
+    # @property
+    # def answer_field(
+    #     self,
+    # ) -> AnswerFieldType:
+    #     """Which field to apply the answer value to."""
+    #     return "text_value"
 
     class Meta:
         abstract = True
@@ -736,6 +753,10 @@ class ChoiceInput(InputBase):
 
     # Overrides
     objects: ClassVar[ChoiceInputManager] = ChoiceInputManager()
+
+    # @property
+    # def answer_field(self) -> AnswerFieldType:
+    #     return "options_value"
 
 
 class ChoiceInputOption(ModelBase):
@@ -817,6 +838,11 @@ class ScaleInput(InputBase):
     initial_value = models.IntegerField(default=0)
     unit = models.CharField(max_length=16, null=True, blank=True)
 
+    # # Overrides
+    # @property
+    # def answer_field(self) -> AnswerFieldType:
+    #     return "number_value"
+
 
 class UploadInput(InputBase):
     """Upload button, file input."""
@@ -843,6 +869,11 @@ class UploadInput(InputBase):
     def max_file_size_display(self):
         return format_bytes(self.max_file_size)
 
+    # # Overrides
+    # @property
+    # def answer_field(self) -> AnswerFieldType:
+    #     return "file_value"
+
 
 class NumberInput(InputBase):
     """Number input, for numeric responses."""
@@ -859,6 +890,11 @@ class NumberInput(InputBase):
     decimal_places = models.PositiveIntegerField(
         default=1, validators=[MinValueValidator(0)]
     )
+
+    # # Overrides
+    # @property
+    # def answer_field(self) -> AnswerFieldType:
+    #     return "number_value"
 
 
 class EmailInput(TextInputBase):
@@ -900,6 +936,11 @@ class CheckboxInput(InputBase):
     is_consent = models.BooleanField(null=True, blank=True)
     allow_indeterminate = models.BooleanField(default=False, blank=True)
 
+    # # Overrides
+    # @property
+    # def answer_field(self) -> AnswerFieldType:
+    #     return "boolean_value"
+
 
 class PollSubmission(ModelBase):
     """Records a person's input for a poll."""
@@ -936,7 +977,7 @@ class PollSubmission(ModelBase):
 
     # Dynamic properties
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         # Is valid if no error and no answers have errors
         return (
             self.error is None and not self.answers.filter(error__isnull=True).exists()

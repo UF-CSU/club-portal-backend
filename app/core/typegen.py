@@ -23,9 +23,13 @@ from events.serializers import (
 )
 from lib.serializer_typegen import InputSerializerType
 from polls.serializers import (
+    CheckboxInputSerializer,
     ChoiceInputOptionSerializer,
     ChoiceInputSerializer,
+    DateInputSerializer,
+    EmailInputSerializer,
     NumberInputSerializer,
+    PhoneInputSerializer,
     PollFieldSerializer,
     PollQuestionSerializer,
     PollSerializer,
@@ -33,7 +37,9 @@ from polls.serializers import (
     PollSubmissionSerializer,
     ScaleInputSerializer,
     TextInputSerializer,
+    TimeInputSerializer,
     UploadInputSerializer,
+    UrlInputSerializer,
 )
 from users.serializers import SocialProviderSerializer, UserSerializer
 
@@ -63,7 +69,12 @@ SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     ScaleInputSerializer,
     UploadInputSerializer,
     NumberInputSerializer,
-    PollEmailInputSerializer,
+    EmailInputSerializer,
+    PhoneInputSerializer,
+    DateInputSerializer,
+    TimeInputSerializer,
+    UrlInputSerializer,
+    CheckboxInputSerializer,
     PollSubmissionSerializer,
     PollSubmissionAnswerSerializer,
     # Other types

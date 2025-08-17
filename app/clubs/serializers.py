@@ -133,7 +133,7 @@ class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
     logo = ClubFileNestedSerializer()
-    banner = ClubFileNestedSerializer(required=False)
+    banner = ClubFileNestedSerializer(required=False, allow_null=True)
     photos = ClubPhotoSerializer(many=True)
     socials = ClubSocialSerializer(many=True)
     tags = ClubTagSerializer(many=True)

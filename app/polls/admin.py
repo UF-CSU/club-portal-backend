@@ -12,7 +12,6 @@ from polls.models import (
     ChoiceInputOption,
     Poll,
     PollField,
-    PollInputType,
     PollMarkup,
     PollQuestion,
     PollQuestionAnswer,
@@ -111,7 +110,7 @@ class UploadInputInlineAdmin(admin.TabularInline):
 class PollQuestionAdmin(ModelAdminBase):
     """Manage poll questions in admin."""
 
-    list_display = ("__str__", "field", "input_type", "widget")
+    list_display = ("__str__", "field", "input_type")
 
     inlines = (
         TextInputInlineAdmin,
@@ -123,14 +122,7 @@ class PollQuestionAdmin(ModelAdminBase):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        if obj.input_type == PollInputType.TEXT and obj.text_input is None:
-            TextInput.objects.create(question=obj)
-        elif obj.input_type == PollInputType.CHOICE and obj.choice_input is None:
-            ChoiceInput.objects.create(question=obj)
-        elif obj.input_type == PollInputType.SCALE and obj.range_input is None:
-            ScaleInput.objects.create(question=obj)
-        elif obj.input_type == PollInputType.UPLOAD and obj.upload_input is None:
-            UploadInput.objects.create(question=obj)
+        obj.create_input()
 
 
 class ChoiceOptionInlineAdmin(admin.TabularInline):

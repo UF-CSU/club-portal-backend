@@ -127,6 +127,9 @@ class PollQuestionSerializer(ModelSerializerBase):
     time_input = TimeInputSerializer(required=False, allow_null=True)
     url_input = UrlInputSerializer(required=False, allow_null=True)
     checkbox_input = CheckboxInputSerializer(required=False, allow_null=True)
+    answer_field = serializers.ChoiceField(
+        read_only=True, choices=models.AnswerFieldType.choices
+    )
 
     class Meta:
         model = models.PollQuestion
@@ -164,7 +167,7 @@ class PollQuestionSerializer(ModelSerializerBase):
             field=field, label=label, input_type=input_type, **validated_data
         )
 
-        input_kwargs = input_data[input_type]
+        input_kwargs = input_data[input_type] or {}
         question.create_input(**input_kwargs)
 
         return question
@@ -177,7 +180,8 @@ class PollQuestionSerializer(ModelSerializerBase):
 
         # Update question fields
         question = super().update(instance, validated_data)
-        question.update_input(**input_data[question.input_type])
+        input_kwargs = input_data[question.input_type] or {}
+        question.update_input(**input_kwargs)
 
         return question
 
