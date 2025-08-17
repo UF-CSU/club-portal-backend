@@ -23,21 +23,22 @@ from events.serializers import (
 )
 from lib.serializer_typegen import InputSerializerType
 from polls.serializers import (
-    PollChoiceInputOptionSerializer,
-    PollChoiceInputSerializer,
+    ChoiceInputOptionSerializer,
+    ChoiceInputSerializer,
+    NumberInputSerializer,
     PollFieldSerializer,
-    PollNumberInputSerializer,
     PollQuestionSerializer,
-    PollRangeInputSerializer,
     PollSerializer,
     PollSubmissionAnswerSerializer,
     PollSubmissionSerializer,
-    PollTextInputSerializer,
-    PollUploadInputSerializer,
+    ScaleInputSerializer,
+    TextInputSerializer,
+    UploadInputSerializer,
 )
 from users.serializers import SocialProviderSerializer, UserSerializer
 
 SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
+    # Club types
     ClubSerializer,
     (
         ClubMembershipSerializer,
@@ -48,21 +49,25 @@ SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     ClubPhotoSerializer,
     TeamSerializer,
     TeamMembershipSerializer,
+    # Event types
     EventSerializer,
     EventHostSerializer,
     RecurringEventSerializer,
-    UserSerializer,
+    # Poll types
     PollSerializer,
     PollFieldSerializer,
     PollQuestionSerializer,
-    PollTextInputSerializer,
-    PollChoiceInputSerializer,
-    PollChoiceInputOptionSerializer,
-    PollRangeInputSerializer,
-    PollUploadInputSerializer,
-    PollNumberInputSerializer,
+    TextInputSerializer,
+    ChoiceInputSerializer,
+    ChoiceInputOptionSerializer,
+    ScaleInputSerializer,
+    UploadInputSerializer,
+    NumberInputSerializer,
+    PollEmailInputSerializer,
     PollSubmissionSerializer,
     PollSubmissionAnswerSerializer,
+    # Other types
+    UserSerializer,
 ]
 """
 List of serializers to create interfaces for:

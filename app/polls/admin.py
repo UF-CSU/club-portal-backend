@@ -17,7 +17,7 @@ from polls.models import (
     PollQuestion,
     PollQuestionAnswer,
     PollSubmission,
-    RangeInput,
+    ScaleInput,
     TextInput,
     UploadInput,
 )
@@ -97,7 +97,7 @@ class ChoiceInputInlineAdmin(admin.TabularInline):
 class RangeInputInlineAdmin(admin.TabularInline):
     """Manage range inputs in questions admin."""
 
-    model = RangeInput
+    model = ScaleInput
     extra = 0
 
 
@@ -127,8 +127,8 @@ class PollQuestionAdmin(ModelAdminBase):
             TextInput.objects.create(question=obj)
         elif obj.input_type == PollInputType.CHOICE and obj.choice_input is None:
             ChoiceInput.objects.create(question=obj)
-        elif obj.input_type == PollInputType.RANGE and obj.range_input is None:
-            RangeInput.objects.create(question=obj)
+        elif obj.input_type == PollInputType.SCALE and obj.range_input is None:
+            ScaleInput.objects.create(question=obj)
         elif obj.input_type == PollInputType.UPLOAD and obj.upload_input is None:
             UploadInput.objects.create(question=obj)
 

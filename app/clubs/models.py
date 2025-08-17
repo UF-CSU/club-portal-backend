@@ -43,6 +43,13 @@ class RoleType(models.TextChoices):
     CUSTOM = "custom", _("Custom")
 
 
+class ClubFileOrigin(models.TextChoices):
+    """Defines different places a file could have come from."""
+
+    ADMIN = "admin", "Admin Dashboard"
+    SUBMISSION = "submission", "Poll Submission"
+
+
 class ClubTag(Tag):
     """Group clubs together based on topics."""
 
@@ -275,12 +282,14 @@ class ClubFile(ClubScopedModel, ModelBase):
     uploaded_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True
     )
+    origin = models.CharField(
+        choices=ClubFileOrigin.choices, default=ClubFileOrigin.ADMIN, blank=True
+    )
 
-    def save(self, *args, **kwargs):
-        # Set display name to file name if not set
-        if self.display_name is None or self.display_name == "":
-            self.display_name = self.file.name
-        return super().save(*args, **kwargs)
+    # Dynamic properties
+    @property
+    def submission(self):
+        return getattr(self, "_submission", None)
 
     @property
     def url(self) -> str:
@@ -299,6 +308,13 @@ class ClubFile(ClubScopedModel, ModelBase):
             return get_file_path(self.file).split(".")[-1]
         except Exception:
             return "Unknown"
+
+    # Overrides
+    def save(self, *args, **kwargs):
+        # Set display name to file name if not set
+        if self.display_name is None or self.display_name == "":
+            self.display_name = self.file.name
+        return super().save(*args, **kwargs)
 
 
 class ClubPhoto(ClubScopedModel, ModelBase):

@@ -55,9 +55,9 @@ def create_test_pollsubmission(poll: Poll, user=None, **kwargs):
             answer_payload["number_value"] = random.randint(
                 q.number_input.min_value, q.number_input.max_value
             )
-        elif q.input_type == PollInputType.RANGE:
+        elif q.input_type == PollInputType.SCALE:
             answer_payload["number_value"] = random.randint(
-                q.range_input.min_value, q.range_input.max_value
+                q.scale_input.min_value, q.scale_input.max_value
             )
         elif q.input_type == PollInputType.CHOICE:
             answer_payload["choice_value"] = random.sample(

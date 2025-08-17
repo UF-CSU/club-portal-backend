@@ -13,11 +13,9 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from django.core.exceptions import PermissionDenied
-from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from rest_framework.fields import MaxValueValidator
 
 from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from lib.countries import CountryField
@@ -229,14 +227,15 @@ class Profile(ModelBase):
     birthday = models.DateField(null=True, blank=True)
 
     school_email = models.EmailField(blank=True, null=True)
-    graduation_year = models.IntegerField(
-        blank=True,
-        null=True,
-        validators=[MinValueValidator(1900), MaxValueValidator(3000)],
-    )
+    # graduation_year = models.IntegerField(
+    #     blank=True,
+    #     null=True,
+    #     validators=[MinValueValidator(1900), MaxValueValidator(3000)],
+    # )
     major = models.CharField(blank=True, null=True, max_length=128)
     minor = models.CharField(blank=True, null=True, max_length=128)
     college = models.CharField(blank=True, null=True, max_length=128)
+    graduation_date = models.DateField(blank=True, null=True)
 
     # Dynamic Properties
     @property

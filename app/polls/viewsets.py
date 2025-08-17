@@ -6,7 +6,7 @@ from rest_framework import exceptions, permissions
 from core.abstracts.viewsets import ModelViewSetBase
 from polls.models import ChoiceInputOption, Poll, PollField, PollSubmission
 from polls.serializers import (
-    PollChoiceInputOptionSerializer,
+    ChoiceInputOptionSerializer,
     PollFieldSerializer,
     PollSerializer,
     PollSubmissionSerializer,
@@ -50,7 +50,7 @@ class PollChoiceOptionViewSet(ModelViewSetBase):
     """API for managing poll choice input options."""
 
     queryset = ChoiceInputOption.objects.all()
-    serializer_class = PollChoiceInputOptionSerializer
+    serializer_class = ChoiceInputOptionSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):

@@ -11,7 +11,7 @@ from polls.models import (
     PollField,
     PollMarkup,
     PollQuestion,
-    RangeInput,
+    ScaleInput,
     TextInput,
     UploadInput,
 )
@@ -205,10 +205,10 @@ class PollViewAuthTests(PrivateApiTestsBase):
                 "order": 7,
                 "field_type": "question",
                 "question": {
-                    "label": "Example range question?",
+                    "label": "Example scale question?",
                     "description": fake.paragraph(),
-                    "input_type": "range",
-                    "range_input": {
+                    "input_type": "scale",
+                    "scale_input": {
                         "min_value": 0,
                         "max_value": 100,
                         "initial_value": 50,
@@ -223,7 +223,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
                     "description": fake.paragraph(),
                     "input_type": "upload",
                     "upload_input": {
-                        "file_types": ["pdf", "docx"],
+                        "file_types": [".pdf", ".docx"],
                         "max_files": 1,
                     },
                 },
@@ -276,7 +276,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(PollQuestion.objects.count(), initial_question_count + 10)
         self.assertEqual(TextInput.objects.count(), 3 + 1)  # + default email field
         self.assertEqual(ChoiceInput.objects.count(), 4)
-        self.assertEqual(RangeInput.objects.count(), 1)
+        self.assertEqual(ScaleInput.objects.count(), 1)
         self.assertEqual(UploadInput.objects.count(), 1)
         self.assertEqual(PollMarkup.objects.count(), 1)
         self.assertEqual(NumberInput.objects.count(), 1)

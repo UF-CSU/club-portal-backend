@@ -38,10 +38,11 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 
-from clubs.models import Club
+from clubs.models import Club, ClubFile
 from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
 from users.models import User
+from utils.formatting import format_bytes
 from utils.helpers import get_full_url
 
 
@@ -65,11 +66,17 @@ class PollStatusType(models.TextChoices):
 class PollInputType(models.TextChoices):
     """Types of fields a user can add to a poll."""
 
-    TEXT = "text"
-    CHOICE = "choice"
-    RANGE = "range"
-    UPLOAD = "upload"
-    NUMBER = "number"
+    TEXT = "text", _("Text")
+    CHOICE = "choice", _("Choice")
+    SCALE = "scale", _("Scale")
+    UPLOAD = "upload", _("Upload")
+    NUMBER = "number", _("Number")
+    EMAIL = "email", _("Email")
+    PHONE = "phone", _("Phone")
+    DATE = "date", _("Date")
+    TIME = "time", _("Time")
+    URL = "url", _("Url")
+    CHECKBOX = "checkbox", _("Checkbox")
 
 
 class PollFieldType(models.TextChoices):
@@ -113,13 +120,29 @@ class PollUserFieldType(models.TextChoices):
     """User fields that can be populated by values of form questions."""
 
     NAME = "name", _("Name")
-    # EMAIL = "email", _("Email")
-    # SCHOOL_EMAIL = "school_email", _("School Email")
     PHONE = "phone", _("Phone")
     MAJOR = "major", _("Major")
     MINOR = "minor", _("Minor")
     COLLEGE = "college", _("College")
-    GRADUATION_YEAR = "graduation_date", _("Graduation Year")
+    GRADUATION_DATE = "graduation_date", _("Graduation Date")
+
+
+class UploadFileType(models.TextChoices):
+    """
+    Different types of files that can be uploaded.
+
+    Overview: https://www.w3schools.com/tags/att_input_accept.asp
+    Complete list: https://www.iana.org/assignments/media-types/media-types.xhtml
+    """
+
+    AUDIO = "audio/*", _("Audio")
+    VIDEO = "video/*", _("Video")
+    IMAGE = "image/*", _("Image")
+    PDF = ".pdf", _("Pdf")
+    TEXT = ".txt", _("Text")
+    WORD = ".docx", _("Word")
+    CSV = ".csv", _("Csv")
+    EXCEL = ".xlsx,.xls", _("Excel")
 
 
 class PollManager(ManagerBase["Poll"]):
@@ -248,13 +271,6 @@ class Poll(ModelBase):
 
         self.sync_status(commit=False)
 
-        # if self.open_at is not None and self.status == PollStatusType.DRAFT:
-        #     # Set status to scheduled if just added open at date
-        #     self.status = PollStatusType.SCHEDULED
-        # elif self.open_at is None and self.status == PollStatusType.OPEN:
-        #     # If user set status to open, automatically set open_at to now
-        #     self.open_at = timezone.now()
-
         return super().save(*args, **kwargs)
 
     def clean(self):
@@ -374,22 +390,6 @@ class PollField(ModelBase):
     def __str__(self):
         return f"{self.poll} - {self.order}"
 
-    def clean(self):
-        """
-        Validate data before it hits database.
-        Sends Validation Error before database sends Integrety Error,
-        has better UX.
-        """
-
-        # Check order field
-        # order_query = PollField.objects.filter(poll=self.poll, order=self.order)
-        # if order_query.count() > 1:
-        #     raise exceptions.ValidationError(
-        #         f"Multiple fields are set to order {self.order}."
-        #     )
-
-        return super().clean()
-
     def save(self, *args, **kwargs):
         if self.order is None:
             self.set_order()
@@ -399,9 +399,8 @@ class PollField(ModelBase):
                 self.field_type = PollFieldType.QUESTION
             elif self.markup is not None:
                 self.field_type = PollFieldType.MARKUP
-            elif self.page_break is not None:
+            else:
                 self.field_type = PollFieldType.PAGE_BREAK
-
         return super().save(*args, **kwargs)
 
     def set_order(self):
@@ -442,17 +441,7 @@ class PollQuestionManager(ManagerBase["PollQuestion"]):
         if not create_input:
             return question
 
-        match input_type:
-            case PollInputType.TEXT:
-                TextInput.objects.create(question=question)
-            case PollInputType.CHOICE:
-                ChoiceInput.objects.create(question=question)
-            case PollInputType.RANGE:
-                RangeInput.objects.create(question=question)
-            case PollInputType.UPLOAD:
-                UploadInput.objects.create(question=question)
-            case PollInputType.NUMBER:
-                NumberInput.objects.create(question=question)
+        question.create_input()
 
         return question
 
@@ -479,24 +468,10 @@ class PollQuestion(ModelBase):
     image = models.ImageField(null=True, blank=True)
     is_required = models.BooleanField(default=False)
 
-    # custom_type = models.CharField(
-    #     choices=QuestionCustomType.choices, null=True, blank=True
-    # )
-
     is_user_lookup = models.BooleanField(default=False, editable=False)
     link_user_field = models.CharField(
         choices=PollUserFieldType.choices, null=True, blank=True
     )
-
-    @property
-    def html_name(self):
-        return f"field-{self.field.id}"
-
-    @property
-    def html_id(self):
-        if self.input is None:
-            return "input-unknown"
-        return f"input-{self.input.id}"
 
     @property
     def input(self):
@@ -505,12 +480,24 @@ class PollQuestion(ModelBase):
                 return self.text_input
             case PollInputType.CHOICE:
                 return self.choice_input
-            case PollInputType.RANGE:
-                return self.range_input
+            case PollInputType.SCALE:
+                return self.scale_input
             case PollInputType.UPLOAD:
                 return self.upload_input
             case PollInputType.NUMBER:
                 return self.number_input
+            case PollInputType.EMAIL:
+                return self.email_input
+            case PollInputType.PHONE:
+                return self.phone_input
+            case PollInputType.DATE:
+                return self.date_input
+            case PollInputType.TIME:
+                return self.time_input
+            case PollInputType.URL:
+                return self.url_input
+            case PollInputType.CHECKBOX:
+                return self.checkbox_input
 
         return None
 
@@ -524,29 +511,47 @@ class PollQuestion(ModelBase):
     # Foreign relationships
     @property
     def text_input(self) -> Optional["TextInput"]:
-        return getattr(self, "_text_input", None)
+        return getattr(self, "_textinput", None)
 
     @property
     def choice_input(self) -> Optional["ChoiceInput"]:
-        return getattr(self, "_choice_input", None)
+        return getattr(self, "_choiceinput", None)
 
     @property
-    def range_input(self) -> Optional["RangeInput"]:
-        return getattr(self, "_range_input", None)
+    def scale_input(self) -> Optional["ScaleInput"]:
+        return getattr(self, "_scaleinput", None)
 
     @property
     def upload_input(self) -> Optional["UploadInput"]:
-        if not hasattr(self, "_upload_input"):
-            return None
-
-        return self._upload_input
+        return getattr(self, "_uploadinput", None)
 
     @property
     def number_input(self) -> Optional["NumberInput"]:
-        if not hasattr(self, "_number_input"):
-            return None
+        return getattr(self, "_numberinput", None)
 
-        return self._number_input
+    @property
+    def email_input(self) -> Optional["EmailInput"]:
+        return getattr(self, "_emailinput", None)
+
+    @property
+    def phone_input(self) -> Optional["PhoneInput"]:
+        return getattr(self, "_phoneinput", None)
+
+    @property
+    def date_input(self) -> Optional["DateInput"]:
+        return getattr(self, "_dateinput", None)
+
+    @property
+    def time_input(self) -> Optional["TimeInput"]:
+        return getattr(self, "_timeinput", None)
+
+    @property
+    def url_input(self) -> Optional["UrlInput"]:
+        return getattr(self, "_urlinput", None)
+
+    @property
+    def checkbox_input(self) -> Optional["CheckboxInput"]:
+        return getattr(self, "_checkboxinput", None)
 
     # Overrides
     objects: ClassVar[PollQuestionManager] = PollQuestionManager()
@@ -591,8 +596,97 @@ class PollQuestion(ModelBase):
 
         return super().delete(*args, **kwargs)
 
+    # Methods
+    def create_input(self, **kwargs):
+        """Create input based on input_type."""
 
-class TextInput(ModelBase):
+        match self.input_type:
+            case PollInputType.TEXT:
+                return TextInput.objects.create(question=self, **kwargs)
+            case PollInputType.CHOICE:
+                return ChoiceInput.objects.create(question=self, **kwargs)
+            case PollInputType.SCALE:
+                return ScaleInput.objects.create(question=self, **kwargs)
+            case PollInputType.UPLOAD:
+                return UploadInput.objects.create(question=self, **kwargs)
+            case PollInputType.NUMBER:
+                return NumberInput.objects.create(question=self, **kwargs)
+            case PollInputType.EMAIL:
+                return NumberInput.objects.create(question=self, **kwargs)
+            case PollInputType.PHONE:
+                return PhoneInput.objects.create(question=self, **kwargs)
+            case PollInputType.DATE:
+                return DateInput.objects.create(question=self, **kwargs)
+            case PollInputType.TIME:
+                return TimeInput.objects.create(question=self, **kwargs)
+            case PollInputType.URL:
+                return UrlInput.objects.create(question=self, **kwargs)
+            case PollInputType.CHECKBOX:
+                return CheckboxInput.objects.create(question=self, **kwargs)
+            case _:
+                raise Exception(f"Unrecognized input type {self.input_type}")
+
+    def update_input(self, **kwargs):
+        """Update input fields with kwargs based on input_type."""
+
+        match self.input_type:
+            case PollInputType.TEXT:
+                return TextInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.CHOICE:
+                return ChoiceInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.SCALE:
+                return ScaleInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.UPLOAD:
+                return UploadInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.NUMBER:
+                return NumberInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.EMAIL:
+                return EmailInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.PHONE:
+                return PhoneInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.DATE:
+                return DateInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.TIME:
+                return TimeInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.URL:
+                return UrlInput.objects.filter(question=self).update(**kwargs)
+            case PollInputType.CHECKBOX:
+                return CheckboxInput.objects.filter(question=self).update(**kwargs)
+            case _:
+                raise Exception(f"Unrecognized input type {self.input_type}")
+
+
+class InputBase(ModelBase):
+    """Base fields for input objects."""
+
+    question = models.OneToOneField(
+        PollQuestion, on_delete=models.CASCADE, related_name="_%(class)s"
+    )
+
+    @property
+    def poll(self):
+        return self.question.field.poll
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.question} - {self.question.input_type}"
+
+
+class TextInputBase(InputBase):
+    """Default validation fields for text inputs."""
+
+    min_length = models.PositiveIntegerField(
+        null=True, blank=True, default=1, validators=[MinValueValidator(1)]
+    )
+    max_length = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class TextInput(TextInputBase):
     """
     Text input, textarea, or rich text editor.
 
@@ -600,21 +694,9 @@ class TextInput(ModelBase):
     raise error if the field is required.
     """
 
-    question = models.OneToOneField(
-        PollQuestion, on_delete=models.CASCADE, related_name="_text_input"
-    )
-
     text_type = models.CharField(
         choices=PollTextInputType.choices, default=PollTextInputType.SHORT
     )
-    min_length = models.PositiveIntegerField(
-        null=True, blank=True, default=1, validators=[MinValueValidator(1)]
-    )
-    max_length = models.PositiveIntegerField(null=True, blank=True)
-
-    @property
-    def widget(self):
-        return PollTextInputType(self.text_type).label
 
     # Overrides
     class Meta:
@@ -626,31 +708,22 @@ class TextInput(ModelBase):
         ]
 
 
-# class EmailInput(ModelBase):
-#     pass
+class ChoiceInputManager(ManagerBase["ChoiceInputOption"]):
+    """Manage choice input option queries."""
 
-# class PhoneInput(ModelBase):
-#     pass
+    def create(self, **kwargs):
+        options = kwargs.pop("options", None)
+        choice_input = super().create(**kwargs)
 
-# class DateInput(ModelBase):
-#     pass
+        if options:
+            for option in options:
+                ChoiceInputOption.objects.create(input=choice_input, **option)
 
-# class TimeInput(ModelBase):
-#     pass
-
-# class UrlInput(ModelBase):
-#     pass
-
-# class CheckboxInput(ModelBase):
-#     pass
+        return choice_input
 
 
-class ChoiceInput(ModelBase):
+class ChoiceInput(InputBase):
     """Dropdown or radio field."""
-
-    question = models.OneToOneField(
-        PollQuestion, on_delete=models.CASCADE, related_name="_choice_input"
-    )
 
     is_multiple = models.BooleanField(default=False)
     choice_type = models.CharField(
@@ -661,21 +734,8 @@ class ChoiceInput(ModelBase):
     selections: models.QuerySet["PollQuestionAnswer"]
     options: models.QuerySet["ChoiceInputOption"]
 
-    # Dyanmic properties
-    @property
-    def widget(self):
-        return PollChoiceType(self.choice_type).label
-
     # Overrides
-    class Meta:
-        ordering = ["question__field", "-id"]
-
-    def __str__(self):
-        return f"{self.question} - {self.widget}"
-
-    @property
-    def poll(self):
-        return self.question.field.poll
+    objects: ClassVar[ChoiceInputManager] = ChoiceInputManager()
 
 
 class ChoiceInputOption(ModelBase):
@@ -690,15 +750,7 @@ class ChoiceInputOption(ModelBase):
     value = models.CharField(blank=True, default="", max_length=100)
     image = models.ImageField(null=True, blank=True)
     is_default = models.BooleanField(default=False, blank=True)
-    # is_other = models.BooleanField(default=False, blank=True)
-
-    @property
-    def html_name(self):
-        return self.input.question.html_name
-
-    @property
-    def html_id(self):
-        return f"option-{self.id}"
+    is_other = models.BooleanField(default=False, blank=True)
 
     # Overrides
     class Meta:
@@ -708,7 +760,12 @@ class ChoiceInputOption(ModelBase):
                 name="unique_default_option_per_choicefield",
                 fields=["input", "is_default"],
                 condition=models.Q(is_default=True),
-            )
+            ),
+            models.UniqueConstraint(
+                name="one_other_option_per_choicefield",
+                fields=["input", "is_other"],
+                condition=models.Q(is_other=True),
+            ),
         ]
 
     def save(self, *args, **kwargs):
@@ -716,6 +773,9 @@ class ChoiceInputOption(ModelBase):
             self.set_order()
         if not self.value or self.value.strip() == "":
             self.value = self.label
+        if self.is_other:
+            self.value = "other"
+
         return super().save(*args, **kwargs)
 
     def clean(self):
@@ -740,11 +800,11 @@ class ChoiceInputOption(ModelBase):
             self.order = 1
 
 
-class RangeInput(ModelBase):
+class ScaleInput(InputBase):
     """Slider input."""
 
     question = models.OneToOneField(
-        PollQuestion, on_delete=models.CASCADE, related_name="_range_input"
+        PollQuestion, on_delete=models.CASCADE, related_name="_scale_input"
     )
 
     min_value = models.IntegerField(default=0)
@@ -757,30 +817,34 @@ class RangeInput(ModelBase):
     initial_value = models.IntegerField(default=0)
     unit = models.CharField(max_length=16, null=True, blank=True)
 
-    @property
-    def widget(self):
-        return "Slide Range"
 
-
-class UploadInput(ModelBase):
+class UploadInput(InputBase):
     """Upload button, file input."""
+
+    def get_default_upload_filesize():
+        """Default 10MB in bytes."""
+        return 1024 * 1024 * 10
 
     question = models.OneToOneField(
         PollQuestion, on_delete=models.CASCADE, related_name="_upload_input"
     )
 
-    # TODO: make enum
     file_types = ArrayField(
-        base_field=models.CharField(max_length=32), blank=True, default=list
+        base_field=models.CharField(choices=UploadFileType.choices, max_length=32),
+        blank=True,
+        null=True,
     )
     max_files = models.IntegerField(default=1)
+    max_file_size = models.BigIntegerField(
+        default=get_default_upload_filesize, blank=True
+    )
 
     @property
-    def widget(self):
-        return "File Upload"
+    def max_file_size_display(self):
+        return format_bytes(self.max_file_size)
 
 
-class NumberInput(ModelBase):
+class NumberInput(InputBase):
     """Number input, for numeric responses."""
 
     question = models.OneToOneField(
@@ -796,9 +860,45 @@ class NumberInput(ModelBase):
         default=1, validators=[MinValueValidator(0)]
     )
 
-    @property
-    def widget(self):
-        return "Number Input"
+
+class EmailInput(TextInputBase):
+    """Text input with email validation."""
+
+    is_school_email = models.BooleanField(default=False, blank=True)
+
+
+class PhoneInput(InputBase):
+    """Text input with phone number validation."""
+
+    pass
+
+
+class DateInput(InputBase):
+    """Standard date input."""
+
+    min_value = models.DateField(null=True, blank=True)
+    max_value = models.DateField(null=True, blank=True)
+    exclude_day = models.BooleanField(default=False, blank=True)
+
+
+class TimeInput(InputBase):
+    """Standard time input."""
+
+    min_value = models.TimeField(null=True, blank=True)
+    max_value = models.TimeField(null=True, blank=True)
+
+
+class UrlInput(TextInputBase):
+    """Text input with url validation."""
+
+    pass
+
+
+class CheckboxInput(InputBase):
+    """Single checkbox for boolean values."""
+
+    is_consent = models.BooleanField(null=True, blank=True)
+    allow_indeterminate = models.BooleanField(default=False, blank=True)
 
 
 class PollSubmission(ModelBase):
@@ -885,9 +985,13 @@ class PollQuestionAnswer(ModelBase):
     options_value = models.ManyToManyField(
         ChoiceInputOption, blank=True, related_name="selections"
     )
+    boolean_value = models.BooleanField(null=True, blank=True)
+    file_value = models.ForeignKey(
+        ClubFile, on_delete=models.CASCADE, null=True, blank=True
+    )
 
-    # # Only one other option is allowed for a question
-    # other_option_value = models.CharField(null=True, blank=True)
+    # Only one other option is allowed for a question
+    other_option_value = models.CharField(null=True, blank=True)
 
     # Validation
     error = models.CharField(
@@ -900,19 +1004,23 @@ class PollQuestionAnswer(ModelBase):
     # Dynamic properties
     @property
     def value(self):
-        # return (
-        #     self.text_value
-        #     or self.number_value
-        #     or list(self.options_value.values_list("value", flat=True))
-        # )
+        """Get final value from answer."""
         if self.text_value is not None:
             return self.text_value
         elif self.number_value is not None:
             return self.number_value
         elif self.options_value.exists():
-            return ", ".join(
+            options = ", ".join(
                 list(self.options_value.all().values_list("value", flat=True))
             )
+            if self.options_value.filter(is_other=True).exists():
+                options.replace("other", self.other_option_value)
+
+            return options
+        elif self.boolean_value is not None:
+            return self.boolean_value
+        elif self.file_value is not None:
+            return self.file_value.url
         return None
 
     @property

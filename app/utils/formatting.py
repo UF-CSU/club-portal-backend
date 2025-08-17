@@ -57,7 +57,12 @@ BYTE_UNITS = (
 
 
 def format_bytes(bytes_count: int):
-    """Take a raw number of bytes and return a string representing the amount in megabytes."""
+    """
+    Take a raw number of bytes and return a string representing the amount in megabytes.
+    Note: This uses the traditional 1024 multiplier, instead of the si multiplier of 1000.
+
+    Ref: https://stackoverflow.com/a/12912296/10914922
+    """
     unit_size = 0
     unit_label = ""
 
