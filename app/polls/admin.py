@@ -112,6 +112,8 @@ class PollQuestionAdmin(ModelAdminBase):
 
     list_display = ("__str__", "field", "input_type")
 
+    readonly_fields = ("id", "created_at", "updated_at", "is_user_lookup")
+
     inlines = (
         TextInputInlineAdmin,
         ChoiceInputInlineAdmin,

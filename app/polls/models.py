@@ -29,7 +29,6 @@ from datetime import datetime
 from typing import ClassVar, Optional
 
 from django.contrib.postgres.fields import ArrayField
-from django.core import exceptions
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
@@ -37,6 +36,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
+from rest_framework import exceptions
 
 from clubs.models import Club, ClubFile
 from core.abstracts.models import ManagerBase, ModelBase
@@ -599,7 +599,7 @@ class PollQuestion(ModelBase):
         return super().clean()
 
     def delete(self, *args, **kwargs):
-        assert self.is_user_lookup is False, "Cannot delete the user lookup question."
+        # assert self.is_user_lookup is False, "Cannot delete the user lookup question."
 
         return super().delete(*args, **kwargs)
 
@@ -622,7 +622,7 @@ class PollQuestion(ModelBase):
             case PollInputType.NUMBER:
                 return NumberInput.objects.create(question=self, **kwargs)
             case PollInputType.EMAIL:
-                return NumberInput.objects.create(question=self, **kwargs)
+                return EmailInput.objects.create(question=self, **kwargs)
             case PollInputType.PHONE:
                 return PhoneInput.objects.create(question=self, **kwargs)
             case PollInputType.DATE:
@@ -639,31 +639,14 @@ class PollQuestion(ModelBase):
     def update_input(self, **kwargs):
         """Update input fields with kwargs based on input_type."""
 
-        match self.input_type:
-            case PollInputType.TEXT:
-                return TextInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.CHOICE:
-                return ChoiceInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.SCALE:
-                return ScaleInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.UPLOAD:
-                return UploadInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.NUMBER:
-                return NumberInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.EMAIL:
-                return EmailInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.PHONE:
-                return PhoneInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.DATE:
-                return DateInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.TIME:
-                return TimeInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.URL:
-                return UrlInput.objects.filter(question=self).update(**kwargs)
-            case PollInputType.CHECKBOX:
-                return CheckboxInput.objects.filter(question=self).update(**kwargs)
-            case _:
-                raise Exception(f"Unrecognized input type {self.input_type}")
+        if not self.input:
+            raise exceptions.ValidationError("No input to update")
+
+        for key, value in kwargs.items():
+            setattr(self.input, key, value)
+
+        self.input.save()
+        return self.input
 
 
 class InputBase(ModelBase):
@@ -676,13 +659,6 @@ class InputBase(ModelBase):
     @property
     def poll(self):
         return self.question.field.poll
-
-    # @property
-    # def answer_field(
-    #     self,
-    # ) -> AnswerFieldType:
-    #     """Which field to apply the answer value to."""
-    #     return "text_value"
 
     class Meta:
         abstract = True
@@ -701,6 +677,17 @@ class TextInputBase(InputBase):
 
     class Meta:
         abstract = True
+
+    def clean(self):
+        if (
+            self.max_length is not None
+            and self.min_length is not None
+            and self.max_length <= self.min_length
+        ):
+            raise exceptions.ValidationError(
+                {"max_length": "Max length must be greater than min length."}
+            )
+        return super().clean()
 
 
 class TextInput(TextInputBase):
@@ -753,10 +740,6 @@ class ChoiceInput(InputBase):
 
     # Overrides
     objects: ClassVar[ChoiceInputManager] = ChoiceInputManager()
-
-    # @property
-    # def answer_field(self) -> AnswerFieldType:
-    #     return "options_value"
 
 
 class ChoiceInputOption(ModelBase):
@@ -824,10 +807,6 @@ class ChoiceInputOption(ModelBase):
 class ScaleInput(InputBase):
     """Slider input."""
 
-    question = models.OneToOneField(
-        PollQuestion, on_delete=models.CASCADE, related_name="_scale_input"
-    )
-
     min_value = models.IntegerField(default=0)
     max_value = models.IntegerField(default=10)
 
@@ -838,11 +817,6 @@ class ScaleInput(InputBase):
     initial_value = models.IntegerField(default=0)
     unit = models.CharField(max_length=16, null=True, blank=True)
 
-    # # Overrides
-    # @property
-    # def answer_field(self) -> AnswerFieldType:
-    #     return "number_value"
-
 
 class UploadInput(InputBase):
     """Upload button, file input."""
@@ -850,10 +824,6 @@ class UploadInput(InputBase):
     def get_default_upload_filesize():
         """Default 10MB in bytes."""
         return 1024 * 1024 * 10
-
-    question = models.OneToOneField(
-        PollQuestion, on_delete=models.CASCADE, related_name="_upload_input"
-    )
 
     file_types = ArrayField(
         base_field=models.CharField(choices=UploadFileType.choices, max_length=32),
@@ -869,18 +839,9 @@ class UploadInput(InputBase):
     def max_file_size_display(self):
         return format_bytes(self.max_file_size)
 
-    # # Overrides
-    # @property
-    # def answer_field(self) -> AnswerFieldType:
-    #     return "file_value"
-
 
 class NumberInput(InputBase):
     """Number input, for numeric responses."""
-
-    question = models.OneToOneField(
-        PollQuestion, on_delete=models.CASCADE, related_name="_number_input"
-    )
 
     min_value = models.FloatField(default=0.0)
     max_value = models.FloatField(default=10.0)
@@ -890,11 +851,6 @@ class NumberInput(InputBase):
     decimal_places = models.PositiveIntegerField(
         default=1, validators=[MinValueValidator(0)]
     )
-
-    # # Overrides
-    # @property
-    # def answer_field(self) -> AnswerFieldType:
-    #     return "number_value"
 
 
 class EmailInput(TextInputBase):
@@ -933,13 +889,19 @@ class UrlInput(TextInputBase):
 class CheckboxInput(InputBase):
     """Single checkbox for boolean values."""
 
-    is_consent = models.BooleanField(null=True, blank=True)
+    is_consent = models.BooleanField(default=False, blank=True)
     allow_indeterminate = models.BooleanField(default=False, blank=True)
+    label = models.CharField(null=True, blank=True, max_length=32)
 
-    # # Overrides
-    # @property
-    # def answer_field(self) -> AnswerFieldType:
-    #     return "boolean_value"
+    def clean(self):
+        if self.is_consent and self.allow_indeterminate:
+            self.allow_indeterminate = False
+
+        if self.is_consent and not self.question.is_required:
+            self.question.is_required = True
+            self.question.save()
+
+        return super().clean()
 
 
 class PollSubmission(ModelBase):

@@ -162,6 +162,7 @@ class PollQuestionSerializer(ModelSerializerBase):
         field = validated_data.pop("field")
         label = validated_data.pop("label")
         input_type = validated_data.pop("input_type")
+        print('input type:', input_type)
 
         question = models.PollQuestion.objects.create(
             field=field, label=label, input_type=input_type, **validated_data
