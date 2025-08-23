@@ -19,6 +19,7 @@ _depricated/
 __depricated
 _deprecated/
 generated/
+WARP.md
 
 # C extensions
 *.so

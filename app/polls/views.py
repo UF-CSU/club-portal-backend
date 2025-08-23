@@ -1,7 +1,11 @@
-from django.http import HttpRequest
+import io
+import re
+
+from django.http import FileResponse, HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from polls.models import Poll, PollSubmission
+from polls.services import PollService
 
 
 def show_poll_view(request: HttpRequest, poll_id: int):
@@ -31,3 +35,31 @@ def poll_success_view(request, poll_id: int):
     poll = get_object_or_404(Poll, id=poll_id)
 
     return render(request, "clubs/polls/poll_success.html", context={"poll": poll})
+
+
+def download_submissions(request, poll_id: int):
+    """Download poll submissions as a csv."""
+
+    poll = get_object_or_404(Poll, id=poll_id)
+    service = PollService(poll)
+    filename = f"{re.sub(r'[()]', '', poll.name.lower().replace(' ', '_').replace('/', '_'))}_submissions"
+    tzname = request.GET.get("timezone", "UTC")
+
+    df = service.get_submissions_df(tzname)
+    buffer = io.BytesIO()
+    df.to_csv(
+        buffer,
+        index=False,
+        compression={
+            "method": "zip",
+            "archive_name": filename + ".csv",
+        },
+    )
+    buffer.seek(0)
+
+    return FileResponse(
+        buffer,
+        as_attachment=True,
+        filename=filename + ".zip",
+        content_type="application/x-zip-compressed",
+    )

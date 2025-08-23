@@ -34,6 +34,7 @@ def create_test_event(
         "end_at": timezone.now() + timedelta(hours=3),
         "host": host,
         "secondary_hosts": secondary_hosts,
+        "enable_attendance": False,
         **kwargs,
     }
 

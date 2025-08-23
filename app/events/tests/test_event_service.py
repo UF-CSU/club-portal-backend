@@ -25,16 +25,17 @@ class EventServiceTests(PeriodicTaskTestsBase):
         """Should set event as public at given date."""
 
         pt_before = PeriodicTask.objects.count()
+        EXPECTED_TASK_COUNT = pt_before + 1
 
         event = create_test_event()
         event.is_public = False
         event.make_public_at = timezone.now() + timezone.timedelta(days=1)
         event.save()
 
-        self.assertEqual(PeriodicTask.objects.count(), pt_before + 1)
+        self.assertEqual(PeriodicTask.objects.count(), EXPECTED_TASK_COUNT)
 
         event.refresh_from_db()
-        self.run_clocked_func(event.make_public_task)
+        self.assertRunPeriodicTask(event.make_public_task)
 
         event.refresh_from_db()
         self.assertTrue(event.is_public)
@@ -344,7 +345,6 @@ class RecurringEventTests(TestsBase):
         self.assertTrue(e1.attendances.count(), 1)
 
     @freeze_time("2025-08-03")
-    # @patch("django.utils.timezone.now")
     def test_sync_events_prevent_past_updates(self):
         """Should not update/delete past events."""
 

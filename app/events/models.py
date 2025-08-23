@@ -89,6 +89,9 @@ class EventFields(ClubScopedModel, ModelBase):
     attachments = models.ManyToManyField(
         ClubFile, blank=True, related_name="%(class)ss"
     )
+    enable_attendance = models.BooleanField(
+        default=False, help_text="Create poll for event and users to attend."
+    )
 
     class Meta:
         abstract = True
@@ -218,6 +221,7 @@ class RecurringEvent(EventFields):
             "event_type": self.event_type,
             "is_public": self.is_public,
             "description": self.description,
+            "enable_attendance": self.enable_attendance,
         }
 
 
@@ -284,7 +288,7 @@ class Event(EventFields):
         PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
     )
 
-    is_poll_submission_required = models.BooleanField(default=True)
+    # is_poll_submission_required = models.BooleanField(default=True)
 
     # Foreign Relationships
     clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
@@ -356,7 +360,7 @@ class Event(EventFields):
 
         return super().__str__()
 
-    def full_clean(self, *args, **kwargs):
+    def clean(self, *args, **kwargs):
         if self.start_at > self.end_at:
             raise exceptions.ValidationError(
                 "Start date cannot be greater than end date"
@@ -375,12 +379,17 @@ class Event(EventFields):
 
             self.name = f"{self.name} {index}"
 
-        # Constraint: if poll is None, is_poll_submission_required must be False
-        # NOTE: This is not a regular Constraint since poll is a virtual property
-        if not self.poll and self.is_poll_submission_required:
-            self.is_poll_submission_required = False
+        # # Constraint: if poll is None, is_poll_submission_required must be False
+        # # NOTE: This is not a regular Constraint since poll is a virtual property
+        # if not self.poll and self.is_poll_submission_required:
+        #     self.is_poll_submission_required = False
 
-        return super().full_clean(*args, **kwargs)
+        if self.pk and self.enable_attendance is True and self.primary_club is None:
+            raise exceptions.ValidationError(
+                "Cannot measure attendance without a primary host club."
+            )
+
+        return super().clean(*args, **kwargs)
 
     # Methods
     def add_host(self, club: Club, is_primary=False, commit=True):
@@ -418,6 +427,7 @@ class Event(EventFields):
                 fields=["name", "start_at", "end_at"],
             )
         ]
+
 
 class EventHost(ClubScopedModel, ModelBase):
     """Attach clubs to events."""

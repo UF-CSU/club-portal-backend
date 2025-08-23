@@ -1,3 +1,4 @@
+import copy
 from enum import Enum
 from time import sleep
 from typing import Type
@@ -114,6 +115,16 @@ class SerializerBase(serializers.Serializer):
             key
             for key, value in self.get_fields().items()
             if isinstance(value, serializers.BooleanField)
+        ]
+
+    @cached_property
+    def choice_fields(self) -> list[str]:
+        """List of fields that have choices."""
+
+        return [
+            key
+            for key, value in self.get_fields().items()
+            if isinstance(value, serializers.ChoiceField)
         ]
 
     @cached_property
@@ -313,6 +324,29 @@ class ModelSerializerBase(SerializerBase, serializers.ModelSerializer):
             for constraint in constraints
             if isinstance(constraint, models.UniqueConstraint)
         ]
+
+    def run_prevalidation(self, data=None):
+        """
+        Can be used to pull out objects and set child querysets before actual validation.
+        This can be used to scope querysets of certain fields to other fields.
+
+        Example setting queryset of "child" field based on "parent":
+        ```
+        def run_pre_validation(self, data=None):
+            children = data.pop('children', None)
+
+            res = super().run_prevalidation(data)
+            parent = res.get('parent')
+            self.fields['children'].child_relation.queryset = Model.objects.filter(parent=parent)
+
+            return res
+        """
+        return super().run_validation(data)
+
+    def run_validation(self, data=None):
+        pre_data = copy.deepcopy(data)
+        self.run_prevalidation(pre_data)
+        return super().run_validation(data)
 
 
 class ModelSerializer(ModelSerializerBase):

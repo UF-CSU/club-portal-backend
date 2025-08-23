@@ -41,6 +41,17 @@ class ProfileNestedSerializer(ModelSerializerBase):
         exclude = ["user", "created_at", "updated_at"]
 
 
+class UserNestedSerializer(ModelSerializerBase):
+    """Display minimal fields for a user."""
+
+    email = serializers.EmailField(required=False)
+    profile = ProfileNestedSerializer(required=False)
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "profile"]
+
+
 class UserSerializer(ModelSerializer):
     """Represents a person in the system who can authenticate."""
 

@@ -10,6 +10,34 @@ from events.models import Event
 class ClubEventTests(TestsBase):
     """Unit tests for club events."""
 
+    def test_create_event_with_poll(self):
+        """Should create an event and attendance poll."""
+
+        primary_club = create_test_club()
+        event = Event.objects.create(
+            name="Test event",
+            host=primary_club,
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
+            enable_attendance=True,
+        )
+        event.refresh_from_db()
+        self.assertIsNotNone(event.poll)
+
+    def test_create_event_without_poll(self):
+        """Should not create poll for event if attendance not enabled."""
+
+        primary_club = create_test_club()
+        event = Event.objects.create(
+            name="Test event",
+            host=primary_club,
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
+            enable_attendance=False,
+        )
+        event.refresh_from_db()
+        self.assertIsNone(event.poll)
+
     def test_event_hosts(self):
         """Getting event hosts should return all clubs hosting event."""
 
@@ -37,10 +65,17 @@ class ClubEventTests(TestsBase):
             name="Test Event",
             start_at=timezone.now(),
             end_at=timezone.now() + timezone.timedelta(hours=2),
+            enable_attendance=False,
         )
+        self.assertEqual(event.attendance_links.count(), 0)
+
+        event.enable_attendance = True
+        event.save()
+        event.refresh_from_db()
 
         self.assertEqual(event.attendance_links.count(), 1)
-        self.assertEqual(Link.objects.count(), 1)
+        # TODO: Should this create a link for a poll and an event?
+        self.assertEqual(Link.objects.count(), 2)
         link = event.attendance_links.first()
 
         # expected_url_path = reverse("api-events:attendance-list", args=[event.id])

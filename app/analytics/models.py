@@ -35,7 +35,7 @@ class Link(ClubScopedModel, ModelBase):
     target_url = models.URLField(help_text="The final url we want to track clicks to.")
     display_name = models.CharField(null=True, blank=True)
     is_tracked = models.BooleanField(
-        default=True, help_text="Should clicking this url create a `LinkVisit` object?"
+        default=False, help_text="Should clicking this url create a `LinkVisit` object?"
     )
 
     # Relationships
@@ -167,6 +167,10 @@ class QRCode(ClubScopedModel, ModelBase):
     def width(self) -> int:
         if self.image:
             return self.image.width
+
+    @property
+    def download_url(self) -> str:
+        return get_full_url(reverse("analytics:download_qrcode", args=[self.pk]))
 
     @property
     def size(self) -> str:
