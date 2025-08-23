@@ -173,3 +173,7 @@ override.tf.json
 *_override.tf.json
 
 ./clubportal
+
+
+# Node modules
+node_modules
