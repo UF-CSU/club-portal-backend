@@ -162,7 +162,6 @@ class PollQuestionSerializer(ModelSerializerBase):
         field = validated_data.pop("field")
         label = validated_data.pop("label")
         input_type = validated_data.pop("input_type")
-        print('input type:', input_type)
 
         question = models.PollQuestion.objects.create(
             field=field, label=label, input_type=input_type, **validated_data
@@ -259,15 +258,28 @@ class PollFieldSerializer(ModelSerializerBase):
         return field
 
 
+class PollLinkNestedSerializer(ModelSerializerBase):
+    """A link a user can use to submit a poll."""
+
+    qrcode_url = serializers.URLField(
+        source="qrcode.download_url", read_only=True, help_text="URL for the QRCode SVG"
+    )
+
+    class Meta:
+        model = models.PollSubmissionLink
+        fields = ["id", "url", "qrcode_url", "club"]
+
+
 class PollEventNestedSerializer(ModelSerializerBase):
     """Show event for a poll."""
 
     id = serializers.IntegerField()
+    attendance_links = PollLinkNestedSerializer(many=True)
 
     class Meta:
         model = Event
-        fields = ["id", "name", "start_at", "end_at"]
-        read_only_fields = ["name", "start_at", "end_at"]
+        fields = ["id", "name", "start_at", "end_at", "attendance_links"]
+        read_only_fields = ["name", "start_at", "end_at", "attendance_links"]
 
 
 class PollClubNestedSerializer(ModelSerializerBase):
@@ -295,6 +307,9 @@ class PollSerializer(ModelSerializer):
     event = PollEventNestedSerializer(required=False, allow_null=True)
     submissions_download_url = serializers.URLField(read_only=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)
+    link = PollLinkNestedSerializer(
+        read_only=True, allow_null=True, source="submission_link"
+    )
 
     class Meta:
         model = models.Poll
@@ -360,25 +375,27 @@ class PollSubmissionSerializer(ModelSerializerBase):
         ]
 
     def create(self, validated_data):
-        answers = validated_data.pop("answers", None)
+        answers: list = validated_data.pop("answers", [])
         user = validated_data.get("user", None)
 
-        if not user or user.is_anonymous:
-            email_answer = None
-            for answer in answers:
-                if answer.get("question").is_user_lookup:
-                    email_answer = answer.get("text_value", None)
-                    break
+        email_answer = None
+        for answer in answers:
+            if answer.get("question").is_user_lookup:
+                email_answer = answer.get("text_value", None)
+                break
 
+        if not user or user.is_anonymous:
             if not email_answer:
                 raise exceptions.ValidationError(
                     {"answers": "Missing user lookup field"}, code="required"
                 )
-
             try:
                 user = User.objects.get_by_email(email_answer)
             except User.DoesNotExist:
                 user = User.objects.create(email=email_answer)
+        # elif not email_answer:
+        #     # TODO: Set ufl email if email field has it enabled
+        #     answers.append({"email": user.email})
 
         validated_data["user"] = user
         submission, _ = models.PollSubmission.objects.get_or_create(

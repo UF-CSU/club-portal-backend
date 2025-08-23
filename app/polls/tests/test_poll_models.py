@@ -1,4 +1,4 @@
-from django.core import exceptions
+from rest_framework import exceptions
 
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import TestsBase

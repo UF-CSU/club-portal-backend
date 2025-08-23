@@ -6,11 +6,13 @@ from lib.faker import fake
 from polls.models import (
     ChoiceInput,
     ChoiceInputOption,
+    EmailInput,
     NumberInput,
     Poll,
     PollField,
     PollMarkup,
     PollQuestion,
+    PollStatusType,
     ScaleInput,
     TextInput,
     UploadInput,
@@ -274,7 +276,8 @@ class PollViewAuthTests(PrivateApiTestsBase):
             PollField.objects.count(), len(fields_payload) + initial_fields_count
         )
         self.assertEqual(PollQuestion.objects.count(), initial_question_count + 10)
-        self.assertEqual(TextInput.objects.count(), 3 + 1)  # + default email field
+        self.assertEqual(EmailInput.objects.count(), 1)  # Default email field
+        self.assertEqual(TextInput.objects.count(), 3)
         self.assertEqual(ChoiceInput.objects.count(), 4)
         self.assertEqual(ScaleInput.objects.count(), 1)
         self.assertEqual(UploadInput.objects.count(), 1)
@@ -470,7 +473,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         """Should submit poll via api."""
 
         # Create a poll with actual fields that match the submission payload
-        poll = create_test_poll(club=self.club)
+        poll = create_test_poll(club=self.club, status=PollStatusType.OPEN)
 
         # Create a poll field with a text question to match the submission
         poll_field = PollField.objects.create(poll=poll, field_type="question", order=0)
@@ -523,7 +526,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
         """Should submit poll with multiple question types via api."""
 
         # Create a poll with multiple field types
-        poll = create_test_poll(club=self.club)
+        poll = create_test_poll(club=self.club, status=PollStatusType.OPEN)
 
         # Create text field
         text_field = PollField.objects.create(poll=poll, field_type="question", order=0)

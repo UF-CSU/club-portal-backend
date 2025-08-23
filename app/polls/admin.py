@@ -16,10 +16,13 @@ from polls.models import (
     PollQuestion,
     PollQuestionAnswer,
     PollSubmission,
+    PollSubmissionLink,
     ScaleInput,
     TextInput,
     UploadInput,
 )
+from polls.services import PollService
+from utils.formatting import plural_noun_display
 
 
 class PollFieldInlineAdmin(StackedInlineBase):
@@ -44,6 +47,13 @@ class PollFieldInlineAdmin(StackedInlineBase):
         return "-"
 
 
+class PollSubmissionLinkInlineAdmin(StackedInlineBase):
+    """Show submission links for a poll."""
+
+    model = PollSubmissionLink
+    extra = 0
+
+
 class PollAdmin(ModelAdminBase):
     """Manage poll objects in admin."""
 
@@ -58,12 +68,16 @@ class PollAdmin(ModelAdminBase):
         "last_submission_at",
     )
 
-    inlines = (PollFieldInlineAdmin,)
+    inlines = (
+        PollSubmissionLinkInlineAdmin,
+        PollFieldInlineAdmin,
+    )
     readonly_fields = (
         "field_count",
         "view_poll",
         "submissions_download_link",
     )
+    actions = ("sync_submission_links",)
 
     def field_count(self, obj):
         return obj.fields.count()
@@ -77,6 +91,19 @@ class PollAdmin(ModelAdminBase):
 
     def submissions_download_link(self, obj):
         return self.as_link(obj.submissions_download_url)
+
+    @admin.action(description="Sync submission links for selected polls")
+    def sync_submission_links(self, request, queryset):
+
+        for poll in queryset:
+            PollService(poll).sync_submission_link()
+
+        self.message_user(
+            request,
+            f'Synced {plural_noun_display(queryset.count(), "submission link")}.',
+        )
+
+        return
 
 
 class TextInputInlineAdmin(admin.TabularInline):

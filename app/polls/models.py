@@ -38,6 +38,7 @@ from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 from rest_framework import exceptions
 
+from analytics.models import Link
 from clubs.models import Club, ClubFile
 from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
@@ -258,6 +259,10 @@ class Poll(ModelBase):
 
         self.sync_status(override_draft=True, commit=False)
 
+    @property
+    def submission_link(self) -> Optional["PollSubmissionLink"]:
+        return getattr(self, "_submission_link", None)
+
     # Overrides
     objects: ClassVar[PollManager] = PollManager()
 
@@ -332,6 +337,14 @@ class Poll(ModelBase):
         return PollField.objects.create(
             poll=self, order=highest_order, field_type=field_type
         )
+
+
+class PollSubmissionLink(Link):
+    """Manage links for poll submissions."""
+
+    poll = models.OneToOneField(
+        Poll, on_delete=models.CASCADE, related_name="_submission_link"
+    )
 
 
 class PollTemplateManager(ManagerBase["PollTemplate"]):

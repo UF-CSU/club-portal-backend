@@ -145,6 +145,7 @@ def schedule_clocked_func(
     periodic_task = PeriodicTask.objects.create(
         clocked=schedule,
         name=f"{name} {uuid.uuid4().__str__()}",
+        task=get_import_path(run_func),
         args=json.dumps([get_import_path(func), *args]),
         kwargs=json.dumps(kwargs),
         one_off=True,

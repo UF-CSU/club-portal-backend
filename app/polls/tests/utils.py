@@ -19,7 +19,11 @@ def create_test_poll(**kwargs):
 
     club = kwargs.pop("club", create_test_club())
 
-    payload = {"name": fake.title(), "description": fake.paragraph(), **kwargs}
+    payload = {
+        "name": fake.title(),
+        "description": fake.paragraph(),
+        **kwargs,
+    }
 
     return Poll.objects.create(club=club, **payload)
 

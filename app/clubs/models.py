@@ -166,6 +166,12 @@ class Club(ClubScopedModel, UniqueModel):
         default=True,
         help_text="Should this club be updated based on info from gatorconnect?",
     )
+    # allow_beta_access = models.BooleanField(
+    #     default=False, help_text="Allow access to beta features."
+    # )
+    # allow_alpha_access = models.BooleanField(
+    #     default=False, help_text="Allow access to alpha features."
+    # )
 
     # GatorConnect fields
     gatorconnect_url = models.URLField(

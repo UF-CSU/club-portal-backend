@@ -4,7 +4,13 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, permissions
 
 from core.abstracts.viewsets import ModelViewSetBase
-from polls.models import ChoiceInputOption, Poll, PollField, PollSubmission
+from polls.models import (
+    ChoiceInputOption,
+    Poll,
+    PollField,
+    PollStatusType,
+    PollSubmission,
+)
 from polls.serializers import (
     ChoiceInputOptionSerializer,
     PollFieldSerializer,
@@ -97,6 +103,12 @@ class PollSubmissionViewSet(ModelViewSetBase):
     def perform_create(self, serializer):
         poll_id = self.kwargs.get("poll_id", None)
         poll = get_object_or_404(Poll, id=poll_id)
+
+        if poll.status != PollStatusType.OPEN:
+            raise exceptions.ParseError(
+                detail="Cannot create submission for poll that is not open"
+            )
+
         service = PollService(poll)
         user = self.request.user
 

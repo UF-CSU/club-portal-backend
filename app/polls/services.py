@@ -2,6 +2,7 @@ import pandas as pd
 import pytz
 from django.utils import timezone
 
+from app.settings import POLL_SUBMISSION_REDIRECT_URL
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from events.models import EventAttendance
@@ -15,6 +16,7 @@ from polls.models import (
     PollQuestion,
     PollStatusType,
     PollSubmission,
+    PollSubmissionLink,
     PollTemplate,
     PollUserFieldType,
     TextInput,
@@ -257,6 +259,25 @@ class PollService(ServiceBase[Poll]):
 
         submission.refresh_from_db()
         return submission
+
+    def create_submission_link(self):
+        """Create link where users can fill out poll."""
+
+        if self.obj.submission_link is not None:
+            return
+
+        url = POLL_SUBMISSION_REDIRECT_URL % {"id": self.obj.id}
+        return PollSubmissionLink.objects.create(
+            target_url=url, poll=self.obj, club=self.obj.club, create_qrcode=True
+        )
+
+    def sync_submission_link(self):
+        """Remove and recreate submission links."""
+
+        if self.obj.submission_link is not None:
+            PollSubmissionLink.objects.filter(id=self.obj.submission_link.id).delete()
+
+        self.create_submission_link()
 
 
 def set_poll_status(poll_id: int, status: PollStatusType):

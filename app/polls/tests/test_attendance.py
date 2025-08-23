@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+from django.utils import timezone
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from events.models import EventAttendance
@@ -6,6 +9,7 @@ from polls.models import (
     Poll,
     PollInputType,
     PollQuestion,
+    PollStatusType,
     PollSubmission,
     PollUserFieldType,
 )
@@ -29,6 +33,8 @@ class AttendancePublicTests(PublicApiTestsBase):
             host=self.primary_club,
             secondary_hosts=[self.secondary_club],
             enable_attendance=True,
+            start_at=timezone.now() - timezone.timedelta(hours=1),
+            end_at=timezone.now() + timezone.timedelta(hours=1),
         )
 
         self.poll: Poll = self.event.poll
@@ -84,6 +90,14 @@ class AttendancePublicTests(PublicApiTestsBase):
         self.assertFalse(
             PollSubmission.objects.filter(poll=question.field.poll, user=user).exists()
         )
+
+    def set_poll_status(self, status: PollStatusType):
+        """Set poll status and verify update."""
+
+        self.poll.status = status
+        self.poll.save()
+        self.poll.refresh_from_db()
+        self.assertEqual(self.poll.status, status)
 
     #####################################################
     # Event/Poll Submission Tests
@@ -308,6 +322,32 @@ class AttendancePublicTests(PublicApiTestsBase):
         self.assertEqual(PollSubmission.objects.count(), 1)
         self.assertEqual(self.user.profile.name, "John Doe")
         self.assertUserSubmittedAnswer(shirt_q, text_value="LG")
+
+    @patch("polls.models.Poll.sync_status")
+    def test_poll_not_opened(self, *args):
+        """Should disallow submissions if poll is not opened."""
+
+        self.client.force_authenticate(self.user)
+
+        payload = {}
+
+        # Poll is closed
+        self.set_poll_status(PollStatusType.CLOSED)
+        res = self.client.post(self.url, payload)
+        self.assertResBadRequest(res)
+        self.assertUserNotAttendedEvent()
+
+        # Poll is draft
+        self.set_poll_status(PollStatusType.DRAFT)
+        res = self.client.post(self.url, payload)
+        self.assertResBadRequest(res)
+        self.assertUserNotAttendedEvent()
+
+        # Poll is scheduled
+        self.set_poll_status(PollStatusType.SCHEDULED)
+        res = self.client.post(self.url, payload)
+        self.assertResBadRequest(res)
+        self.assertUserNotAttendedEvent()
 
 
 class AttendancePrivateTests(PrivateApiTestsBase):

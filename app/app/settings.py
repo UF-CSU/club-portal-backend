@@ -62,6 +62,11 @@ EVENT_ATTENDANCE_REDIRECT_URL = os.environ.get(
 )
 """Where should user go when attending event? Supports formatting variable `%(id)s`."""
 
+POLL_SUBMISSION_REDIRECT_URL = os.environ.get(
+    "POLL_SUBMISSION_REDIRECT_URL", CLIENT_URL + "/forms/%(id)s"
+)
+"""Where should user go when submitting polls? Supports formatting variable `%(id)s`."""
+
 DJANGO_ENABLE_API_SESSION_AUTH = False
 
 # Application definition
