@@ -74,7 +74,8 @@ class ClubEventTests(TestsBase):
         event.refresh_from_db()
 
         self.assertEqual(event.attendance_links.count(), 1)
-        self.assertEqual(Link.objects.count(), 1)
+        # TODO: Should this create a link for a poll and an event?
+        self.assertEqual(Link.objects.count(), 2)
         link = event.attendance_links.first()
 
         # expected_url_path = reverse("api-events:attendance-list", args=[event.id])

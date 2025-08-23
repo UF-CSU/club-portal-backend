@@ -69,6 +69,8 @@ POLL_SUBMISSION_REDIRECT_URL = os.environ.get(
 
 DJANGO_ENABLE_API_SESSION_AUTH = False
 
+SCHOOL_EMAIL_DOMAIN = "ufl.edu"
+
 # Application definition
 
 INSTALLED_APPS = [

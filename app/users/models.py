@@ -12,7 +12,9 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from django.core import exceptions
 from django.core.exceptions import PermissionDenied
+from django.core.validators import validate_email
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -121,10 +123,12 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
 
-    # is_onboarded = models.BooleanField(default=False)
-
     clubs = models.ManyToManyField(
         "clubs.Club", through="clubs.ClubMembership", blank=True
+    )
+
+    cached_email = models.EmailField(
+        max_length=64, unique=True, null=True, blank=True, editable=False
     )
 
     USERNAME_FIELD = "username"
@@ -179,6 +183,9 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         # If user is created through some other method, ensure username is set.
         if self.username is None or self.username == "":
             self.username = self.email
+
+        self.validate_email()
+
         return super().clean()
 
     def has_perm(self, perm, obj=None, is_global=False):
@@ -199,6 +206,55 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
                     return False
 
         return super().has_perm(perm, obj)
+
+    def validate_email(self):
+        """Check that email is valid."""
+
+        if self.email is None:
+            return
+
+        # Check email unique among school emails
+        if Profile.objects.filter(school_email=self.email).exclude(user=self).exists():
+            raise exceptions.ValidationError({"email": "Email is already in use"})
+
+        # Check email unique among verified emails
+        if VerifiedEmail.objects.filter(email=self.email).exclude(user=self).exists():
+            raise exceptions.ValidationError({"email": "Email is already in use"})
+
+        # Check username unique among verified emails
+        if (
+            VerifiedEmail.objects.filter(email=self.username)
+            .exclude(user=self)
+            .exists()
+        ):
+            raise exceptions.ValidationError({"email": "Email is already in use"})
+
+        # Set cached email value, optionally change email if applicable
+        if self.email != self.cached_email:
+            if self.username == self.cached_email:
+                self.username = self.email
+
+            self.cached_email = self.email
+
+        # Check username value
+        username_is_email = False
+        try:
+            validate_email(self.username)
+            username_is_email = True
+        except exceptions.ValidationError:
+            pass
+
+        if username_is_email and not (
+            # Username not same as email
+            (self.email == self.username)
+            # Username not same as school email
+            or (self.profile and self.profile.school_email == self.username)
+            # Username not same as a verified email
+            or (VerifiedEmail.objects.filter(user=self, email=self.username).exists())
+        ):
+            raise exceptions.ValidationError(
+                {"username": "Cannot set username to an email not owned by the user"}
+            )
 
 
 class Profile(ModelBase):
@@ -226,6 +282,7 @@ class Profile(ModelBase):
 
     birthday = models.DateField(null=True, blank=True)
 
+    # TODO: Validate ufl email
     school_email = models.EmailField(blank=True, null=True)
     # graduation_year = models.IntegerField(
     #     blank=True,
@@ -270,6 +327,24 @@ class Profile(ModelBase):
                 fields=("phone",), name="phone_idx", condition=_is_unique_nonempty_phone
             )
         ]
+
+    def clean(self):
+        # Check school email unique among verified emails
+        if (
+            VerifiedEmail.objects.filter(email=self.school_email)
+            .exclude(user=self.user)
+            .exists()
+        ):
+            raise exceptions.ValidationError("School email is already in use")
+
+        # Check school email unique among user emails
+        if (
+            VerifiedEmail.objects.filter(email=self.school_email)
+            .exclude(user=self.user)
+            .exists()
+        ):
+            raise exceptions.ValidationError("School email is already in use")
+        return super().clean()
 
 
 class SocialProfile(SocialProfileBase):

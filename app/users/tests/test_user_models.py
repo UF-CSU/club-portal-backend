@@ -20,6 +20,9 @@ class UserEmailEdgeCaseTests(TestsBase):
         u1.email = "new@example.com"
         u1.save()
 
+        u1.profile.school_email = "changed@ufl.edu"
+        u1.profile.save()
+
         with self.assertRaises(exceptions.ValidationError):
             u2.email = TARGET_EMAIL
             u2.save()
@@ -44,6 +47,12 @@ class UserEmailEdgeCaseTests(TestsBase):
         # Ensure they can use their own email
         user.username = "user@example.com"
         user.save()
+
+        # Check what happens to username when they change their email
+        user.email = "changed@example.com"
+        user.save()
+        user.refresh_from_db()
+        self.assertEqual(user.username, "changed@example.com")
 
     def test_duplicate_email_school_email_values(self):
         """Should prevent school email and user email from overlapping."""
