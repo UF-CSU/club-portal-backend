@@ -3,10 +3,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 
 from clubs.models import Club
-from core.abstracts.viewsets import (
-    ModelViewSetBase,
-    ObjectViewPermissions,
-)
+from core.abstracts.viewsets import ModelViewSetBase, ObjectViewPermissions
 from events.models import Event, EventCancellation
 
 from . import models, serializers

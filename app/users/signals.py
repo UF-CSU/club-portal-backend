@@ -8,7 +8,6 @@ from utils.images import create_default_icon
 from utils.models import save_file_to_model
 from utils.permissions import parse_permissions
 
-
 # @receiver(pre_save, sender=User)
 # def pre_save_user(sender, instance: User, created=False, **kwargs):
 #     """Runs before saving a user to database."""

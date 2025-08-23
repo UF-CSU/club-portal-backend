@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.utils import timezone
+
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from events.models import EventAttendance

@@ -875,8 +875,6 @@ class EmailInput(TextInputBase):
 class PhoneInput(InputBase):
     """Text input with phone number validation."""
 
-    pass
-
 
 class DateInput(InputBase):
     """Standard date input."""
@@ -895,8 +893,6 @@ class TimeInput(InputBase):
 
 class UrlInput(TextInputBase):
     """Text input with url validation."""
-
-    pass
 
 
 class CheckboxInput(InputBase):
