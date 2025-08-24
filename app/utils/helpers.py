@@ -103,3 +103,16 @@ def str_to_list(target: str | None):
     items = clean_list([str(item).strip().replace('"', "") for item in items])
 
     return items
+
+
+def str_to_bool(target: str | None):
+    """Convert string value to boolean."""
+    print("bool target:", target)
+    print("bool target type:", type(target))
+
+    # if not isinstance(target, str):
+    #     return False
+    if isinstance(target, bool):
+        return target
+
+    return str(target) in ["true", "True", "TRUE", "1"]

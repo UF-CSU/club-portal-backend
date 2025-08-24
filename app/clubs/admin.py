@@ -1,5 +1,6 @@
 from typing import Optional
 
+from django import forms
 from django.contrib import admin
 
 from clubs.forms import TeamMembershipForm
@@ -12,6 +13,7 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
+    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -19,9 +21,11 @@ from clubs.models import (
 from clubs.serializers import (
     ClubCsvSerializer,
     ClubMembershipCsvSerializer,
+    ClubRoleCsvSerializer,
     TeamCsvSerializer,
 )
 from core.abstracts.admin import ModelAdminBase
+from utils.formatting import plural_noun
 
 
 class ClubMembershipInlineAdmin(admin.StackedInline):
@@ -46,13 +50,6 @@ class ClubMembershipInlineAdmin(admin.StackedInline):
         return formset
 
 
-class ClubRoleInlineAdmin(admin.StackedInline):
-    """Manage club roles in admin."""
-
-    model = ClubRole
-    extra = 0
-
-
 class ClubPhotoInlineAdmin(admin.TabularInline):
     """Manage club carousel photos in admin."""
 
@@ -67,18 +64,28 @@ class ClubSocialInlineAdmin(admin.TabularInline):
     extra = 0
 
 
+class ClubRoleInlineAdmin(admin.TabularInline):
+    """Manage roles for a club."""
+
+    model = ClubRole
+    extra = 0
+    exclude = ["permissions"]
+
+
 class ClubAdmin(ModelAdminBase):
     """Admin config for Clubs."""
 
     csv_serializer_class = ClubCsvSerializer
 
     inlines = (
-        ClubRoleInlineAdmin,
-        ClubMembershipInlineAdmin,
         ClubSocialInlineAdmin,
         ClubPhotoInlineAdmin,
+        ClubRoleInlineAdmin,
     )
-    filter_horizontal = ("tags",)
+    filter_horizontal = (
+        "tags",
+        "majors",
+    )
     list_display = (
         "name",
         "alias",
@@ -86,9 +93,63 @@ class ClubAdmin(ModelAdminBase):
         "members_count",
         "created_at",
     )
+    search_fields = (
+        "name",
+        "alias",
+    )
+    list_filter = (
+        "tags",
+        "majors",
+    )
 
     def members_count(self, obj):
         return obj.memberships.count()
+
+
+class ClubRoleForm(forms.ModelForm):
+    """Defines how roles should be edited."""
+
+    class Meta:
+        model = ClubRole
+        fields = "__all__"
+
+    def clean(self):
+        super().clean()
+
+        # Prevent manual setting of permissions if there is a permissions preset
+        if self.cleaned_data.get("role_type", RoleType.CUSTOM) != RoleType.CUSTOM:
+            self.cleaned_data.pop("permissions")
+
+
+class ClubRoleAdmin(ModelAdminBase):
+    """Manage club roles in admin."""
+
+    csv_serializer_class = ClubRoleCsvSerializer
+    form = ClubRoleForm
+
+    list_display = ("name", "club", "role_type", "is_default", "is_executive", "order")
+    prefetch_related_fields = ("permissions",)
+    search_fields = (
+        "name",
+        "club__name",
+        "club__alias",
+    )
+    actions = ("sync_roles",)
+
+    @admin.action
+    def sync_roles(self, request, queryset):
+        """Sync role permissions."""
+
+        queryset.update(cached_role_type=None)
+        for role in queryset:
+            role.save()
+
+        self.message_user(
+            request,
+            message=f'Synced {queryset.count()} {plural_noun(queryset.count(), "role")}',
+        )
+
+        return
 
 
 class ClubTagAdmin(ModelAdminBase):
@@ -106,6 +167,13 @@ class ClubMembershipAdmin(ModelAdminBase):
         "club_roles",
         "created_at",
     )
+    search_fields = (
+        "user__email",
+        "user__profile__name",
+        "user__id",
+        "club__name",
+        "club__alias",
+    )
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "roles" and "object_id" in request.resolver_match.kwargs:
@@ -115,15 +183,17 @@ class ClubMembershipAdmin(ModelAdminBase):
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     def club_roles(self, obj):
-        return ", ".join(str(role) for role in list(obj.roles.all()))
+        return ", ".join(role.name for role in list(obj.roles.all()))
 
 
 class TeamMembershipInlineAdmin(admin.TabularInline):
     """Manage user assignments to a team."""
 
     model = TeamMembership
-    extra = 1
+    extra = 0
     form = TeamMembershipForm
+    fields = ("user", "roles", "order", "order_override")
+    readonly_fields = ("order",)
 
     def get_formset(self, request, obj=None, **kwargs):
         if obj:
@@ -142,11 +212,12 @@ class TeamMembershipInlineAdmin(admin.TabularInline):
         return formset
 
 
-class TeamRoleInlineAdmin(admin.StackedInline):
+class TeamRoleInlineAdmin(admin.TabularInline):
     """Manage team roles in admin."""
 
     model = TeamRole
     extra = 0
+    exclude = ("permissions",)
 
 
 class TeamAdmin(ModelAdminBase):
@@ -154,14 +225,37 @@ class TeamAdmin(ModelAdminBase):
 
     csv_serializer_class = TeamCsvSerializer
 
-    list_display = ("__str__", "club", "points", "members_count")
+    list_display = ("__str__", "club", "members_count")
     inlines = (
         TeamRoleInlineAdmin,
         TeamMembershipInlineAdmin,
     )
 
+    select_related_fields = ("club",)
+    prefetch_related_fields = ("memberships", "memberships__user", "memberships__roles")
+
     def members_count(self, obj):
         return obj.memberships.count()
+
+
+class TeamRoleAdmin(ModelAdminBase):
+    """Manage team roles in admin."""
+
+    list_display = (
+        "name",
+        "team",
+        "club",
+        "order",
+    )
+    filter_horizontal = ("permissions",)
+    list_filter = ("team",)
+    search_fields = (
+        "name",
+        "team__name",
+        "team__club__name",
+        "team__club__alias",
+    )
+    prefetch_related_fields = ("permissions",)
 
 
 class ApiKeyAdmin(ModelAdminBase):
@@ -179,12 +273,14 @@ class ApiKeyAdmin(ModelAdminBase):
         "created_at",
     )
 
+    filter_horizontal = ("permissions",)
+
 
 admin.site.register(Club, ClubAdmin)
+admin.site.register(ClubRole, ClubRoleAdmin)
 admin.site.register(ClubTag, ClubTagAdmin)
 admin.site.register(Team, TeamAdmin)
+admin.site.register(TeamRole, TeamRoleAdmin)
 admin.site.register(ClubMembership, ClubMembershipAdmin)
-admin.site.register(ClubSocialProfile)
-admin.site.register(ClubPhoto)
 admin.site.register(ClubApiKey, ApiKeyAdmin)
 admin.site.register(ClubFile)

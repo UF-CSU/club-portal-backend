@@ -52,6 +52,7 @@ class UserSerializer(ModelSerializer):
     profile = ProfileNestedSerializer(required=False)
     is_email_verified = serializers.BooleanField(read_only=True)
     can_authenticate = serializers.BooleanField(read_only=True)
+    is_club_admin = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = get_user_model()
@@ -65,6 +66,7 @@ class UserSerializer(ModelSerializer):
             "is_onboarded",
             "is_email_verified",
             "can_authenticate",
+            "is_club_admin",
         ]
         # defines characteristics of specific fields
         extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
@@ -183,6 +185,18 @@ class ClubMembershipNestedCsvSerializer(CsvModelSerializer):
             TeamMembership.objects.create(team=team, user=membership.user)
 
         return membership
+
+    def run_prevalidation(self, data=None):
+        data.pop("roles", [])
+
+        res = super().run_prevalidation(data)
+
+        club = res.get("club")
+        self.fields["roles"].child_relation.queryset = ClubRole.objects.filter(
+            club=club
+        )
+
+        return res
 
 
 class UserSocialNestedCsvSerializer(CsvModelSerializer):

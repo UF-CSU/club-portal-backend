@@ -4,18 +4,46 @@ Global formatting utility functions.
 
 from typing import Optional
 
+from django.db import models
 from django.utils.timezone import timedelta
 
 
-def plural_noun(count_target: list | int, singular: str, plural: Optional[str] = None):
+def _get_count(count_target: list | int | models.QuerySet):
+    if isinstance(count_target, list):
+        count = len(count_target)
+    elif isinstance(count_target, models.QuerySet):
+        count = count_target.count()
+    else:
+        count = count_target
+
+    return count
+
+
+def plural_noun(
+    count_target: list | int | models.QuerySet,
+    singular: str,
+    plural: Optional[str] = None,
+):
     """Takes a list or number and will return singlar form if 1, plural form otherwise."""
     plural = plural if plural else f"{singular}s"
-    count = count_target
+    count = _get_count(count_target)
 
     if isinstance(count_target, list):
         count = len(count_target)
 
     return plural if count != 1 else singular
+
+
+def plural_noun_display(
+    count_target: list | int | models.QuerySet,
+    singular: str,
+    plural: Optional[str] = None,
+):
+    """Overrides `plural_noun` function to prepend the number count."""
+
+    count = _get_count(count_target)
+
+    return f"{count} {plural_noun(count, singular=singular, plural=plural)}"
 
 
 BYTE_UNITS = (

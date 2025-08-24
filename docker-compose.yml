@@ -11,8 +11,6 @@ services:
     restart: unless-stopped
     ports:
       - '8000:8000'
-    networks:
-      - devnet
     volumes:
       - ./app:/app
       - ./docs:/docs
@@ -21,6 +19,7 @@ services:
       sh -c "
       python manage.py wait_for_db &&
              python manage.py migrate &&
+             python manage.py collectstatic --no-input &&
              python manage.py init_superuser &&
              python manage.py runserver 0.0.0.0:8000"
     env_file:
@@ -38,8 +37,6 @@ services:
     profiles:
       - slim
       - dev
-    networks:
-      - devnet
     volumes:
       - postgres-clubs-dev:/var/lib/postgresql/data
     environment:
@@ -50,8 +47,6 @@ services:
   redis:
     image: redis:alpine
     restart: unless-stopped
-    networks:
-      - devnet
     profiles:
       - slim
       - dev
@@ -69,8 +64,6 @@ services:
       - dev
     user: django-user
     command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
-    networks:
-      - devnet
     volumes:
       - ./app:/app
       - static-clubs-dev:/vol/web
@@ -101,8 +94,6 @@ services:
         '--scheduler',
         'django_celery_beat.schedulers:DatabaseScheduler'
       ]
-    networks:
-      - devnet
     volumes:
       - ./app:/app
       - static-clubs-dev:/vol/web
@@ -122,8 +113,6 @@ services:
       - dev
     ports:
       - '8001:80'
-    networks:
-      - devnet
     volumes:
       - ./docs/_build:/usr/share/nginx/html
 
@@ -135,31 +124,27 @@ services:
       - dev
     ports:
       - '8002:80'
-    networks:
-      - devnet
     volumes:
       - ./app/htmlcov:/usr/share/nginx/html
 
-  mailhog:
-    image: mailhog/mailhog
-    container_name: 'mailhog'
+  mail:
+    # Docs: https://mailpit.axllent.org/docs/install/docker/
+    # Repo: https://github.com/axllent/mailpit?tab=readme-ov-file
+    image: axllent/mailpit
+    container_name: mail
     restart: unless-stopped
+    volumes:
+      - mail-clubs-dev:/data
+    ports:
+      - 8025:8025
+      - 1025:1025
     profiles:
       - dev
-    attach: false
-    user: root
-    networks:
-      - devnet
-    volumes:
-      - mailhog-clubs-dev:/home/maildir
-    ports:
-      - '1025:1025'
-      - '8025:8025'
-    depends_on:
-      - app
     environment:
-      MH_STORAGE: maildir
-      MH_MAILDIR_PATH: /home/maildir
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
   pgadmin:
     # Config adapted from: https://stackoverflow.com/a/77519799/10914922
@@ -179,8 +164,6 @@ services:
     depends_on:
       - postgres
     entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
-    networks:
-      - devnet
     volumes:
       - pgadmin-clubs-dev:/var/lib/pgadmin
     configs:
@@ -189,15 +172,10 @@ services:
       - source: pgpass
         target: /pgpass
 
-networks:
-  devnet:
-    driver: bridge
-
-
 volumes:
   postgres-clubs-dev:
   static-clubs-dev:
-  mailhog-clubs-dev:
+  mail-clubs-dev:
   pgadmin-clubs-dev:
 
 configs:

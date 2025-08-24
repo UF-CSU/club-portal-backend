@@ -95,6 +95,20 @@ tasks:
     cmds:
       - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
 
+  makemigrations:check:
+    desc: 'Check if a migration file needs to be made, exits with non-zero code if one does need to be made'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py makemigrations --check"
+
+  makemigrations:network:
+    desc: 'Create migration files if any models have changed in network mode'
+    deps:
+      - build
+    cmds:
+      - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
+
   migrate:
     desc: 'Apply migrations to the database.'
     deps:
@@ -162,6 +176,11 @@ tasks:
     desc: 'Stop containers and remove volumes'
     cmds:
       - docker-compose --profile dev down --remove-orphans -v
+
+  clean:network:
+    desc: 'Stop containers and remove volumes'
+    cmds:
+      - docker-compose -f docker-compose.network.yml down --remove-orphans -v
 
   down:slim:
     desc: 'Stop containers'

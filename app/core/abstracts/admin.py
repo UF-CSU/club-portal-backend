@@ -15,6 +15,7 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import JsonLexer
 
+from core.abstracts.models import ModelBase
 from querycsv.serializers import CsvModelSerializer
 from querycsv.services import QueryCsvService
 from querycsv.views import QueryCsvViewSet
@@ -50,8 +51,9 @@ class AdminBase:
 
         return url
 
-    def as_link(self, url, text):
+    def as_link(self, url, text=None):
         """Create anchor tag for a url."""
+        text = text or url
 
         return mark_safe(f'<a href="{url}" target="_blank">{text}</a>')
 
@@ -64,6 +66,12 @@ class AdminBase:
             f"<image  xlink:href={image.url} width='100%'>"
             "</svg>"
         )
+
+    def as_model_link(self, obj: ModelBase, text="%(model)s"):
+        """Show object as a link to it's detail/edit page."""
+
+        text = text % {"model": obj.__str__()}
+        return self.as_link(obj.admin_edit_url, text=text)
 
     def as_json(self, obj):
         """
@@ -93,7 +101,10 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
     """Base class for all model admins."""
 
     prefetch_related_fields = ()
+    """Makes another query to select a set of related objects."""
     select_related_fields = ()
+    """Uses SQL Join to select a single related object."""
+
     readonly_fields = (
         "id",
         "created_at",
@@ -137,12 +148,12 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
 
-        if len(self.prefetch_related_fields) > 0:
-            return qs.prefetch_related(*self.prefetch_related_fields).select_related(
-                *self.select_related_fields
-            )
-        else:
-            return qs
+        return qs.prefetch_related(*self.prefetch_related_fields).select_related(
+            *self.select_related_fields
+        )
+        # if len(self.prefetch_related_fields) > 0 or len(self.select_related_fields) > 0:
+        # else:
+        #     return qs
 
     def changelist_view(
         self, request: HttpRequest, extra_context: dict[str, str] | None = None
@@ -204,7 +215,12 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
     def upload_csv(self, request: HttpRequest, extra_context=None):
         """Custom action for uploading csvs through admin."""
 
-        context = {**get_admin_context(request, extra_context)}
+        context = {
+            **get_admin_context(request, extra_context),
+            "object_name": self.opts.object_name,
+            "verbose_name_plural": self.opts.verbose_name_plural,
+        }
+
         return self.csv_views.upload_csv(request, extra_context=context)
 
     def map_upload_csv_headers(self, request: HttpRequest, id: int, extra_context=None):

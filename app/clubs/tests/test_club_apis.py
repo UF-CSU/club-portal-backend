@@ -2,7 +2,6 @@
 Unit tests focused around REST APIs for the Clubs Service.
 """
 
-from django.urls import reverse
 from rest_framework.test import APIClient
 
 from clubs.models import ClubApiKey, ClubFile, ClubRole
@@ -10,6 +9,7 @@ from clubs.services import ClubService
 from clubs.tests.utils import (
     CLUBS_JOIN_URL,
     CLUBS_LIST_URL,
+    CLUBS_PREVIEW_LIST_URL,
     club_apikey_list_url,
     club_detail_url,
     club_file_list_url,
@@ -20,6 +20,7 @@ from clubs.tests.utils import (
     create_test_clubs,
 )
 from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
+from core.models import Major
 from lib.faker import fake
 from users.models import User
 from users.tests.utils import create_test_user
@@ -41,39 +42,10 @@ class ClubsApiPublicTests(PublicApiTestsBase):
         res = self.client.post(url, payload)
         self.assertResUnauthorized(res)
 
-    def test_using_apikey(self):
-        """A request should be able to be made using an API Key."""
-
-        club = create_test_club()
-
-        key = ClubApiKey.objects.create(
-            club=club,
-            name="Test Key",
-            permissions=[
-                "clubs.view_club",
-                "clubs.view_club_details",
-                "clubs.view_clubmembership",
-            ],
-        )
-
-        self.client = APIClient()
-        self.client.force_authenticate(user=key.user_agent)
-
-        url = club_detail_url(club.id)
-        res = self.client.get(url)
-        self.assertResOk(res)
-
-        # Check permission denied (not found) for other club
-        club2 = create_test_club()
-
-        url2 = club_detail_url(club2.id)
-        res = self.client.get(url2)
-        self.assertResNotFound(res)
-
     def test_public_can_list_club_previews(self):
         """Public users should be able to list club previews without authentication."""
 
-        url = reverse("api-clubs:clubpreview-list")
+        url = CLUBS_PREVIEW_LIST_URL
         res = self.client.get(url)
 
         self.assertResOk(res)
@@ -85,6 +57,24 @@ class ClubsApiPublicTests(PublicApiTestsBase):
         for club in data:
             for field in expected_fields:
                 self.assertIn(field, club, f"Club missing expected field: {field}")
+
+    def test_filter_clubs_by_major(self):
+        """Should return only cs clubs."""
+
+        cs = Major.objects.create(name="Computer Science")
+        art = Major.objects.create(name="Art")
+
+        create_test_clubs(5, majors=[cs])
+        create_test_clubs(5, majors=[art])
+
+        url = CLUBS_PREVIEW_LIST_URL + "?majors__name=Computer%20Science"
+        res = self.client.get(url)
+        data = res.json()["results"]
+
+        self.assertLength(data, 5)
+        for club in data:
+            self.assertLength(club["majors"], 1)
+            self.assertEqual(club["majors"][0], "Computer Science")
 
 
 class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):

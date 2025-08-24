@@ -1,9 +1,10 @@
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, mixins, status
+from rest_framework import exceptions, filters, mixins, permissions, status
+from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
 
 from clubs.models import Club, ClubApiKey, ClubFile, ClubMembership, ClubTag, Team
 from clubs.serializers import (
@@ -13,6 +14,7 @@ from clubs.serializers import (
     ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
     ClubPreviewSerializer,
+    ClubRosterSerializer,
     ClubSerializer,
     ClubTagSerializer,
     InviteClubMemberSerializer,
@@ -22,6 +24,7 @@ from clubs.serializers import (
 from clubs.services import ClubService
 from core.abstracts.viewsets import (
     CustomLimitOffsetPagination,
+    FilterBackendBase,
     ModelViewSetBase,
     ObjectViewDetailsPermissions,
     ViewSetBase,
@@ -63,15 +66,34 @@ class ClubNestedViewSetBase(ModelViewSetBase):
         serializer.save(club=self.club, **kwargs)
 
 
+class IsClubAdminFilter(FilterBackendBase):
+    """Get clubs that a user is an admin of."""
+
+    filter_fields = [{"name": "is_admin", "schema_type": "boolean"}]
+
+    def filter_queryset(self, request, queryset, view):
+        is_admin = request.query_params.get("is_admin", None)
+
+        if is_admin is not None:
+            admin_clubs = list(
+                request.user.club_memberships.filter_is_admin().values_list(
+                    "club__id", flat=True
+                )
+            )
+            queryset = queryset.filter(id__in=admin_clubs)
+
+        return queryset
+
+
 class ClubViewSet(ModelViewSetBase):
     """CRUD Api routes for Club models."""
 
     serializer_class = ClubSerializer
     queryset = Club.objects.all()
     permission_classes = [*ViewSetBase.permission_classes, ObjectViewDetailsPermissions]
+    filter_backends = [IsClubAdminFilter]
 
     def check_permissions(self, request):
-
         if self.detail:
             # Check if the user is a member of specified club
             club_id = int(self.kwargs.get("pk"))
@@ -79,20 +101,58 @@ class ClubViewSet(ModelViewSetBase):
         elif self.action == "list":
             # List permissions are done by queryset, otherwise users without a club
             # would get 403 instead of an empty list.
-            return
+            if not request.user.is_anonymous:
+                return
 
         return super().check_permissions(request)
 
     def get_queryset(self):
         return Club.objects.filter_for_user(self.request.user)
 
+    def get_serializer_class(self):
+        if self.action == "get_roster":
+            return ClubRosterSerializer
+        return super().get_serializer_class()
 
-class ClubPreviewViewSet(
-    mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet
-):
-    queryset = Club.objects.all()
+    @action(methods=["GET"], detail=True, url_name="roster", url_path="roster")
+    def get_roster(self, request, pk=None, *args, **kwargs):
+        club = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = self.get_serializer_class()(club)
+        return Response(serializer.data)
+
+
+class UserClubMembershipsViewSet(ModelViewSetBase):
+    """API for managing a use's club memberships."""
+
+    queryset = ClubMembership.objects.none()
+    serializer_class = ClubMembershipSerializer
+
+    def get_queryset(self):
+        return ClubMembership.objects.filter(user=self.request.user)
+
+    def check_object_permissions(self, request, obj):
+        if request.user.id == obj.user.id:
+            return True
+        return super().check_object_permissions(request, obj)
+
+
+class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase):
+    """Access limited club data via the API."""
+
+    queryset = (
+        Club.objects.all()
+        .select_related("logo", "banner")
+        .prefetch_related("tags", "socials")
+    )
     serializer_class = ClubPreviewSerializer
     pagination_class = CustomLimitOffsetPagination
+
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["name", "alias"]
+    filterset_fields = ["is_csu_partner", "majors__name", "tags"]
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
 
 
 class ClubTagsView(GenericAPIView):
@@ -184,7 +244,12 @@ class TeamViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for Team objects."""
 
     serializer_class = TeamSerializer
-    queryset = Team.objects.all()
+    queryset = Team.objects.all().prefetch_related(
+        "memberships",
+        "memberships__user",
+        "memberships__user__socials",
+        "memberships__roles",
+    )
 
 
 class InviteClubMemberView(GenericAPIView):

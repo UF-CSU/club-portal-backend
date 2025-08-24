@@ -97,7 +97,7 @@ class OneToOneOrNoneField(models.OneToOneField[T]):
     related_accessor_class = ReverseOneToOneOrNoneDescriptor
 
 
-class ChoiceArrayField(ArrayField):
+class ArrayChoiceField(ArrayField):
     """
     A field that allows us to store an array of choices.
     Uses Django's Postgres ArrayField
@@ -114,6 +114,15 @@ class ChoiceArrayField(ArrayField):
         }
         defaults.update(kwargs)
         return super(ArrayField, self).formfield(**defaults)
+
+    def clean(self, value, model_instance):
+
+        if isinstance(value, list):
+            for i, item in enumerate(value):
+                if isinstance(item, str) and str(item).isnumeric():
+                    value[i] = int(item)
+
+        return super().clean(value, model_instance)
 
 
 def save_file_to_model(model: models.Model, filepath, field="file"):

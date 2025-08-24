@@ -21,6 +21,7 @@ from core.abstracts.serializers import (
     PermissionRelatedField,
     SerializerBase,
 )
+from core.models import Major
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import SocialProfile, User
 from users.services import UserService
@@ -46,8 +47,11 @@ class ClubMemberNestedSerializer(ModelSerializerBase):
             "user_id",
             "username",
             "is_owner",
+            "is_admin",
+            "is_viewer",
             "points",
             "roles",
+            "is_pinned",
         ]
 
 
@@ -117,6 +121,14 @@ class ClubTagSerializer(ModelSerializerBase):
         fields = ["id", "name", "color", "order"]
 
 
+class ClubRoleSerializer(ModelSerializerBase):
+    """Represents a group of permissions users can have in a club."""
+
+    class Meta:
+        model = ClubRole
+        fields = ["id", "name", "is_default", "order", "role_type"]
+
+
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
@@ -125,6 +137,19 @@ class ClubSerializer(ModelSerializerBase):
     photos = ClubPhotoSerializer(many=True)
     socials = ClubSocialSerializer(many=True)
     tags = ClubTagSerializer(many=True)
+    majors = serializers.SlugRelatedField(
+        slug_field="name",
+        queryset=Major.objects.all(),
+        required=False,
+        many=True,
+    )
+    roles = ClubRoleSerializer(many=True, required=False)
+    # roles = serializers.SlugRelatedField(
+    #     many=True, slug_field="name", queryset=ClubRole.objects.all()
+    # )
+    # user_membership = ClubMemberNestedSerializer(
+    #     required=False,
+    # )
 
     member_count = serializers.IntegerField(read_only=True)
 
@@ -140,10 +165,15 @@ class ClubSerializer(ModelSerializerBase):
             "contact_email",
             "tags",
             "member_count",
-            # "teams",
             "socials",
             "photos",
             "alias",
+            "majors",
+            "primary_color",
+            "text_color",
+            "default_role",
+            "roles",
+            # "user_membership",
         ]
 
     def update(self, instance, validated_data):
@@ -183,24 +213,29 @@ class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
 
     logo = ClubFileNestedSerializer()
-    banner = ClubFileNestedSerializer(required=False)
+    # banner = ClubFileNestedSerializer(required=False)
     tags = ClubTagSerializer(many=True, read_only=True)
     socials = ClubSocialSerializer(many=True, read_only=True)
+    majors = serializers.SlugRelatedField(many=True, slug_field="name", read_only=True)
 
     class Meta:
         model = Club
         fields = [
             "id",
+            "gatorconnect_url",
+            "gatorconnect_organization_url",
             "name",
             "logo",
-            "banner",
-            "about",
             "founding_year",
             "tags",
-            "member_count",
             "alias",
-            "gatorconnect_url",
             "socials",
+            "instagram_followers",
+            "about",
+            "member_count",
+            "is_csu_partner",
+            "is_claimed",
+            "majors",
         ]
 
 
@@ -309,10 +344,13 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "user",
             "club_id",
             "is_owner",
-            "points",
             "is_admin",
+            "is_viewer",
+            "points",
             "team_memberships",
             "roles",
+            "is_pinned",
+            "order",
         ]
 
 
@@ -428,6 +466,17 @@ class JoinClubsSerializer(SerializerBase):
     clubs = serializers.ListField(
         child=serializers.PrimaryKeyRelatedField(queryset=Club.objects.all())
     )
+
+
+class ClubRosterSerializer(ModelSerializerBase):
+    """Used to display a club's members."""
+
+    executives = ClubMembershipSerializer(many=True)
+    teams = TeamSerializer(many=True, source="roster_teams")
+
+    class Meta:
+        model = Club
+        fields = ["executives", "teams"]
 
 
 ##############################################################
@@ -625,3 +674,13 @@ class TeamCsvSerializer(CsvModelSerializer):
         self.fields["members"].child.fields["roles"].child_relation.queryset = (
             TeamRole.objects.filter(team=self.instance)
         )
+
+
+class ClubRoleCsvSerializer(CsvModelSerializer):
+    """Allow uploading/downloading club roles."""
+
+    club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
+
+    class Meta:
+        model = ClubRole
+        fields = "__all__"

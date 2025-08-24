@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
 from django_celery_beat.models import PeriodicTask
+from requests import Response
 from rest_framework import serializers, status
 from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
@@ -130,11 +131,39 @@ class TestsBase(TestCase):
                 )
 
 
+class APIClientWrapper(APIClient):
+
+    def get(self, path, data=None, follow=False, **extra) -> Response:
+        return super().get(path, data, follow, **extra)
+
+    def post(
+        self, path, data=None, format="json", content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().post(path, data, format, content_type, follow, **extra)
+
+    def put(
+        self, path, data=None, format="json", content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().put(path, data, format, content_type, follow, **extra)
+
+    def patch(
+        self, path, data=None, format="json", content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().patch(path, data, format, content_type, follow, **extra)
+
+    def delete(
+        self, path, data=None, format=None, content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().delete(path, data, format, content_type, follow, **extra)
+
+
 class PublicApiTestsBase(TestsBase):
     """Abstract testing utilities for api testing."""
 
+    client: APIClientWrapper
+
     def setUp(self):
-        self.client = APIClient()
+        self.client = APIClientWrapper()
 
     def assertOk(self, reverse_url: str, reverse_kwargs=None):
         """The response for a reversed url should be 200 ok."""
@@ -191,8 +220,6 @@ class PrivateApiTestsBase(PublicApiTestsBase):
 
     A user is automatically set in each request.
     """
-
-    client: APIClient
 
     def create_authenticated_user(self):
         """Create the user that is authenticated in the api."""

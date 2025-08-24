@@ -1,12 +1,13 @@
 from django.core import exceptions
 from rest_framework import serializers
 
-from clubs.models import Club
+from clubs.models import Club, ClubFile
 from clubs.serializers import ClubFileNestedSerializer
 from core.abstracts.serializers import ModelSerializerBase
 from events.models import (
     Event,
     EventAttendance,
+    EventAttendanceLink,
     EventCancellation,
     EventHost,
     EventTag,
@@ -14,8 +15,17 @@ from events.models import (
 )
 from events.tasks import sync_recurring_event_task
 from lib.celery import delay_task
+from polls.models import (
+    ChoiceInput,
+    ChoiceInputOption,
+    PollInputType,
+    PollQuestionAnswer,
+    PollSubmission,
+)
+from polls.serializers import PollSerializer, PollSubmissionSerializer
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from users.models import User
+from users.models import Profile, User
+from users.serializers import ProfileNestedSerializer
 
 
 class EventTagSerializer(ModelSerializerBase):
@@ -54,29 +64,40 @@ class EventHostSerializer(ModelSerializerBase):
         ]
 
 
+class EventAttendanceLinkSerializer(ModelSerializerBase):
+    """Represent attendance links for events."""
+
+    qrcode_url = serializers.ImageField(
+        source="qrcode.image", read_only=True, help_text="URL for the QRCode SVG"
+    )
+
+    class Meta:
+        model = EventAttendanceLink
+        fields = [
+            "id",
+            "url",
+            "reference",
+            "is_tracked",
+            "display_name",
+            "qrcode_url",
+        ]
+
+
 class EventSerializer(ModelSerializerBase):
     """Represents a calendar event for a single or multiple clubs."""
 
+    status = serializers.CharField(read_only=True)
+    duration = serializers.CharField(read_only=True)
+    is_all_day = serializers.BooleanField(read_only=True)
     hosts = EventHostSerializer(many=True, required=False)
-    all_day = serializers.BooleanField(read_only=True)
     tags = EventTagSerializer(many=True, required=False)
+    attachments = ClubFileNestedSerializer(many=True, required=False)
+    poll = PollSerializer(required=False, allow_null=True)
+    attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
 
     class Meta:
         model = Event
-        fields = [
-            "id",
-            "name",
-            "description",
-            "location",
-            "event_type",
-            "start_at",
-            "end_at",
-            "tags",
-            "hosts",
-            "all_day",
-            "created_at",
-            "updated_at",
-        ]
+        exclude = ["clubs", "make_public_task"]
 
     def validate(self, attrs):
         # Ensure that there are not only secondary hosts
@@ -96,6 +117,7 @@ class EventSerializer(ModelSerializerBase):
 
     def create(self, validated_data):
         hosts_data = validated_data.pop("hosts", [])
+        attachment_data = validated_data.pop("attachments", [])
 
         event = Event.objects.create(**validated_data)
 
@@ -105,7 +127,146 @@ class EventSerializer(ModelSerializerBase):
                 event=event, club=host["club"], is_primary=host.get("is_primary", False)
             )
 
+        for attachment in attachment_data:
+            attachment_id = attachment["id"]
+            
+            event.attachments.add(attachment_id)
+
         return event
+    
+    def update(self, instance, validated_data):
+        attachment_data = validated_data.pop("attachments", [])
+
+        event = super().update(instance, validated_data)
+
+        event.attachments.clear()
+        
+        for attachment in attachment_data:
+            attachment_id = attachment["id"]
+            event.attachments.add(attachment_id)
+
+
+        return event
+
+
+
+class EventAttendanceUserSerializer(ModelSerializerBase):
+    email = serializers.EmailField(required=False)
+    profile = ProfileNestedSerializer(required=False)
+
+    class Meta:
+        model = User
+        fields = ["email", "profile"]
+
+
+class EventAttendanceSerializer(ModelSerializerBase):
+    """Represents event attendance"""
+
+    user = EventAttendanceUserSerializer(required=False)
+    poll_submission = PollSubmissionSerializer(required=False, allow_null=True)
+
+    def create(self, validated_data):
+        request_user = validated_data.pop("request_user", None)
+        user_data = validated_data.pop("user", None)
+
+        # Get user
+        if request_user is not None:
+            user = request_user
+        else:
+            if user_data is None:
+                raise serializers.ValidationError("User is required if not logged in.")
+
+            email = user_data.pop("email", None)
+            if email is None:
+                raise serializers.ValidationError("Email is required")
+
+            user = User.objects.find_one(email=email)
+            if user is None:
+                if user_data.get("profile", None) is None:
+                    raise serializers.ValidationError("Profile is missing for new user")
+
+                user = User.objects.create(email=email)
+
+        # Update profile
+        if user_data is not None:
+            profile_data = user_data.pop("profile", None)
+
+            # Update profile fields on the logged-in user
+            if profile_data is not None:
+                profile, _ = Profile.objects.get_or_create(user=user)
+                for key, value in profile_data.items():
+                    setattr(profile, key, value)
+                profile.save()
+
+        # Event should always exist in validated_data
+        event = validated_data.pop("event")
+        poll_submission_data = validated_data.pop("poll_submission", None)
+
+        if event.poll is not None:
+            if poll_submission_data is None:
+                if event.is_poll_submission_required:
+                    raise serializers.ValidationError(
+                        "Poll submission is required for this event."
+                    )
+            else:
+                # Create poll submission
+                # NOTE: This should probably be moved into a service
+                submission = PollSubmission.objects.create(poll=event.poll, user=user)
+
+                answers = poll_submission_data.pop("answers", [])
+                for answer in answers:
+                    poll_question = answer.pop("question", None)
+                    if poll_question is None:
+                        raise serializers.ValidationError(
+                            "Improper answer, question not specified"
+                        )
+
+                    match poll_question.input_type:
+                        case PollInputType.TEXT:
+                            PollQuestionAnswer.objects.create(
+                                question=poll_question,
+                                submission=submission,
+                                text_value=answer["text_value"],
+                            )
+                        case PollInputType.RANGE | PollInputType.NUMBER:
+                            PollQuestionAnswer.objects.create(
+                                question=poll_question,
+                                submission=submission,
+                                number_value=answer["number_value"],
+                            )
+                        case PollInputType.CHOICE:
+                            choice_input = ChoiceInput.objects.get(
+                                question=poll_question
+                            )
+                            options_data = answer.pop("options_value", [])
+                            selected_options = [
+                                ChoiceInputOption.objects.get(
+                                    input=choice_input, value=selected_option
+                                )
+                                for selected_option in options_data
+                            ]
+                            PollQuestionAnswer.objects.create(
+                                question=poll_question,
+                                submission=submission,
+                                options_value=selected_options,
+                            )
+                        case _:
+                            raise serializers.ValidationError(
+                                "PollInputType not yet supported"
+                            )
+
+                # TODO: Validate submission
+                # submission = PollService(event.poll).validate_submission(submission)
+                # submission.save()
+
+        event_attendance, _ = EventAttendance.objects.update_or_create(
+            event=event, user=user
+        )
+        return event_attendance
+
+    class Meta:
+        model = EventAttendance
+        exclude = ["event"]
 
 
 class EventCancellationSerializer(serializers.ModelSerializer):
@@ -118,6 +279,7 @@ class RecurringEventSerializer(ModelSerializerBase):
     """Defines repeating events."""
 
     attachments = ClubFileNestedSerializer(many=True, required=False)
+    is_all_day = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = RecurringEvent

@@ -23,6 +23,12 @@ router.register(
 router.register(
     r"clubs/(?P<club_id>.+)/files", viewsets.ClubFilesViewSet, basename="file"
 )
+router.register(
+    "club-memberships",
+    viewsets.UserClubMembershipsViewSet,
+    basename="user_clubmembership",
+)
+
 
 app_name = "api-clubs"
 

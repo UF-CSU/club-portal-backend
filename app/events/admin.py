@@ -1,6 +1,8 @@
+from django import forms
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
-from core.abstracts.admin import ModelAdminBase
+from core.abstracts.admin import ModelAdminBase, StackedInlineBase, TabularInlineBase
 from events.models import (
     Event,
     EventAttendance,
@@ -10,17 +12,19 @@ from events.models import (
     RecurringEvent,
 )
 from events.serializers import EventAttendanceCsvSerializer, EventCsvSerializer
-from events.services import EventService
-from events.tasks import sync_recurring_event_task
+from events.tasks import sync_event_attendance_links_task, sync_recurring_event_task
 from lib.celery import delay_task
+from polls.models import Poll
+from utils.admin import other_info_fields
+from utils.formatting import plural_noun_display
 
 
-# Register your models here.
 class RecurringEventAdmin(admin.ModelAdmin):
 
     list_display = (
         "__str__",
         "days",
+        "event_count",
         "location",
         "start_date",
         "end_date",
@@ -36,6 +40,9 @@ class RecurringEventAdmin(admin.ModelAdmin):
             # RecurringEventService(recurring).sync_events()
 
         return
+
+    def event_count(self, obj):
+        return obj.events.all().count()
 
 
 class EventAttendanceAdmin(ModelAdminBase):
@@ -55,45 +62,49 @@ class EventAttendanceAdmin(ModelAdminBase):
         "user__username",
     )
 
+    readonly_fields = ("id", "poll_submission_link", *ModelAdminBase.readonly_fields)
+    fieldsets = (
+        (
+            None,
+            {"fields": ("id", "event", "user", "poll_submission_link")},
+        ),
+        other_info_fields,
+    )
 
-class EventAttendanceInlineAdmin(admin.TabularInline):
+    def poll_submission_link(self, obj):
+        return self.as_model_link(obj.poll_submission)
+
+
+class EventAttendanceInlineAdmin(TabularInlineBase):
     """List event attendees in event admin."""
 
     model = EventAttendance
     extra = 0
-    readonly_fields = ("created_at",)
+    readonly_fields = (
+        "link",
+        "created_at",
+    )
 
     def has_add_permission(self, request, *args, **kwargs):
         return False
 
-
-# class EventAttendanceLinkForm(forms.ModelForm):
-#     """Manage event links in admin."""
-
-#     class Meta:
-#         model = EventAttendanceLink
-#         fields = "__all__"
-
-#     def save(self, commit=True):
-
-#         print("clean:", self.cleaned_data)
-#         return super().save(commit)
+    def link(self, obj):
+        return self.as_model_link(obj, text="View")
 
 
-class EventAttendenceLinkInlineAdmin(admin.StackedInline):
+class EventAttendenceLinkInlineAdmin(StackedInlineBase):
     """List event links in event admin."""
 
     model = EventAttendanceLink
-    # form = EventAttendanceLinkForm
     readonly_fields = (
-        "target_url",
         "club",
-        "tracking_url_link",
+        "target_url",
+        "url_link",
     )
     extra = 0
 
-    def tracking_url_link(self, obj):
-        return obj.as_html()
+    def url_link(self, obj):
+        return self.as_link(obj.url)
 
 
 class EventHostInlineAdmin(admin.TabularInline):
@@ -103,74 +114,113 @@ class EventHostInlineAdmin(admin.TabularInline):
     extra = 1
 
 
-# class EventAdminForm(forms.ModelForm):
-#     """Form for EventAdmin."""
+class EventForm(forms.ModelForm):
+    """Determine the fields for events in admin."""
 
-#     class Meta:
-#         model = Event
-#         fields = ["name", "description", "location", "start_at", "end_at", "tags"]
+    poll = forms.ModelChoiceField(queryset=Poll.objects.all(), required=False)
 
-#     # def save(self, commit=True):
-#     #     # Ensure that the event is saved before syncing attendance links
-#     #     event = super().save(commit)
-#     #     EventService(event).sync_hosts_attendance_links()
-#     #     return event
+    class Meta:
+        model = Event
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance:
+            self.fields["poll"].initial = Poll.objects.find_one(
+                event__id=self.instance.id
+            )
+
+    def save(self, commit=False):
+        poll = self.cleaned_data.pop("poll", None)
+        event = super().save(commit)
+
+        if poll:
+            poll.event = event
+            poll.save()
+        else:
+            Poll.objects.filter(event__id=event.id).update(event=None)
+
+        return event
 
 
 class EventAdmin(ModelAdminBase):
     """Admin config for club events."""
 
     csv_serializer_class = EventCsvSerializer
-    # form = EventAdminForm
+    form = EventForm
 
     list_display = (
         "__str__",
         "id",
         "location",
+        "host_clubs",
         "start_at",
+        "status",
+        "duration",
     )
     ordering = ("-start_at",)
 
     inlines = (
         EventHostInlineAdmin,
-        EventAttendenceLinkInlineAdmin,
         EventAttendanceInlineAdmin,
+        EventAttendenceLinkInlineAdmin,
     )
-    filter_horizontal = ("tags",)
     actions = ("sync_attendance_links",)
+    # TODO: Make sure only host attachments are available
+    filter_horizontal = (
+        "tags",
+        "attachments",
+    )
+    search_fields = ("hosts__club__name", "hosts__club__alias")
 
-    # fieldsets = (
-    #     (
-    #         None,
-    #         {
-    #             "fields": (
-    #                 "name",
-    #                 "description",
-    #                 "location",
-    #                 "start_at",
-    #                 "end_at",
-    #                 "tags",
-    #             )
-    #         },
-    #     ),
-    #     (
-    #         "Advanced Options",
-    #         {
-    #             "classes": ("collapse",),
-    #             "fields": (
-    #                 "is_public",
-    #                 "recurring_event",
-    #             ),
-    #         },
-    #     ),
-    # )
+    def host_clubs(self, obj):
+        return ", ".join(list(obj.hosts.all().values_list("club__alias", flat=True)))
 
     @admin.action(description="Sync Attendence Links")
     def sync_attendance_links(self, request, queryset):
         """For all events, sync attendance links."""
 
-        for event in queryset:
-            EventService(event).sync_hosts_attendance_links()
+        event_ids = list(queryset.values_list("id", flat=True))
+        delay_task(sync_event_attendance_links_task, event_ids=event_ids)
+
+        self.message_user(
+            request,
+            message=f"Successfully scheduled to sync attendance links for {plural_noun_display(queryset, 'event')}.",
+        )
+
+        return
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "id",
+                    "name",
+                    "event_type",
+                    "description",
+                    "location",
+                    "start_at",
+                    "end_at",
+                    "is_draft",
+                    "is_poll_submission_required",
+                )
+            },
+        ),
+        (_("Public Scheduling"), {"fields": ("is_public", "make_public_at")}),
+        (
+            _("Relationships"),
+            {
+                "fields": (
+                    "recurring_event",
+                    "poll",
+                    "tags",
+                    "attachments",
+                )
+            },
+        ),
+    )
 
 
 admin.site.register(Event, EventAdmin)

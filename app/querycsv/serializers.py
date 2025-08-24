@@ -1,3 +1,4 @@
+import copy
 import re
 import traceback
 from typing import Iterable, Optional
@@ -9,7 +10,7 @@ from rest_framework.relations import SlugRelatedField
 from rest_framework.utils import model_meta
 
 from core.abstracts.serializers import FieldType, ModelSerializerBase, SerializerBase
-from utils.helpers import str_to_list
+from utils.helpers import str_to_bool, str_to_list
 from utils.types import islistinstance
 
 
@@ -47,6 +48,8 @@ class FlatField:
 
         if FieldType.LIST in self.field_types and not isinstance(value, list):
             return str_to_list(value)
+        elif FieldType.BOOLEAN in self.field_types:
+            return str_to_bool(value)
         elif isinstance(value, str) and value.isdigit():
             return int(value)
         elif isinstance(self.field_instance, serializers.IntegerField) and (
@@ -380,6 +383,10 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 self.instance = ModelClass.objects.get(id=pk_value)
                 return
 
+            unique_data_fields = [
+                field for field in self.unique_fields if field in data.keys()
+            ]
+
             # Find object containing all unique fields (AND)
             for field in self.unique_fields:
                 value = data.get(field, None)
@@ -390,8 +397,13 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                 elif isinstance(value, str):
                     value = value.strip()
 
-                # The value must exist and match, or be None
-                query = models.Q(**{field: value}) | models.Q(**{field: None})
+                # The value must exist and match
+                query = models.Q(**{f"{field}__exact": value})
+
+                # Allow updating unique fields if not set, but only if
+                # there's another unique field to use as a lookup
+                if field not in self.required_fields and len(unique_data_fields) > 1:
+                    query = query | models.Q(**{f"{field}": None})
 
                 if search_query is None:
                     search_query = query
@@ -399,6 +411,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     search_query = search_query & query
 
             # Find object containing all sets of unique_together fields (AND)
+            # FIXME: This will probably break for fields greater than 2
             for field_1, field_2 in self.unique_together_fields:
                 values = {
                     field_1: data.get(field_1, None),
@@ -446,6 +459,29 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         except Exception:
             pass
+
+    def run_prevalidation(self, data=None):
+        """
+        Can be used to pull out objects and set child querysets before actual validation.
+        This can be used to scope querysets of certain fields to other fields.
+
+        Example:
+        ```
+        def run_pre_validation(self, data=None):
+            children = data.pop('children', None)
+
+            res = super().run_prevalidation(data)
+            parent = res.get('parent')
+            self.fields['children'].child_relation.queryset = Model.objects.filter(parent=parent)
+
+            return res
+        """
+        return super().run_validation(data)
+
+    def run_validation(self, data=None):
+        pre_data = copy.deepcopy(data)
+        self.run_prevalidation(pre_data)
+        return super().run_validation(data)
 
     def to_internal_value(self, data):
         # Why run initialization here?

@@ -1,3 +1,5 @@
+gzip on;
+
 server {
   listen 8080;
   
@@ -11,7 +13,7 @@ server {
     proxy_hide_header       X-Amz-Id-2;
     proxy_hide_header       X-Amz-Request-Id;
     
-    proxy_pass              $DOCS_URI;
+    proxy_pass              "$PROXY_DOCS_URI";
   }
   
   location / {

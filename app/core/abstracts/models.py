@@ -9,6 +9,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MinLengthValidator
 from django.db import models
+from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
 from utils.permissions import get_perm_label
@@ -155,6 +156,24 @@ class ModelBase(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs)
 
+    class Meta:
+        abstract = True
+
+    # Dynamic properties
+    @property
+    def admin_edit_url(self):
+        """
+        Get the url path for admin page to edit object.
+        """
+        app_label = self._meta.app_label
+        model_name = self._meta.model_name
+        admin_name = "admin"
+
+        reverse_str = "%s:%s_%s_change" % (admin_name, app_label, model_name)
+
+        return reverse_lazy(reverse_str, args=[self.pk])
+
+    # Class methods
     @classmethod
     def get_content_type(cls):
         """
@@ -198,9 +217,6 @@ class ModelBase(models.Model):
         ]
 
         return fields
-
-    class Meta:
-        abstract = True
 
 
 class UniqueModel(ModelBase):
@@ -302,3 +318,10 @@ class SocialProfileBase(ModelBase):
             self.social_type = SocialType.OTHER
 
         return super().save(*args, **kwargs)
+
+
+class MajorType(models.TextChoices):
+    """Different types of academic majors."""
+
+    CS = "cs", _("Computer Science")
+    OTHER = "other", ("Other")
