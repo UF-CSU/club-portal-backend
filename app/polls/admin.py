@@ -12,15 +12,17 @@ from polls.models import (
     ChoiceInputOption,
     Poll,
     PollField,
-    PollInputType,
     PollMarkup,
     PollQuestion,
     PollQuestionAnswer,
     PollSubmission,
-    RangeInput,
+    PollSubmissionLink,
+    ScaleInput,
     TextInput,
     UploadInput,
 )
+from polls.services import PollService
+from utils.formatting import plural_noun_display
 
 
 class PollFieldInlineAdmin(StackedInlineBase):
@@ -45,13 +47,37 @@ class PollFieldInlineAdmin(StackedInlineBase):
         return "-"
 
 
+class PollSubmissionLinkInlineAdmin(StackedInlineBase):
+    """Show submission links for a poll."""
+
+    model = PollSubmissionLink
+    extra = 0
+
+
 class PollAdmin(ModelAdminBase):
     """Manage poll objects in admin."""
 
-    list_display = ("__str__", "field_count", "view_poll")
+    list_display = (
+        "__str__",
+        "id",
+        "field_count",
+        "club",
+        "event",
+        "view_poll",
+        "submissions_count",
+        "last_submission_at",
+    )
 
-    inlines = (PollFieldInlineAdmin,)
-    readonly_fields = ("field_count", "view_poll")
+    inlines = (
+        PollSubmissionLinkInlineAdmin,
+        PollFieldInlineAdmin,
+    )
+    readonly_fields = (
+        "field_count",
+        "view_poll",
+        "submissions_download_link",
+    )
+    actions = ("sync_submission_links",)
 
     def field_count(self, obj):
         return obj.fields.count()
@@ -62,6 +88,22 @@ class PollAdmin(ModelAdminBase):
         return mark_safe(
             f"<a href=\"{reverse('polls:poll', kwargs={'poll_id': obj.id})}\" target='_blank'>View Poll</a>"
         )
+
+    def submissions_download_link(self, obj):
+        return self.as_link(obj.submissions_download_url)
+
+    @admin.action(description="Sync submission links for selected polls")
+    def sync_submission_links(self, request, queryset):
+
+        for poll in queryset:
+            PollService(poll).sync_submission_link()
+
+        self.message_user(
+            request,
+            f'Synced {plural_noun_display(queryset.count(), "submission link")}.',
+        )
+
+        return
 
 
 class TextInputInlineAdmin(admin.TabularInline):
@@ -81,7 +123,7 @@ class ChoiceInputInlineAdmin(admin.TabularInline):
 class RangeInputInlineAdmin(admin.TabularInline):
     """Manage range inputs in questions admin."""
 
-    model = RangeInput
+    model = ScaleInput
     extra = 0
 
 
@@ -95,7 +137,9 @@ class UploadInputInlineAdmin(admin.TabularInline):
 class PollQuestionAdmin(ModelAdminBase):
     """Manage poll questions in admin."""
 
-    list_display = ("__str__", "field", "input_type", "widget")
+    list_display = ("__str__", "field", "input_type")
+
+    readonly_fields = ("id", "created_at", "updated_at", "is_user_lookup")
 
     inlines = (
         TextInputInlineAdmin,
@@ -107,14 +151,7 @@ class PollQuestionAdmin(ModelAdminBase):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        if obj.input_type == PollInputType.TEXT and obj.text_input is None:
-            TextInput.objects.create(question=obj)
-        elif obj.input_type == PollInputType.CHOICE and obj.choice_input is None:
-            ChoiceInput.objects.create(question=obj)
-        elif obj.input_type == PollInputType.RANGE and obj.range_input is None:
-            RangeInput.objects.create(question=obj)
-        elif obj.input_type == PollInputType.UPLOAD and obj.upload_input is None:
-            UploadInput.objects.create(question=obj)
+        obj.create_input()
 
 
 class ChoiceOptionInlineAdmin(admin.TabularInline):
@@ -127,7 +164,7 @@ class ChoiceOptionInlineAdmin(admin.TabularInline):
 class ChoiceInputAdmin(ModelAdminBase):
     """Manage poll choice inputs in admin."""
 
-    list_display = ("__str__", "options_count")
+    list_display = ("__str__", "poll", "options_count")
     inlines = (ChoiceOptionInlineAdmin,)
 
     def options_count(self, obj):

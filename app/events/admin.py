@@ -137,7 +137,8 @@ class EventForm(forms.ModelForm):
 
         if poll:
             poll.event = event
-            poll.save()
+            if commit:
+                poll.save()
         else:
             Poll.objects.filter(event__id=event.id).update(event=None)
 
@@ -204,7 +205,8 @@ class EventAdmin(ModelAdminBase):
                     "start_at",
                     "end_at",
                     "is_draft",
-                    "is_poll_submission_required",
+                    # "is_poll_submission_required",
+                    "enable_attendance",
                 )
             },
         ),
