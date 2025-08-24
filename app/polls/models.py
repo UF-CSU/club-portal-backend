@@ -29,7 +29,7 @@ from datetime import datetime
 from typing import ClassVar, Optional
 
 from django.contrib.postgres.fields import ArrayField
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -820,15 +820,17 @@ class ChoiceInputOption(ModelBase):
 class ScaleInput(InputBase):
     """Slider input."""
 
-    min_value = models.IntegerField(default=0)
-    max_value = models.IntegerField(default=10)
+    # min_value = models.IntegerField(default=0)
+    max_value = models.IntegerField(
+        default=10, validators=[MinValueValidator(5), MaxValueValidator(10)]
+    )
 
     left_label = models.CharField(max_length=24, null=True, blank=True)
     right_label = models.CharField(max_length=24, null=True, blank=True)
 
-    step = models.IntegerField(default=1)
-    initial_value = models.IntegerField(default=0)
-    unit = models.CharField(max_length=16, null=True, blank=True)
+    # step = models.IntegerField(default=1)
+    initial_value = models.IntegerField(default=1)
+    # unit = models.CharField(max_length=16, null=True, blank=True)
 
 
 class UploadInput(InputBase):
@@ -859,11 +861,11 @@ class NumberInput(InputBase):
     min_value = models.FloatField(default=0.0)
     max_value = models.FloatField(default=10.0)
 
-    unit = models.CharField(max_length=16, null=True, blank=True)
+    # unit = models.CharField(max_length=16, null=True, blank=True)
 
-    decimal_places = models.PositiveIntegerField(
-        default=1, validators=[MinValueValidator(0)]
-    )
+    # decimal_places = models.PositiveIntegerField(
+    #     default=1, validators=[MinValueValidator(0)]
+    # )
 
 
 class EmailInput(TextInputBase):

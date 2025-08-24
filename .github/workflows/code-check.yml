@@ -86,3 +86,32 @@ jobs:
       - name: Check migrations
         run: |
           docker-compose run --rm app sh -c "python manage.py makemigrations --check"
+          
+  typegen-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker Compose
+        run: |
+          sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          
+      - name: Build image
+        run: |
+          cp sample.env .env
+          docker-compose build
+
+      - name: Check migrations
+        run: |
+          docker-compose run --rm app sh -c "python manage.py generate_types"
+    

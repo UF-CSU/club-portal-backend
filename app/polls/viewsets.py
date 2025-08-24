@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, permissions
@@ -49,7 +49,8 @@ class PollFieldViewSet(ModelViewSetBase):
         poll_id = self.kwargs.get("poll_id", None)
         poll = get_object_or_404(Poll, id=poll_id)
 
-        serializer.save(poll=poll)
+        with transaction.atomic():
+            serializer.save(poll=poll)
 
 
 class PollChoiceOptionViewSet(ModelViewSetBase):
