@@ -1,4 +1,3 @@
-import copy
 import re
 import traceback
 from typing import Iterable, Optional
@@ -459,29 +458,6 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         except Exception:
             pass
-
-    def run_prevalidation(self, data=None):
-        """
-        Can be used to pull out objects and set child querysets before actual validation.
-        This can be used to scope querysets of certain fields to other fields.
-
-        Example:
-        ```
-        def run_pre_validation(self, data=None):
-            children = data.pop('children', None)
-
-            res = super().run_prevalidation(data)
-            parent = res.get('parent')
-            self.fields['children'].child_relation.queryset = Model.objects.filter(parent=parent)
-
-            return res
-        """
-        return super().run_validation(data)
-
-    def run_validation(self, data=None):
-        pre_data = copy.deepcopy(data)
-        self.run_prevalidation(pre_data)
-        return super().run_validation(data)
 
     def to_internal_value(self, data):
         # Why run initialization here?

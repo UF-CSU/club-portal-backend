@@ -34,6 +34,13 @@ class ClubService(ServiceBase[Club]):
 
         return get_full_url(self.join_url)
 
+    @property
+    def logo_url(self) -> str:
+        """Get the logo URL for the club."""
+        if self.obj.logo:
+            return self.obj.logo.url
+        return ""
+
     def add_member(
         self,
         user: User,
@@ -121,6 +128,6 @@ class ClubService(ServiceBase[Club]):
             subject=f"You have been invited to {self.obj.name}",
             to=emails,
             html_template="clubs/email_invite_template.html",
-            html_context={"invite_url": self.full_join_url},
+            html_context={"club_name": self.obj.name, "invite_url": self.full_join_url, "logo_url": self.logo_url},
             send_separately=True,
         )

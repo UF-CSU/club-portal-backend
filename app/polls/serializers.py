@@ -2,26 +2,27 @@
 Convert poll models to json objects.
 """
 
-from rest_framework import serializers
+from django.shortcuts import get_object_or_404
+from rest_framework import exceptions, serializers
 
-from core.abstracts.serializers import (
-    ModelSerializer,
-    ModelSerializerBase,
-    StringListField,
-)
+from clubs.models import Club
+from core.abstracts.serializers import ModelSerializer, ModelSerializerBase
+from events.models import Event
 from polls import models
+from users.models import User
+from users.serializers import UserNestedSerializer
 
 
-class TextInputNestedSerializer(ModelSerializerBase):
-    """Show text input in poll question json."""
+class TextInputSerializer(ModelSerializerBase):
+    """Text input, textarea, or rich text editor."""
 
     class Meta:
         model = models.TextInput
         exclude = ["question"]
 
 
-class ChoiceInputOptionNestedSerializer(ModelSerializerBase):
-    """Show choice input options in poll question json."""
+class ChoiceInputOptionSerializer(ModelSerializerBase):
+    """Allow user to select one or multiple options."""
 
     value = serializers.CharField(required=False)
 
@@ -30,67 +31,132 @@ class ChoiceInputOptionNestedSerializer(ModelSerializerBase):
         exclude = ["input"]
 
 
-class ChoiceInputNestedSerializer(ModelSerializerBase):
-    """Show choice input in poll question json."""
+class ChoiceInputSerializer(ModelSerializerBase):
+    """Options given to user for a choice input."""
 
-    options = ChoiceInputOptionNestedSerializer(many=True)
+    options = ChoiceInputOptionSerializer(many=True)
 
     class Meta:
         model = models.ChoiceInput
         exclude = ["question"]
 
 
-class RangeInputNestedSerializer(ModelSerializerBase):
-    """Show range input in poll question json."""
+class ScaleInputSerializer(ModelSerializerBase):
+    """Allow user to select number in a linear scale format."""
 
     class Meta:
-        model = models.RangeInput
+        model = models.ScaleInput
         exclude = ["question"]
 
 
-class UploadInputNestedSerializer(ModelSerializerBase):
-    """Show upload input in poll question json."""
-
-    file_types = StringListField(required=False)
+class UploadInputSerializer(ModelSerializerBase):
+    """Allow user to upload file as a ClubFile."""
 
     class Meta:
         model = models.UploadInput
         exclude = ["question"]
 
 
-class NumberInputNestedSerializer(ModelSerializerBase):
-    """Show number input in poll question json."""
+class NumberInputSerializer(ModelSerializerBase):
+    """Allow user to enter a plain number."""
 
     class Meta:
         model = models.NumberInput
         exclude = ["question"]
 
 
+class EmailInputSerializer(ModelSerializerBase):
+    """Text input with extra email validation."""
+
+    class Meta:
+        model = models.EmailInput
+        exclude = ["question"]
+
+
+class PhoneInputSerializer(ModelSerializerBase):
+    """Text input with extra phone number validation."""
+
+    class Meta:
+        model = models.PhoneInput
+        exclude = ["question"]
+
+
+class DateInputSerializer(ModelSerializerBase):
+    """Allow user to select a date."""
+
+    class Meta:
+        model = models.DateInput
+        exclude = ["question"]
+
+
+class TimeInputSerializer(ModelSerializerBase):
+    """Allow user to select a time."""
+
+    class Meta:
+        model = models.TimeInput
+        exclude = ["question"]
+
+
+class UrlInputSerializer(ModelSerializerBase):
+    """Allow user to enter a valid URL."""
+
+    class Meta:
+        model = models.UrlInput
+        exclude = ["question"]
+
+
+class CheckboxInputSerializer(ModelSerializerBase):
+    """Allow user to select one or multiple options."""
+
+    class Meta:
+        model = models.CheckboxInput
+        exclude = ["question"]
+
+
 class PollQuestionSerializer(ModelSerializerBase):
     """Show questions nested in poll fields."""
 
-    text_input = TextInputNestedSerializer(required=False)
-    choice_input = ChoiceInputNestedSerializer(required=False)
-    range_input = RangeInputNestedSerializer(required=False)
-    upload_input = UploadInputNestedSerializer(required=False)
-    number_input = NumberInputNestedSerializer(required=False)
-
-    created_at = None
-    updated_at = None
+    text_input = TextInputSerializer(required=False, allow_null=True)
+    choice_input = ChoiceInputSerializer(required=False, allow_null=True)
+    scale_input = ScaleInputSerializer(required=False, allow_null=True)
+    upload_input = UploadInputSerializer(required=False, allow_null=True)
+    number_input = NumberInputSerializer(required=False, allow_null=True)
+    email_input = EmailInputSerializer(required=False, allow_null=True)
+    phone_input = PhoneInputSerializer(required=False, allow_null=True)
+    date_input = DateInputSerializer(required=False, allow_null=True)
+    time_input = TimeInputSerializer(required=False, allow_null=True)
+    url_input = UrlInputSerializer(required=False, allow_null=True)
+    checkbox_input = CheckboxInputSerializer(required=False, allow_null=True)
+    answer_field = serializers.ChoiceField(
+        read_only=True, choices=models.AnswerFieldType.choices
+    )
 
     class Meta:
         model = models.PollQuestion
         exclude = ["created_at", "updated_at"]
         extra_kwargs = {"field": {"required": False}}
 
+    def get_input_data(self, validated_data: dict):
+        """Get dictionary of `{ input_type: input_data }` from validated data."""
+
+        return {
+            "text": validated_data.pop("text_input", None),
+            "choice": validated_data.pop("choice_input", None),
+            "scale": validated_data.pop("scale_input", None),
+            "upload": validated_data.pop("upload_input", None),
+            "number": validated_data.pop("number_input", None),
+            "email": validated_data.pop("email_input", None),
+            "phone": validated_data.pop("phone_input", None),
+            "date": validated_data.pop("date_input", None),
+            "time": validated_data.pop("time_input", None),
+            "url": validated_data.pop("url_input", None),
+            "checkbox": validated_data.pop("checkbox_input", None),
+        }
+
     def create(self, validated_data):
         """Create question with nested inputs."""
 
-        text_input = validated_data.pop("text_input", None)
-        choice_input = validated_data.pop("choice_input", None)
-        range_input = validated_data.pop("range_input", None)
-        upload_input = validated_data.pop("upload_input", None)
-        number_input = validated_data.pop("number_input", None)
+        input_data = self.get_input_data(validated_data)
 
         # Extract field and pass it as positional argument to PollQuestionManager.create()
         field = validated_data.pop("field")
@@ -101,26 +167,8 @@ class PollQuestionSerializer(ModelSerializerBase):
             field=field, label=label, input_type=input_type, **validated_data
         )
 
-        if text_input:
-            models.TextInput.objects.create(**text_input, question=question)
-
-        if choice_input:
-            options = choice_input.pop("options")
-            choice_input = models.ChoiceInput.objects.create(
-                **choice_input, question=question
-            )
-
-            for option in options:
-                models.ChoiceInputOption.objects.create(input=choice_input, **option)
-
-        if range_input:
-            models.RangeInput.objects.create(**range_input, question=question)
-
-        if upload_input:
-            models.UploadInput.objects.create(**upload_input, question=question)
-
-        if number_input:
-            models.NumberInput.objects.create(**number_input, question=question)
+        input_kwargs = input_data[input_type] or {}
+        question.create_input(**input_kwargs)
 
         return question
 
@@ -128,73 +176,12 @@ class PollQuestionSerializer(ModelSerializerBase):
         """Update question with nested inputs."""
 
         # Extract input data before updating the question
-        text_input = validated_data.pop("text_input", None)
-        choice_input = validated_data.pop("choice_input", None)
-        range_input = validated_data.pop("range_input", None)
-        upload_input = validated_data.pop("upload_input", None)
-        number_input = validated_data.pop("number_input", None)
+        input_data = self.get_input_data(validated_data)
 
         # Update question fields
         question = super().update(instance, validated_data)
-
-        # Update or create inputs based on input_type
-        if question.input_type == "text" and text_input is not None:
-            try:
-                existing_input = question._text_input
-                for attr, value in text_input.items():
-                    setattr(existing_input, attr, value)
-                existing_input.save()
-            except models.TextInput.DoesNotExist:
-                models.TextInput.objects.create(**text_input, question=question)
-
-        elif question.input_type == "choice" and choice_input is not None:
-            options = choice_input.pop("options", [])
-            try:
-                existing_input = question._choice_input
-                for attr, value in choice_input.items():
-                    setattr(existing_input, attr, value)
-                existing_input.save()
-                choice_input_obj = existing_input
-            except models.ChoiceInput.DoesNotExist:
-                choice_input_obj = models.ChoiceInput.objects.create(
-                    **choice_input, question=question
-                )
-
-            # Update options if provided
-            if options:
-                # Simple approach: delete existing and recreate
-                choice_input_obj.options.all().delete()
-                for option in options:
-                    models.ChoiceInputOption.objects.create(
-                        input=choice_input_obj, **option
-                    )
-
-        elif question.input_type == "range" and range_input is not None:
-            try:
-                existing_input = question._range_input
-                for attr, value in range_input.items():
-                    setattr(existing_input, attr, value)
-                existing_input.save()
-            except models.RangeInput.DoesNotExist:
-                models.RangeInput.objects.create(**range_input, question=question)
-
-        elif question.input_type == "upload" and upload_input is not None:
-            try:
-                existing_input = question._upload_input
-                for attr, value in upload_input.items():
-                    setattr(existing_input, attr, value)
-                existing_input.save()
-            except models.UploadInput.DoesNotExist:
-                models.UploadInput.objects.create(**upload_input, question=question)
-
-        elif question.input_type == "number" and number_input is not None:
-            try:
-                existing_input = question._number_input
-                for attr, value in number_input.items():
-                    setattr(existing_input, attr, value)
-                existing_input.save()
-            except models.NumberInput.DoesNotExist:
-                models.NumberInput.objects.create(**number_input, question=question)
+        input_kwargs = input_data[question.input_type] or {}
+        question.update_input(**input_kwargs)
 
         return question
 
@@ -204,15 +191,16 @@ class PollMarkupNestedSerializer(ModelSerializerBase):
 
     class Meta:
         model = models.PollMarkup
-        fields = ["id", "content", "field"]
+        fields = ["id", "content", "field", "label"]
         extra_kwargs = {"field": {"required": False}}
 
 
 class PollFieldSerializer(ModelSerializerBase):
     """Show poll fields  in polls."""
 
-    question = PollQuestionSerializer(required=False)
-    markup = PollMarkupNestedSerializer(required=False)
+    question = PollQuestionSerializer(required=False, allow_null=True)
+    markup = PollMarkupNestedSerializer(required=False, allow_null=True)
+    order = serializers.IntegerField(required=False)
 
     class Meta:
         model = models.PollField
@@ -226,35 +214,9 @@ class PollFieldSerializer(ModelSerializerBase):
         field = super().create(validated_data)
 
         if question_data is not None:
-            # Pop out inputs
-            text_input = question_data.pop("text_input", None)
-            choice_input = question_data.pop("choice_input", None)
-            range_input = question_data.pop("range_input", None)
-            upload_input = question_data.pop("upload_input", None)
-            number_input = question_data.pop("number_input", None)
-
-            # Create question
-            question = models.PollQuestion.objects.create(**question_data, field=field)
-
-            # Create inputs
-            if text_input:
-                models.TextInput.objects.create(**text_input, question=question)
-            elif choice_input:
-                options = choice_input.pop("options", [])
-                choice_input = models.ChoiceInput.objects.create(
-                    **choice_input, question=question
-                )
-
-                for option in options:
-                    models.ChoiceInputOption.objects.create(
-                        **option, input=choice_input
-                    )
-            elif range_input:
-                models.RangeInput.objects.create(**range_input, question=question)
-            elif upload_input:
-                models.UploadInput.objects.create(**upload_input, question=question)
-            elif number_input:
-                models.NumberInput.objects.create(**number_input, question=question)
+            question_data["field"] = field
+            serializer = PollQuestionSerializer()
+            serializer.create(question_data)
 
         elif markup_data is not None:
             models.PollMarkup.objects.create(**markup_data, field=field)
@@ -272,48 +234,97 @@ class PollFieldSerializer(ModelSerializerBase):
 
         # Handle question updates
         if question_data is not None:
+            question_data["field"] = field
+
             try:
                 existing_question = field.question
-                serializer = PollQuestionSerializer(
-                    existing_question, data=question_data, partial=True
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+                serializer = PollQuestionSerializer()
+                serializer.update(existing_question, question_data)
             except models.PollQuestion.DoesNotExist:
-                serializer = PollQuestionSerializer(
-                    data={**question_data, "field": field.id}
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+                serializer = PollQuestionSerializer()
+                serializer.create(question_data)
 
         # Handle markup updates
         if markup_data is not None:
+            markup_data["field"] = field.id
             try:
                 existing_markup = field.markup
-                serializer = PollMarkupNestedSerializer(
-                    existing_markup, data=markup_data, partial=True
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+                serializer = PollMarkupNestedSerializer()
+                serializer.update(existing_markup, markup_data)
             except models.PollMarkup.DoesNotExist:
-                serializer = PollMarkupNestedSerializer(
-                    data={**markup_data, "field": field.id}
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+                serializer = PollMarkupNestedSerializer()
+                serializer.create(markup_data)
 
         return field
+
+
+class PollLinkNestedSerializer(ModelSerializerBase):
+    """A link a user can use to submit a poll."""
+
+    qrcode_url = serializers.URLField(
+        source="qrcode.download_url", read_only=True, help_text="URL for the QRCode SVG"
+    )
+
+    class Meta:
+        model = models.PollSubmissionLink
+        fields = ["id", "url", "qrcode_url", "club"]
+
+
+class PollEventNestedSerializer(ModelSerializerBase):
+    """Show event for a poll."""
+
+    id = serializers.IntegerField()
+    attendance_links = PollLinkNestedSerializer(many=True)
+
+    class Meta:
+        model = Event
+        fields = ["id", "name", "start_at", "end_at", "attendance_links"]
+        read_only_fields = ["name", "start_at", "end_at", "attendance_links"]
+
+
+class PollClubNestedSerializer(ModelSerializerBase):
+    """Display club fields for a poll."""
+
+    id = serializers.IntegerField()
+
+    class Meta:
+        model = Club
+        fields = ["id", "name"]
+        read_only_fields = ["name"]
 
 
 class PollSerializer(ModelSerializer):
     """JSON definition for polls."""
 
     fields = PollFieldSerializer(many=True, read_only=True)
+    submissions_count = serializers.IntegerField(read_only=True)
+    last_submission_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    is_published = serializers.BooleanField(required=False)
+    status = serializers.ChoiceField(
+        choices=models.PollStatusType.choices, read_only=True
+    )
+    poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
+    event = PollEventNestedSerializer(required=False, allow_null=True)
+    submissions_download_url = serializers.URLField(read_only=True)
+    club = PollClubNestedSerializer(required=True, allow_null=True)
+    link = PollLinkNestedSerializer(
+        read_only=True, allow_null=True, source="submission_link"
+    )
 
     class Meta:
         model = models.Poll
-        fields = "__all__"
+        exclude = ["open_task", "close_task"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        club = validated_data.pop("club")
+        event = validated_data.pop("event", None)
+
+        validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
+        if event:
+            validated_data["event"] = get_object_or_404(Event, id=event.get("id"))
+
+        return super().create(validated_data)
 
 
 class PollSubmissionAnswerSerializer(ModelSerializerBase):
@@ -325,41 +336,80 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
         slug_field="value",
         queryset=models.ChoiceInputOption.objects.all(),
     )
+    is_valid = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = models.PollQuestionAnswer
-        fields = [
-            "id",
-            "question",
-            "text_value",
-            "number_value",
-            "options_value",
-            "is_valid",
-            "error",
-            "created_at",
-        ]
+        exclude = ["submission"]
+
+    def run_prevalidation(self, data=None):
+        data.pop("options_value", [])
+        question_id = data.get("question")
+
+        res = super().run_prevalidation(data)
+        self.fields["options_value"].child_relation.queryset = (
+            models.ChoiceInputOption.objects.filter(input__question__id=question_id)
+        )
+
+        return res
 
 
-class PollSubmissionSerializer(ModelSerializer):
+class PollSubmissionSerializer(ModelSerializerBase):
     """A user's submission for a form."""
 
     # Poll id is set in the url
     poll = serializers.PrimaryKeyRelatedField(read_only=True)
-    answers = PollSubmissionAnswerSerializer(many=True)
+    answers = PollSubmissionAnswerSerializer(many=True, required=False)
+    user = UserNestedSerializer(read_only=True)
 
     class Meta:
         model = models.PollSubmission
-        fields = ["poll", "answers", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "poll",
+            "is_valid",
+            "user",
+            "answers",
+            "created_at",
+            "updated_at",
+        ]
 
     def create(self, validated_data):
-        answers = validated_data.pop("answers", None)
-        submission = super().create(validated_data)
+        answers: list = validated_data.pop("answers", [])
+        user = validated_data.get("user", None)
+
+        email_answer = None
+        for answer in answers:
+            if answer.get("question").is_user_lookup:
+                email_answer = answer.get("text_value", None)
+                break
+
+        if not user or user.is_anonymous:
+            if not email_answer:
+                raise exceptions.ValidationError(
+                    {"answers": "Missing user lookup field"}, code="required"
+                )
+            try:
+                user = User.objects.get_by_email(email_answer)
+            except User.DoesNotExist:
+                user = User.objects.create(email=email_answer)
+        # elif not email_answer:
+        #     # TODO: Set ufl email if email field has it enabled
+        #     answers.append({"email": user.email})
+
+        validated_data["user"] = user
+        submission, _ = models.PollSubmission.objects.get_or_create(
+            user=user, poll=validated_data["poll"]
+        )
 
         if not answers:
             return submission
 
         for answer in answers:
-            models.PollQuestionAnswer.objects.create(submission=submission, **answer)
+            question = answer.pop("question")
+            models.PollQuestionAnswer.objects.update_or_create(
+                submission=submission, question=question, defaults=answer
+            )
 
         return submission
 

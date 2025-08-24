@@ -40,6 +40,21 @@ class ProfileNestedSerializer(ModelSerializerBase):
         model = Profile
         exclude = ["user", "created_at", "updated_at"]
 
+class SocialProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SocialProfile
+        fields = ("id", "social_type", "url", "username", "order")
+
+class UserNestedSerializer(ModelSerializerBase):
+    """Display minimal fields for a user."""
+
+    email = serializers.EmailField(required=False)
+    profile = ProfileNestedSerializer(required=False)
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "profile"]
+
 
 class UserSerializer(ModelSerializer):
     """Represents a person in the system who can authenticate."""
@@ -50,6 +65,8 @@ class UserSerializer(ModelSerializer):
         source="club_memberships", many=True, required=False
     )
     profile = ProfileNestedSerializer(required=False)
+    socials = SocialProfileSerializer(many=True, required=False)
+
     is_email_verified = serializers.BooleanField(read_only=True)
     can_authenticate = serializers.BooleanField(read_only=True)
     is_club_admin = serializers.BooleanField(read_only=True)
@@ -63,6 +80,7 @@ class UserSerializer(ModelSerializer):
             "password",
             "clubs",
             "profile",
+            "socials",
             "is_onboarded",
             "is_email_verified",
             "can_authenticate",

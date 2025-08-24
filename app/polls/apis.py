@@ -13,6 +13,11 @@ router.register(
 router.register(
     r"polls/(?P<poll_id>.+)/fields", viewsets.PollFieldViewSet, basename="pollfield"
 )
+router.register(
+    r"polls/(?P<poll_id>.+)/fields/(?P<field_id>.+)/choice-options",
+    viewsets.PollChoiceOptionViewSet,
+    basename="pollchoiceoption",
+)
 
 app_name = "api-polls"
 

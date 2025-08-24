@@ -234,7 +234,7 @@ class PrivateApiTestsBase(PublicApiTestsBase):
 
         self.user = self.create_authenticated_user()
 
-        self.client = APIClient()
+        self.client = APIClientWrapper()
         self.client.force_authenticate(user=self.user)
 
 
@@ -327,10 +327,10 @@ class PeriodicTaskTestsBase(TestsBase):
 
         return fn.apply(args=args, kwargs=kwargs).get()
 
-    def run_clocked_func(self, task: Optional[PeriodicTask] = None, check_params=None):
+    def assertRunPeriodicTask(
+        self, task: Optional[PeriodicTask] = None, check_params=None
+    ):
         """Run periodic task."""
-
-        check_params = check_params or None
 
         if not task:
             task = PeriodicTask.objects.first()
@@ -338,18 +338,21 @@ class PeriodicTaskTestsBase(TestsBase):
             if task is None:
                 self.fail("No task to run.")
 
+        if check_params:
+            self.assertPeriodicTaskKwargs(task, check_params)
+
         self.mock_apply_sharedtask(
             run_func, args=json.loads(task.args), kwargs=json.loads(task.kwargs)
         )
 
     def assertPeriodicTaskKwargs(self, task: PeriodicTask, expected_kwargs: dict):
         kwargs = json.loads(task.kwargs)
-        check_payload = {
-            "max_runs": 1,
-            **(expected_kwargs or {}),
-        }
+        # check_payload = {
+        #     "max_runs": 1,
+        #     **(expected_kwargs or {}),
+        # }
 
-        for key, value in check_payload.items():
+        for key, value in expected_kwargs.items():
             self.assertEqual(
                 kwargs[key],
                 value,
