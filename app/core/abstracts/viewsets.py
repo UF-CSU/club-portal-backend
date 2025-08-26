@@ -7,6 +7,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
+from django_filters.rest_framework import DjangoFilterBackend
 
 from app.settings import DJANGO_ENABLE_API_SESSION_AUTH
 
@@ -53,7 +54,7 @@ class ViewSetBase(GenericViewSet):
     filterset_fields: list
     """Optionally define which fields can be filtered against in the url."""
 
-    filter_backends: list
+    filter_backends: list = [DjangoFilterBackend]
     """Define (list) what backends to use for filtering."""
 
     search_fields: list

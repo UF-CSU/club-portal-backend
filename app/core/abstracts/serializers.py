@@ -367,6 +367,19 @@ class ModelSerializer(ModelSerializerBase):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
+class UpdateListSerializer(serializers.ListSerializer):
+    # Ref: https://levelup.gitconnected.com/really-fast-bulk-updates-with-django-rest-framework-43594b18bd75
+    def update(self, instances, validated_data):
+        instance_hash = {index: instance for index, instance in enumerate(instances)}
+
+        result = [
+            self.child.update(instance_hash[index], attrs)
+            for index, attrs in enumerate(validated_data)
+        ]
+
+        return result
+
+
 class StringListField(serializers.CharField):
     """Represent a comma-separated string as a list of strings."""
 
