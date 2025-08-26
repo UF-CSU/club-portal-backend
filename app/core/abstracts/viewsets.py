@@ -2,12 +2,12 @@ from typing import Literal, Optional, Type, TypedDict
 
 from django.db import models
 from django.template import loader
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import authentication, filters, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
-from django_filters.rest_framework import DjangoFilterBackend
 
 from app.settings import DJANGO_ENABLE_API_SESSION_AUTH
 
