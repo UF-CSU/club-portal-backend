@@ -4,9 +4,9 @@ Views for the user API.
 
 from allauth.headless.base.views import APIView
 from allauth.headless.socialaccount.forms import RedirectToProviderForm
-from allauth.socialaccount.helpers import render_authentication_error
 from allauth.socialaccount.models import SocialAccount
-from django.core.exceptions import BadRequest, ValidationError
+from django.core import exceptions
+from django.core.exceptions import BadRequest
 from django.http import HttpRequest
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
@@ -162,11 +162,8 @@ class RedirectToProviderView(APIView):
         # Continue to provider
         form = RedirectToProviderForm(request.POST)
         if not form.is_valid():
-            return render_authentication_error(
-                request,
-                provider=request.POST.get("provider"),
-                exception=ValidationError(form.errors),
-            )
+            raise exceptions.BadRequest(form.errors.as_json())
+
         provider = form.cleaned_data["provider"]
         next_url = (
             reverse("api-users:oauth_return")

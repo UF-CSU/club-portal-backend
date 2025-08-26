@@ -159,6 +159,13 @@ tasks:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py generate_types"
+  
+  generate_types:check:
+    desc: 'Generate TypeScript types from serializers.'
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py generate_types --check"
 
   down:
     desc: 'Stop containers'

@@ -725,7 +725,7 @@ class TypeGenerator:
 
         return doc
 
-    def generate_docs(self, dirpath: str):
+    def generate_docs(self, dirpath: str, write_types=True):
         """Convert serializers to typescript interfaces."""
 
         self.types_doc += FILE_DOC_TPL % datetime.now()
@@ -760,6 +760,10 @@ class TypeGenerator:
         self.enums_doc = ""
         for enum_name, enum_dict in self.enums.items():
             self.enums_doc += self._generate_enum(enum_name, enum_dict)
+
+        if not write_types:
+            print("Type checking mode only, skipping writing files.")
+            return
 
         os.makedirs(dirpath, exist_ok=True)
 

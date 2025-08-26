@@ -2,6 +2,7 @@ from typing import Literal, Optional, Type, TypedDict
 
 from django.db import models
 from django.template import loader
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import authentication, filters, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
@@ -53,7 +54,7 @@ class ViewSetBase(GenericViewSet):
     filterset_fields: list
     """Optionally define which fields can be filtered against in the url."""
 
-    filter_backends: list
+    filter_backends: list = [DjangoFilterBackend]
     """Define (list) what backends to use for filtering."""
 
     search_fields: list
