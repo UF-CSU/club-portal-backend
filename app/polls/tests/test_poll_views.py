@@ -211,9 +211,8 @@ class PollViewAuthTests(PrivateApiTestsBase):
                     "description": fake.paragraph(),
                     "input_type": "scale",
                     "scale_input": {
-                        "min_value": 0,
-                        "max_value": 100,
-                        "initial_value": 50,
+                        "max_value": 10,
+                        "initial_value": 5,
                     },
                 },
             },
@@ -578,9 +577,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             is_required=False,
         )
 
-        NumberInput.objects.create(
-            question=number_question, min_value=1, max_value=10, decimal_places=0
-        )
+        NumberInput.objects.create(question=number_question, min_value=1, max_value=10)
 
         self.assertEqual(poll.submissions.count(), 0)
 
