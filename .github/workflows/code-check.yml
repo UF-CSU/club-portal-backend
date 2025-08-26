@@ -114,5 +114,5 @@ jobs:
       - name: Check migrations
         run: |
           docker-compose run --rm app sh -c "python manage.py wait_for_db && python manage.py migrate"
-          docker-compose run --rm app sh -c "python manage.py generate_types"
+          docker-compose run --rm app sh -c "python manage.py generate_types --check"
     
