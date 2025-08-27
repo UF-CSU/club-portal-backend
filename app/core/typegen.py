@@ -18,7 +18,6 @@ from clubs.serializers import (
 from events.serializers import (
     EventHostSerializer,
     EventSerializer,
-    EventTagSerializer,
     RecurringEventSerializer,
 )
 from lib.serializer_typegen import InputSerializerType
@@ -94,7 +93,6 @@ SERIALIZERS_READONLY: list[InputSerializerType] = [
     SocialProviderSerializer,
     ClubSocialSerializer,
     ClubPhotoSerializer,
-    EventTagSerializer,
 ]
 """
 List of serializers to create base interface for only.
