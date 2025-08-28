@@ -69,16 +69,16 @@ class EventViewset(ModelViewSetBase):
             if host.get("is_primary", False):
                 primary_club = host.get("club")
 
-        if not self.request.user.has_perm("events.add_recurringevent", is_global=True):
+        if not self.request.user.has_perm("events.add_event", is_global=True):
             if not user_clubs.filter(id__in=club_ids).exists():
                 self.permission_denied(
                     self.request,
-                    "Can only create recurring events which include the user's club as a host",
+                    "Can only create events which include the user's club as a host",
                 )
             elif not primary_club or not user_clubs.filter(id=primary_club.id).exists():
                 self.permission_denied(
                     self.request,
-                    "Need recurring event creation priviledge for primary host club.",
+                    "Need event creation priviledge for primary host club.",
                 )
 
         return super().perform_create(serializer)

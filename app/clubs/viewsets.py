@@ -1,4 +1,7 @@
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, filters, mixins, permissions, status
@@ -31,11 +34,6 @@ from core.abstracts.viewsets import (
 )
 from users.models import User
 
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
-from rest_framework import mixins, permissions
-from rest_framework.viewsets import GenericViewSet
 
 def get_user_club_or_404(club_id: int, user: User):
     """Get club for user, or raise 404 error."""
@@ -140,8 +138,10 @@ class UserClubMembershipsViewSet(ModelViewSetBase):
             return True
         return super().check_object_permissions(request, obj)
 
+
 class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase):
     """Access limited club data via the API."""
+
     queryset = (
         Club.objects.all()
         .select_related("logo", "banner")
@@ -168,6 +168,7 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
 
 class ClubTagsView(GenericAPIView):
     """Creates a GET route for fetching available club tags."""
