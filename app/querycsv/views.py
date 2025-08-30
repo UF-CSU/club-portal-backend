@@ -1,5 +1,6 @@
 import logging
 import re
+from time import sleep
 from typing import Type
 
 from django.http import HttpRequest
@@ -12,6 +13,7 @@ from querycsv.models import QueryCsvUploadJob
 from querycsv.serializers import FlatListField
 from querycsv.services import QueryCsvService
 from querycsv.signals import send_process_csv_job_signal
+from utils.logging import print_error
 
 
 class QueryCsvViewSet:
@@ -53,22 +55,31 @@ class QueryCsvViewSet:
 
         if request.POST:
             form = CsvUploadForm(data=request.POST, files=request.FILES)
+            try:
+                if form.is_valid():
+                    # Process new csv
+                    job = QueryCsvUploadJob.objects.create(
+                        serializer_class=self.serializer_class,
+                        notify_email=request.user.email,
+                        file=request.FILES["file"],
+                    )
 
-            if form.is_valid():
-                # Process new csv
-                job = QueryCsvUploadJob.objects.create(
-                    serializer_class=self.serializer_class,
-                    notify_email=request.user.email,
-                    file=request.FILES["file"],
-                )
+                    for i in range(5):
+                        try:
+                            job.spreadsheet.columns
+                            break
+                        except Exception as e:
+                            if i == 4:
+                                raise e
+                            sleep(3)
+                            continue
 
-                return redirect(self.get_reverse("upload_headermapping"), id=job.id)
-            else:
-                context["form"] = form
+                    return redirect(self.get_reverse("upload_headermapping"), id=job.id)
+            except Exception as e:
+                print_error()
+                self.message_user(request, f"Error uploading file: {e}", logging.ERROR)
 
-                return TemplateResponse(
-                    request, "admin/querycsv/upload_csv.html", context=context
-                )
+            context["form"] = form
         else:
             context["form"] = CsvUploadForm()
 

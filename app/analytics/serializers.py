@@ -29,11 +29,8 @@ class LinkSerializer(serializers.ModelSerializer):
 
     target_url = serializers.CharField(required=True)
     display_name = serializers.CharField(allow_null=True, allow_blank=True)
-
     club = LinkClubNestedSerializer(many=False, read_only=True)
-
     club_id = serializers.IntegerField(write_only=True, required=True)
-
     link_visits = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -45,6 +42,7 @@ class LinkSerializer(serializers.ModelSerializer):
             "club",
             "club_id",
             "link_visits",
+            "url",
         ]
 
     def create(self, validated_data):
