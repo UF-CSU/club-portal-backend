@@ -1,8 +1,8 @@
 import json
 
-from django.core.files import File
 import numpy as np
 import pandas as pd
+from django.core.files import File
 
 SPREADSHEET_EXTS = ("csv", "xls", "xlsx", "json")
 """Tuple of supported spreadsheet extensions."""
