@@ -324,7 +324,7 @@ HEADLESS_SERVE_SPECIFICATION = True
 ############################
 # AWS S3
 S3_STORAGE_BACKEND = bool(int(os.environ.get("S3_STORAGE_BACKEND", 1)))
-if S3_STORAGE_BACKEND is True:
+if S3_STORAGE_BACKEND is True and TESTING is False:
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
 AWS_DEFAULT_ACL = "public-read"
@@ -451,6 +451,9 @@ if TESTING:
     # Ensure tasks execute immediately
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_ALWAYS_EAGER = True
+
+    S3_STORAGE_BACKEND = False
+    AWS_STORAGE_BUCKET_NAME = ""
 
     # Force disable notifications
     EMAIL_HOST_PASSWORD = None

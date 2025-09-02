@@ -89,6 +89,16 @@ class ObjectViewPermissions(permissions.DjangoObjectPermissions):
         "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
 
+    # def has_object_permission(self, request, view, obj):
+    #     queryset = self._queryset(view)
+    #     model_cls = queryset.model
+    #     user = request.user
+    #     perms = self.get_required_object_permissions(request.method, model_cls)
+    #     print('required perms:', perms)
+    #     print('has perms:', user.has_perms(perms, obj))
+    #     print('has perm:', user.has_perm(perms[0], obj))
+    #     return super().has_object_permission(request, view, obj)
+
 
 class ObjectViewDetailsPermissions(ObjectViewPermissions):
     """

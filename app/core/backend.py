@@ -89,6 +89,17 @@ class CustomBackend(ModelBackend):
                 return perm_obj in key.permissions.all()
 
             else:
+                # # Short circuit if there's one club, and the user is an admin of that club
+                # if scoped_clubs.count() == 1:
+                #     club = scoped_clubs.first()
+                #     membership = user_obj.club_memberships.filter(club__id=club.id)
+
+                #     if membership.exists():
+                #         membership = membership.first()
+                #         if membership.is_admin:
+                #             return True
+
+                # Otherwise return perms for all clubs
                 club_perms = self.get_club_permissions(user_obj, scoped_clubs, obj)
                 perm_obj = get_permission(perm, obj)
 

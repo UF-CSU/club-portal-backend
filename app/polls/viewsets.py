@@ -1,7 +1,7 @@
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, permissions
+from rest_framework import exceptions
 
 from core.abstracts.viewsets import ModelViewSetBase
 from polls.models import (
@@ -25,7 +25,15 @@ class PollViewset(ModelViewSetBase):
 
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        if not self.request.query_params.get("can_edit", None):
+            return super().get_queryset()
+
+        user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
+        self.queryset = self.queryset.filter(club__id__in=user_clubs)
+        return super().get_queryset()
 
     def check_object_permissions(self, request, obj):
         if self.action == "retrieve":
@@ -38,7 +46,13 @@ class PollFieldViewSet(ModelViewSetBase):
 
     queryset = PollField.objects.all()
     serializer_class = PollFieldSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def check_object_permissions(self, request, obj):
+        # FIXME: This patches issue with updating fields, but this should be done by perms backend
+        if request.user.is_club_admin:
+            return True
+        return super().check_object_permissions(request, obj)
 
     def get_queryset(self):
         poll_id = self.kwargs.get("poll_id", None)
@@ -58,7 +72,7 @@ class PollChoiceOptionViewSet(ModelViewSetBase):
 
     queryset = ChoiceInputOption.objects.all()
     serializer_class = ChoiceInputOptionSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         poll_id = self.kwargs.get("poll_id", None)
