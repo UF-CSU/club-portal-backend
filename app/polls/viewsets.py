@@ -48,6 +48,12 @@ class PollFieldViewSet(ModelViewSetBase):
     serializer_class = PollFieldSerializer
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def check_object_permissions(self, request, obj):
+        # FIXME: This patches issue with updating fields, but this should be done by perms backend
+        if request.user.is_club_admin:
+            return True
+        return super().check_object_permissions(request, obj)
+
     def get_queryset(self):
         poll_id = self.kwargs.get("poll_id", None)
         self.queryset = self.queryset.filter(poll__id=poll_id)

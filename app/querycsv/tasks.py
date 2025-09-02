@@ -6,6 +6,7 @@ from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
 from utils.files import get_file_path
 from utils.helpers import import_from_path
+from utils.logging import print_error
 
 
 @shared_task
@@ -49,7 +50,10 @@ def process_csv_job_task(job_id: int):
             ),
             "text/html",
         )
-        mail.attach_file(get_file_path(job.report))
+        try:
+            mail.attach_file(get_file_path(job.report))
+        except Exception:
+            print_error()
         mail.send()
     elif job.notify_email:
         # Job raised a parsing error
