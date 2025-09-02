@@ -1,7 +1,7 @@
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions
+from rest_framework import exceptions, permissions
 
 from core.abstracts.viewsets import ModelViewSetBase
 from polls.models import (
@@ -25,20 +25,25 @@ class PollViewset(ModelViewSetBase):
 
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
-    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def get_queryset(self):
-        if not self.request.query_params.get("can_edit", None):
-            return super().get_queryset()
+    # def get_queryset(self):
+    #     if not self.request.query_params.get("can_edit", None):
+    #         return super().get_queryset()
 
-        user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
-        self.queryset = self.queryset.filter(club__id__in=user_clubs)
-        return super().get_queryset()
+    #     user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
+    #     self.queryset = self.queryset.filter(club__id__in=user_clubs)
+    #     return super().get_queryset()
 
     def check_object_permissions(self, request, obj):
         if self.action == "retrieve":
             return True
         return super().check_object_permissions(request, obj)
+
+    # def check_permissions(self, request):
+    #     if self.action == "retrieve":
+    #         return True
+    #     return super().check_permissions(request)
 
 
 class PollFieldViewSet(ModelViewSetBase):
