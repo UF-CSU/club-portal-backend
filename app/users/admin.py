@@ -9,10 +9,12 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 from clubs.models import ClubMembership
 from core.abstracts.admin import ModelAdminBase
+from users.defaults import DEFAULT_USER_PERMISSIONS
 from users.models import Profile, SocialProfile, User, VerifiedEmail
 from users.serializers import UserCsvSerializer
 from users.services import UserService
-from utils.formatting import plural_noun
+from utils.formatting import plural_noun, plural_noun_display
+from utils.permissions import parse_permissions
 
 
 class UserProfileInline(admin.StackedInline):
@@ -68,7 +70,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         "profile_image",
         "is_onboarded",
     )
-    actions = ("send_account_setup_link", "send_admin_setup_link")
+    actions = ("send_account_setup_link", "send_admin_setup_link", "sync_permissions")
 
     fieldsets = (
         (None, {"fields": ("username", "email", "password", "profile_image")}),
@@ -102,6 +104,21 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
     def profile_image(self, obj):
         return self.as_image(obj.profile.image)
+
+    @admin.action
+    def sync_permissions(self, request, queryset):
+        """Sync permissions for selected users."""
+        perms = parse_permissions(DEFAULT_USER_PERMISSIONS)
+
+        for user in queryset:
+            for perm in perms:
+                if not user.user_permissions.filter(id=perm.id).exists():
+                    user.user_permissions.add(perm)
+
+        self.message_user(
+            request,
+            f"Successfully synced permissions for {plural_noun_display(queryset.count(), 'user')}",
+        )
 
     @admin.action
     def send_account_setup_link(self, request, queryset):

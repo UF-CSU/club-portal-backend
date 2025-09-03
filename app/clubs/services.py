@@ -128,6 +128,10 @@ class ClubService(ServiceBase[Club]):
             subject=f"You have been invited to {self.obj.name}",
             to=emails,
             html_template="clubs/email_invite_template.html",
-            html_context={"club_name": self.obj.name, "invite_url": self.full_join_url, "logo_url": self.logo_url},
+            html_context={
+                "club_name": self.obj.name,
+                "invite_url": self.full_join_url,
+                "logo_url": self.logo_url,
+            },
             send_separately=True,
         )

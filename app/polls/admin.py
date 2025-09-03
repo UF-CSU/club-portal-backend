@@ -90,6 +90,8 @@ class PollAdmin(ModelAdminBase):
         )
 
     def submissions_download_link(self, obj):
+        if obj.id is None:
+            return "-"
         return self.as_link(obj.submissions_download_url)
 
     @admin.action(description="Sync submission links for selected polls")

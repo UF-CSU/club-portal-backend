@@ -2,6 +2,7 @@ from typing import Literal, Optional, Type, TypedDict
 
 from django.db import models
 from django.template import loader
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import authentication, filters, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
@@ -53,7 +54,7 @@ class ViewSetBase(GenericViewSet):
     filterset_fields: list
     """Optionally define which fields can be filtered against in the url."""
 
-    filter_backends: list
+    filter_backends: list = [DjangoFilterBackend]
     """Define (list) what backends to use for filtering."""
 
     search_fields: list
@@ -87,6 +88,16 @@ class ObjectViewPermissions(permissions.DjangoObjectPermissions):
         "PATCH": ["%(app_label)s.change_%(model_name)s"],
         "DELETE": ["%(app_label)s.delete_%(model_name)s"],
     }
+
+    # def has_object_permission(self, request, view, obj):
+    #     queryset = self._queryset(view)
+    #     model_cls = queryset.model
+    #     user = request.user
+    #     perms = self.get_required_object_permissions(request.method, model_cls)
+    #     print('required perms:', perms)
+    #     print('has perms:', user.has_perms(perms, obj))
+    #     print('has perm:', user.has_perm(perms[0], obj))
+    #     return super().has_object_permission(request, view, obj)
 
 
 class ObjectViewDetailsPermissions(ObjectViewPermissions):
