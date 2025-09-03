@@ -12,6 +12,7 @@ from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
 from utils.dates import get_day_count
+from users.models import User
 
 
 class RecurringEventService(ServiceBase[RecurringEvent]):
@@ -227,11 +228,34 @@ class EventService(ServiceBase[Event]):
         cal.add("X-PUBLISHED-TTL", "PT1H")
         return cal
 
+    @staticmethod
+    def _get_local_tz():
+        try:
+            return ZoneInfo("America/New_York")
+        except Exception:
+            try:
+                return ZoneInfo("UTC")
+            except Exception:
+                from datetime import timezone as _dt_tz
+                return _dt_tz.utc
+
     def create_calendar_event(self, tz: ZoneInfo):
         event = self.obj
 
         e = icalendar.Event()
-        e.add("SUMMARY", f"{event.name} | {event.primary_club.name}")
+        # Use safe primary club name for fallback
+        try:
+            primary_club_name = (
+                event.primary_club.name if getattr(event, "primary_club", None) else None
+            )
+            if primary_club_name is None:
+                first_club = getattr(event, "clubs", None).first() if hasattr(event, "clubs") else None
+                primary_club_name = first_club.name if first_club else "CSU Event"
+        except Exception:
+            primary_club_name = "CSU Event"
+
+        summary_text = f"{event.name} | {primary_club_name}" if getattr(event, "name", None) else primary_club_name
+        e.add("SUMMARY", summary_text)
         if event.description is not None:
             e.add("DESCRIPTION", event.description)
         if event.start_at is not None and event.end_at is not None:
@@ -252,10 +276,10 @@ class EventService(ServiceBase[Event]):
         cal.add("X-WR-CALDESC", event.description)
 
         # Configure timezone
-        local_tz = ZoneInfo("America/New_York")
+        local_tz = self._get_local_tz()
 
         # Create event
-        e = self.create_calendar_event(event, local_tz)
+        e = self.create_calendar_event(local_tz)
 
         # Add recurring event
         if event.recurring_event is not None:
@@ -290,14 +314,14 @@ class EventService(ServiceBase[Event]):
         cal.add("X-WR-CALDESC", f"Calendar for {club.name}")
 
         # Configure timezone
-        local_tz = ZoneInfo("America/New_York")
+        local_tz = cls._get_local_tz()
 
         # Get all events that start later than today
         now = datetime.datetime.now().replace(tzinfo=local_tz)
         query = Event.objects.filter(start_at__gt=now)
 
         for event in query:
-            e = cls(event).create_calendar_event(event, local_tz)
+            e = cls(event).create_calendar_event(local_tz)
             cal.add_component(e)
 
         cal.add_missing_timezones()
@@ -306,20 +330,48 @@ class EventService(ServiceBase[Event]):
         buffer.seek(0)
         return buffer
 
-    def schedule_make_public_task(self):
-        """Create new periodic task to set event to public."""
+    @classmethod
+    def get_user_calendar(cls, user: User):
+        """Generates an ICS file for a user containing events from their club memberships."""
+        # calendar
+        user_name = user.name if hasattr(user, 'name') and user.name else user.username
+        cal = cls.create_calendar(f"{user_name}'s Events")
+        cal.add("X-WR-CALDESC", f"Events from clubs that {user_name} is a member of")
 
-        task = schedule_clocked_func(
-            name=f"Make {self.obj.name} public",
-            due_at=self.obj.make_public_at,
-            func=make_event_public,
-            kwargs={"event_id": self.obj.pk},
-        )
+        cal.add("X-PUBLISHED-TTL", "PT1H")
+        cal.add("REFRESH-INTERVAL", "PT15M")
+        cal.add("X-WR-REFRESHINTERVAL", "3600")
 
-        self.obj.make_public_task = task
-        self.obj.save()
+        cal.add("CALSCALE", "GREGORIAN")
+        cal.add("METHOD", "PUBLISH")
+        cal.add("VERSION", "2.0")
 
-        return task
+        local_tz = cls._get_local_tz()
+
+        user_clubs = user.clubs.all()
+        
+        if not user_clubs.exists():
+            cal.add_missing_timezones()
+            buffer = io.BytesIO(cal.to_ical())
+            buffer.seek(0)
+            return buffer
+
+        # events past today
+        now = datetime.datetime.now().replace(tzinfo=local_tz)
+        query = Event.objects.filter(
+            clubs__in=user_clubs,
+            start_at__gt=now
+        ).distinct().order_by('start_at')
+
+        for event in query:
+            e = cls(event).create_calendar_event(local_tz)
+            cal.add_component(e)
+
+        cal.add_missing_timezones()
+
+        buffer = io.BytesIO(cal.to_ical())
+        buffer.seek(0)
+        return buffer
 
 
 def make_event_public(event_id: int):

@@ -1,12 +1,13 @@
 """
 Views for the user API.
 """
+import uuid
 
-from allauth.headless.base.views import APIView
+from allauth.headless.base.views import APIView as AllauthAPIView
 from allauth.headless.socialaccount.forms import RedirectToProviderForm
+from allauth.socialaccount.helpers import render_authentication_error
 from allauth.socialaccount.models import SocialAccount
-from django.core import exceptions
-from django.core.exceptions import BadRequest
+from django.core.exceptions import BadRequest, ValidationError
 from django.http import HttpRequest
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
@@ -18,6 +19,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
+from rest_framework.views import APIView as DRFAPIView
 
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from users.models import User
@@ -143,7 +145,7 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
         return SocialAccount.objects.filter(user=self.request.user)
 
 
-class RedirectToProviderView(APIView):
+class RedirectToProviderView(AllauthAPIView):
     """
     Override allauth's redirect logic to authenticate existing users
     with their token as a query param.
@@ -162,8 +164,11 @@ class RedirectToProviderView(APIView):
         # Continue to provider
         form = RedirectToProviderForm(request.POST)
         if not form.is_valid():
-            raise exceptions.BadRequest(form.errors.as_json())
-
+            return render_authentication_error(
+                request,
+                provider=request.POST.get("provider"),
+                exception=ValidationError(form.errors),
+            )
         provider = form.cleaned_data["provider"]
         next_url = (
             reverse("api-users:oauth_return")
@@ -179,7 +184,7 @@ class RedirectToProviderView(APIView):
         )
 
 
-class ReturnFromOauthView(APIView):
+class ReturnFromOauthView(AllauthAPIView):
     """
     Override allauth's logic for redirecting back to client side to provide
     the user's token as a query param. No matter if the token was provided initially,
@@ -197,3 +202,57 @@ class ReturnFromOauthView(APIView):
 
         token, _ = Token.objects.get_or_create(user=user)
         return redirect(prepare_url(next_url, {"token": token.key}))
+
+class ExportUserCalendarView(DRFAPIView):
+    
+    authentication_classes = [
+        authentication.TokenAuthentication,
+        authentication.SessionAuthentication,
+    ]
+    permission_classes = [permissions.IsAuthenticated]
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        if not hasattr(user, 'calendar_token') or user.calendar_token is None:
+            # Generate calendar token
+            user.calendar_token = uuid.uuid4()
+            user.save(update_fields=['calendar_token'])
+
+        try:
+            http_url = request.build_absolute_uri(
+                reverse('events:eventcalendar_user', kwargs={'calendar_token': str(user.calendar_token)})
+            )
+        except Exception as e:
+            return Response({
+                'error': f'Failed to generate calendar URL: {str(e)}',
+                'calendar_token': str(user.calendar_token) if user.calendar_token else 'None'
+            }, status=500)
+            
+        webcal_url = http_url.replace('http://', 'webcal://').replace('https://', 'webcal://')
+        
+        return Response({
+            'webcal_url': webcal_url,
+            'http_url': http_url,
+            'calendar_token': str(user.calendar_token),
+            'refresh_interval': '15 minutes',
+            'automatic_updates': True,
+        })
+    def post(self, request, *args, **kwargs):
+        """Regenerate calendar token for security."""
+        user = request.user
+        new_token = user.regenerate_calendar_token()
+        
+        new_http_url = request.build_absolute_uri(
+            reverse('events:eventcalendar_user', kwargs={'calendar_token': str(new_token)})
+        )
+        new_webcal_url = new_http_url.replace('http://', 'webcal://').replace('https://', 'webcal://')
+        
+        return Response({
+            'webcal_url': new_webcal_url,
+            'http_url': new_http_url,
+            'calendar_token': str(new_token),
+            'message': 'Calendar token regenerated successfully. Please update your calendar subscription with the new URL.',
+            'action_required': 'You must re-subscribe to your calendar with the new URL.'
+        })

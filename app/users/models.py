@@ -4,6 +4,7 @@ User Models.
 
 import random
 import string
+import uuid
 from typing import ClassVar, Optional
 
 from django.contrib import auth
@@ -123,6 +124,10 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
 
+    # is_onboarded = models.BooleanField(default=False)
+    
+    calendar_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+
     clubs = models.ManyToManyField(
         "clubs.Club", through="clubs.ClubMembership", blank=True
     )
@@ -174,6 +179,13 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         for membership in self.club_memberships.all():
             if membership.is_admin:
                 return True
+        return False
+    
+    def regenerate_calendar_token(self) -> uuid.UUID:
+        """Generate a new calendar token for the user."""
+        self.calendar_token = uuid.uuid4()
+        self.save(update_fields=['calendar_token'])
+        return self.calendar_token
 
     # Overrides
     def __str__(self):
