@@ -1,9 +1,9 @@
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, permissions
+from rest_framework import exceptions, mixins, permissions
 
-from core.abstracts.viewsets import ModelViewSetBase
+from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from polls.models import (
     ChoiceInputOption,
     Poll,
@@ -14,10 +14,19 @@ from polls.models import (
 from polls.serializers import (
     ChoiceInputOptionSerializer,
     PollFieldSerializer,
+    PollPreviewSerializer,
     PollSerializer,
     PollSubmissionSerializer,
 )
 from polls.services import PollService
+
+
+class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
+    """Show polls for guest viewers."""
+
+    serializer_class = PollPreviewSerializer
+    queryset = Poll.objects.all()
+    permission_classes = [permissions.AllowAny]
 
 
 class PollViewset(ModelViewSetBase):
@@ -25,25 +34,14 @@ class PollViewset(ModelViewSetBase):
 
     queryset = Poll.objects.all()
     serializer_class = PollSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    # def get_queryset(self):
-    #     if not self.request.query_params.get("can_edit", None):
-    #         return super().get_queryset()
+    def get_queryset(self):
+        if not self.request.query_params.get("can_edit", None):
+            return super().get_queryset()
 
-    #     user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
-    #     self.queryset = self.queryset.filter(club__id__in=user_clubs)
-    #     return super().get_queryset()
-
-    def check_object_permissions(self, request, obj):
-        if self.action == "retrieve":
-            return True
-        return super().check_object_permissions(request, obj)
-
-    # def check_permissions(self, request):
-    #     if self.action == "retrieve":
-    #         return True
-    #     return super().check_permissions(request)
+        user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
+        self.queryset = self.queryset.filter(club__id__in=user_clubs)
+        return super().get_queryset()
 
 
 class PollFieldViewSet(ModelViewSetBase):
@@ -51,7 +49,6 @@ class PollFieldViewSet(ModelViewSetBase):
 
     queryset = PollField.objects.all()
     serializer_class = PollFieldSerializer
-    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def check_object_permissions(self, request, obj):
         # FIXME: This patches issue with updating fields, but this should be done by perms backend
@@ -77,7 +74,6 @@ class PollChoiceOptionViewSet(ModelViewSetBase):
 
     queryset = ChoiceInputOption.objects.all()
     serializer_class = ChoiceInputOptionSerializer
-    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         poll_id = self.kwargs.get("poll_id", None)
@@ -108,7 +104,6 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
     queryset = PollSubmission.objects.all()
     serializer_class = PollSubmissionSerializer
-    # pagination_class = CustomLimitOffsetPagination
 
     def check_permissions(self, request):
         if self.action == "create":

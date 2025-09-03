@@ -174,11 +174,15 @@ class PublicApiTestsBase(TestsBase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
     def assertStatusCode(
-        self, response: HttpResponse, status_code: int, message=None, **kwargs
+        self, response: Response, status_code: int, message=None, **kwargs
     ):
         """Http Response should have status code."""
 
-        message = message if message else f"Responded with: {response.content}"
+        if not message and hasattr(response, "content"):
+            message = f"Responded with: {response.content}"
+        elif not message:
+            message = f"Responded with {response.status_code}"
+
         self.assertEqual(response.status_code, status_code, message, **kwargs)
 
     def assertResOk(self, response: HttpResponse, **kwargs):
