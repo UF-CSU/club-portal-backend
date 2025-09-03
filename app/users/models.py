@@ -181,11 +181,12 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
                 return True
         return False
     
-    def regenerate_calendar_token(self) -> uuid.UUID:
+    ''' def regenerate_calendar_token(self) -> uuid.UUID:
         """Generate a new calendar token for the user."""
         self.calendar_token = uuid.uuid4()
         self.save(update_fields=['calendar_token'])
         return self.calendar_token
+    '''
 
     # Overrides
     def __str__(self):

@@ -239,10 +239,10 @@ class ExportUserCalendarView(DRFAPIView):
             'refresh_interval': '15 minutes',
             'automatic_updates': True,
         })
-    def post(self, request, *args, **kwargs):
+    '''def post(self, request, *args, **kwargs):
         """Regenerate calendar token for security."""
         user = request.user
-        new_token = user.regenerate_calendar_token()
+        # new_token = user.regenerate_calendar_token()
         
         new_http_url = request.build_absolute_uri(
             reverse('events:eventcalendar_user', kwargs={'calendar_token': str(new_token)})
@@ -256,3 +256,4 @@ class ExportUserCalendarView(DRFAPIView):
             'message': 'Calendar token regenerated successfully. Please update your calendar subscription with the new URL.',
             'action_required': 'You must re-subscribe to your calendar with the new URL.'
         })
+    '''
