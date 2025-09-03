@@ -29,7 +29,7 @@ from datetime import datetime
 from typing import ClassVar, Optional
 
 from django.contrib.postgres.fields import ArrayField
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -39,7 +39,7 @@ from django_celery_beat.models import PeriodicTask
 from rest_framework import exceptions
 
 from analytics.models import Link
-from clubs.models import Club, ClubFile
+from clubs.models import Club, ClubFile, ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
 from users.models import User
@@ -156,7 +156,7 @@ class PollManager(ManagerBase["Poll"]):
         return poll
 
 
-class Poll(ModelBase):
+class Poll(ModelBase, ClubScopedModel):
     """Custom form."""
 
     name = models.CharField(max_length=64)
@@ -372,7 +372,7 @@ class PollFieldManager(ManagerBase["PollField"]):
         return super().create(poll=poll, **kwargs)
 
 
-class PollField(ModelBase):
+class PollField(ModelBase, ClubScopedModel):
     """Custom question field for poll forms."""
 
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="fields")
@@ -421,7 +421,7 @@ class PollField(ModelBase):
             self.order = 1
 
 
-class PollMarkup(ModelBase):
+class PollMarkup(ModelBase, ClubScopedModel):
     """Store markdown content for a poll."""
 
     label = models.CharField(null=True, blank=True)
@@ -455,7 +455,7 @@ class PollQuestionManager(ManagerBase["PollQuestion"]):
         return question
 
 
-class PollQuestion(ModelBase):
+class PollQuestion(ModelBase, ClubScopedModel):
     """
     Record user input.
 
@@ -662,7 +662,7 @@ class PollQuestion(ModelBase):
         return self.input
 
 
-class InputBase(ModelBase):
+class InputBase(ModelBase, ClubScopedModel):
     """Base fields for input objects."""
 
     question = models.OneToOneField(
@@ -755,7 +755,7 @@ class ChoiceInput(InputBase):
     objects: ClassVar[ChoiceInputManager] = ChoiceInputManager()
 
 
-class ChoiceInputOption(ModelBase):
+class ChoiceInputOption(ModelBase, ClubScopedModel):
     """Option element inside select field."""
 
     input = models.ForeignKey(
@@ -820,15 +820,17 @@ class ChoiceInputOption(ModelBase):
 class ScaleInput(InputBase):
     """Slider input."""
 
-    min_value = models.IntegerField(default=0)
-    max_value = models.IntegerField(default=10)
+    # min_value = models.IntegerField(default=0)
+    max_value = models.IntegerField(
+        default=10, validators=[MinValueValidator(5), MaxValueValidator(10)]
+    )
 
     left_label = models.CharField(max_length=24, null=True, blank=True)
     right_label = models.CharField(max_length=24, null=True, blank=True)
 
-    step = models.IntegerField(default=1)
-    initial_value = models.IntegerField(default=0)
-    unit = models.CharField(max_length=16, null=True, blank=True)
+    # step = models.IntegerField(default=1)
+    initial_value = models.IntegerField(default=1)
+    # unit = models.CharField(max_length=16, null=True, blank=True)
 
 
 class UploadInput(InputBase):
@@ -859,11 +861,11 @@ class NumberInput(InputBase):
     min_value = models.FloatField(default=0.0)
     max_value = models.FloatField(default=10.0)
 
-    unit = models.CharField(max_length=16, null=True, blank=True)
+    # unit = models.CharField(max_length=16, null=True, blank=True)
 
-    decimal_places = models.PositiveIntegerField(
-        default=1, validators=[MinValueValidator(0)]
-    )
+    # decimal_places = models.PositiveIntegerField(
+    #     default=1, validators=[MinValueValidator(0)]
+    # )
 
 
 class EmailInput(TextInputBase):
@@ -913,7 +915,7 @@ class CheckboxInput(InputBase):
         return super().clean()
 
 
-class PollSubmission(ModelBase):
+class PollSubmission(ModelBase, ClubScopedModel):
     """Records a person's input for a poll."""
 
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="submissions")
@@ -980,7 +982,7 @@ class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
         return submission, created
 
 
-class PollQuestionAnswer(ModelBase):
+class PollQuestionAnswer(ModelBase, ClubScopedModel):
     """Store info about how a user answered a specific question."""
 
     question = models.ForeignKey(

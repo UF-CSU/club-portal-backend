@@ -315,9 +315,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
     """Connects a User to a Club, stores membership information for that user."""
 
     user = ClubMemberUserNestedSerializer()
-    club_id = serializers.SlugRelatedField(
-        slug_field="id", source="club", read_only=True
-    )
+    club_id = serializers.PrimaryKeyRelatedField(source="club", read_only=True)
     team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
     roles = serializers.SlugRelatedField(
         slug_field="name",

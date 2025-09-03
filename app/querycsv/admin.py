@@ -87,6 +87,9 @@ class QueryCsvUploadJobAdmin(ModelAdminBase):
     def headers(self, obj):
         return ", ".join(obj.csv_headers)
 
+    def has_add_permission(self, request):
+        return False
+
     @admin.action(description="Rerun Selected Jobs")
     def rerun_jobs(self, request, queryset):
         """Reruns a csv upload job."""

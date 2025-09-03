@@ -40,10 +40,12 @@ class ProfileNestedSerializer(ModelSerializerBase):
         model = Profile
         exclude = ["user", "created_at", "updated_at"]
 
-class SocialProfileSerializer(serializers.ModelSerializer):
+
+class SocialProfileSerializer(ModelSerializerBase):
     class Meta:
         model = SocialProfile
         fields = ("id", "social_type", "url", "username", "order")
+
 
 class UserNestedSerializer(ModelSerializerBase):
     """Display minimal fields for a user."""

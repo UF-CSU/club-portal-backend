@@ -6,7 +6,11 @@ from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, serializers
 
 from clubs.models import Club
-from core.abstracts.serializers import ModelSerializer, ModelSerializerBase
+from core.abstracts.serializers import (
+    ModelSerializer,
+    ModelSerializerBase,
+    UpdateListSerializer,
+)
 from events.models import Event
 from polls import models
 from users.models import User
@@ -206,6 +210,9 @@ class PollFieldSerializer(ModelSerializerBase):
         model = models.PollField
         fields = ["id", "field_type", "order", "question", "markup"]
         extra_kwargs = {"field_type": {"allow_null": False}}
+        list_serializer_class = (
+            UpdateListSerializer  # TODO: Finish implementing bulk updates
+        )
 
     def create(self, validated_data):
         question_data = validated_data.pop("question", None)

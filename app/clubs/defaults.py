@@ -74,9 +74,18 @@ ADMIN_ROLE_PERMISSIONS = [
     "events.add_recurringevent",
     "events.change_recurringevent",
     "events.delete_recurringevent",
+    # Polls
     "polls.change_poll",
     "polls.delete_poll",
     "polls.view_pollsubmission",
+    "polls.view_pollfield",
+    "polls.add_pollfield",
+    "polls.change_pollfield",
+    "polls.delete_pollfield",
+    "polls.view_choiceinputoption",
+    "polls.add_choiceinputoption",
+    "polls.change_choiceinputoption",
+    "polls.delete_choiceinputoption",
 ]
 """All permissions for a club"""
 

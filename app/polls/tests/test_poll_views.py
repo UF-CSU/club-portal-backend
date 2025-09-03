@@ -54,7 +54,24 @@ class PollViewAuthTests(PrivateApiTestsBase):
     def setUp(self):
         super().setUp()
 
-        self.club = create_test_club()
+        self.club = create_test_club(members=[self.user])
+
+    def test_get_polls_for_club(self):
+        """Should only return polls for club a user is part of."""
+
+        other_club = create_test_club()
+        p1 = create_test_poll(club=self.club)
+        create_test_poll(club=other_club)
+
+        self.assertEqual(self.user.clubs.count(), 1)
+
+        url = POLLS_URL + "?can_edit=True"
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertLength(data, 1, data)
+        self.assertEqual(data[0]["id"], p1.id)
 
     def test_create_poll(self):
         """Should create poll via api."""
@@ -211,9 +228,8 @@ class PollViewAuthTests(PrivateApiTestsBase):
                     "description": fake.paragraph(),
                     "input_type": "scale",
                     "scale_input": {
-                        "min_value": 0,
-                        "max_value": 100,
-                        "initial_value": 50,
+                        "max_value": 10,
+                        "initial_value": 5,
                     },
                 },
             },
@@ -578,9 +594,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
             is_required=False,
         )
 
-        NumberInput.objects.create(
-            question=number_question, min_value=1, max_value=10, decimal_places=0
-        )
+        NumberInput.objects.create(question=number_question, min_value=1, max_value=10)
 
         self.assertEqual(poll.submissions.count(), 0)
 

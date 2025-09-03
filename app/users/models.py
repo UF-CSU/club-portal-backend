@@ -14,7 +14,7 @@ from django.contrib.auth.models import (
 )
 from django.core import exceptions
 from django.core.exceptions import PermissionDenied
-from django.core.validators import validate_email
+from django.core.validators import RegexValidator, validate_email
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -292,7 +292,13 @@ class Profile(ModelBase):
     major = models.CharField(blank=True, null=True, max_length=128)
     minor = models.CharField(blank=True, null=True, max_length=128)
     college = models.CharField(blank=True, null=True, max_length=128)
-    graduation_date = models.DateField(blank=True, null=True)
+    graduation_date = models.CharField(
+        blank=True,
+        null=True,
+        validators=[
+            RegexValidator(r"\d{4}-\d{2}", message="Invalid format, try YYYY-MM")
+        ],
+    )
 
     # Dynamic Properties
     @property
