@@ -177,3 +177,4 @@ override.tf.json
 
 # Node modules
 node_modules
+/app/clubs/templates/clubs/email_templates/node_modules
