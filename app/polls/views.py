@@ -1,11 +1,13 @@
 import io
 import re
 
+from django.core import exceptions
 from django.http import FileResponse, HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from polls.models import Poll, PollSubmission
 from polls.services import PollService
+from users.services import UserService
 
 
 def show_poll_view(request: HttpRequest, poll_id: int):
@@ -37,8 +39,20 @@ def poll_success_view(request, poll_id: int):
     return render(request, "clubs/polls/poll_success.html", context={"poll": poll})
 
 
-def download_submissions(request, poll_id: int):
+def download_submissions(request: HttpRequest, poll_id: int):
     """Download poll submissions as a csv."""
+
+    token = request.GET.get("token", None)
+
+    if not token:
+        raise exceptions.PermissionDenied()
+
+    user = UserService.get_from_token(token).obj
+    poll = get_object_or_404(Poll, id=poll_id)
+    if not user.has_perm("polls.view_pollsubmission", poll):
+        raise exceptions.PermissionDenied(
+            'User does not have "polls.view_pollsubmission" permissions'
+        )
 
     poll = get_object_or_404(Poll, id=poll_id)
     service = PollService(poll)

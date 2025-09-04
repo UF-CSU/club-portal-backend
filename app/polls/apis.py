@@ -5,6 +5,7 @@ from polls import viewsets
 
 router = DefaultRouter()
 router.register("polls", viewsets.PollViewset, basename="poll")
+router.register("poll-previews", viewsets.PollPreviewViewSet, basename="pollpreview")
 router.register(
     r"polls/(?P<poll_id>.+)/submissions",
     viewsets.PollSubmissionViewSet,
