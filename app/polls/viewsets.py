@@ -36,9 +36,6 @@ class PollViewset(ModelViewSetBase):
     serializer_class = PollSerializer
 
     def get_queryset(self):
-        if not self.request.query_params.get("can_edit", None):
-            return super().get_queryset()
-
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
         self.queryset = self.queryset.filter(club__id__in=user_clubs)
         return super().get_queryset()

@@ -94,7 +94,7 @@ class PollViewAuthTests(PrivateApiTestsBase):
 
         self.assertEqual(self.user.clubs.count(), 1)
 
-        url = POLLS_URL + "?can_edit=True"
+        url = POLLS_URL
         res = self.client.get(url)
         self.assertResOk(res)
 
