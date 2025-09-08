@@ -30,6 +30,7 @@ from polls.serializers import (
     NumberInputSerializer,
     PhoneInputSerializer,
     PollFieldSerializer,
+    PollPreviewSerializer,
     PollQuestionSerializer,
     PollSerializer,
     PollSubmissionAnswerSerializer,
@@ -60,6 +61,7 @@ SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     RecurringEventSerializer,
     # Poll types
     PollSerializer,
+    PollPreviewSerializer,
     PollFieldSerializer,
     PollQuestionSerializer,
     TextInputSerializer,

@@ -341,6 +341,7 @@ class PollPreviewSerializer(ModelSerializer):
     status = serializers.ChoiceField(
         choices=models.PollStatusType.choices, read_only=True
     )
+    is_published = serializers.BooleanField(required=False)
     poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)

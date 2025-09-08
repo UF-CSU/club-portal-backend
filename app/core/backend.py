@@ -4,9 +4,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import Permission
 from django.shortcuts import get_object_or_404
+from utils.permissions import get_permission
 
 from core.abstracts.models import ScopeType
-from utils.permissions import get_permission
 
 User = get_user_model()
 
@@ -66,7 +66,10 @@ class CustomBackend(ModelBackend):
             if get_permission(perm) in perms:
                 return True
 
+        print("obj:", obj)
+
         if getattr(obj, "scope", ScopeType.GLOBAL) == ScopeType.GLOBAL:
+            print('is global')
             return super(ModelBackend, self).has_perm(user_obj, perm, obj)
 
         if obj.scope == ScopeType.CLUB:
@@ -75,6 +78,7 @@ class CustomBackend(ModelBackend):
             ), 'Club scoped objects must have a "clubs" attribute that returns a queryset or ManyToManyRel.'
 
             scoped_clubs = obj.clubs.all()
+            print('scoped clubs:', scoped_clubs)
 
             if self.user_is_club_useragent(user_obj):
                 key = user_obj.useragent.club_apikey

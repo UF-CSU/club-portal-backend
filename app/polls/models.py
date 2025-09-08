@@ -28,6 +28,9 @@ Poll
 from datetime import datetime
 from typing import ClassVar, Optional
 
+from analytics.models import Link
+from clubs.models import Club, ClubFile, ClubScopedModel
+from core.abstracts.models import ManagerBase, ModelBase
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -36,12 +39,8 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
-from rest_framework import exceptions
-
-from analytics.models import Link
-from clubs.models import Club, ClubFile, ClubScopedModel
-from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
+from rest_framework import exceptions
 from users.models import User
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url
@@ -156,7 +155,7 @@ class PollManager(ManagerBase["Poll"]):
         return poll
 
 
-class Poll(ModelBase, ClubScopedModel):
+class Poll(ClubScopedModel, ModelBase):
     """Custom form."""
 
     name = models.CharField(max_length=64)
@@ -372,7 +371,7 @@ class PollFieldManager(ManagerBase["PollField"]):
         return super().create(poll=poll, **kwargs)
 
 
-class PollField(ModelBase, ClubScopedModel):
+class PollField(ClubScopedModel, ModelBase):
     """Custom question field for poll forms."""
 
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="fields")
@@ -421,7 +420,7 @@ class PollField(ModelBase, ClubScopedModel):
             self.order = 1
 
 
-class PollMarkup(ModelBase, ClubScopedModel):
+class PollMarkup(ClubScopedModel, ModelBase):
     """Store markdown content for a poll."""
 
     label = models.CharField(null=True, blank=True)
@@ -455,7 +454,7 @@ class PollQuestionManager(ManagerBase["PollQuestion"]):
         return question
 
 
-class PollQuestion(ModelBase, ClubScopedModel):
+class PollQuestion(ClubScopedModel, ModelBase):
     """
     Record user input.
 
@@ -662,7 +661,7 @@ class PollQuestion(ModelBase, ClubScopedModel):
         return self.input
 
 
-class InputBase(ModelBase, ClubScopedModel):
+class InputBase(ClubScopedModel, ModelBase):
     """Base fields for input objects."""
 
     question = models.OneToOneField(
@@ -755,7 +754,7 @@ class ChoiceInput(InputBase):
     objects: ClassVar[ChoiceInputManager] = ChoiceInputManager()
 
 
-class ChoiceInputOption(ModelBase, ClubScopedModel):
+class ChoiceInputOption(ClubScopedModel, ModelBase):
     """Option element inside select field."""
 
     input = models.ForeignKey(
@@ -915,7 +914,7 @@ class CheckboxInput(InputBase):
         return super().clean()
 
 
-class PollSubmission(ModelBase, ClubScopedModel):
+class PollSubmission(ClubScopedModel, ModelBase):
     """Records a person's input for a poll."""
 
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="submissions")
@@ -982,7 +981,7 @@ class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
         return submission, created
 
 
-class PollQuestionAnswer(ModelBase, ClubScopedModel):
+class PollQuestionAnswer(ClubScopedModel, ModelBase):
     """Store info about how a user answered a specific question."""
 
     question = models.ForeignKey(
