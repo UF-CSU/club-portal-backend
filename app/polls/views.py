@@ -43,8 +43,6 @@ def download_submissions(request: HttpRequest, poll_id: int):
     """Download poll submissions as a csv."""
 
     token = request.GET.get("token", None)
-    
-    print('token:', token)
 
     if not token:
         raise exceptions.PermissionDenied()
