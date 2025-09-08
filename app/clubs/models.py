@@ -218,7 +218,11 @@ class Club(ClubScopedModel, UniqueModel):
     @cached_property
     def owner(self):
         if hasattr(self, "prefetched_owner_memberships"):
-            return self.prefetched_owner_memberships[0].user if self.prefetched_owner_memberships else None
+            return (
+                self.prefetched_owner_memberships[0].user
+                if self.prefetched_owner_memberships
+                else None
+            )
         try:
             return self.memberships.get(is_owner=True).user
         except ClubMembership.DoesNotExist:
@@ -589,7 +593,8 @@ class ClubMembership(ClubScopedModel, ModelBase):
         # Use the prefetched team memberships if available
         if hasattr(self.user, "prefetched_team_memberships"):
             return [
-                tm for tm in self.user.prefetched_team_memberships
+                tm
+                for tm in self.user.prefetched_team_memberships
                 if tm.team.club_id == self.club_id
             ]
 
@@ -615,7 +620,9 @@ class ClubMembership(ClubScopedModel, ModelBase):
         # Use the prefetched roles if available
         roles = getattr(self, "_prefetched_roles_cache", None)
         if roles is not None:
-            return not any(r.role_type in [RoleType.ADMIN, RoleType.CUSTOM] for r in roles)
+            return not any(
+                r.role_type in [RoleType.ADMIN, RoleType.CUSTOM] for r in roles
+            )
 
         # Fallback to DB query
         return not self.roles.filter(

@@ -163,7 +163,9 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
             Prefetch("socials", queryset=ClubSocialProfile.objects.order_by("order")),
             Prefetch(
                 "memberships",
-                queryset=ClubMembership.objects.filter(is_owner=True).select_related("user"),
+                queryset=ClubMembership.objects.filter(is_owner=True).select_related(
+                    "user"
+                ),
                 to_attr="prefetched_owner_memberships",
             ),
         )
@@ -216,7 +218,7 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
         Prefetch(
             "roles",
             queryset=ClubRole.objects.all().order_by("order"),
-            to_attr="_prefetched_roles_cache"
+            to_attr="_prefetched_roles_cache",
         ),
         Prefetch(
             "user__team_memberships",
@@ -224,10 +226,10 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
                 Prefetch(
                     "team__roles",
                     queryset=TeamRole.objects.order_by("order"),
-                    to_attr="prefetched_roles"
+                    to_attr="prefetched_roles",
                 )
             ),
-            to_attr="prefetched_team_memberships"
+            to_attr="prefetched_team_memberships",
         ),
     )
 
@@ -305,8 +307,7 @@ class TeamViewSet(ClubNestedViewSetBase):
         Prefetch(
             "memberships",
             queryset=TeamMembership.objects.select_related("user").prefetch_related(
-                "user__socials",
-                "roles"
+                "user__socials", "roles"
             ),
         )
     )

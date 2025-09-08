@@ -27,10 +27,17 @@ class EventViewset(ModelViewSetBase):
                 queryset=EventHost.objects.select_related(
                     "club", "club__logo", "club__banner"
                 ).only(
-                    "id", "event_id", "club_id", "is_primary",
-                    "club__id", "club__name", "club__alias",
-                    "club__logo_id", "club__banner_id",
-                    "club__primary_color", "club__text_color",
+                    "id",
+                    "event_id",
+                    "club_id",
+                    "is_primary",
+                    "club__id",
+                    "club__name",
+                    "club__alias",
+                    "club__logo_id",
+                    "club__banner_id",
+                    "club__primary_color",
+                    "club__text_color",
                 ),
             ),
             Prefetch(
@@ -41,14 +48,12 @@ class EventViewset(ModelViewSetBase):
             ),
             Prefetch(
                 "attachments",
-                queryset=ClubFile.objects.only(
-                    "id", "file", "display_name", "club_id"
-                ),
+                queryset=ClubFile.objects.only("id", "file", "display_name", "club_id"),
             ),
             Prefetch(
                 "attendance_links",
-                queryset=EventAttendanceLink.objects.select_related("link_ptr")
-            )
+                queryset=EventAttendanceLink.objects.select_related("link_ptr"),
+            ),
         )
     )
     serializer_class = serializers.EventSerializer
