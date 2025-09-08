@@ -213,16 +213,11 @@ class Club(ClubScopedModel, UniqueModel):
 
     @cached_property
     def member_count(self) -> int:
-        return getattr(self, "_member_count", None) or self.memberships.count()
+        return self.memberships.count()
 
-    @cached_property
+    @property
     def owner(self):
-        if hasattr(self, "prefetched_owner_memberships"):
-            return (
-                self.prefetched_owner_memberships[0].user
-                if self.prefetched_owner_memberships
-                else None
-            )
+        """User with a membership marked with `is_owner`."""
         try:
             return self.memberships.get(is_owner=True).user
         except ClubMembership.DoesNotExist:
@@ -566,18 +561,9 @@ class ClubMembership(ClubScopedModel, ModelBase):
     # Dynamic Properties
     @property
     def order(self) -> int:
-        """User with a membership marked with `is_owner`."""
         if self.order_override:
             return self.order_override
 
-        # Use the prefetched roles if available
-        roles = getattr(self, "_prefetched_roles_cache", None)
-        if roles is not None:
-            if not roles:
-                return 0
-            return roles[0].order
-
-        # Fallback to DB query
         roles = self.roles.order_by("order")
         if not roles.exists():
             return 0
@@ -588,57 +574,25 @@ class ClubMembership(ClubScopedModel, ModelBase):
     def order(self, value: int):
         self.order_override = value
 
-    @cached_property
+    @property
     def team_memberships(self):
-        # Use the prefetched team memberships if available
-        if hasattr(self.user, "prefetched_team_memberships"):
-            return [
-                tm
-                for tm in self.user.prefetched_team_memberships
-                if tm.team.club_id == self.club_id
-            ]
+        return self.user.team_memberships.filter(team__club__id=self.club.id)
 
-        # Fallback to DB query
-        return self.user.team_memberships.filter(team__club_id=self.club_id)
-
-    @cached_property
+    @property
     def is_admin(self) -> bool:
         """Indicates if user automatically gets all permissions for the club."""
-
-        # Use the prefetched roles if available
-        roles = getattr(self, "_prefetched_roles_cache", None)
-        if roles is not None:
-            return self.is_owner or any(r.role_type == RoleType.ADMIN for r in roles)
-
-        # Fallback to DB query
         return self.is_owner or self.roles.filter(role_type=RoleType.ADMIN).exists()
 
-    @cached_property
+    @property
     def is_viewer(self) -> bool:
         """Indicates if a user has no special permissions for a club."""
-
-        # Use the prefetched roles if available
-        roles = getattr(self, "_prefetched_roles_cache", None)
-        if roles is not None:
-            return not any(
-                r.role_type in [RoleType.ADMIN, RoleType.CUSTOM] for r in roles
-            )
-
-        # Fallback to DB query
         return not self.roles.filter(
             models.Q(role_type=RoleType.ADMIN) | models.Q(role_type=RoleType.CUSTOM)
         ).exists()
 
-    @cached_property
+    @property
     def is_voter(self) -> bool:
         """Indicates if a user has a voter role."""
-
-        # Use the prefetched roles if available
-        roles = getattr(self, "_prefetched_roles_cache", None)
-        if roles is not None:
-            return any(r.is_voter for r in roles)
-
-        # Fallback to DB query
         return self.roles.filter(is_voter=True).exists()
 
     # Overrides
