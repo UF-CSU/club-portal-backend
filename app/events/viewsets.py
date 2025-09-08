@@ -1,16 +1,10 @@
-from django.db.models import Prefetch, Q
+from django.db.models import Q
 from rest_framework import permissions, status
 from rest_framework.response import Response
 
-from clubs.models import Club, ClubFile
+from clubs.models import Club
 from core.abstracts.viewsets import ModelViewSetBase, ObjectViewPermissions
-from events.models import (
-    Event,
-    EventAttendanceLink,
-    EventCancellation,
-    EventHost,
-    EventTag,
-)
+from events.models import Event, EventCancellation
 
 from . import models, serializers
 
@@ -18,43 +12,8 @@ from . import models, serializers
 class EventViewset(ModelViewSetBase):
     """CRUD Api routes for Event models."""
 
-    queryset = (
-        Event.objects.all()
-        .select_related("recurring_event", "_poll")
-        .prefetch_related(
-            Prefetch(
-                "hosts",
-                queryset=EventHost.objects.select_related(
-                    "club", "club__logo", "club__banner"
-                ).only(
-                    "id",
-                    "event_id",
-                    "club_id",
-                    "is_primary",
-                    "club__id",
-                    "club__name",
-                    "club__alias",
-                    "club__logo_id",
-                    "club__banner_id",
-                    "club__primary_color",
-                    "club__text_color",
-                ),
-            ),
-            Prefetch(
-                "tags",
-                queryset=EventTag.objects.order_by("order", "name").only(
-                    "id", "name", "color", "order"
-                ),
-            ),
-            Prefetch(
-                "attachments",
-                queryset=ClubFile.objects.only("id", "file", "display_name", "club_id"),
-            ),
-            Prefetch(
-                "attendance_links",
-                queryset=EventAttendanceLink.objects.select_related("link_ptr"),
-            ),
-        )
+    queryset = models.Event.objects.all().prefetch_related(
+        "hosts", "hosts__club", "tags"
     )
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
