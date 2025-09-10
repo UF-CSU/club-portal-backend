@@ -7,9 +7,10 @@ services:
     container_name: club-app-network
     volumes:
       - ./app:/app
+      - ./scripts:/scripts
       # - static-clubs-network:/vol/web
       - static-clubs-dev:/vol/web
-
+    user: "1000:1000"
     env_file:
       - .env
     environment:
@@ -27,6 +28,7 @@ services:
 
   postgres:
     image: postgres:13-alpine
+    command: -c 'max_connections=200'
     container_name: postgres-clubs-network
     volumes:
       # - postgres-clubs-network:/var/lib/postgresql/data

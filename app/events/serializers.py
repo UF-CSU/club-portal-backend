@@ -20,18 +20,6 @@ from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 
 
-class EventTagSerializer(ModelSerializerBase):
-    """Group related events."""
-
-    # TODO: This shows as readonly in typegen, shouldn't be readonly
-    id = serializers.PrimaryKeyRelatedField(queryset=EventTag.objects.all())
-
-    class Meta:
-        model = EventTag
-        fields = ["id", "name", "color", "order"]
-        read_only_fields = ["name", "color", "order"]
-
-
 class EventHostSerializer(ModelSerializerBase):
     """JSON representation for hosts inside events."""
 
@@ -82,7 +70,13 @@ class EventSerializer(ModelSerializerBase):
     duration = serializers.CharField(read_only=True)
     is_all_day = serializers.BooleanField(read_only=True)
     hosts = EventHostSerializer(many=True, required=False)
-    tags = EventTagSerializer(many=True, required=False)
+    tags = WritableSlugRelatedField(
+        slug_field="name",
+        queryset=EventTag.objects.all(),
+        many=True,
+        help_text="Tag names",
+        required=False,
+    )
     attachments = ClubFileNestedSerializer(many=True, required=False)
     poll = PollSerializer(required=False, allow_null=True)
     attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
@@ -111,6 +105,17 @@ class EventSerializer(ModelSerializerBase):
         hosts_data = validated_data.pop("hosts", [])
         attachment_data = validated_data.pop("attachments", [])
 
+        # Manually create tags if necessary
+        tags = validated_data.pop("tags", [])
+        validated_tags = []
+        for tag in tags:
+            if isinstance(tag, EventTag):
+                validated_tags.append(tag)
+                continue
+
+            if not EventTag.objects.filter(name=tag.name).exists():
+                validated_tags.append(EventTag.objects.create(name=tag.name))
+
         event = Event.objects.create(**validated_data)
 
         for host in hosts_data:
@@ -123,6 +128,8 @@ class EventSerializer(ModelSerializerBase):
             attachment_id = attachment["id"]
 
             event.attachments.add(attachment_id)
+
+        event.tags.set(validated_tags)
 
         return event
 

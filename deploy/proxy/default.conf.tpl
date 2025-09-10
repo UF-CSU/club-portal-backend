@@ -25,5 +25,7 @@ server {
     
     client_max_body_size    32M;
     include                 /etc/nginx/uwsgi_params;
+    uwsgi_send_timeout      120s;
+    uwsgi_read_timeout      300s;
   }
 }

@@ -334,6 +334,27 @@ class PollSerializer(ModelSerializer):
         return super().create(validated_data)
 
 
+class PollPreviewSerializer(ModelSerializer):
+    """Fields guest users can see for polls."""
+
+    fields = PollFieldSerializer(many=True, read_only=True)
+    status = serializers.ChoiceField(
+        choices=models.PollStatusType.choices, read_only=True
+    )
+    is_published = serializers.BooleanField(required=False)
+    poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
+    event = PollEventNestedSerializer(required=False, allow_null=True)
+    club = PollClubNestedSerializer(required=True, allow_null=True)
+    link = PollLinkNestedSerializer(
+        read_only=True, allow_null=True, source="submission_link"
+    )
+
+    class Meta:
+        model = models.Poll
+        exclude = ["open_task", "close_task"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
 class PollSubmissionAnswerSerializer(ModelSerializerBase):
     """Record a user's answer for a specific question."""
 
