@@ -1,7 +1,8 @@
 from django.urls import reverse
+from rest_framework.authtoken.models import Token
 
 from clubs.tests.utils import create_test_club
-from core.abstracts.tests import PrivateApiTestsBase
+from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from lib.faker import fake
 from polls.models import (
     ChoiceInput,
@@ -18,12 +19,17 @@ from polls.models import (
     UploadInput,
 )
 from polls.tests.utils import create_test_poll
+from utils.helpers import reverse_query
 
 POLLS_URL = reverse("api-polls:poll-list")
 
 
 def polls_detail_url(id: int):
     return reverse("api-polls:poll-detail", args=[id])
+
+
+def pollpreview_detail_url(id: int):
+    return reverse("api-polls:pollpreview-detail", args=[id])
 
 
 def pollsubmission_list_url(poll_id: int):
@@ -48,6 +54,29 @@ def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
     )
 
 
+class PollViewPublicTests(PublicApiTestsBase):
+    """Test poll public apis."""
+
+    def test_guest_retrieve_poll(self):
+        """Unauthenticated users should be able to retrieve polls."""
+
+        poll = create_test_poll()
+
+        url = pollpreview_detail_url(poll.id)
+        res = self.client.get(url)
+
+        self.assertResOk(res)
+
+    def test_guest_download_submissions_denied(self):
+        """Should deny guest from downloading submissions."""
+
+        poll = create_test_poll()
+        url = reverse("polls:poll_submissions", args=[poll.id])
+
+        res = self.client.get(url)
+        self.assertResForbidden(res)
+
+
 class PollViewAuthTests(PrivateApiTestsBase):
     """Test managing polls via REST api and views."""
 
@@ -65,13 +94,25 @@ class PollViewAuthTests(PrivateApiTestsBase):
 
         self.assertEqual(self.user.clubs.count(), 1)
 
-        url = POLLS_URL + "?can_edit=True"
+        url = POLLS_URL
         res = self.client.get(url)
         self.assertResOk(res)
 
         data = res.json()
         self.assertLength(data, 1, data)
         self.assertEqual(data[0]["id"], p1.id)
+
+    def test_get_poll_submissions(self):
+        """Admin user should be able to get poll submissions."""
+
+        poll = create_test_poll()
+        user_token, _ = Token.objects.get_or_create(user=self.user)
+        url = reverse_query(
+            "polls:poll_submissions", args=[poll.id], query={"token": user_token.key}
+        )
+
+        res = self.client.get(url)
+        self.assertResOk(res)
 
     def test_create_poll(self):
         """Should create poll via api."""
