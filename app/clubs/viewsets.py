@@ -1,3 +1,4 @@
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -9,7 +10,18 @@ from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from clubs.models import Club, ClubApiKey, ClubFile, ClubMembership, ClubTag, Team
+from clubs.models import (
+    Club,
+    ClubApiKey,
+    ClubFile,
+    ClubMembership,
+    ClubRole,
+    ClubSocialProfile,
+    ClubTag,
+    Team,
+    TeamMembership,
+    TeamRole,
+)
 from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
@@ -32,6 +44,7 @@ from core.abstracts.viewsets import (
     ObjectViewDetailsPermissions,
     ViewSetBase,
 )
+from core.models import Major
 from users.models import User
 
 
@@ -143,9 +156,20 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
     """Access limited club data via the API."""
 
     queryset = (
-        Club.objects.all()
-        .select_related("logo", "banner")
-        .prefetch_related("tags", "socials")
+        Club.objects.select_related("logo", "banner")
+        .prefetch_related(
+            Prefetch("tags", queryset=ClubTag.objects.order_by("order", "name")),
+            Prefetch("majors", queryset=Major.objects.only("id", "name")),
+            Prefetch("socials", queryset=ClubSocialProfile.objects.order_by("order")),
+            Prefetch(
+                "memberships",
+                queryset=ClubMembership.objects.filter(is_owner=True).select_related(
+                    "user"
+                ),
+                to_attr="prefetched_owner_memberships",
+            ),
+        )
+        .annotate(member_count=Count("memberships", distinct=True))
     )
     serializer_class = ClubPreviewSerializer
     pagination_class = CustomLimitOffsetPagination
@@ -187,7 +211,27 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
 
     serializer_class = ClubMembershipSerializer
-    queryset = ClubMembership.objects.all()
+    queryset = ClubMembership.objects.select_related(
+        "user", "user__profile"
+    ).prefetch_related(
+        "user__socials",
+        Prefetch(
+            "roles",
+            queryset=ClubRole.objects.all().order_by("order"),
+            to_attr="_prefetched_roles_cache",
+        ),
+        Prefetch(
+            "user__team_memberships",
+            queryset=TeamMembership.objects.select_related("team").prefetch_related(
+                Prefetch(
+                    "team__roles",
+                    queryset=TeamRole.objects.order_by("order"),
+                    to_attr="prefetched_roles",
+                )
+            ),
+            to_attr="prefetched_team_memberships",
+        ),
+    )
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -259,11 +303,13 @@ class TeamViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for Team objects."""
 
     serializer_class = TeamSerializer
-    queryset = Team.objects.all().prefetch_related(
-        "memberships",
-        "memberships__user",
-        "memberships__user__socials",
-        "memberships__roles",
+    queryset = Team.objects.prefetch_related(
+        Prefetch(
+            "memberships",
+            queryset=TeamMembership.objects.select_related("user").prefetch_related(
+                "user__socials", "roles"
+            ),
+        )
     )
 
 
