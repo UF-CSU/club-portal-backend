@@ -24,11 +24,10 @@ from utils.permissions import parse_permissions
 
 #         instance.cached_email = instance.email
 
-
 @receiver(post_save, sender=User)
 def on_save_user(sender, instance: User, created=False, **kwargs):
     """Runs when user object is saved."""
-
+    
     # Set default permissions for all users
     if instance.user_permissions.all().count() == 0:
         instance.user_permissions.set(parse_permissions(DEFAULT_USER_PERMISSIONS))

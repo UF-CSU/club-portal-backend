@@ -104,6 +104,13 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
     def profile_image(self, obj):
         return self.as_image(obj.profile.image)
+    
+    def get_inline_instances(self, request, obj = ...):
+        print(request)
+        print(obj)
+        
+        return super().get_inline_instances(request, obj)
+
 
     @admin.action
     def sync_permissions(self, request, queryset):

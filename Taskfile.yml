@@ -88,6 +88,13 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
 
+  makemigrations:network:
+    desc: 'Create migration files in network mode'
+    deps:
+      - build:network
+    cmds:
+      - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
+
   makemigrations:check:
     desc: 'Check if a migration file needs to be made, exits with non-zero code if one does need to be made'
     deps:
@@ -112,7 +119,7 @@ tasks:
   migrate:network:
     desc: 'Apply migrations to the database in network mode.'
     deps:
-      - build
+      - build:network
     cmds:
       - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py migrate {{.CLI_ARGS}}"
 
