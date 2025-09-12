@@ -40,6 +40,8 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
         """Create, save, and return a new user. Add user to base group."""
         if not email:
             raise ValueError("User must have an email address")
+        
+        print(**extra_fields)
 
         email = self.normalize_email(email)
 
@@ -244,7 +246,7 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         except exceptions.ValidationError:
             pass
 
-        if username_is_email and not (
+        if username_is_email and hasattr(self, "profile") and not (
             # Username not same as email
             (self.email == self.username)
             # Username not same as school email
@@ -335,6 +337,8 @@ class Profile(ModelBase):
         ]
 
     def clean(self):
+        if not getattr(self, "user_id", None):
+            return
         # Check school email unique among verified emails
         if (
             VerifiedEmail.objects.filter(email=self.school_email)
