@@ -101,6 +101,7 @@ class UserSerializer(ModelSerializer):
 
         password = validated_data.pop("password", None)
         profile_data = validated_data.pop("profile", None)
+        socials_data = validated_data.pop("socials", None)
         user = super().update(instance, validated_data)
 
         if password:
@@ -114,6 +115,11 @@ class UserSerializer(ModelSerializer):
                 setattr(profile, key, value)
 
             profile.save()
+        if socials_data:
+            user.socials.all().delete()
+            for social in socials_data:
+                social.pop("id", None)
+                SocialProfile.objects.create(user=user, **social)
 
         return user
 
