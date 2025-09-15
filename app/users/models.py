@@ -40,8 +40,6 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
         """Create, save, and return a new user. Add user to base group."""
         if not email:
             raise ValueError("User must have an email address")
-        
-        print(**extra_fields)
 
         email = self.normalize_email(email)
 
