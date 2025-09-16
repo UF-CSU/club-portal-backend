@@ -316,6 +316,10 @@ HEADLESS_SERVE_SPECIFICATION = True
 # ACCOUNT_EMAIL_REQUIRED = True
 # ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 
+HEADLESS_ADAPTER = "lib.allauth.CustomHeadlessAdapter"
+ACCOUNT_ADAPTER = "lib.allauth.CustomAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "lib.allauth.CustomSocialAccountAdapter"
+
 
 ############################
 # ==  Production Config == #
@@ -455,6 +459,13 @@ if TESTING:
     EMAIL_HOST_PASSWORD = None
     # Suppress logs in test mode
     logging.disable(logging.ERROR)
+
+    # Force disconnect from social providers
+    for provider in SOCIALACCOUNT_PROVIDERS.keys():
+        SOCIALACCOUNT_PROVIDERS[provider]["APP"] = {
+            "client_id": f"test-{provider}-id",
+            "secret": f"test-{provider}-secret",
+        }
 
 
 if DEV or TESTING:
