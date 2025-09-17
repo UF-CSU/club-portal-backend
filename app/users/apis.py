@@ -13,6 +13,7 @@ router.register("users", viewsets.UserViewSet, basename="user")
 router.register(
     "verification", viewsets.EmailVerificationViewSet, basename="verification"
 )
+router.register("public-users", viewsets.PublicUserViewSet, basename="public-user")
 
 app_name = "api-users"
 
