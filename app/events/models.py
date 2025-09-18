@@ -281,8 +281,8 @@ class Event(EventFields):
 
     tags = models.ManyToManyField(EventTag, blank=True)
 
-    is_draft = models.BooleanField(default=False)
-    is_public = models.BooleanField(default=True)
+    is_draft = models.BooleanField(default=False, db_index=True)
+    is_public = models.BooleanField(default=True, db_index=True)
     make_public_at = models.DateTimeField(null=True, blank=True)
     make_public_task = models.ForeignKey(
         PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
@@ -291,7 +291,9 @@ class Event(EventFields):
     # is_poll_submission_required = models.BooleanField(default=True)
 
     # Foreign Relationships
-    clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True)
+    clubs = models.ManyToManyField(
+        Club, through="events.EventHost", blank=True, db_index=True
+    )
     attendance_links: models.QuerySet["EventAttendanceLink"]
     hosts: models.QuerySet["EventHost"]
     attendances: models.QuerySet["EventAttendance"]
