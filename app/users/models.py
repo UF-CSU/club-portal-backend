@@ -6,6 +6,7 @@ import random
 import string
 from typing import ClassVar, Optional
 
+from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from django.contrib import auth
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -18,8 +19,6 @@ from django.core.validators import RegexValidator, validate_email
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
-from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from lib.countries import CountryField
 from utils.models import UploadFilepathFactory
 
@@ -100,6 +99,15 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
         else:
             defaults = defaults or {}
             return self.create(**defaults, **kwargs), True
+
+    def find_by_email(self, email: str):
+        """Filter for user matching email, or return None."""
+
+        try:
+            user = self.get_by_email(email)
+            return user
+        except User.DoesNotExist:
+            return None
 
     def get_by_email(self, email: str):
         """Get user by their email."""

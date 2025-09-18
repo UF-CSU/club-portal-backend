@@ -8,7 +8,7 @@ from core.abstracts.tests import EmailTestsBase, PublicApiTestsBase
 from django.http import JsonResponse
 from django.urls import reverse
 from lib.faker import fake
-from rest_framework import status
+from rest_framework import exceptions, status
 
 from users.models import EmailVerificationCode, User
 from users.tests.utils import (
@@ -142,7 +142,8 @@ class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
         user = create_test_user()
 
         # Then, the created user goes to sign in via oauth
-        self.assertDoOauthFlow(return_email=user.email)
+        with self.assertRaises(exceptions.AuthenticationFailed):
+            self.assertDoOauthFlow(return_email=user.email)
 
         # Make sure no additional users were created
         self.assertEqual(User.objects.count(), 1)
