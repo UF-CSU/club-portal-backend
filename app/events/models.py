@@ -4,6 +4,7 @@ Event models.
 
 from datetime import date, time
 from typing import ClassVar, Optional
+from zoneinfo import ZoneInfo
 
 from django.core import exceptions
 from django.db import models
@@ -11,7 +12,6 @@ from django.utils import timezone
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
-from zoneinfo import ZoneInfo
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel

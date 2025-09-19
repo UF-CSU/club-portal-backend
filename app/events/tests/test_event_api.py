@@ -1,3 +1,7 @@
+from datetime import timedelta
+
+from django.utils import timezone
+
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from events.tests.utils import (
@@ -8,8 +12,6 @@ from events.tests.utils import (
     event_list_url,
 )
 from users.tests.utils import create_test_user
-from django.utils import timezone
-from datetime import timedelta
 
 
 class EventPublicApiTests(PublicApiTestsBase):

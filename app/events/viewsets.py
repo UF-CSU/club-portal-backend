@@ -1,9 +1,10 @@
-from django.db.models import Prefetch, Q, query
+from datetime import timedelta
+
+from django.db.models import Prefetch, Q
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from django_filters import ChoiceFilter
-
 
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
@@ -18,9 +19,6 @@ from events.models import (
     EventHost,
     EventTag,
 )
-from datetime import date, datetime, timedelta
-from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 
 from . import models, serializers
 
