@@ -171,7 +171,7 @@ class TypeGenerator:
                     "a",
                     "e",
                     "i",
-                    "o",9
+                    "o",
                 )
             )
             else "a"

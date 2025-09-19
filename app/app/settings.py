@@ -267,8 +267,8 @@ SESSION_COOKIE_HTTPONLY = False
 CSRF_TRUSTED_ORIGINS = environ_list("CSRF_TRUSTED_ORIGINS")
 
 # Only allow cookies to be sent over HTTPS
-CSRF_COOKIE_SECURE = environ_bool("CSRF_COOKIE_SECURE", True)
-SESSION_COOKIE_SECURE = environ_bool("SESSION_COOKIE_SECURE", True)
+CSRF_COOKIE_SECURE = environ_bool("CSRF_COOKIE_SECURE", False)
+SESSION_COOKIE_SECURE = environ_bool("SESSION_COOKIE_SECURE", False)
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
@@ -435,6 +435,10 @@ if DEV and not TESTING:
         "SHOW_TOOLBAR_CALLBACK": show_toolbar,
         "IS_RUNNING_TESTS": False,
     }
+
+DJANGO_ENABLE_API_SESSION_AUTH = environ_bool(
+            "DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1
+)
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
