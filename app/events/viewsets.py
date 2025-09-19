@@ -1,13 +1,19 @@
-from django.db.models import Q, query
+from django.db.models import Prefetch, Q, query
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django_filters import ChoiceFilter
 
 
-from clubs.models import Club
+from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import FilterBackendBase, ModelViewSetBase, ObjectViewPermissions
-from events.models import Event, EventCancellation
+from events.models import (
+    Event,
+    EventAttendanceLink,
+    EventCancellation,
+    EventHost,
+    EventTag,
+)
 from datetime import date, datetime, timedelta
 from django.utils import timezone 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
@@ -61,8 +67,43 @@ class EventDateFilter(FilterBackendBase):
 class EventViewset(ModelViewSetBase):
     """CRUD Api routes for Event models."""
 
-    queryset = models.Event.objects.all().prefetch_related(
-        "hosts", "hosts__club", "tags"
+    queryset = (
+        Event.objects.all()
+        .select_related("recurring_event", "_poll")
+        .prefetch_related(
+            Prefetch(
+                "hosts",
+                queryset=EventHost.objects.select_related(
+                    "club", "club__logo", "club__banner"
+                ).only(
+                    "id",
+                    "event_id",
+                    "club_id",
+                    "is_primary",
+                    "club__id",
+                    "club__name",
+                    "club__alias",
+                    "club__logo_id",
+                    "club__banner_id",
+                    "club__primary_color",
+                    "club__text_color",
+                ),
+            ),
+            Prefetch(
+                "tags",
+                queryset=EventTag.objects.order_by("order", "name").only(
+                    "id", "name", "color", "order"
+                ),
+            ),
+            Prefetch(
+                "attachments",
+                queryset=ClubFile.objects.only("id", "file", "display_name", "club_id"),
+            ),
+            Prefetch(
+                "attendance_links",
+                queryset=EventAttendanceLink.objects.select_related("link_ptr"),
+            ),
+        )
     )
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
