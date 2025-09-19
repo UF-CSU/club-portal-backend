@@ -277,6 +277,14 @@ class PollLinkNestedSerializer(ModelSerializerBase):
         fields = ["id", "url", "qrcode_url", "club"]
 
 
+class PollNestedSerializer(ModelSerializerBase):
+    """Show minimum information for a poll"""
+
+
+    class Meta:
+        model = models.Poll
+        exclude = []
+
 class PollEventNestedSerializer(ModelSerializerBase):
     """Show event for a poll."""
 
