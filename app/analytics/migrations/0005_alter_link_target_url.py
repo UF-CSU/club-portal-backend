@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('analytics', '0004_remove_link_pings_alter_linkvisit_amount_and_more'),
+        ("analytics", "0004_remove_link_pings_alter_linkvisit_amount_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='link',
-            name='target_url',
-            field=models.URLField(help_text='The final url we want to track clicks to.'),
+            model_name="link",
+            name="target_url",
+            field=models.URLField(
+                help_text="The final url we want to track clicks to."
+            ),
         ),
     ]

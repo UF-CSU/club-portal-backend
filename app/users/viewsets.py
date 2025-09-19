@@ -39,6 +39,14 @@ class UserViewSet(mixins.RetrieveModelMixin, ViewSetBase):
     queryset = User.objects.all()
 
 
+class PublicUserViewSet(mixins.CreateModelMixin, ViewSetBase):
+    """Create a new user without OAuth authentication."""
+
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    permission_classes = [permissions.AllowAny]
+
+
 class AuthTokenView(
     ObtainAuthToken,
     mixins.RetrieveModelMixin,
