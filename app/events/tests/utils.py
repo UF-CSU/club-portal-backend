@@ -13,7 +13,8 @@ from lib.faker import fake
 EVENT_LIST_URL = reverse("api-events:event-list")
 RECURRINGEVENT_LIST_URL = reverse("api-events:recurringevent-list")
 
-def event_list_url(start_at:datetime=None, end_at:datetime=None):
+
+def event_list_url(start_at: datetime = None, end_at: datetime = None):
     url = reverse("api-events:event-list")
     query_params = {}
 
@@ -26,6 +27,7 @@ def event_list_url(start_at:datetime=None, end_at:datetime=None):
         return f"{url}?{urlencode(query_params)}"
 
     return url
+
 
 def event_attendance_list_url(event_id: int):
     return reverse("api-events:attendance-list", args=[event_id])

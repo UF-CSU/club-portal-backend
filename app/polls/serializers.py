@@ -280,10 +280,10 @@ class PollLinkNestedSerializer(ModelSerializerBase):
 class PollNestedSerializer(ModelSerializerBase):
     """Show minimum information for a poll"""
 
-
     class Meta:
         model = models.Poll
         exclude = []
+
 
 class PollEventNestedSerializer(ModelSerializerBase):
     """Show event for a poll."""

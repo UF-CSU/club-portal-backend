@@ -46,10 +46,10 @@ class CreateUserForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['password1'].required = False
-        self.fields['password2'].required = False
-        self.fields['password1'].widget.attrs['autocomplete'] = 'off'
-        self.fields['password2'].widget.attrs['autocomplete'] = 'off'
+        self.fields["password1"].required = False
+        self.fields["password2"].required = False
+        self.fields["password1"].widget.attrs["autocomplete"] = "off"
+        self.fields["password2"].widget.attrs["autocomplete"] = "off"
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -57,7 +57,7 @@ class CreateUserForm(UserCreationForm):
         if bool(password1) ^ bool(password2):
             raise forms.ValidationError("Fill out both fields")
         return password2
-    
+
     def save(self, commit=True):
         user = super().save(commit=False)
         pwd = self.cleaned_data.get("password1")
@@ -132,7 +132,6 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
     def profile_image(self, obj):
         return self.as_image(obj.profile.image)
-
 
     @admin.action
     def sync_permissions(self, request, queryset):

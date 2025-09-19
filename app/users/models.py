@@ -244,13 +244,21 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
         except exceptions.ValidationError:
             pass
 
-        if username_is_email and hasattr(self, "profile") and not (
-            # Username not same as email
-            (self.email == self.username)
-            # Username not same as school email
-            or (self.profile and self.profile.school_email == self.username)
-            # Username not same as a verified email
-            or (VerifiedEmail.objects.filter(user=self, email=self.username).exists())
+        if (
+            username_is_email
+            and hasattr(self, "profile")
+            and not (
+                # Username not same as email
+                (self.email == self.username)
+                # Username not same as school email
+                or (self.profile and self.profile.school_email == self.username)
+                # Username not same as a verified email
+                or (
+                    VerifiedEmail.objects.filter(
+                        user=self, email=self.username
+                    ).exists()
+                )
+            )
         ):
             raise exceptions.ValidationError(
                 {"username": "Cannot set username to an email not owned by the user"}

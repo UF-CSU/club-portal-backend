@@ -89,7 +89,6 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         res = self.client.get(url)
         self.assertResOk(res)
 
-
     def test_get_default_filtering(self):
         """Should get events from two weeks ago and two weeks into the future"""
 
@@ -99,32 +98,80 @@ class EventPrivateApiTests(PrivateApiTestsBase):
 
         events_in_range = 8
 
-        #Create test club
+        # Create test club
         club = create_test_club()
 
-        #Create events where:
+        # Create events where:
         # 1 events are on the day of boundary
-        event_start_on = create_test_event(host=club, start_at=today_event_time-shift, end_at=(today_event_time-shift)+timedelta(hours=1))
-        event_end_on = create_test_event(host=club, start_at=today_event_time+shift-timedelta(days=1), end_at=(today_event_time+shift)+timedelta(hours=1)-timedelta(days=1))
+        event_start_on = create_test_event(
+            host=club,
+            start_at=today_event_time - shift,
+            end_at=(today_event_time - shift) + timedelta(hours=1),
+        )
+        event_end_on = create_test_event(
+            host=club,
+            start_at=today_event_time + shift - timedelta(days=1),
+            end_at=(today_event_time + shift) + timedelta(hours=1) - timedelta(days=1),
+        )
         # 2 events are one day between range
-        event_between1 = create_test_event(host=club, start_at=today_event_time, end_at=today_event_time+timedelta(hours=1))
-        event_between2 = create_test_event(host=club, start_at=today_event_time-timedelta(days=7), end_at=today_event_time-timedelta(days=7)+timedelta(hours=1))
-        event_between3 = create_test_event(host=club, start_at=today_event_time+timedelta(days=7), end_at=today_event_time+timedelta(days=7, hours=1))
+        event_between1 = create_test_event(
+            host=club,
+            start_at=today_event_time,
+            end_at=today_event_time + timedelta(hours=1),
+        )
+        event_between2 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=7),
+            end_at=today_event_time - timedelta(days=7) + timedelta(hours=1),
+        )
+        event_between3 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=7),
+            end_at=today_event_time + timedelta(days=7, hours=1),
+        )
         # 3 events are outside range (1 right outside and one way outside)
-        event_end_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time-timedelta(days=15)+timedelta(hours=1))
-        event_end_outside2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=15), end_at=today_event_time+timedelta(days=15, hours=1))
+        event_end_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time - timedelta(days=15) + timedelta(hours=1),
+        )
+        event_end_outside2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15, hours=1),
+        )
 
-        event_end_way_out = create_test_event(host=club, start_at=today_event_time-timedelta(days=30), end_at=today_event_time-timedelta(days=30)+timedelta(hours=1))
-        event_end_way_out2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=30), end_at=today_event_time+timedelta(days=30, hours=1))
+        event_end_way_out = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=30),
+            end_at=today_event_time - timedelta(days=30) + timedelta(hours=1),
+        )
+        event_end_way_out2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=30),
+            end_at=today_event_time + timedelta(days=30, hours=1),
+        )
 
-        #event that starts within range but ends outside
-        event_end_within = create_test_event(host=club, start_at=today_event_time-timedelta(days=7), end_at=today_event_time+timedelta(days=15))
+        # event that starts within range but ends outside
+        event_end_within = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=7),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
-        #event that starts outside range but ends inside
-        event_end_within2 = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time-timedelta(days=7))
+        # event that starts outside range but ends inside
+        event_end_within2 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time - timedelta(days=7),
+        )
 
-        #event that starts outside range and ends outside range
-        event_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time+timedelta(days=15))
+        # event that starts outside range and ends outside range
+        event_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
         url = EVENT_LIST_URL
         res = self.client.get(url)
@@ -133,7 +180,6 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         data = res.json()
 
         self.assertEqual(len(data), events_in_range)
-
 
     def test_get_start_filter(self):
         """Should get events from one week ago and two weeks into the future"""
@@ -144,45 +190,94 @@ class EventPrivateApiTests(PrivateApiTestsBase):
 
         events_in_range = 8
 
-        #Create test club
+        # Create test club
         club = create_test_club()
 
-        
-        #Create events where:
+        # Create events where:
         # 1 events are on the day of boundary (1 valid, 1 invalid)
-        event_start_on = create_test_event(host=club, start_at=today_event_time-shift, end_at=(today_event_time-shift)+timedelta(hours=1))
-        event_end_on = create_test_event(host=club, start_at=today_event_time+shift-timedelta(days=1), end_at=(today_event_time+shift)+timedelta(hours=1)-timedelta(days=1))
+        event_start_on = create_test_event(
+            host=club,
+            start_at=today_event_time - shift,
+            end_at=(today_event_time - shift) + timedelta(hours=1),
+        )
+        event_end_on = create_test_event(
+            host=club,
+            start_at=today_event_time + shift - timedelta(days=1),
+            end_at=(today_event_time + shift) + timedelta(hours=1) - timedelta(days=1),
+        )
         # 2 events are one day between range (3 valid)
-        event_between1 = create_test_event(host=club, start_at=today_event_time, end_at=today_event_time+timedelta(hours=1))
-        event_between2 = create_test_event(host=club, start_at=today_event_time-timedelta(days=7), end_at=today_event_time-timedelta(days=7)+timedelta(hours=1))
-        event_between3 = create_test_event(host=club, start_at=today_event_time+timedelta(days=7), end_at=today_event_time+timedelta(days=7, hours=1))
+        event_between1 = create_test_event(
+            host=club,
+            start_at=today_event_time,
+            end_at=today_event_time + timedelta(hours=1),
+        )
+        event_between2 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=7),
+            end_at=today_event_time - timedelta(days=7) + timedelta(hours=1),
+        )
+        event_between3 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=7),
+            end_at=today_event_time + timedelta(days=7, hours=1),
+        )
 
         # 3 events are outside range (4 invalid)
-        event_end_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time-timedelta(days=15)+timedelta(hours=1))
-        event_end_outside2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=15), end_at=today_event_time+timedelta(days=15, hours=1))
+        event_end_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time - timedelta(days=15) + timedelta(hours=1),
+        )
+        event_end_outside2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15, hours=1),
+        )
 
-        event_end_way_out = create_test_event(host=club, start_at=today_event_time-timedelta(days=30), end_at=today_event_time-timedelta(days=30)+timedelta(hours=1))
-        event_end_way_out2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=30), end_at=today_event_time+timedelta(days=30, hours=1))
+        event_end_way_out = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=30),
+            end_at=today_event_time - timedelta(days=30) + timedelta(hours=1),
+        )
+        event_end_way_out2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=30),
+            end_at=today_event_time + timedelta(days=30, hours=1),
+        )
 
-        #event that starts within range but ends outside (1 valid)
-        event_end_within = create_test_event(host=club, start_at=today_event_time-timedelta(days=7), end_at=today_event_time+timedelta(days=15))
+        # event that starts within range but ends outside (1 valid)
+        event_end_within = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=7),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
-        #event that starts outside range but ends inside (1 invalid, 1 valid)
-        event_end_within2 = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time-timedelta(days=7))
-        event_end_within3 = create_test_event(host=club, start_at=today_event_time+timedelta(days=7), end_at=today_event_time+timedelta(days=8))
+        # event that starts outside range but ends inside (1 invalid, 1 valid)
+        event_end_within2 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time - timedelta(days=7),
+        )
+        event_end_within3 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=7),
+            end_at=today_event_time + timedelta(days=8),
+        )
 
-        #event that starts outside range and ends outside range (1 valid)
-        event_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time+timedelta(days=15))
+        # event that starts outside range and ends outside range (1 valid)
+        event_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
-
-        url = event_list_url(today-mod_shift)
+        url = event_list_url(today - mod_shift)
         res = self.client.get(url)
 
         self.assertResOk(res)
         data = res.json()
 
         self.assertEqual(len(data), events_in_range)
-
 
     def test_get_end_filter(self):
         """Should get events from two weeks ago and one week into the future"""
@@ -193,45 +288,96 @@ class EventPrivateApiTests(PrivateApiTestsBase):
 
         events_in_range = 8
 
-        #Create test club
+        # Create test club
         club = create_test_club()
 
-        
-        #Create events where:
+        # Create events where:
         # 1 events are on the day of boundary (2 valid)
-        event_start_on = create_test_event(host=club, start_at=today_event_time-shift, end_at=(today_event_time-shift)+timedelta(hours=1))
-        event_end_on = create_test_event(host=club, start_at=today_event_time+mod_shift-timedelta(days=1), end_at=(today_event_time+mod_shift)+timedelta(hours=1)-timedelta(days=1))
+        event_start_on = create_test_event(
+            host=club,
+            start_at=today_event_time - shift,
+            end_at=(today_event_time - shift) + timedelta(hours=1),
+        )
+        event_end_on = create_test_event(
+            host=club,
+            start_at=today_event_time + mod_shift - timedelta(days=1),
+            end_at=(today_event_time + mod_shift)
+            + timedelta(hours=1)
+            - timedelta(days=1),
+        )
         # 2 events are one day between range (3 valid)
-        event_between1 = create_test_event(host=club, start_at=today_event_time, end_at=today_event_time+timedelta(hours=1))
-        event_between2 = create_test_event(host=club, start_at=today_event_time-timedelta(days=7), end_at=today_event_time-timedelta(days=7)+timedelta(hours=1))
-        event_between3 = create_test_event(host=club, start_at=today_event_time+timedelta(days=6), end_at=today_event_time+timedelta(days=6, hours=1))
+        event_between1 = create_test_event(
+            host=club,
+            start_at=today_event_time,
+            end_at=today_event_time + timedelta(hours=1),
+        )
+        event_between2 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=7),
+            end_at=today_event_time - timedelta(days=7) + timedelta(hours=1),
+        )
+        event_between3 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=6),
+            end_at=today_event_time + timedelta(days=6, hours=1),
+        )
 
         # 3 events are outside range (4 invalid)
-        event_end_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time-timedelta(days=15)+timedelta(hours=1))
-        event_end_outside2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=15), end_at=today_event_time+timedelta(days=15, hours=1))
+        event_end_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time - timedelta(days=15) + timedelta(hours=1),
+        )
+        event_end_outside2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15, hours=1),
+        )
 
-        event_end_way_out = create_test_event(host=club, start_at=today_event_time-timedelta(days=30), end_at=today_event_time-timedelta(days=30)+timedelta(hours=1))
-        event_end_way_out2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=30), end_at=today_event_time+timedelta(days=30, hours=1))
+        event_end_way_out = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=30),
+            end_at=today_event_time - timedelta(days=30) + timedelta(hours=1),
+        )
+        event_end_way_out2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=30),
+            end_at=today_event_time + timedelta(days=30, hours=1),
+        )
 
-        #event that starts within range but ends outside (1 valid)
-        event_end_within = create_test_event(host=club, start_at=today_event_time-timedelta(days=7), end_at=today_event_time+timedelta(days=15))
+        # event that starts within range but ends outside (1 valid)
+        event_end_within = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=7),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
-        #event that starts outside range but ends inside (2 valid)
-        event_end_within2 = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time-timedelta(days=7))
-        event_end_within3 = create_test_event(host=club, start_at=today_event_time+timedelta(days=7), end_at=today_event_time+timedelta(days=8))
+        # event that starts outside range but ends inside (2 valid)
+        event_end_within2 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time - timedelta(days=7),
+        )
+        event_end_within3 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=7),
+            end_at=today_event_time + timedelta(days=8),
+        )
 
-        #event that starts outside range and ends outside range (1 valid)
-        event_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time+timedelta(days=15))
+        # event that starts outside range and ends outside range (1 valid)
+        event_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
-
-        url = event_list_url(end_at=today+mod_shift)
+        url = event_list_url(end_at=today + mod_shift)
         res = self.client.get(url)
 
         self.assertResOk(res)
         data = res.json()
 
         self.assertEqual(len(data), events_in_range)
-
 
     def test_get_both_filters(self):
         """Should get events from one week ago to one week into the future"""
@@ -240,45 +386,90 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         shift = timedelta(days=14)
         mod_shift = timedelta(days=7)
 
-
         events_in_range = 8
 
-        #Create test club
+        # Create test club
         club = create_test_club()
 
-        
-        #Create events where:
+        # Create events where:
         # 1 events are on the day of boundary (1 valid, 1 invalid)
-        event_start_on = create_test_event(host=club, start_at=today_event_time-mod_shift, end_at=(today_event_time-mod_shift)+timedelta(hours=1))
-        event_end_on = create_test_event(host=club, start_at=today_event_time+mod_shift-timedelta(days=1), end_at=(today_event_time+mod_shift)+timedelta(hours=1)-timedelta(days=1))
+        event_start_on = create_test_event(
+            host=club,
+            start_at=today_event_time - mod_shift,
+            end_at=(today_event_time - mod_shift) + timedelta(hours=1),
+        )
+        event_end_on = create_test_event(
+            host=club,
+            start_at=today_event_time + mod_shift - timedelta(days=1),
+            end_at=(today_event_time + mod_shift)
+            + timedelta(hours=1)
+            - timedelta(days=1),
+        )
         # 2 events are one day between range (3 valid)
-        event_between1 = create_test_event(host=club, start_at=today_event_time, end_at=today_event_time+timedelta(hours=1))
-        event_between2 = create_test_event(host=club, start_at=today_event_time-timedelta(days=3), end_at=today_event_time-timedelta(days=3)+timedelta(hours=1))
-        event_between3 = create_test_event(host=club, start_at=today_event_time+timedelta(days=3), end_at=today_event_time+timedelta(days=3, hours=1))
+        event_between1 = create_test_event(
+            host=club,
+            start_at=today_event_time,
+            end_at=today_event_time + timedelta(hours=1),
+        )
+        event_between2 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=3),
+            end_at=today_event_time - timedelta(days=3) + timedelta(hours=1),
+        )
+        event_between3 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=3),
+            end_at=today_event_time + timedelta(days=3, hours=1),
+        )
 
         # 3 events are outside range (4 invalid)
-        event_end_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time-timedelta(days=15)+timedelta(hours=1))
-        event_end_outside2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=15), end_at=today_event_time+timedelta(days=15, hours=1))
+        event_end_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time - timedelta(days=15) + timedelta(hours=1),
+        )
+        event_end_outside2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15, hours=1),
+        )
 
-        event_end_way_out = create_test_event(host=club, start_at=today_event_time-timedelta(days=30), end_at=today_event_time-timedelta(days=30)+timedelta(hours=1))
-        event_end_way_out2 = create_test_event(host=club, start_at=today_event_time+timedelta(days=30), end_at=today_event_time+timedelta(days=30, hours=1))
+        event_end_way_out = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=30),
+            end_at=today_event_time - timedelta(days=30) + timedelta(hours=1),
+        )
+        event_end_way_out2 = create_test_event(
+            host=club,
+            start_at=today_event_time + timedelta(days=30),
+            end_at=today_event_time + timedelta(days=30, hours=1),
+        )
 
-        #event that starts within range but ends outside (1 valid)
-        event_end_within = create_test_event(host=club, start_at=today_event_time-timedelta(days=2), end_at=today_event_time+timedelta(days=15))
+        # event that starts within range but ends outside (1 valid)
+        event_end_within = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=2),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
-        #event that starts outside range but ends inside (2 valid)
-        event_end_within3 = create_test_event(host=club, start_at=today_event_time-timedelta(days=8), end_at=today_event_time+timedelta(days=5))
+        # event that starts outside range but ends inside (2 valid)
+        event_end_within3 = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=8),
+            end_at=today_event_time + timedelta(days=5),
+        )
 
-        #event that starts outside range and ends outside range (1 valid)
-        event_outside = create_test_event(host=club, start_at=today_event_time-timedelta(days=15), end_at=today_event_time+timedelta(days=15))
+        # event that starts outside range and ends outside range (1 valid)
+        event_outside = create_test_event(
+            host=club,
+            start_at=today_event_time - timedelta(days=15),
+            end_at=today_event_time + timedelta(days=15),
+        )
 
-
-        url = event_list_url(today-mod_shift, today+mod_shift)
+        url = event_list_url(today - mod_shift, today + mod_shift)
         res = self.client.get(url)
 
         self.assertResOk(res)
         data = res.json()
 
         self.assertEqual(len(data), events_in_range)
-        
-        

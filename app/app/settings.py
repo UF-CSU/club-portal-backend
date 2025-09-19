@@ -436,9 +436,7 @@ if DEV and not TESTING:
         "IS_RUNNING_TESTS": False,
     }
 
-DJANGO_ENABLE_API_SESSION_AUTH = environ_bool(
-            "DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1
-)
+DJANGO_ENABLE_API_SESSION_AUTH = environ_bool("DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1)
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])

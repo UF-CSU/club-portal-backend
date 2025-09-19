@@ -15,7 +15,11 @@ from events.models import (
 )
 from events.tasks import sync_recurring_event_task
 from lib.celery import delay_task
-from polls.serializers import PollNestedSerializer, PollSerializer, PollEventNestedSerializer
+from polls.serializers import (
+    PollNestedSerializer,
+    PollSerializer,
+    PollEventNestedSerializer,
+)
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 

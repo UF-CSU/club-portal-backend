@@ -6,7 +6,11 @@ from django_filters import ChoiceFilter
 
 
 from clubs.models import Club, ClubFile
-from core.abstracts.viewsets import FilterBackendBase, ModelViewSetBase, ObjectViewPermissions
+from core.abstracts.viewsets import (
+    FilterBackendBase,
+    ModelViewSetBase,
+    ObjectViewPermissions,
+)
 from events.models import (
     Event,
     EventAttendanceLink,
@@ -15,7 +19,7 @@ from events.models import (
     EventTag,
 )
 from datetime import date, datetime, timedelta
-from django.utils import timezone 
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 
 from . import models, serializers
@@ -24,13 +28,13 @@ from . import models, serializers
 class EventClubFilter(FilterBackendBase):
     """Get events filtered by club"""
 
+
 class EventDateFilter(FilterBackendBase):
     """Get events ordered by date"""
 
     filter_fields = [
-        {"name" : "start_at", "schema_type": "datetime"},
-        {"name" : "end_at", "schema_type": "datetime"}
-        
+        {"name": "start_at", "schema_type": "datetime"},
+        {"name": "end_at", "schema_type": "datetime"},
     ]
 
     allowed_fields = {"start_at", "end_at"}
@@ -46,20 +50,21 @@ class EventDateFilter(FilterBackendBase):
         # Assuming we should only check if it is within day boundary
         today = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         shift = timedelta(days=14)
-        
+
         if start_date is None and end_date is None:
-            return queryset.filter(Q(start_at__lte=today+shift) & Q(end_at__gte=today-shift))
+            return queryset.filter(
+                Q(start_at__lte=today + shift) & Q(end_at__gte=today - shift)
+            )
 
         if start_date is not None:
             queryset = queryset.filter(end_at__gte=start_date)
         else:
-            queryset = queryset.filter(end_at__gte=today-shift)
+            queryset = queryset.filter(end_at__gte=today - shift)
 
         if end_date is not None:
             queryset = queryset.filter(start_at__lte=end_date)
         else:
-            queryset = queryset.filter(start_at__lte=today+shift)
-        
+            queryset = queryset.filter(start_at__lte=today + shift)
 
         return queryset
 
@@ -107,17 +112,14 @@ class EventViewset(ModelViewSetBase):
     )
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends=[EventDateFilter, DjangoFilterBackend]
+    filter_backends = [EventDateFilter, DjangoFilterBackend]
     filterset_fields = ["clubs"]
-
 
     def get_queryset(self):
         qs = super().get_queryset()
 
-        
-
         if self.request.user.is_anonymous:
-            return qs.filter(Q(is_public=True) & Q(is_draft=False))    
+            return qs.filter(Q(is_public=True) & Q(is_draft=False))
 
         return qs
 
