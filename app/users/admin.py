@@ -44,6 +44,32 @@ class CreateUserForm(UserCreationForm):
 
     email = forms.EmailField(required=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['password1'].required = False
+        self.fields['password2'].required = False
+        self.fields['password1'].widget.attrs['autocomplete'] = 'off'
+        self.fields['password2'].widget.attrs['autocomplete'] = 'off'
+
+    def clean_password2(self):
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if bool(password1) ^ bool(password2):
+            raise forms.ValidationError("Fill out both fields")
+        return password2
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        pwd = self.cleaned_data.get("password1")
+        if pwd:
+            user.set_password(pwd)
+        else:
+            # no password supplied -> make account non-loginable until a password is set
+            user.set_unusable_password()
+        if commit:
+            user.save()
+        return user
+
     class Meta:
         model = User
         fields = UserCreationForm.Meta.fields + ("email",)
@@ -57,7 +83,9 @@ class SocialProfileInline(admin.StackedInline):
 
 
 class UserAdmin(BaseUserAdmin, ModelAdminBase):
-    """Manager users in admin dashbaord."""
+    """Manager users in admin dashboard."""
+
+    add_form = CreateUserForm
 
     csv_serializer_class = UserCsvSerializer
 
