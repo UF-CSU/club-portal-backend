@@ -1,8 +1,9 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import urlencode
 
 from clubs.models import Club
 from events.models import Event
@@ -10,6 +11,21 @@ from lib.faker import fake
 
 EVENT_LIST_URL = reverse("api-events:event-list")
 RECURRINGEVENT_LIST_URL = reverse("api-events:recurringevent-list")
+
+
+def event_list_url(start_at: datetime = None, end_at: datetime = None):
+    url = reverse("api-events:event-list")
+    query_params = {}
+
+    if start_at:
+        query_params["start_at"] = start_at
+    if end_at:
+        query_params["end_at"] = end_at
+
+    if query_params:
+        return f"{url}?{urlencode(query_params)}"
+
+    return url
 
 
 def event_attendance_list_url(event_id: int):

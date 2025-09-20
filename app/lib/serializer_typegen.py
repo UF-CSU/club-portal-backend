@@ -455,7 +455,7 @@ class TypeGenerator:
             field_prop = gen_prop(field_name, required=False)
             properties.append(field_prop)
 
-        # Generate single value list fields
+        # `Generate` single value list fields
         for field_name in serializer.simple_list_fields:
             if field_name in ignore_fields:
                 continue

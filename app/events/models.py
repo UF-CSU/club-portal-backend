@@ -4,6 +4,7 @@ Event models.
 
 from datetime import date, time
 from typing import ClassVar, Optional
+from zoneinfo import ZoneInfo
 
 from django.core import exceptions
 from django.db import models
@@ -327,9 +328,10 @@ class Event(EventFields):
 
     @property
     def is_all_day(self) -> bool:
+        LOCAL_TZ = ZoneInfo("America/New_York")
         return (
-            self.start_at.time() == get_default_start_time()
-            and self.end_at.time() == get_default_end_time()
+            self.start_at.astimezone(LOCAL_TZ).time() == get_default_start_time()
+            and self.end_at.astimezone(LOCAL_TZ).time() == get_default_end_time()
         )
 
     @property

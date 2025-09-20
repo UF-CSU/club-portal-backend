@@ -111,23 +111,24 @@ services:
       - cluster
 
     
-  # mailhog:
-  #   image: mailhog/mailhog
-  #   container_name: 'mailhog'
-  #   restart: unless-stopped
-  #   user: root
-  #   networks:
-  #     - cluster
-  #   volumes:
-  #     - mailhog-clubs-dev:/home/maildir
-  #   ports:
-  #     - '1025:1025'
-  #     - '8025:8025'
-  #   depends_on:
-  #     - app
-  #   environment:
-  #     MH_STORAGE: maildir
-  #     MH_MAILDIR_PATH: /home/maildir
+  mail:
+    # Docs: https://mailpit.axllent.org/docs/install/docker/
+    # Repo: https://github.com/axllent/mailpit?tab=readme-ov-file
+    image: axllent/mailpit
+    container_name: mail
+    restart: unless-stopped
+    volumes:
+      - mail-clubs-dev:/data
+    ports:
+      - 8025:8025
+      - 1025:1025
+    profiles:
+      - dev
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
   proxy:
     build:

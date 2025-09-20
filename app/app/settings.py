@@ -222,9 +222,7 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_standardized_errors.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "drf_standardized_errors.handler.exception_handler",
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
-    "SEARCH_PARAM": "q",
 }
-
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Club Portal API",
@@ -438,9 +436,7 @@ if DEV and not TESTING:
         "IS_RUNNING_TESTS": False,
     }
 
-    DJANGO_ENABLE_API_SESSION_AUTH = environ_bool(
-        "DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1
-    )
+DJANGO_ENABLE_API_SESSION_AUTH = environ_bool("DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1)
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
