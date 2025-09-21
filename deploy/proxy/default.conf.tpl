@@ -1,7 +1,8 @@
 gzip on;
 
 upstream app_upstream {
-  server app:9000;
+  server "$SERVER_URI";
+  server "$SERVER_REPLICA_URI";
 }
 
 server {
@@ -23,13 +24,11 @@ server {
   }
   
   location / {
-    # uwsgi_pass              "$SERVER_URI";
-    # uwsgi_pass http://app_upstream;
-    proxy_pass http://app_upstream;
+    proxy_pass              http://app_upstream;
     
     proxy_set_header        Host "$host";
     proxy_set_header        X-Forwarded-For "$proxy_add_x_forwarded_for";
-    uwsgi_pass_header       Token;
+    proxy_pass_header       Token;
     
     client_max_body_size    32M;
     include                 /etc/nginx/uwsgi_params;

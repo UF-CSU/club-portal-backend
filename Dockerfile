@@ -13,11 +13,16 @@ ARG DEV=false
 
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
+    # Psycopg2 & handling images
     apk add --update --no-cache postgresql-client jpeg-dev && \
-    apk add --update --no-cache xmlsec-dev && \
+    # Oauth, health checks
+    apk add --update --no-cache xmlsec-dev curl && \
+    # Base requirements
     apk add --update --no-cache --virtual .tmp-build-deps \
     build-base gcc musl-dev zlib zlib-dev linux-headers \
+    # Oauth, celery, etc
     libressl libffi-dev libxslt-dev libxml2-dev \
+    # Psycopg2
     postgresql-dev && \
     /py/bin/pip install uwsgi==2.0.28 --retries 10
 
