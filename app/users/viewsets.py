@@ -141,6 +141,7 @@ class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
             UserService(self.request.user).check_verification_code(
                 email=serializer.validated_data.get("email"),
                 code=serializer.validated_data.get("code"),
+                user=request.user,
                 raise_exception=True,
             )
         except BadRequest as e:

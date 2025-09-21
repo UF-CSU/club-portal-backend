@@ -1,5 +1,7 @@
 from typing import Optional
 
+from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
+from core.abstracts.services import ServiceBase
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import BadRequest, ValidationError
@@ -11,13 +13,11 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlencode, urlsafe_base64_decode, urlsafe_base64_encode
-from rest_framework.authtoken.models import Token
-
-from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
-from core.abstracts.services import ServiceBase
 from lib.emails import send_html_mail
-from users.models import EmailVerificationCode, User, VerifiedEmail
+from rest_framework.authtoken.models import Token
 from utils.helpers import get_client_url, get_full_url
+
+from users.models import EmailVerificationCode, User, VerifiedEmail
 
 
 class UserService(ServiceBase[User]):
@@ -59,6 +59,26 @@ class UserService(ServiceBase[User]):
             raise ValidationError("Invalid user credentials.")
 
         return user
+
+    @classmethod
+    def merge_users(cls, users: models.QuerySet[User]):
+        """Combine multiple user objects."""
+
+        users = users.order_by("id")
+        oldest_user = users.first()
+        other_users = users.exclude(id=oldest_user.id)
+
+        if not other_users.exists():
+            return oldest_user
+
+        # Merge info from other users
+        for user in other_users:
+            pass
+
+        # Delete other users
+        other_users.delete()
+
+        return oldest_user
 
     def login(self, request):
         """Creates a new user session."""
@@ -145,17 +165,21 @@ class UserService(ServiceBase[User]):
 
         if self.obj.verified_emails.filter(email=email).exists():
             raise BadRequest(f"Email {email} is already verified for user.")
-        elif VerifiedEmail.objects.filter(email=email).exclude(user=self.obj).exists():
-            raise BadRequest(f"Email {email} is already verified by another user.")
-        elif (
-            User.objects.filter(
-                models.Q(email=email) | models.Q(profile__school_email=email)
-            )
-            .exclude(id=self.obj.id)
-            .exists()
-        ):
-            raise BadRequest(f"Email {email} is already taken.")
+        # elif VerifiedEmail.objects.filter(email=email).exclude(user=self.obj).exists():
+        #     raise BadRequest(f"Email {email} is already verified by another user.")
+        # elif (
+        #     User.objects.filter(
+        #         models.Q(email=email) | models.Q(profile__school_email=email)
+        #     )
+        #     .exclude(id=self.obj.id)
+        #     .exists()
+        # ):
+        #     raise BadRequest(f"Email {email} is already taken.")
 
+        # Delete existing codes
+        EmailVerificationCode.objects.filter(email=email).delete()
+
+        # Create new code
         verification = EmailVerificationCode.objects.create(email=email)
 
         send_mail(
@@ -165,7 +189,9 @@ class UserService(ServiceBase[User]):
             recipient_list=[email],
         )
 
-    def check_verification_code(self, email: str, code: str, raise_exception=True):
+    def check_verification_code(
+        self, email: str, code: str, user: User, raise_exception=True
+    ):
         """Verify code sent to email."""
 
         verification = EmailVerificationCode.objects.filter(
@@ -184,6 +210,10 @@ class UserService(ServiceBase[User]):
                 raise BadRequest("Verification code expired.")
             else:
                 return False
+
+        # Check for existing users
+
+        # Check for existing verified emails
 
         # Verification was successful, clean up previous codes
         EmailVerificationCode.objects.filter(email=email).delete()

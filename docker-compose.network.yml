@@ -4,7 +4,7 @@ services:
       context: .
       args:
         - DEV=true
-    container_name: club-app-network
+    # container_name: club-app-network
     volumes:
       - ./app:/app
       - ./scripts:/scripts
@@ -24,7 +24,11 @@ services:
     depends_on:
       - postgres
     networks:
-      - cluster
+      - cluster  
+    deploy:
+      # mode: replicated
+      replicas: 3
+      # endpoint_mode: vip
 
   postgres:
     image: postgres:13-alpine
