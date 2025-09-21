@@ -1,11 +1,13 @@
 from typing import Optional
 
+from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import BadRequest, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
-from django.db import models
+from django.db import models, transaction
+from django.forms import model_to_dict
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -14,9 +16,12 @@ from django.utils.http import urlencode, urlsafe_base64_decode, urlsafe_base64_e
 from rest_framework.authtoken.models import Token
 
 from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
+from clubs.models import ClubMembership, TeamMembership
 from core.abstracts.services import ServiceBase
 from lib.emails import send_html_mail
+from polls.models import PollSubmission
 from users.models import EmailVerificationCode, User, VerifiedEmail
+from users.utils import is_school_email
 from utils.helpers import get_client_url, get_full_url
 
 
@@ -59,6 +64,66 @@ class UserService(ServiceBase[User]):
             raise ValidationError("Invalid user credentials.")
 
         return user
+
+    @classmethod
+    def merge_users(cls, users: models.QuerySet[User] | list[User]):
+        """Combine multiple user objects."""
+
+        if isinstance(users, list):
+            ids = [user.id for user in users]
+            users = User.objects.filter(id__in=ids)
+
+        users = users.order_by("id")
+        oldest_user = users.first()
+        other_users = users.exclude(id=oldest_user.id)
+
+        if not other_users.exists():
+            return oldest_user
+
+        # If there's any issues, revert everything
+        with transaction.atomic():
+            # Merge info from other users
+            for user in other_users:
+                # Merge profile info
+                profile_info = model_to_dict(user.profile)
+                for key, value in profile_info.items():
+                    if (
+                        value is not None
+                        and getattr(oldest_user.profile, key, None) is None
+                    ):
+                        setattr(oldest_user.profile, key, value)
+
+                # If oldest has school email as personal, and other user has personal email as personal,
+                # change personal on oldest user
+                if is_school_email(oldest_user.email) and not is_school_email(
+                    user.email
+                ):
+                    oldest_user.email = user.email
+
+                # Merge relationships
+                Token.objects.filter(user=user).update(user=oldest_user)
+                VerifiedEmail.objects.filter(user=user).update(user=oldest_user)
+                PollSubmission.objects.filter(user=user).update(user=oldest_user)
+                SocialAccount.objects.filter(user=user).update(user=oldest_user)
+
+                # Merge memberships
+                oldest_user_clubs = oldest_user.clubs.values_list("id", flat=True)
+                oldest_user_teams = oldest_user.teams.values_list("id", flat=True)
+                ClubMembership.objects.filter(user=user).exclude(
+                    club__id__in=oldest_user_clubs
+                ).update(user=oldest_user)
+                TeamMembership.objects.filter(user=user).exclude(
+                    team__id__in=oldest_user_teams
+                ).update(user=oldest_user)
+
+            # Delete other users
+            other_users.delete()
+
+            # Save user info
+            oldest_user.profile.save()
+            oldest_user.save()
+
+        return oldest_user
 
     def login(self, request):
         """Creates a new user session."""
@@ -145,17 +210,21 @@ class UserService(ServiceBase[User]):
 
         if self.obj.verified_emails.filter(email=email).exists():
             raise BadRequest(f"Email {email} is already verified for user.")
-        elif VerifiedEmail.objects.filter(email=email).exclude(user=self.obj).exists():
-            raise BadRequest(f"Email {email} is already verified by another user.")
-        elif (
-            User.objects.filter(
-                models.Q(email=email) | models.Q(profile__school_email=email)
-            )
-            .exclude(id=self.obj.id)
-            .exists()
-        ):
-            raise BadRequest(f"Email {email} is already taken.")
+        # elif VerifiedEmail.objects.filter(email=email).exclude(user=self.obj).exists():
+        #     raise BadRequest(f"Email {email} is already verified by another user.")
+        # elif (
+        #     User.objects.filter(
+        #         models.Q(email=email) | models.Q(profile__school_email=email)
+        #     )
+        #     .exclude(id=self.obj.id)
+        #     .exists()
+        # ):
+        #     raise BadRequest(f"Email {email} is already taken.")
 
+        # Delete existing codes
+        EmailVerificationCode.objects.filter(email=email).delete()
+
+        # Create new code
         verification = EmailVerificationCode.objects.create(email=email)
 
         send_mail(
@@ -167,6 +236,8 @@ class UserService(ServiceBase[User]):
 
     def check_verification_code(self, email: str, code: str, raise_exception=True):
         """Verify code sent to email."""
+
+        user = self.obj
 
         verification = EmailVerificationCode.objects.filter(
             email=email, code__exact=code
@@ -185,8 +256,15 @@ class UserService(ServiceBase[User]):
             else:
                 return False
 
+        # Check for existing verified emails
+
+        # Check for existing users, merge accounts
+        existing_user = User.objects.find_by_email(email=email)
+        if existing_user and existing_user.id != user.id:
+            user = UserService.merge_users(users=[user, existing_user])
+
         # Verification was successful, clean up previous codes
         EmailVerificationCode.objects.filter(email=email).delete()
-        VerifiedEmail.objects.create(email=email, user=self.obj)
+        VerifiedEmail.objects.create(email=email, user=user)
 
         return True

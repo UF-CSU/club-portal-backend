@@ -56,6 +56,15 @@ EDITOR_ROLE_PERMISSIONS = [
     "events.add_event",
     "events.change_event",
     "events.view_recurringevent",
+    # Analytics
+    "analytics.view_link",
+    "analytics.add_link",
+    "analytics.change_link",
+    "analytics.delete_link",
+    "analytics.view_qrcode",
+    "analytics.add_qrcode",
+    "analytics.change_qrcode",
+    "analytics.delete_qrcode",
 ]
 """Edit and add permissions with some restrictions."""
 

@@ -2,43 +2,76 @@ services:
   app:
     build:
       context: .
-    container_name: club-app-prod
+    restart: unless-stopped
     volumes:
       - ./app:/app
       - static-clubs-prod:/vol/web
-      # - static-clubs-prod:/vol/web
-
+    environment:
+      - PORT=9000
+      - WORKER_COUNT=${WORKER_COUNT:-6}
     env_file:
       - .env
+    networks:
+      - cluster
+    healthcheck:
+      test: ['CMD-SHELL', 'healthcheck.sh']
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+      start_interval: 15s
+
+  app_replica:
+    build:
+      context: .
+    restart: unless-stopped
+    volumes:
+      - ./app:/app
+      - static-clubs-prod:/vol/web
+    environment:
+      - PORT=9000
+      - WORKER_COUNT=${WORKER_COUNT:-6}
+    env_file:
+      - .env
+    networks:
+      - cluster
+    depends_on:
+      # Wait until app is ready, in case app needs to run migrations
+      app:
+        condition: service_healthy
+    deploy:
+      mode: replicated
+      endpoint_mode: vip
+      replicas: ${APP_REPLICAS:-3}
 
   redis:
     image: redis:alpine
     container_name: clubs-prod-redis
-    ports:
-      - 6379:6379
+    networks:
+      - cluster
 
   celery:
     build:
       context: .
-      # args:
-      #   - DEV=true
     restart: unless-stopped
     user: django-user
     command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
     volumes:
       - ./app:/app
-      # - static-clubs-prod:/vol/web
+      - static-clubs-prod:/vol/web
     depends_on:
-      - redis
-      - app
+      redis:
+        condition: service_started
+      app:
+        condition: service_healthy
     env_file:
       - .env
+    networks:
+      - cluster
 
   celerybeat:
     build:
       context: .
-      # args:
-      #   - DEV=true
     user: django-user
     restart: unless-stopped
     command:
@@ -53,36 +86,63 @@ services:
       ]
     volumes:
       - ./app:/app
-      # - static-clubs-prod:/vol/web
+      - static-clubs-prod:/vol/web
     depends_on:
-      - redis
-      - celery
-      - app
+      redis:
+        condition: service_started
+      app:
+        condition: service_healthy
+      celery:
+        condition: service_started
+
     env_file:
       - .env
+    networks:
+      - cluster
 
   proxy:
     build:
       context: ./deploy/proxy/
+    restart: unless-stopped
     container_name: clubs-prod-proxy
     ports:
       - 8080:8080
-      - 8081:8081
     depends_on:
-      - app
+      # Wait until app is ready, in case app needs to run migrations
+      app:
+        condition: service_healthy
     volumes:
-      # - static-clubs-prod:/vol/web
-      # - static-clubs:/vol/web
       - static-clubs-prod:/vol/web
     environment:
-      - SERVER_URI=club-app-prod:9000
+      - SERVER_URI=app:9000
+      - SERVER_REPLICA_URI=app_replica:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
+      # No delay needed, since app has health checks
+      - DELAY=0s
+    networks:
+      - cluster
+
+  # USED FOR TESTING ONLY
+  # postgres:
+  #   image: postgres:13-alpine
+  #   command: -c 'max_connections=200'
+  #   volumes:
+  #     - postgres-clubs-dev:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_DB=devdatabase
+  #     - POSTGRES_USER=devuser
+  #     - POSTGRES_PASSWORD=devpass
+  #   networks:
+  #     - cluster
 
 volumes:
-  # postgres-clubs-prod:
-  # static-clubs-prod:
-  postgres-clubs-dev:
   static-clubs-prod:
-  mail-clubs-dev:
 
+  # USED FOR TESTING ONLY
+  # static-clubs-dev:
+  # postgres-clubs-dev:
 
+networks:
+  cluster:
+    name: club_portal_prod
+    driver: bridge

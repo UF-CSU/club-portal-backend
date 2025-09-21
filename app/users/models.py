@@ -101,6 +101,15 @@ class UserManager(BaseUserManager, ManagerBase["User"]):
             defaults = defaults or {}
             return self.create(**defaults, **kwargs), True
 
+    def find_by_email(self, email: str):
+        """Filter for user matching email, or return None."""
+
+        try:
+            user = self.get_by_email(email)
+            return user
+        except User.DoesNotExist:
+            return None
+
     def get_by_email(self, email: str):
         """Get user by their email."""
 
@@ -125,6 +134,9 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
 
     clubs = models.ManyToManyField(
         "clubs.Club", through="clubs.ClubMembership", blank=True
+    )
+    teams = models.ManyToManyField(
+        "clubs.Team", through="clubs.TeamMembership", blank=True
     )
 
     cached_email = models.EmailField(

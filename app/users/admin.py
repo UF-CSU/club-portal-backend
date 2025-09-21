@@ -6,9 +6,10 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.utils.safestring import mark_safe
 
 from clubs.models import ClubMembership
-from core.abstracts.admin import ModelAdminBase
+from core.abstracts.admin import ModelAdminBase, StackedInlineBase
 from users.defaults import DEFAULT_USER_PERMISSIONS
 from users.models import Profile, SocialProfile, User, VerifiedEmail
 from users.serializers import UserCsvSerializer
@@ -25,11 +26,22 @@ class UserProfileInline(admin.StackedInline):
     verbose_name_plural = "profile"
 
 
-class UserClubMembershipInline(admin.StackedInline):
+class UserClubMembershipInline(StackedInlineBase):
     """Manage user memberships to a club in admin."""
 
     model = ClubMembership
     extra = 0
+    readonly_fields = (
+        "roles",
+        "edit_roles",
+    )
+
+    def edit_roles(self, obj):
+        if obj.pk:
+            return mark_safe(
+                f"Can only set roles in Club Membership admin: {self.as_model_link(obj)}"
+            )
+        return "Can only set roles in Club Membership admin."
 
 
 class UpdateUserForm(UserChangeForm):
@@ -91,14 +103,27 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
     list_display = ("username", "email", "name", "is_staff")
     search_fields = ("username", "name", "email")
+    select_related_fields = ("profile",)
+    prefetch_related_fields = (
+        "club_memberships",
+        "socials",
+        "verified_emails",
+        "user_permissions",
+    )
 
     readonly_fields = (
         *BaseUserAdmin.readonly_fields,
         "date_joined",
         "profile_image",
         "is_onboarded",
+        "is_school_email_verified",
     )
-    actions = ("send_account_setup_link", "send_admin_setup_link", "sync_permissions")
+    actions = (
+        "send_account_setup_link",
+        "send_admin_setup_link",
+        "sync_permissions",
+        "merge_users",
+    )
 
     fieldsets = (
         (None, {"fields": ("username", "email", "password", "profile_image")}),
@@ -110,6 +135,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
                     "is_staff",
                     "is_superuser",
                     "is_onboarded",
+                    "is_school_email_verified",
                     "groups",
                     "user_permissions",
                 )
@@ -132,6 +158,11 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
     def profile_image(self, obj):
         return self.as_image(obj.profile.image)
+
+    def is_school_email_verified(self, obj):
+        if not getattr(obj, "profile", None):
+            return False
+        return obj.profile.is_school_email_verified
 
     @admin.action
     def sync_permissions(self, request, queryset):
@@ -174,6 +205,19 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         self.message_user(
             request,
             f'Successfully sent admin setup link to {queryset.count()} {plural_noun(queryset.count(), "user")}',
+        )
+
+        return
+
+    @admin.action
+    def merge_users(self, request, queryset):
+        """Merge multiple user accounts."""
+
+        user = UserService.merge_users(users=queryset)
+
+        self.message_user(
+            request,
+            f"Successfully merged {plural_noun_display(queryset.count(), 'user')} to {user} (id={user.id})",
         )
 
         return

@@ -3,20 +3,18 @@ Tests for the user API.
 """
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase
+from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
 from lib.faker import fake
 from users.models import EmailVerificationCode
+from users.tests.utils import CHECK_EMAIL_VERIFICATION_URL, SEND_EMAIL_VERIFICATION_URL
 
 # CREATE_USER_URL = reverse("api-users:create")  # user as app, create as endpoint
 LOGIN_TOKEN_URL = reverse("api-users:login")
 ME_URL = reverse("api-users:me")
-VERIFY_URL = reverse("api-users:verification-list")
-CHECK_VERIFY_URL = reverse("api-users:verification-check")
 
 
 def create_user(**params):
@@ -25,7 +23,7 @@ def create_user(**params):
     return get_user_model().objects.create_user(**params)
 
 
-class PublicUserApiTests(TestCase):
+class PublicUserApiTests(PublicApiTestsBase):
     """Test the public features of the user API."""
 
     def setUp(self):
@@ -158,7 +156,7 @@ class PrivateUserApiTests(PrivateApiTestsBase, EmailTestsBase):
         payload = {
             "email": self.user.email,
         }
-        res = self.client.post(VERIFY_URL, payload)
+        res = self.client.post(SEND_EMAIL_VERIFICATION_URL, payload)
         self.assertResCreated(res)
 
         self.assertEmailsSent(1)
@@ -171,14 +169,14 @@ class PrivateUserApiTests(PrivateApiTestsBase, EmailTestsBase):
             "email": fake.email(),
             "code": vc.code,
         }
-        res = self.client.post(CHECK_VERIFY_URL, payload)
+        res = self.client.post(CHECK_EMAIL_VERIFICATION_URL, payload)
         self.assertResBadRequest(res)
 
         # Should successfully check right email
         payload["email"] = self.user.email
-        res = self.client.post(CHECK_VERIFY_URL, payload)
+        res = self.client.post(CHECK_EMAIL_VERIFICATION_URL, payload)
         self.assertResCreated(res)
 
         # Should reject duplicate request
-        res = self.client.post(CHECK_VERIFY_URL, payload)
+        res = self.client.post(CHECK_EMAIL_VERIFICATION_URL, payload)
         self.assertResBadRequest(res)

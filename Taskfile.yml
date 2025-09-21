@@ -51,6 +51,13 @@ tasks:
       - build:network
     cmds:
       - docker-compose -f docker-compose.network.yml up
+  
+  network:build:
+    desc: 'Run server in network mode'
+    deps:
+      - build:network
+    cmds:
+      - docker-compose -f docker-compose.network.yml up --build --force-recreate
 
   lint:
     desc: 'Lint python using Flake8'

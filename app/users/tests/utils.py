@@ -1,10 +1,14 @@
 import random
+from typing import Optional
 
 from django.urls import reverse
 
 from lib.faker import fake
 from users.models import User
 from utils.helpers import reverse_query
+
+SEND_EMAIL_VERIFICATION_URL = reverse("api-users:verification-list")
+CHECK_EMAIL_VERIFICATION_URL = reverse("api-users:verification-check")
 
 
 def create_test_adminuser(**kwargs):
@@ -21,7 +25,7 @@ def create_test_adminuser(**kwargs):
     return User.objects.create_adminuser(email=email, password=password, **kwargs)
 
 
-def create_test_user(**kwargs):
+def create_test_user(profile: Optional[dict] = None, **kwargs):
     """Create user for testing purposes."""
 
     payload = {
@@ -31,7 +35,16 @@ def create_test_user(**kwargs):
         **kwargs,
     }
 
-    return User.objects.create_user(**payload)
+    user = User.objects.create_user(**payload)
+
+    if not profile:
+        return user
+
+    for key, value in profile.items():
+        setattr(user.profile, key, value)
+
+    user.profile.save()
+    return user
 
 
 def create_test_users(count=5, **kwargs):

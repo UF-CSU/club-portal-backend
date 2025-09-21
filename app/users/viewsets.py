@@ -11,7 +11,14 @@ from django.http import HttpRequest
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from drf_spectacular.utils import extend_schema
-from rest_framework import authentication, generics, mixins, permissions, status
+from rest_framework import (
+    authentication,
+    generics,
+    mixins,
+    permissions,
+    status,
+    viewsets,
+)
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import action
@@ -20,6 +27,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
+from lib.allauth import OauthProviderType
 from users.models import User
 from users.serializers import (
     CheckEmailVerificationRequestSerializer,
@@ -151,7 +159,7 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
         return SocialAccount.objects.filter(user=self.request.user)
 
 
-class RedirectToProviderView(APIView):
+class RedirectToProviderView(viewsets.GenericViewSet):
     """
     Override allauth's redirect logic to authenticate existing users
     with their token as a query param.
@@ -172,7 +180,7 @@ class RedirectToProviderView(APIView):
         if not form.is_valid():
             raise exceptions.BadRequest(form.errors.as_json())
 
-        provider = form.cleaned_data["provider"]
+        provider: OauthProviderType = form.cleaned_data["provider"]
         next_url = (
             reverse("api-users:oauth_return")
             + "?next="
