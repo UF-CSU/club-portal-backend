@@ -1,11 +1,3 @@
-from core.abstracts.viewsets import (
-    CustomLimitOffsetPagination,
-    FilterBackendBase,
-    ModelViewSetBase,
-    ObjectViewDetailsPermissions,
-    ViewSetBase,
-)
-from core.models import Major
 from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -17,7 +9,6 @@ from rest_framework import exceptions, filters, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-from users.models import User
 
 from clubs.models import (
     Club,
@@ -46,6 +37,15 @@ from clubs.serializers import (
     TeamSerializer,
 )
 from clubs.services import ClubService
+from core.abstracts.viewsets import (
+    CustomLimitOffsetPagination,
+    FilterBackendBase,
+    ModelViewSetBase,
+    ObjectViewDetailsPermissions,
+    ViewSetBase,
+)
+from core.models import Major
+from users.models import User
 
 
 def get_user_club_or_404(club_id: int, user: User):
