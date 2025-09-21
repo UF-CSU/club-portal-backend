@@ -6,7 +6,6 @@ import random
 import string
 from typing import ClassVar, Optional
 
-from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from django.contrib import auth
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -19,6 +18,8 @@ from django.core.validators import RegexValidator, validate_email
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
 from lib.countries import CountryField
 from utils.models import UploadFilepathFactory
 

@@ -2,10 +2,10 @@ import random
 from typing import Optional
 
 from django.urls import reverse
-from lib.faker import fake
-from utils.helpers import reverse_query
 
+from lib.faker import fake
 from users.models import User
+from utils.helpers import reverse_query
 
 SEND_EMAIL_VERIFICATION_URL = reverse("api-users:verification-list")
 CHECK_EMAIL_VERIFICATION_URL = reverse("api-users:verification-check")

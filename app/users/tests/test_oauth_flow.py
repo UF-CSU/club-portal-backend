@@ -4,12 +4,12 @@ from urllib.parse import parse_qs, urlparse
 
 import requests
 from allauth.socialaccount.providers.oauth2.views import OAuth2Adapter
-from core.abstracts.tests import EmailTestsBase, PublicApiTestsBase
 from django.http import JsonResponse
 from django.urls import reverse
-from lib.faker import fake
 from rest_framework import exceptions, status
 
+from core.abstracts.tests import EmailTestsBase, PublicApiTestsBase
+from lib.faker import fake
 from users.models import EmailVerificationCode, User
 from users.tests.utils import (
     CHECK_EMAIL_VERIFICATION_URL,

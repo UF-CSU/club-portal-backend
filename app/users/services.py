@@ -1,9 +1,6 @@
 from typing import Optional
 
 from allauth.socialaccount.models import SocialAccount
-from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
-from clubs.models import ClubMembership, TeamMembership
-from core.abstracts.services import ServiceBase
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import BadRequest, ValidationError
@@ -16,13 +13,16 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlencode, urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework.authtoken.models import Token
+
+from app.settings import BASE_URL, DEFAULT_AUTH_BACKEND, DEFAULT_FROM_EMAIL
+from clubs.models import ClubMembership, TeamMembership
+from core.abstracts.services import ServiceBase
 from lib.emails import send_html_mail
 from polls.models import PollSubmission
-from rest_framework.authtoken.models import Token
-from utils.helpers import get_client_url, get_full_url
-
 from users.models import EmailVerificationCode, User, VerifiedEmail
 from users.utils import is_school_email
+from utils.helpers import get_client_url, get_full_url
 
 
 class UserService(ServiceBase[User]):

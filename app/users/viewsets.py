@@ -5,8 +5,6 @@ Views for the user API.
 from allauth.headless.base.views import APIView
 from allauth.headless.socialaccount.forms import RedirectToProviderForm
 from allauth.socialaccount.models import SocialAccount
-from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
-from lib.allauth import OauthProviderType
 from django.core import exceptions
 from django.core.exceptions import BadRequest
 from django.http import HttpRequest
@@ -27,8 +25,9 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
-from utils.urls import prepare_url
 
+from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
+from lib.allauth import OauthProviderType
 from users.models import User
 from users.serializers import (
     CheckEmailVerificationRequestSerializer,
@@ -38,6 +37,7 @@ from users.serializers import (
     UserSerializer,
 )
 from users.services import UserService
+from utils.urls import prepare_url
 
 
 class UserViewSet(mixins.RetrieveModelMixin, ViewSetBase):

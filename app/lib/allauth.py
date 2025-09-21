@@ -4,6 +4,7 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.providers.base import Provider
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 from rest_framework import exceptions
+
 from users.models import User
 
 ProviderType = Provider
