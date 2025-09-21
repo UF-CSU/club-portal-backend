@@ -127,13 +127,14 @@ class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
         url = CHECK_EMAIL_VERIFICATION_URL
         payload = {"email": ufl_email, "code": code.code}
         res = self.client.post(url, payload)
-        self.assertResOk(res)
+        self.assertResCreated(res)
 
         # User accounts should have been merged, only one user exists
         self.assertEqual(User.objects.count(), 1)
         user = User.objects.first()
         self.assertEqual(user.email, personal_email)
         self.assertEqual(user.profile.school_email, ufl_email)
+        self.assertTrue(user.profile.is_school_email_verified)
 
     def test_connect_existing_account_to_oauth(self):
         """Should connect oauth account to existing user."""

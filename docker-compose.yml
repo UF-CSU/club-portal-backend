@@ -4,7 +4,7 @@ services:
       context: .
       args:
         - DEV=true
-    # container_name: clubs-app
+    container_name: clubs-app
     profiles:
       - slim
       - dev

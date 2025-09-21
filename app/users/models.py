@@ -134,6 +134,9 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     clubs = models.ManyToManyField(
         "clubs.Club", through="clubs.ClubMembership", blank=True
     )
+    teams = models.ManyToManyField(
+        "clubs.Team", through="clubs.TeamMembership", blank=True
+    )
 
     cached_email = models.EmailField(
         max_length=64, unique=True, null=True, blank=True, editable=False
