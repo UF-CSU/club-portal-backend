@@ -122,24 +122,24 @@ services:
       - cluster
 
   # USED FOR TESTING ONLY
-  postgres:
-    image: postgres:13-alpine
-    command: -c 'max_connections=200'
-    volumes:
-      - postgres-clubs-dev:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=devdatabase
-      - POSTGRES_USER=devuser
-      - POSTGRES_PASSWORD=devpass
-    networks:
-      - cluster
+  # postgres:
+  #   image: postgres:13-alpine
+  #   command: -c 'max_connections=200'
+  #   volumes:
+  #     - postgres-clubs-dev:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_DB=devdatabase
+  #     - POSTGRES_USER=devuser
+  #     - POSTGRES_PASSWORD=devpass
+  #   networks:
+  #     - cluster
 
 volumes:
   static-clubs-prod:
   static-clubs-dev:
 
   # USED FOR TESTING ONLY
-  postgres-clubs-dev:
+  # postgres-clubs-dev:
 
 networks:
   cluster:
