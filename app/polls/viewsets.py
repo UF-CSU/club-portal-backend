@@ -54,13 +54,41 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
 class PollViewset(ModelViewSetBase):
     """Manage polls in api."""
 
-    queryset = Poll.objects.all()
     serializer_class = PollSerializer
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
-        self.queryset = self.queryset.filter(club__id__in=user_clubs)
-        return super().get_queryset()
+
+        return (
+            Poll.objects.filter(club__id__in=user_clubs)
+            .select_related("club", "event")
+            .prefetch_related(
+                models.Prefetch(
+                    "fields",
+                    queryset=PollField.objects.select_related(
+                        "_markup",
+                        "_question",
+                        "_question___textinput",
+                        "_question___choiceinput",
+                        "_question___scaleinput",
+                        "_question___uploadinput",
+                        "_question___numberinput",
+                        "_question___emailinput",
+                        "_question___phoneinput",
+                        "_question___dateinput",
+                        "_question___timeinput",
+                        "_question___urlinput",
+                        "_question___checkboxinput",
+                    ).order_by("order", "id"),
+                ),
+                "_submission_link__qrcode",
+                "submissions",
+            )
+            .annotate(
+                submissions_count=models.Count("submissions", distinct=True),
+                last_submission_at=models.Max("submissions__created_at"),
+            )
+        )
 
 
 class PollFieldViewSet(ModelViewSetBase):

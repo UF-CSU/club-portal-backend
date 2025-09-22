@@ -205,12 +205,16 @@ class Poll(ClubScopedModel, ModelBase):
     def questions(self):
         return PollQuestion.objects.filter(field__poll=self).all()
 
-    @property
-    def submissions_count(self):
-        return self.submissions.count()
+    @cached_property
+    def submissions_count(self) -> int:
+        return getattr(self, "_submissions_count", None) or self.submissions.count()
 
-    @property
+    @cached_property
     def last_submission_at(self) -> Optional[datetime]:
+        prefetched_last_submission_at = getattr(self, "_last_submission_at", None)
+        if prefetched_last_submission_at is not None:
+            return prefetched_last_submission_at
+
         if not self.submissions.all().exists():
             return None
         else:
