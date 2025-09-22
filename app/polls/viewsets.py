@@ -25,7 +25,29 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
     """Show polls for guest viewers."""
 
     serializer_class = PollPreviewSerializer
-    queryset = Poll.objects.all()
+
+    queryset = Poll.objects.select_related("club", "event").prefetch_related(
+        models.Prefetch(
+            "fields",
+            queryset=PollField.objects.select_related(
+                "_question",
+                "_markup",
+                "_question___textinput",
+                "_question___choiceinput",
+                "_question___scaleinput",
+                "_question___uploadinput",
+                "_question___numberinput",
+                "_question___emailinput",
+                "_question___phoneinput",
+                "_question___dateinput",
+                "_question___timeinput",
+                "_question___urlinput",
+                "_question___checkboxinput",
+            ),
+        ),
+        "_submission_link__qrcode",
+    )
+
     permission_classes = [permissions.AllowAny]
 
 
