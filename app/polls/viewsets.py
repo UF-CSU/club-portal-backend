@@ -8,6 +8,7 @@ from polls.models import (
     ChoiceInputOption,
     Poll,
     PollField,
+    PollQuestionAnswer,
     PollStatusType,
     PollSubmission,
 )
@@ -54,13 +55,41 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
 class PollViewset(ModelViewSetBase):
     """Manage polls in api."""
 
-    queryset = Poll.objects.all()
     serializer_class = PollSerializer
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
-        self.queryset = self.queryset.filter(club__id__in=user_clubs)
-        return super().get_queryset()
+
+        return (
+            Poll.objects.filter(club__id__in=user_clubs)
+            .select_related("club", "event")
+            .prefetch_related(
+                models.Prefetch(
+                    "fields",
+                    queryset=PollField.objects.select_related(
+                        "_markup",
+                        "_question",
+                        "_question___textinput",
+                        "_question___choiceinput",
+                        "_question___scaleinput",
+                        "_question___uploadinput",
+                        "_question___numberinput",
+                        "_question___emailinput",
+                        "_question___phoneinput",
+                        "_question___dateinput",
+                        "_question___timeinput",
+                        "_question___urlinput",
+                        "_question___checkboxinput",
+                    ).order_by("order", "id"),
+                ),
+                "_submission_link__qrcode",
+                "submissions",
+            )
+            .annotate(
+                submissions_count=models.Count("submissions", distinct=True),
+                last_submission_at=models.Max("submissions__created_at"),
+            )
+        )
 
 
 class PollFieldViewSet(ModelViewSetBase):
@@ -121,7 +150,6 @@ class PollChoiceOptionViewSet(ModelViewSetBase):
 class PollSubmissionViewSet(ModelViewSetBase):
     """Submit polls via api."""
 
-    queryset = PollSubmission.objects.all()
     serializer_class = PollSubmissionSerializer
 
     def check_permissions(self, request):
@@ -130,9 +158,20 @@ class PollSubmissionViewSet(ModelViewSetBase):
         return super().check_permissions(request)
 
     def get_queryset(self):
-        poll_id = self.kwargs.get("poll_id", None)
-        self.queryset = self.queryset.filter(poll__id=poll_id)
-        return super().get_queryset()
+        poll_id = self.kwargs.get("poll_id")
+        return (
+            PollSubmission.objects.filter(poll_id=poll_id)
+            .select_related("user", "user__profile")
+            .prefetch_related(
+                models.Prefetch(
+                    "answers",
+                    queryset=PollQuestionAnswer.objects.prefetch_related(
+                        "options_value"
+                    ),
+                ),
+                "user__verified_emails",
+            )
+        )
 
     def perform_create(self, serializer):
         poll_id = self.kwargs.get("poll_id", None)
