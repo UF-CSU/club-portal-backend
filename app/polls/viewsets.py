@@ -8,6 +8,7 @@ from polls.models import (
     ChoiceInputOption,
     Poll,
     PollField,
+    PollQuestionAnswer,
     PollStatusType,
     PollSubmission,
 )
@@ -149,7 +150,6 @@ class PollChoiceOptionViewSet(ModelViewSetBase):
 class PollSubmissionViewSet(ModelViewSetBase):
     """Submit polls via api."""
 
-    queryset = PollSubmission.objects.all()
     serializer_class = PollSubmissionSerializer
 
     def check_permissions(self, request):
@@ -158,9 +158,20 @@ class PollSubmissionViewSet(ModelViewSetBase):
         return super().check_permissions(request)
 
     def get_queryset(self):
-        poll_id = self.kwargs.get("poll_id", None)
-        self.queryset = self.queryset.filter(poll__id=poll_id)
-        return super().get_queryset()
+        poll_id = self.kwargs.get("poll_id")
+        return (
+            PollSubmission.objects.filter(poll_id=poll_id)
+            .select_related("user", "user__profile")
+            .prefetch_related(
+                models.Prefetch(
+                    "answers",
+                    queryset=PollQuestionAnswer.objects.prefetch_related(
+                        "options_value"
+                    ),
+                ),
+                "user__verified_emails",
+            )
+        )
 
     def perform_create(self, serializer):
         poll_id = self.kwargs.get("poll_id", None)

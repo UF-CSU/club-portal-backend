@@ -953,12 +953,14 @@ class PollSubmission(ClubScopedModel, ModelBase):
         ]
 
     # Dynamic properties
-    @property
+    @cached_property
     def is_valid(self) -> bool:
         # Is valid if no error and no answers have errors
-        return (
-            self.error is None and not self.answers.filter(error__isnull=True).exists()
-        )
+        if self.error:
+            return False
+
+        answers = self.answers.all()
+        return all(a.error is None for a in answers)
 
 
 class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
