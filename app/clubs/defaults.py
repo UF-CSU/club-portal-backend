@@ -84,6 +84,7 @@ ADMIN_ROLE_PERMISSIONS = [
     "events.change_recurringevent",
     "events.delete_recurringevent",
     # Polls
+    "polls.add_poll",
     "polls.change_poll",
     "polls.delete_poll",
     "polls.view_pollsubmission",
