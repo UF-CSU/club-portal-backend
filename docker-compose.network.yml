@@ -4,7 +4,7 @@ services:
       context: .
       args:
         - DEV=true
-    # container_name: club-app-network
+    container_name: club-app-network
     volumes:
       - ./app:/app
       - ./scripts:/scripts
@@ -27,7 +27,7 @@ services:
       - cluster  
     deploy:
       # mode: replicated
-      replicas: 3
+      # replicas: 3
       # endpoint_mode: vip
 
   postgres:
@@ -152,6 +152,7 @@ services:
     environment:
       - SERVER_URI=club-app-network:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
+      - SERVER_REPLICA_URI=club-app-network:9000
 
 volumes:
   # postgres-clubs-network:
