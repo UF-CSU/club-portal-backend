@@ -1,17 +1,17 @@
 from datetime import timedelta
 
-from django.db.models import Prefetch, Q
-from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import permissions, status
-from rest_framework.response import Response
-
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
     FilterBackendBase,
     ModelViewSetBase,
     ObjectViewPermissions,
 )
+from django.db.models import Prefetch, Q
+from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions, status
+from rest_framework.response import Response
+
 from events.models import (
     Event,
     EventAttendanceLink,
@@ -120,6 +120,12 @@ class EventViewset(ModelViewSetBase):
             return qs.filter(Q(is_public=True) & Q(is_draft=False))
 
         return qs
+
+    def filter_queryset(self, queryset):
+        if self.action == "retrieve":
+            return queryset
+
+        return super().filter_queryset(queryset)
 
     def check_permissions(self, request):
         if self.action == "list" or self.action == "retrieve":
