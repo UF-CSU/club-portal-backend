@@ -20,7 +20,7 @@ services:
       - DJANGO_REDIS_URL=redis://clubs-network-redis:6379/1
       - POSTGRES_HOST=postgres-clubs-network
       - CSRF_TRUSTED_ORIGINS=http://localhost:3000
-      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8000}
+      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8080}
     depends_on:
       - postgres
     networks:
