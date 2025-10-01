@@ -317,6 +317,8 @@ class Event(EventFields):
 
     @poll.setter
     def poll(self, value):
+        if value is None:
+            return
         value.event = self
         value.save()
 

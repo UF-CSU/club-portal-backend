@@ -77,6 +77,66 @@ class ClubEventTests(TestsBase):
 
         self.assertEqual(event.poll, poll)
 
+    def test_event_serializer_update_poll(self):
+        """Should change the poll associated with an event"""
+
+        primary_club = create_test_club()
+        poll1 = create_test_poll()
+        poll2 = create_test_poll()
+
+        event = Event.objects.create(
+            name="Test event",
+            host=primary_club,
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
+            enable_attendance=False,
+        )
+        poll1.event = event
+        poll1.save()
+
+        self.assertEqual(event.poll, poll1)
+        self.assertEqual(poll1.event, event)
+        self.assertIsNone(poll2.event)
+
+        data = {"poll": poll2.pk}
+        serializer = EventSerializer(event, data=data, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+
+        event.refresh_from_db()
+        poll1.refresh_from_db()
+        poll2.refresh_from_db()
+        self.assertEqual(event.poll, poll2)
+        self.assertEqual(poll2.event, event)
+        self.assertIsNone(poll1.event)
+
+    def test_event_serializer_remove_poll(self):
+        """Should remove the poll associated with an event"""
+
+        primary_club = create_test_club()
+        poll = create_test_poll()
+
+        event = Event.objects.create(
+            name="Test event",
+            host=primary_club,
+            start_at=timezone.now(),
+            end_at=timezone.now() + timezone.timedelta(hours=2),
+            enable_attendance=False,
+        )
+        poll.event = event
+        poll.save()
+
+        self.assertEqual(event.poll, poll)
+        self.assertEqual(poll.event, event)
+
+        data = {"poll": None}
+        serializer = EventSerializer(event, data=data, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        event = serializer.save()
+
+        event.refresh_from_db()
+        self.assertIsNone(event.poll)
+
     def test_event_hosts(self):
         """Getting event hosts should return all clubs hosting event."""
 

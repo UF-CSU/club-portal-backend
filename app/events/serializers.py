@@ -140,9 +140,21 @@ class EventSerializer(ModelSerializerBase):
         return event
 
     def update(self, instance, validated_data):
+        has_poll = "poll" in validated_data
+        poll = validated_data.pop("poll", None)
         attachment_data = validated_data.pop("attachments", [])
 
+        # Unlink old poll
+        if has_poll and instance.poll and instance.poll != poll:
+            old_poll = instance.poll
+            old_poll.event = None
+            old_poll.save()
+
         event = super().update(instance, validated_data)
+
+        if poll:
+            instance.poll = poll
+            instance.save()
 
         event.attachments.clear()
 
