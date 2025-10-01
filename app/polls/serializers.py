@@ -277,6 +277,20 @@ class PollLinkNestedSerializer(ModelSerializerBase):
         fields = ["id", "url", "qrcode_url", "club"]
 
 
+class EventPollField(serializers.RelatedField):
+    """Custom field to handle nested poll creation or PK reference."""
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            serializer = PollNestedSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            return serializer.save()
+        return models.Poll.objects.get(pk=data)
+
+    def to_representation(self, value):
+        return PollNestedSerializer(value).data
+
+
 class PollNestedSerializer(ModelSerializerBase):
     """Show minimum information for a poll"""
 

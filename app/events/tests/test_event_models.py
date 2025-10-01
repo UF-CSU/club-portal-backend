@@ -5,12 +5,14 @@ from app.settings import EVENT_ATTENDANCE_REDIRECT_URL
 from clubs.tests.utils import create_test_club, create_test_clubs
 from core.abstracts.tests import TestsBase
 from events.models import Event
+from events.serializers import EventSerializer
+from polls.tests.utils import create_test_poll
 
 
 class ClubEventTests(TestsBase):
     """Unit tests for club events."""
 
-    def test_create_event_with_poll(self):
+    def test_create_event_with_attendance(self):
         """Should create an event and attendance poll."""
 
         primary_club = create_test_club()
@@ -24,7 +26,7 @@ class ClubEventTests(TestsBase):
         event.refresh_from_db()
         self.assertIsNotNone(event.poll)
 
-    def test_create_event_without_poll(self):
+    def test_create_event_without_attendance(self):
         """Should not create poll for event if attendance not enabled."""
 
         primary_club = create_test_club()
@@ -37,6 +39,43 @@ class ClubEventTests(TestsBase):
         )
         event.refresh_from_db()
         self.assertIsNone(event.poll)
+
+    def test_event_serializer_with_poll(self):
+        """Should create an event using a nested poll."""
+
+        primary_club = create_test_club()
+        poll_data = {"name": "Test Poll", "club": primary_club.pk}
+
+        data = {
+            "name": "Test Event",
+            "hosts": [{"club_id": primary_club.pk, "is_primary": True}],
+            "poll": poll_data,
+        }
+
+        serializer = EventSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        event = serializer.save()
+
+        self.assertIsNotNone(event.poll)
+        self.assertEqual(event.poll.name, poll_data["name"])
+
+    def test_event_serializer_with_existing_poll(self):
+        """Should create an event using an existing poll ID."""
+
+        primary_club = create_test_club()
+        poll = create_test_poll()
+
+        data = {
+            "name": "Test Event",
+            "hosts": [{"club_id": primary_club.pk, "is_primary": True}],
+            "poll": poll.pk,
+        }
+
+        serializer = EventSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        event = serializer.save()
+
+        self.assertEqual(event.poll, poll)
 
     def test_event_hosts(self):
         """Getting event hosts should return all clubs hosting event."""
