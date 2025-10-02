@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from django.http import HttpRequest, HttpResponse
 
@@ -20,14 +20,20 @@ class BaseMiddleware(ABC):
 
         return response
 
+    @abstractmethod
     def on_request(self, request: HttpRequest, *args, **kwargs):
         """
         Code to be executed for each request before
         the view (and later middleware) are called.
         """
 
+        pass
+
+    @abstractmethod
     def on_response(self, response: HttpResponse, *args, **kwargs):
         """
         Code to be executed for each request/response after
         the view is called.
         """
+
+        pass

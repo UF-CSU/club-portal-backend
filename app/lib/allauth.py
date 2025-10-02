@@ -20,7 +20,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
-
     def populate_user(self, request, sociallogin, data):
         email = data.get("email")
 

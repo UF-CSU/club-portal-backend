@@ -1,8 +1,8 @@
 coverage>=7.4.1,<7.5
-flake8>=7.0.0,<7.1
 black>=24.1.1,<25.2
 autoflake>=2.3.1,<2.4
 isort>=5.13.2,<5.14
+ruff>=0.13.3,<0.14
 
 django-extensions>=3.2.3,<3.3
 django-debug-toolbar>=6.0.0,<6.1

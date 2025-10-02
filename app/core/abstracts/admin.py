@@ -198,7 +198,7 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
                 wrap(self.download_csv_template),
                 name=self._url_name("csv_template"),
             ),
-        ] + super(ModelAdminBase, self).get_urls()
+        ] + super().get_urls()
 
         return urls
 

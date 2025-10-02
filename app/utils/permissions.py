@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -81,7 +81,7 @@ def get_perm_label(perm: Permission):
     return "%s.%s" % (app_label, codename)
 
 
-def get_perm_labels_for_model(model: Type[models.Model]):
+def get_perm_labels_for_model(model: type[models.Model]):
     """Return a list of permission labels for model."""
 
     content_type = ContentType.objects.get_for_model(model)

@@ -22,7 +22,7 @@ class TeamPrivateApiTests(PrivateApiTestsBase):
         club1 = list(Club.objects.all())[0]
         club2 = list(Club.objects.all())[1]
 
-        for i in range(TEAMS_PER_CLUB_COUNT):
+        for _i in range(TEAMS_PER_CLUB_COUNT):
             create_test_team(club1)
             create_test_team(club2)
 

@@ -188,7 +188,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
         self.message_user(
             request,
-            f'Successfully sent setup link to {queryset.count()} {plural_noun(queryset.count(), "user")}',
+            f"Successfully sent setup link to {queryset.count()} {plural_noun(queryset.count(), 'user')}",
         )
 
         return
@@ -204,7 +204,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
         self.message_user(
             request,
-            f'Successfully sent admin setup link to {queryset.count()} {plural_noun(queryset.count(), "user")}',
+            f"Successfully sent admin setup link to {queryset.count()} {plural_noun(queryset.count(), 'user')}",
         )
 
         return

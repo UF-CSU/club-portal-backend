@@ -53,10 +53,10 @@ def get_user_club_or_404(club_id: int, user: User):
 
     try:
         return Club.objects.get_for_user(club_id, user)
-    except Club.DoesNotExist:
+    except Club.DoesNotExist as e:
         raise exceptions.NotFound(
             detail="Club with id %s does not exist for user." % club_id
-        )
+        ) from e
 
 
 class ClubNestedViewSetBase(ModelViewSetBase):
@@ -291,7 +291,6 @@ class ClubMemberViewSet(
                 user_id = int(user_id)
                 club_id = int(club_id)
             except ValueError:
-
                 return self.queryset.none()
 
         self.queryset = self.queryset.filter(club__id=club_id, user__id=user_id)

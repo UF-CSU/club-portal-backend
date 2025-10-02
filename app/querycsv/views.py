@@ -1,7 +1,6 @@
 import logging
 import re
 from time import sleep
-from typing import Type
 
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect
@@ -17,11 +16,11 @@ from utils.logging import print_error
 
 
 class QueryCsvViewSet:
-    serializer_class: Type[ModelSerializerBase]
+    serializer_class: type[ModelSerializerBase]
 
     def __init__(
         self,
-        serializer_class: Type[ModelSerializerBase],
+        serializer_class: type[ModelSerializerBase],
         get_reverse: callable,
         message_user_fn=None,
     ):
@@ -66,7 +65,7 @@ class QueryCsvViewSet:
 
                     for i in range(5):
                         try:
-                            job.spreadsheet.columns
+                            assert len(job.spreadsheet.columns) >= 0
                             break
                         except Exception as e:
                             if i == 4:

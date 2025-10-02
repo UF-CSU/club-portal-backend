@@ -5,9 +5,7 @@ Api Views for core app functionalities.
 from datetime import datetime, timedelta
 
 import sentry_sdk
-from app.settings import S3_STORAGE_BACKEND
 from celery import Celery
-from clubs.models import Club
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
@@ -20,6 +18,9 @@ from django_celery_beat.models import PeriodicTask
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import exception_handler
+
+from app.settings import S3_STORAGE_BACKEND
+from clubs.models import Club
 from utils.admin import get_admin_context
 from utils.logging import print_error
 
@@ -79,7 +80,7 @@ def sys_info(request):
     # Celery
     try:
         app = Celery()
-        app.control.heartbeat
+        app.control.heartbeat  # noqa: B018
         celery_status = "Online"
     except Exception:
         celery_status = "Offline"
@@ -96,9 +97,9 @@ def sys_info(request):
             heartbeat_obj = heartbeat_obj.first()
             delta = datetime.now(timezone.utc) - heartbeat_obj.last_run_at
 
-            assert delta < timedelta(
-                minutes=2
-            ), f"Last heart beat was greater than 2 minutes ago: {delta}"
+            assert delta < timedelta(minutes=2), (
+                f"Last heart beat was greater than 2 minutes ago: {delta}"
+            )
 
             cb_status = "Online"
     except Exception as e:

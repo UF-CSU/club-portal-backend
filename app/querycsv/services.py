@@ -1,6 +1,7 @@
 import re
+from collections import OrderedDict
 from enum import Enum
-from typing import Literal, Optional, OrderedDict, Type, TypedDict
+from typing import Literal, Optional, TypedDict
 
 import pandas as pd
 from django.db import models
@@ -31,7 +32,7 @@ class QueryCsvService:
 
     def __init__(
         self,
-        serializer_class: Type[CsvModelSerializer],
+        serializer_class: type[CsvModelSerializer],
         job: Optional[QueryCsvUploadJob] = None,
     ):
         self.serializer_class = serializer_class
@@ -109,7 +110,7 @@ class QueryCsvService:
 
     @classmethod
     def queryset_to_csv(
-        cls, queryset: models.QuerySet, serializer_class: Type[ModelSerializerBase]
+        cls, queryset: models.QuerySet, serializer_class: type[ModelSerializerBase]
     ):
         """Print a queryset to a csv, return file path."""
 
@@ -241,9 +242,9 @@ class QueryCsvService:
 
                     # Determine type
                     numbers = re.findall(r"\d+", column_name)
-                    assert (
-                        len(numbers) <= 1
-                    ), "List items can only contain 0 or 1 numbers (multi digit allowed)."
+                    assert len(numbers) <= 1, (
+                        "List items can only contain 0 or 1 numbers (multi digit allowed)."
+                    )
 
                     if len(numbers) == 1:
                         # Number was provided in spreadsheet

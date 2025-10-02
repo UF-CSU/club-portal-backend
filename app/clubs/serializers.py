@@ -512,7 +512,7 @@ class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipCreateSerial
     )
 
     def __init__(self, instance=None, data=empty, **kwargs):
-        super(ClubMembershipCsvSerializer, self).__init__(instance, data, **kwargs)
+        super().__init__(instance, data, **kwargs)
         self.club = None
 
         if instance is not None:
@@ -669,9 +669,9 @@ class TeamCsvSerializer(CsvModelSerializer):
         for role in roles:
             TeamRole.objects.get_or_create(team=self.instance, name=role)
 
-        self.fields["members"].child.fields["roles"].child_relation.queryset = (
-            TeamRole.objects.filter(team=self.instance)
-        )
+        self.fields["members"].child.fields[
+            "roles"
+        ].child_relation.queryset = TeamRole.objects.filter(team=self.instance)
 
 
 class ClubRoleCsvSerializer(CsvModelSerializer):

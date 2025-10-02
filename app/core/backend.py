@@ -70,9 +70,9 @@ class CustomBackend(ModelBackend):
             return super(ModelBackend, self).has_perm(user_obj, perm, obj)
 
         if obj.scope == ScopeType.CLUB:
-            assert hasattr(
-                obj, "clubs"
-            ), 'Club scoped objects must have a "clubs" attribute that returns a queryset or ManyToManyRel.'
+            assert hasattr(obj, "clubs"), (
+                'Club scoped objects must have a "clubs" attribute that returns a queryset or ManyToManyRel.'
+            )
 
             scoped_clubs = obj.clubs.all()
 

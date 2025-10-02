@@ -2,7 +2,7 @@
   "python.analysis.typeCheckingMode": "off",
   "python.analysis.autoImportCompletions": true,
   "python.analysis.inlayHints.callArgumentNames": "off",
-  "flake8.args": ["--config=app/.flake8"],
+  // "flake8.args": ["--config=app/.flake8"],
   // "python.autoComplete.extraPaths": ["app"],
   "python.analysis.extraPaths": ["app"],
   "python.analysis.packageIndexDepths": [

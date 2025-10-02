@@ -372,7 +372,6 @@ class PollFieldManager(ManagerBase["PollField"]):
     """Manage queries with Poll Fields."""
 
     def create(self, poll: Poll, **kwargs):
-
         return super().create(poll=poll, **kwargs)
 
 
@@ -446,7 +445,6 @@ class PollQuestionManager(ManagerBase["PollQuestion"]):
         create_input=False,
         **kwargs,
     ):
-
         question = super().create(
             field=field, label=label, input_type=input_type, **kwargs
         )
