@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.db.utils import OperationalError
 from django.test import TestCase
-from psycopg2 import OperationalError as Psycopg2Error  # type: ignore
+from psycopg import OperationalError as PsycopgError  # type: ignore
 
 User = get_user_model()
 
@@ -35,7 +35,7 @@ class CommandTests(TestCase):
         """Test waiting for db when getting operationalError."""
         # mock raising an exception with .side_effect
         patched_check.side_effect = (
-            [Psycopg2Error] * 2 + [OperationalError] * 3 + [True]
+            [PsycopgError] * 2 + [OperationalError] * 3 + [True]
         )
         # first 2 times called, raise psycopg2error
         # then next 3 times raise operationalerror

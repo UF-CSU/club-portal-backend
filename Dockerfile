@@ -1,4 +1,4 @@
-FROM python:3.13-alpine3.20
+FROM python:3.13.7-alpine3.22
 
 LABEL maintainer="ikehunter.com"
 
@@ -13,7 +13,7 @@ ARG DEV=false
 
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
-    # Psycopg2 & handling images
+    # Psycopg & handling images
     apk add --update --no-cache postgresql-client jpeg-dev && \
     # Oauth, health checks
     apk add --update --no-cache xmlsec-dev curl && \
@@ -22,7 +22,7 @@ RUN python -m venv /py && \
     build-base gcc musl-dev zlib zlib-dev linux-headers \
     # Oauth, celery, etc
     libressl libffi-dev libxslt-dev libxml2-dev \
-    # Psycopg2
+    # Psycopg
     postgresql-dev && \
     /py/bin/pip install uwsgi==2.0.28 --retries 10
 

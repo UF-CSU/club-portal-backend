@@ -5,7 +5,9 @@ Api Views for core app functionalities.
 from datetime import datetime, timedelta
 
 import sentry_sdk
+from app.settings import S3_STORAGE_BACKEND
 from celery import Celery
+from clubs.models import Club
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
@@ -18,10 +20,6 @@ from django_celery_beat.models import PeriodicTask
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import exception_handler
-from sendgrid import SendGridAPIClient
-
-from app.settings import EMAIL_HOST, S3_STORAGE_BACKEND, SENDGRID_API_KEY
-from clubs.models import Club
 from utils.admin import get_admin_context
 from utils.logging import print_error
 
@@ -129,20 +127,5 @@ def sys_info(request):
         s3_status = "Disabled"
 
     context["services"]["S3 Backend"] = s3_status
-
-    # Sendgrid
-    if EMAIL_HOST == "smtp.sendgrid.net":
-        try:
-            client = SendGridAPIClient(SENDGRID_API_KEY)
-            client.client.templates.get()
-            sg_status = "Online"
-        except Exception as e:
-            sg_status = "Offline"
-            print_error()
-            sentry_sdk.capture_exception(e)
-    else:
-        sg_status = "Disabled"
-
-    context["services"]["SendGrid"] = sg_status
 
     return render(request, "core/system_info.html", context=context)
