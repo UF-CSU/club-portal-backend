@@ -30,14 +30,15 @@ def index(request):
     server_time = timezone.now().strftime("%d/%m/%Y, %H:%M:%S")
     clubs = Club.objects.find()
 
-    return render(
-        request, "core/landing.html", context={"time": server_time, "clubs": clubs}
-    )
+    return render(request, "core/landing.html", context={"time": server_time, "clubs": clubs})
 
 
-def health_check(request):
+async def health_check(request):
     """API Health Check."""
     payload = {"status": 200, "message": "Systems operational."}
+
+    await Club.objects.afirst()
+
     return JsonResponse(payload, status=200)
 
 
@@ -49,9 +50,7 @@ def api_exception_handler(exc, context):
         response.data["status_code"] = response.status_code
     else:
         print_error()
-        response = Response(
-            {"status_code": 400, "detail": str(exc)}, status=HTTP_400_BAD_REQUEST
-        )
+        response = Response({"status_code": 400, "detail": str(exc)}, status=HTTP_400_BAD_REQUEST)
 
     return response
 
@@ -97,9 +96,9 @@ def sys_info(request):
             heartbeat_obj = heartbeat_obj.first()
             delta = datetime.now(timezone.utc) - heartbeat_obj.last_run_at
 
-            assert delta < timedelta(minutes=2), (
-                f"Last heart beat was greater than 2 minutes ago: {delta}"
-            )
+            assert delta < timedelta(
+                minutes=2
+            ), f"Last heart beat was greater than 2 minutes ago: {delta}"
 
             cb_status = "Online"
     except Exception as e:

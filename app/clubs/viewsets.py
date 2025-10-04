@@ -188,8 +188,8 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
         return super().retrieve(request, *args, **kwargs)
 
     # Cache list view for 2 hours (per Authorization header)
-    @method_decorator(cache_page(60 * 60 * 2))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 60 * 2))
+    # @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 

@@ -28,9 +28,7 @@ def environ_bool(key: str, default=0):
 
 
 def environ_list(key: str, default=""):
-    return [
-        item.strip() for item in filter(None, os.environ.get(key, default).split(","))
-    ]
+    return [item.strip() for item in filter(None, os.environ.get(key, default).split(","))]
 
 
 # Quick-start development settings - unsuitable for production
@@ -70,6 +68,8 @@ POLL_SUBMISSION_REDIRECT_URL = os.environ.get(
 DJANGO_ENABLE_API_SESSION_AUTH = False
 
 SCHOOL_EMAIL_DOMAIN = "ufl.edu"
+
+ASGI_APPLICATION = "app.asgi.application"
 
 # Application definition
 
@@ -111,7 +111,7 @@ MIDDLEWARE = [
     # "django.middleware.csrf.CsrfViewMiddleware", # TODO: Enable CSRF, implement with frontend
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
+    # "django.middleware.locale.LocaleMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.TimezoneMiddleware",
 ]
@@ -156,11 +156,19 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "HOST": os.environ.get("POSTGRES_HOST"),
+        "PORT": os.environ.get("POSTGRES_PORT"),
         "NAME": os.environ.get("POSTGRES_NAME"),
         "USER": os.environ.get("POSTGRES_USER"),
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
-        "OPTIONS": {"pool": os.environ.get("POSTGRES_POOL_SIZE", 0)},
+        "CONN_MAX_AGE": 0,
+        "OPTIONS": {
+            "pool": {
+                "min_size": 1,
+                "max_size": int(os.environ.get("POSTGRES_MAX_POOL_SIZE", 1)),
+                "timeout": 60,
+            }
+        },
     }
 }
 
@@ -243,13 +251,29 @@ SPECTACULAR_SETTINGS = {
         "ErrorCode429Enum": "drf_standardized_errors.openapi_serializers.ErrorCode429Enum.choices",
         "ErrorCode500Enum": "drf_standardized_errors.openapi_serializers.ErrorCode500Enum.choices",
     },
-    "POSTPROCESSING_HOOKS": [
-        "drf_standardized_errors.openapi_hooks.postprocess_schema_enums"
-    ],
+    "POSTPROCESSING_HOOKS": ["drf_standardized_errors.openapi_hooks.postprocess_schema_enums"],
 }
 DRF_STANDARDIZED_ERRORS = {"ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True}
 
 FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+        },
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],  # Use the handler configured for DEBUG
+            "level": "DEBUG",
+            "propagate": False,  # Prevents messages from being passed to parent loggers
+        },
+    },
+}
 
 
 ###############################
@@ -339,9 +363,8 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
 
 # Sentry
-sentry_sdk.init(
-    dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0
-)
+sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0)
+
 
 ######################
 # == Email Config == #
@@ -422,9 +445,7 @@ if DEV:
     # Insert near top, adjust pos as needed
     MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
-    CSRF_TRUSTED_ORIGINS.extend(
-        ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
-    )
+    CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
 
     INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
