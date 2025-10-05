@@ -7,8 +7,10 @@ on:
       - 'staging'
 
 jobs:
-  flake8-linting:
+  ruff-linting:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +37,8 @@ jobs:
 
   black-formatting:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4

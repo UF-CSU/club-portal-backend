@@ -255,24 +255,6 @@ DRF_STANDARDIZED_ERRORS = {"ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True}
 
 FIXTURE_DIRS = [os.path.join(BASE_DIR, "fixtures")]
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "level": "DEBUG",
-        },
-    },
-    "loggers": {
-        "django.request": {
-            "handlers": ["console"],  # Use the handler configured for DEBUG
-            "level": "DEBUG",
-            "propagate": False,  # Prevents messages from being passed to parent loggers
-        },
-    },
-}
-
 
 ###############################
 # == Auth & Session Config == #
@@ -450,6 +432,24 @@ if DEV:
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
 
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": "DEBUG",
+            },
+        },
+        "loggers": {
+            "django.request": {
+                "handlers": ["console"],  # Use the handler configured for DEBUG
+                "level": "DEBUG",
+                "propagate": False,  # Prevents messages from being passed to parent loggers
+            },
+        },
+    }
+
 if DEV and not TESTING:
 
     # Ref: https://stackoverflow.com/a/64726422/10914922
@@ -461,11 +461,12 @@ if DEV and not TESTING:
         "IS_RUNNING_TESTS": False,
     }
 
-DJANGO_ENABLE_API_SESSION_AUTH = environ_bool("DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1)
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
     logging.disable(logging.NOTSET)
+
+    DJANGO_ENABLE_API_SESSION_AUTH = environ_bool("DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1)
 
 
 if TESTING:
