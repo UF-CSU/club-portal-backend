@@ -116,8 +116,6 @@ MIDDLEWARE = [
     "core.middleware.TimezoneMiddleware",
 ]
 
-# TODO: Add CORS settings
-CORS_ORIGIN_ALLOW_ALL = True
 
 ROOT_URLCONF = "app.urls"
 
@@ -446,6 +444,7 @@ if DEV:
     MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
+    CORS_ORIGIN_ALLOW_ALL = True
 
     INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
