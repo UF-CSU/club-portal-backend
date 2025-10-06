@@ -44,6 +44,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # Start/end times
         start_time = rec_ev.event_start_time
         end_time = rec_ev.event_end_time
+        host = rec_ev.club
 
         # Start/end dates, accounting for multiple days
         event_start = datetime.datetime.combine(
@@ -107,20 +108,22 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 start_at=event_start,
                 end_at=event_end,
                 recurring_event=rec_ev,
+                host = host
             )
 
         # Update event with rest of fields
         for key, value in rec_ev.get_event_update_kwargs().items():
             setattr(event, key, value)
-
-        event.save()
-
+        
         # Sync hosts
+
         if rec_ev.club:
             event.add_host(rec_ev.club, is_primary=True)
 
         if rec_ev.other_clubs.all().count() > 0:
             event.add_hosts(*rec_ev.other_clubs.all())
+
+        event.save()
 
         # Sync attachments
         # TODO: Should admins be allowed to set custom attachments for individual events?

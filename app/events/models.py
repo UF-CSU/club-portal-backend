@@ -208,7 +208,7 @@ class RecurringEvent(EventFields):
     def clubs(self):
         return Club.objects.filter(
             models.Q(id=self.club.id)
-            | models.Q(id__id=list(self.other_clubs.all().values_list("id", flat=True)))
+            | models.Q(id__in=list(self.other_clubs.all().values_list("id", flat=True)))
         )
 
     # Overrides

@@ -430,3 +430,40 @@ class RecurringEventTests(TestsBase):
             self.assertEqual(event.description, desc2)
             self.assertEqual(event.start_at.time(), start2)
             self.assertEqual(event.end_at.time(), end2)
+
+    def test_create_events_with_poll(self):
+        """Should properly create events with attendance polls."""
+
+        primary_club = create_test_club()
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
+            start_date=timezone.datetime(2025, 7, 20),
+            end_date=timezone.datetime(2025, 8, 2),
+            event_start_time=datetime.time(hour=23, minute=0, second=0),
+            event_end_time=datetime.time(hour=1, minute=0, second=0),
+            club = primary_club,
+            enable_attendance = True
+        )
+        service = RecurringEventService(rec)
+        service.sync_events()
+
+        event = Event.objects.first()
+        self.assertEqual(event.recurring_event.id, rec.id)
+
+        self.assertDatesEqual(
+            event.start_at, datetime.datetime(2025, 7, 21, hour=23, minute=0, second=0)
+        )
+        self.assertDatesEqual(
+            event.end_at, datetime.datetime(2025, 7, 22, hour=1, minute=0, second=0)
+        )
+
+        # Check resyncing events
+        count_before = Event.objects.count()
+        service.sync_events()
+        service.sync_events()
+        service.sync_events()
+
+        self.assertEqual(Event.objects.count(), count_before)
