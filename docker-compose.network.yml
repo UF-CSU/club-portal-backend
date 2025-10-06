@@ -21,10 +21,11 @@ services:
       - POSTGRES_HOST=postgres-clubs-network
       - CSRF_TRUSTED_ORIGINS=http://localhost:3000
       - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8080}
+      - WORKER_COUNT=${WORKER_COUNT:-10}
     depends_on:
       - postgres
     networks:
-      - cluster  
+      - cluster
     deploy:
       # mode: replicated
       # replicas: 3
@@ -59,7 +60,7 @@ services:
       #   - DEV=true
     restart: unless-stopped
     user: django-user
-    command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+    command: ["celery", "-A", "app", "worker", "--loglevel=info"]
     volumes:
       - ./app:/app
       # - static-clubs-network:/vol/web
@@ -87,13 +88,13 @@ services:
     restart: unless-stopped
     command:
       [
-        'celery',
-        '-A',
-        'app',
-        'beat',
-        '--loglevel=info',
-        '--scheduler',
-        'django_celery_beat.schedulers:DatabaseScheduler'
+        "celery",
+        "-A",
+        "app",
+        "beat",
+        "--loglevel=info",
+        "--scheduler",
+        "django_celery_beat.schedulers:DatabaseScheduler",
       ]
     volumes:
       - ./app:/app
@@ -114,7 +115,6 @@ services:
     networks:
       - cluster
 
-    
   mail:
     # Docs: https://mailpit.axllent.org/docs/install/docker/
     # Repo: https://github.com/axllent/mailpit?tab=readme-ov-file
@@ -160,7 +160,6 @@ volumes:
   postgres-clubs-dev:
   static-clubs-dev:
   mail-clubs-dev:
-
 
 networks:
   cluster:

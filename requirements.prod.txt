@@ -1,11 +1,12 @@
 # Not required for local dev
 
 # AWS S3
-boto3>=1.34.0,<1.35.0
-django-storages>=1.14.3,<1.15.0
+boto3>=1.40.42,<1.41
+django-storages>=1.14.6,<1.15
 
 # Sentry
-sentry-sdk>=2.22.0,<2.23
+sentry-sdk>=2.39.0,<2.40
 
 # Postgres
-psycopg2>=2.9.3,<2.10
+psycopg[c]>=3.2.10,<3.3
+psycopg[pool]>=3.2.6,<3.3

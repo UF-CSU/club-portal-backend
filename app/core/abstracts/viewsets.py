@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Type, TypedDict
+from typing import Literal, Optional, TypedDict
 
 from django.db import models
 from django.template import loader
@@ -48,7 +48,7 @@ class ViewSetBase(GenericViewSet):
     They are defined in the same place the url is defined.
     """
 
-    filterset_class: Type
+    filterset_class: type
     """Optionally pass a filterset class to define complex filtering."""
 
     filterset_fields: list
@@ -192,7 +192,6 @@ class FilterBackendBase(filters.BaseFilterBackend):
         context = {"fields": []}
 
         for field in self.filter_fields:
-
             if field.get("schema_type", "string") == "boolean":
                 html_field_template = "core/filters/boolean_input.html"
             else:

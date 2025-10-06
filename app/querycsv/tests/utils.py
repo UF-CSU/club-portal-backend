@@ -75,7 +75,7 @@ class CsvDataTestsBase(TestsBase):
     def update_dataset(self):
         objects = list(self.repo.all())
 
-        for i in range(self.update_size):
+        for _i in range(self.update_size):
             obj = random.choice(objects)
             objects.remove(obj)
 
@@ -225,7 +225,7 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
         super().initialize_dataset()
 
         m2o_objects = []
-        for i in range(self.m2o_size):
+        for _i in range(self.m2o_size):
             m2o_objects.append(self.create_mock_m2o_object())
 
         for obj in self.repo.all():
@@ -253,7 +253,7 @@ class CsvDataM2OTestsBase(CsvDataTestsBase):
         """Compare actual objects in the database with expected values in csv."""
 
         # Compare csv value with actual value
-        for index, row in df.iterrows():
+        for _index, row in df.iterrows():
             # Raw values in csv
             expected_value = row[self.m2o_serializer_key]
 
@@ -333,14 +333,13 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
             self.m2m_model_selector = self.m2m_serializer_key
 
     def get_m2m_create_params(self, **kwargs):
-
         return {"name": fake.title(), **kwargs}
 
     def initialize_dataset(self):
         super().initialize_dataset()
 
         m2m_objects = []
-        for i in range(self.m2m_size):
+        for _i in range(self.m2m_size):
             m2m_objects.append(self.create_mock_m2m_object())
 
         for obj in self.repo.all():
@@ -349,7 +348,7 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
             assignment_count = random.randint(0, self.m2m_assignment_max)
             selected_m2m_objects = random.sample(m2m_objects, assignment_count)
 
-            for i, m2m_obj in enumerate(selected_m2m_objects):
+            for _i, m2m_obj in enumerate(selected_m2m_objects):
                 m2m_repo.add(m2m_obj)
 
             obj.save()
@@ -368,7 +367,7 @@ class CsvDataM2MTestsBase(CsvDataTestsBase):
         """Compare expected objects in the csv with actual objects from database."""
 
         # Compare csv value with actual value
-        for index, row in df.iterrows():
+        for _index, row in df.iterrows():
             # Raw value in csv
             expected_value = row[self.m2m_serializer_key]
 

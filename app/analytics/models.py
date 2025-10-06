@@ -17,7 +17,6 @@ class LinkManager(ManagerBase["Link"]):
     """Manage queries for Links."""
 
     def create(self, target_url: str, club, create_qrcode=False, **kwargs):
-
         link = super().create(target_url=target_url, club=club, **kwargs)
 
         if create_qrcode:

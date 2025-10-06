@@ -383,8 +383,10 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
         question_id = data.get("question")
 
         res = super().run_prevalidation(data)
-        self.fields["options_value"].child_relation.queryset = (
-            models.ChoiceInputOption.objects.filter(input__question__id=question_id)
+        self.fields[
+            "options_value"
+        ].child_relation.queryset = models.ChoiceInputOption.objects.filter(
+            input__question__id=question_id
         )
 
         return res

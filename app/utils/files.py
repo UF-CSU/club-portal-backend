@@ -48,9 +48,9 @@ def get_media_path(
             # fileprefix = timezone.now().strftime("%d-%m-%Y_%H:%M:%S")
             fileprefix = "image"
 
-        assert (
-            fileext is not None
-        ), "If using a file prefix, a file extension must also be provided."
+        assert fileext is not None, (
+            "If using a file prefix, a file extension must also be provided."
+        )
         assert not fileext.startswith("."), "File extension must not start with a dot."
 
         filename = f"{fileprefix}-{uuid.uuid4()}.{fileext}"

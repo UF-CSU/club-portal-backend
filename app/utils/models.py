@@ -16,7 +16,7 @@ from utils.types import T
 
 
 @deconstructible
-class UploadFilepathFactory(object):
+class UploadFilepathFactory:
     """
     Create function for model FileField to rename file and upload to a path.
 
@@ -46,7 +46,7 @@ class UploadFilepathFactory(object):
 
         path = self._parse_path(instance)
 
-        filename = "{}.{}".format(uuid.uuid4().hex, extension)
+        filename = f"{uuid.uuid4().hex}.{extension}"
         nested_dirs = [dirname for dirname in path.split("/") if dirname]
         return os.path.join("uploads", *nested_dirs, filename)
 
@@ -64,7 +64,7 @@ class UploadNestedClubFilepathFactory(UploadFilepathFactory):
 
 
 @deconstructible
-class ValidateImportString(object):
+class ValidateImportString:
     """
     Validate that a given string can be imported using the `import_from_path` function.
     """
@@ -74,15 +74,15 @@ class ValidateImportString(object):
 
     def __call__(self, text: str):
         symbol = import_from_path(text)
-        assert issubclass(
-            symbol, self.target_type
-        ), f"Imported object needs to be of type {self.target_type}, but got {type(symbol)}."
+        assert issubclass(symbol, self.target_type), (
+            f"Imported object needs to be of type {self.target_type}, but got {type(symbol)}."
+        )
 
 
 class ReverseOneToOneOrNoneDescriptor(ReverseOneToOneDescriptor):
     def __get__(self, instance, cls=None):
         try:
-            return super(ReverseOneToOneOrNoneDescriptor, self).__get__(instance, cls)
+            return super().__get__(instance, cls)
         except ObjectDoesNotExist:
             return None
 
@@ -116,7 +116,6 @@ class ArrayChoiceField(ArrayField):
         return super(ArrayField, self).formfield(**defaults)
 
     def clean(self, value, model_instance):
-
         if isinstance(value, list):
             for i, item in enumerate(value):
                 if isinstance(item, str) and str(item).isnumeric():

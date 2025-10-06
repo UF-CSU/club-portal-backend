@@ -1,10 +1,7 @@
-from typing import Generic
-
 from core.abstracts.models import ModelBase
-from utils.types import T
 
 
-class ServiceBase(Generic[T]):
+class ServiceBase[T]:
     model = ModelBase
     obj: T
 

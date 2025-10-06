@@ -32,7 +32,7 @@ services:
       - redis
 
   postgres:
-    image: postgres:13-alpine
+    image: postgres:15-alpine
     command: -c 'max_connections=200'
     restart: unless-stopped
     profiles:

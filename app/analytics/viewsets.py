@@ -19,7 +19,6 @@ class LinkViewSet(ModelViewSetBase):
 
     @action(detail=False, methods=["get", "delete"], url_path=r"club/(?P<id>\d+)")
     def filter_by_club(self, request, id=None):
-
         if id is not None:
             try:
                 id = int(id)

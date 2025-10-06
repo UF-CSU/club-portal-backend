@@ -146,7 +146,7 @@ class ClubRoleAdmin(ModelAdminBase):
 
         self.message_user(
             request,
-            message=f'Synced {queryset.count()} {plural_noun(queryset.count(), "role")}',
+            message=f"Synced {queryset.count()} {plural_noun(queryset.count(), 'role')}",
         )
 
         return

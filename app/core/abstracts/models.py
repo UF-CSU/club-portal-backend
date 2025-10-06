@@ -3,7 +3,8 @@ Abstract models for common fields.
 """
 
 import uuid
-from typing import Any, ClassVar, Generic, MutableMapping, Optional, Self, Type
+from collections.abc import MutableMapping
+from typing import Any, ClassVar, Optional, Self
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -13,13 +14,12 @@ from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
 from utils.permissions import get_perm_label
-from utils.types import T
 
 
-class ManagerBase(models.Manager, Generic[T]):
+class ManagerBase[T](models.Manager):
     """Extends django manager for improved db access."""
 
-    model: Type[T]
+    model: type[T]
 
     def create(self, **kwargs) -> T:
         """Create new model."""
@@ -114,7 +114,7 @@ class ManagerBase(models.Manager, Generic[T]):
         Use kwargs as lookup values, and update with defaults if exists
         or create with lookups and defaults otherwise.
         """
-        return super(ManagerBase, self).update_or_create(defaults, **kwargs)
+        return super().update_or_create(defaults, **kwargs)
 
     def all(self) -> models.QuerySet[T]:
         return super().all()
@@ -294,7 +294,6 @@ class SocialProfileBase(ModelBase):
         return f"{self.username or self.url} ({self.social_type})"
 
     def save(self, *args, **kwargs):
-
         if self.social_type or not self.url:
             return super().save(*args, **kwargs)
 

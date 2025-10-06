@@ -96,13 +96,12 @@ class PollAdmin(ModelAdminBase):
 
     @admin.action(description="Sync submission links for selected polls")
     def sync_submission_links(self, request, queryset):
-
         for poll in queryset:
             PollService(poll).sync_submission_link()
 
         self.message_user(
             request,
-            f'Synced {plural_noun_display(queryset.count(), "submission link")}.',
+            f"Synced {plural_noun_display(queryset.count(), 'submission link')}.",
         )
 
         return

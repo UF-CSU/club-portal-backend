@@ -19,8 +19,8 @@ class ClubService(ServiceBase[Club]):
     def _get_user_membership(self, user: User):
         try:
             return ClubMembership.objects.get(club=self.obj, user=user)
-        except ClubMembership.DoesNotExist:
-            raise exceptions.BadRequest(f"User is not a member of {self.obj}.")
+        except ClubMembership.DoesNotExist as e:
+            raise exceptions.BadRequest(f"User is not a member of {self.obj}.") from e
 
     @property
     def join_url(self):

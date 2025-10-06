@@ -474,7 +474,7 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         objects_before = self.initialize_csv_data()
 
         # Iterate through csv, manually add spacing
-        for i, row in self.df.iterrows():
+        for _i, row in self.df.iterrows():
             pre_value = row[self.m2m_serializer_key]
             pre_values = pre_value.split(",")
             modified_value = "  ,  ".join(pre_values)

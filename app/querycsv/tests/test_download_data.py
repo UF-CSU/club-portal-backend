@@ -58,7 +58,7 @@ class DownloadCsvM2OFieldsTests(DownloadCsvTestsBase, CsvDataM2OTestsBase):
         self.assertCsvHasFields(df)
 
         # For each row, check the many-to-one field
-        for index, row in df.iterrows():
+        for _index, row in df.iterrows():
             obj_id = row["id"]
             expected_obj = self.repo.get_by_id(obj_id)
 
@@ -94,7 +94,7 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
         self.assertCsvHasFields(df)
 
         # For each row, check the many-to-one field
-        for index, row in df.iterrows():
+        for _index, row in df.iterrows():
             obj_id = row["id"]
             expected_obj = self.repo.get_by_id(obj_id)
 
@@ -132,7 +132,7 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
 
         df = self.csv_to_df(filepath)
 
-        for index, row in df.iterrows():
+        for _index, row in df.iterrows():
             obj_id = row["id"]
             expected_obj = self.repo.get_by_id(obj_id)
 

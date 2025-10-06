@@ -47,13 +47,13 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
         # Start/end dates, accounting for multiple days
         event_start = datetime.datetime.combine(
-            event_date, start_time, tzinfo=timezone.utc
+            event_date, start_time, tzinfo=datetime.UTC
         )
 
         if rec_ev.event_start_time > rec_ev.event_end_time:
             event_date += datetime.timedelta(days=1)
 
-        event_end = datetime.datetime.combine(event_date, end_time, tzinfo=timezone.utc)
+        event_end = datetime.datetime.combine(event_date, end_time, tzinfo=datetime.UTC)
 
         # Find existing event
         query_date_start = timezone.datetime(

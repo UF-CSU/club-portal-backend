@@ -122,7 +122,7 @@ class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
                 serializer.validated_data.get("email")
             )
         except Exception as e:
-            raise ParseError(e, code="verification_error")
+            raise ParseError(e, code="verification_error") from e
 
         return serializer.data
 
@@ -144,7 +144,7 @@ class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
                 raise_exception=True,
             )
         except BadRequest as e:
-            raise ParseError(e, code="verification_error")
+            raise ParseError(e, code="verification_error") from e
 
         return Response({"success": True}, status=status.HTTP_201_CREATED)
 

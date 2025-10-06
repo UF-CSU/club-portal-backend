@@ -21,10 +21,10 @@ from utils.helpers import get_import_path, import_from_path
 def run_task(model_path: str, id: int, callback_path, *args, **kwargs):
     """Central task runner for all models that inherit schedule base."""
     model = apps.get_model(model_path)
-    instance: "ScheduleBase" = model.objects.get(id=id)
+    instance: ScheduleBase = model.objects.get(id=id)
 
     callback = import_from_path(callback_path)
-    callback(instance=instance, *args, **kwargs)
+    callback(*args, instance=instance, **kwargs)
 
 
 class ScheduleBase(ModelBase):
