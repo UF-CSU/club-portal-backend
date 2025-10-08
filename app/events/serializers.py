@@ -15,7 +15,8 @@ from events.models import (
 )
 from events.tasks import sync_recurring_event_task
 from lib.celery import delay_task
-from polls.serializers import PollNestedSerializer
+from polls.models import Poll
+from polls.serializers import EventPollField
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 
@@ -78,7 +79,7 @@ class EventSerializer(ModelSerializerBase):
         required=False,
     )
     attachments = ClubFileNestedSerializer(many=True, required=False)
-    poll = PollNestedSerializer(required=False, allow_null=True)
+    poll = EventPollField(queryset=Poll.objects.all(), required=False, allow_null=True)
     attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
 
     class Meta:
@@ -102,6 +103,7 @@ class EventSerializer(ModelSerializerBase):
         return super().validate(attrs)
 
     def create(self, validated_data):
+        poll = validated_data.pop("poll", None)
         hosts_data = validated_data.pop("hosts", [])
         attachment_data = validated_data.pop("attachments", [])
 
@@ -118,6 +120,10 @@ class EventSerializer(ModelSerializerBase):
 
         event = Event.objects.create(**validated_data)
 
+        if poll:
+            event.poll = poll
+            event.save()
+
         for host in hosts_data:
             EventHost.objects.create(
                 event=event, club=host["club"], is_primary=host.get("is_primary", False)
@@ -133,9 +139,22 @@ class EventSerializer(ModelSerializerBase):
         return event
 
     def update(self, instance, validated_data):
+        has_poll = "poll" in validated_data
+        poll = validated_data.pop("poll", None)
         attachment_data = validated_data.pop("attachments", [])
 
+        # Temporarily disable enable_attendance
+        enable_attendance = instance.enable_attendance
+        validated_data["enable_attendance"] = False
         event = super().update(instance, validated_data)
+
+        if has_poll and event.poll != poll:
+            event.poll = poll
+        event.refresh_from_db()
+
+        # Re-enable enable_attendance
+        event.enable_attendance = enable_attendance
+        event.save()
 
         event.attachments.clear()
 
