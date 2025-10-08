@@ -355,6 +355,18 @@ class PollSerializer(ModelSerializer):
 
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        has_event = "event" in validated_data
+        event = validated_data.pop("event", None)
+
+        if has_event:
+            if event:
+                validated_data["event"] = get_object_or_404(Event, id=event.get("id"))
+            else:
+                validated_data["event"] = None
+
+        return super().update(instance, validated_data)
+
 
 class PollPreviewSerializer(ModelSerializer):
     """Fields guest users can see for polls."""
