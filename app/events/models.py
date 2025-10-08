@@ -367,7 +367,7 @@ class Event(EventFields):
 
     def __str__(self) -> str:
         if self.start_at:
-            return super().__str__() + f' ({self.start_at.strftime("%a %m/%d")})'
+            return super().__str__() + f" ({self.start_at.strftime('%a %m/%d')})"
 
         return super().__str__()
 
@@ -501,7 +501,6 @@ class EventAttendance(ClubScopedModel, ModelBase):
         return PollSubmission.objects.find_one(poll=self.event.poll, user=self.user)
 
     class Meta:
-
         constraints = [
             models.UniqueConstraint(
                 fields=("event", "user"),

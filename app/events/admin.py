@@ -20,7 +20,6 @@ from utils.formatting import plural_noun_display
 
 
 class RecurringEventAdmin(admin.ModelAdmin):
-
     list_display = (
         "__str__",
         "days",
@@ -34,7 +33,6 @@ class RecurringEventAdmin(admin.ModelAdmin):
 
     @admin.action(description="Sync Events")
     def sync_events(self, request, queryset):
-
         for recurring in queryset.all():
             delay_task(sync_recurring_event_task, recurring_event_id=recurring.id)
             # RecurringEventService(recurring).sync_events()

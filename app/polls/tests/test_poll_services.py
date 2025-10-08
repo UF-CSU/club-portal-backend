@@ -170,7 +170,7 @@ class PollServiceTests(PeriodicTaskTestsBase):
             create_test_pollquestion(poll, label=f"Question {i + 1}")
 
         # Create submission
-        for i in range(SUBMISSION_COUNT):
+        for _i in range(SUBMISSION_COUNT):
             create_test_pollsubmission(poll)
 
         # Sanity checks

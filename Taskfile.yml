@@ -51,7 +51,7 @@ tasks:
       - build:network
     cmds:
       - docker-compose -f docker-compose.network.yml up
-  
+
   network:build:
     desc: 'Run server in network mode'
     deps:
@@ -60,19 +60,24 @@ tasks:
       - docker-compose -f docker-compose.network.yml up --build --force-recreate
 
   lint:
-    desc: 'Lint python using Flake8'
+    desc: 'Lint python rules using Ruff'
     cmds:
-      - docker-compose run --rm app sh -c "flake8"
+      - docker-compose run --rm app sh -c "ruff check"
+
+  lint:fix:
+    desc: 'Lint python rules using Ruff'
+    cmds:
+      - docker-compose run --rm app sh -c "ruff check --fix"
 
   format:
-    desc: 'Check code formatting using Black'
+    desc: 'Check code formatting conventions using Ruff/Black'
     cmds:
-      - docker-compose run --rm app sh -c "black --check . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --check --quiet --recursive --exclude "migrations" . && isort --check ."
+      - docker-compose run --rm app sh -c "ruff format --check"
 
   format:fix:
-    desc: 'Format code using Black'
+    desc: 'Format code using Ruff/Black'
     cmds:
-      - docker-compose run --rm app sh -c "until black --check . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --check --quiet --recursive --exclude 'migrations' . && isort --check .; do black . && autoflake --in-place --remove-all-unused-imports --remove-unused-variables --quiet --recursive --exclude 'migrations' . && isort .; done"
+      - docker-compose run --rm app sh -c "ruff format"
 
   test:
     desc: 'Run unit tests'
@@ -108,13 +113,6 @@ tasks:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py makemigrations --check"
-
-  makemigrations:network:
-    desc: 'Create migration files if any models have changed in network mode'
-    deps:
-      - build
-    cmds:
-      - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
 
   migrate:
     desc: 'Apply migrations to the database.'
@@ -173,7 +171,7 @@ tasks:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py generate_types"
-  
+
   generate_types:check:
     desc: 'Generate TypeScript types from serializers.'
     deps:

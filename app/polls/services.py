@@ -84,7 +84,7 @@ class PollService(ServiceBase[Poll]):
     def _validate_submission(self, submission: PollSubmission, raise_exception=False):
         """Check if a poll submission is valid."""
 
-        for answer in submission.answers.all():
+        for _answer in submission.answers.all():
             pass
 
         return submission
@@ -245,9 +245,9 @@ class PollService(ServiceBase[Poll]):
     def process_submission(self, submission: PollSubmission):
         """Run all actions for submission object."""
 
-        assert (
-            submission.poll.pk == self.obj.pk
-        ), f"Invalid submission, expected poll id {self.obj.pk} but found {submission.poll.id}."
+        assert submission.poll.pk == self.obj.pk, (
+            f"Invalid submission, expected poll id {self.obj.pk} but found {submission.poll.id}."
+        )
 
         self._validate_submission(submission)
         self._update_user_fields_from_submission(submission)

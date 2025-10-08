@@ -227,17 +227,25 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
             return
 
         # Check email unique among school emails
-        if Profile.objects.filter(school_email=self.email).exclude(user=self).exists():
+        if (
+            Profile.objects.filter(school_email=self.email)
+            .exclude(user__id=self.id)
+            .exists()
+        ):
             raise exceptions.ValidationError({"email": "Email is already in use"})
 
         # Check email unique among verified emails
-        if VerifiedEmail.objects.filter(email=self.email).exclude(user=self).exists():
+        if (
+            VerifiedEmail.objects.filter(email=self.email)
+            .exclude(user__id=self.id)
+            .exists()
+        ):
             raise exceptions.ValidationError({"email": "Email is already in use"})
 
         # Check username unique among verified emails
         if (
             VerifiedEmail.objects.filter(email=self.username)
-            .exclude(user=self)
+            .exclude(user__id=self.id)
             .exists()
         ):
             raise exceptions.ValidationError({"email": "Email is already in use"})
@@ -268,7 +276,7 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
                 # Username not same as a verified email
                 or (
                     VerifiedEmail.objects.filter(
-                        user=self, email=self.username
+                        user__id=self.id, email=self.username
                     ).exists()
                 )
             )

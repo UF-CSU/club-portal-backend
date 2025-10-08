@@ -41,9 +41,7 @@ class ClubMembershipInlineAdmin(admin.StackedInline):
         # Restrict roles to ones owned by club
         try:
             roles_qs = formset.form.base_fields["roles"].queryset
-            formset.form.base_fields["roles"].queryset = roles_qs.filter(
-                club__id=obj.id
-            )
+            formset.form.base_fields["roles"].queryset = roles_qs.filter(club__id=obj.id)
         except Exception as e:
             print("Unable to override membership field in admin:", e)
 
@@ -146,7 +144,7 @@ class ClubRoleAdmin(ModelAdminBase):
 
         self.message_user(
             request,
-            message=f'Synced {queryset.count()} {plural_noun(queryset.count(), "role")}',
+            message=f"Synced {queryset.count()} {plural_noun(queryset.count(), 'role')}",
         )
 
         return
@@ -174,6 +172,20 @@ class ClubMembershipAdmin(ModelAdminBase):
         "club__name",
         "club__alias",
     )
+
+    autocomplete_fields = (
+        "club",
+        "user",
+    )
+    filter_horizontal = ("roles",)
+
+    def get_exclude(self, request, obj=None):
+        excluded = super().get_exclude(request, obj) or []
+
+        if obj is None:
+            return excluded + ["roles"]
+
+        return excluded
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "roles" and "object_id" in request.resolver_match.kwargs:
@@ -203,9 +215,7 @@ class TeamMembershipInlineAdmin(admin.TabularInline):
         # Restrict roles to ones owned by club
         try:
             roles_qs = formset.form.base_fields["roles"].queryset
-            formset.form.base_fields["roles"].queryset = roles_qs.filter(
-                team__id=obj.id
-            )
+            formset.form.base_fields["roles"].queryset = roles_qs.filter(team__id=obj.id)
         except Exception as e:
             print("Unable to override membership field in admin:", e)
 

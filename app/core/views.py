@@ -18,9 +18,8 @@ from django_celery_beat.models import PeriodicTask
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.views import exception_handler
-from sendgrid import SendGridAPIClient
 
-from app.settings import EMAIL_HOST, S3_STORAGE_BACKEND, SENDGRID_API_KEY
+from app.settings import S3_STORAGE_BACKEND
 from clubs.models import Club
 from utils.admin import get_admin_context
 from utils.logging import print_error
@@ -31,14 +30,15 @@ def index(request):
     server_time = timezone.now().strftime("%d/%m/%Y, %H:%M:%S")
     clubs = Club.objects.find()
 
-    return render(
-        request, "core/landing.html", context={"time": server_time, "clubs": clubs}
-    )
+    return render(request, "core/landing.html", context={"time": server_time, "clubs": clubs})
 
 
-def health_check(request):
+async def health_check(request):
     """API Health Check."""
     payload = {"status": 200, "message": "Systems operational."}
+
+    await Club.objects.afirst()
+
     return JsonResponse(payload, status=200)
 
 
@@ -50,9 +50,7 @@ def api_exception_handler(exc, context):
         response.data["status_code"] = response.status_code
     else:
         print_error()
-        response = Response(
-            {"status_code": 400, "detail": str(exc)}, status=HTTP_400_BAD_REQUEST
-        )
+        response = Response({"status_code": 400, "detail": str(exc)}, status=HTTP_400_BAD_REQUEST)
 
     return response
 
@@ -81,7 +79,7 @@ def sys_info(request):
     # Celery
     try:
         app = Celery()
-        app.control.heartbeat
+        app.control.heartbeat  # noqa: B018
         celery_status = "Online"
     except Exception:
         celery_status = "Offline"
@@ -129,20 +127,5 @@ def sys_info(request):
         s3_status = "Disabled"
 
     context["services"]["S3 Backend"] = s3_status
-
-    # Sendgrid
-    if EMAIL_HOST == "smtp.sendgrid.net":
-        try:
-            client = SendGridAPIClient(SENDGRID_API_KEY)
-            client.client.templates.get()
-            sg_status = "Online"
-        except Exception as e:
-            sg_status = "Offline"
-            print_error()
-            sentry_sdk.capture_exception(e)
-    else:
-        sg_status = "Disabled"
-
-    context["services"]["SendGrid"] = sg_status
 
     return render(request, "core/system_info.html", context=context)

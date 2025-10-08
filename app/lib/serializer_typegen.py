@@ -8,7 +8,7 @@ import typing
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from ipaddress import IPv4Address, IPv6Address
-from typing import Literal, Optional, Type
+from typing import Literal, Optional
 from uuid import UUID
 
 from django.db import models
@@ -17,12 +17,12 @@ from rest_framework import serializers
 
 from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 
-ReadSerializerType = Type[SerializerBase]
-CreateSerializerType = Type[SerializerBase]
-UpdateSerializerType = Type[SerializerBase]
+ReadSerializerType = type[SerializerBase]
+CreateSerializerType = type[SerializerBase]
+UpdateSerializerType = type[SerializerBase]
 
 InputSerializerType = (
-    Type[SerializerBase]
+    type[SerializerBase]
     | tuple[ReadSerializerType, CreateSerializerType, UpdateSerializerType]
 )
 
@@ -142,7 +142,6 @@ class TypeGenerator:
         serializer_classes: list[InputSerializerType],
         readonly_serializer_classes: Optional[list[InputSerializerType]] = None,
     ):
-
         self.types_doc = ""
         self.serializer_classes = serializer_classes
         self.readonly_serializer_classes = readonly_serializer_classes
@@ -645,7 +644,7 @@ class TypeGenerator:
 
     def _generate_interface(
         self,
-        serializer_class: Type[ModelSerializerBase],
+        serializer_class: type[ModelSerializerBase],
         mode: Literal["create", "read", "update"],
     ):
         """Create TS Interface from serializer."""
@@ -752,7 +751,6 @@ class TypeGenerator:
             self.types_doc += SEPARATOR_TPL % ("Read Only Types")
 
         for serializer_class in self.readonly_serializer_classes:
-
             idoc = self._generate_interface(serializer_class, mode="read")
             self.types_doc += idoc
             self.types_doc += "\n"

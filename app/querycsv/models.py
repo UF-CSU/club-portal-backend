@@ -4,7 +4,7 @@ CSV data logging models.
 
 import logging
 from pathlib import Path
-from typing import ClassVar, Optional, Type, TypedDict
+from typing import ClassVar, Optional, TypedDict
 
 from django.core.files import File
 from django.core.validators import FileExtensionValidator
@@ -46,7 +46,7 @@ class QueryCsvUploadJobManager(ManagerBase["QueryCsvUploadJob"]):
 
     def create(
         self,
-        serializer_class: Type[serializers.Serializer],
+        serializer_class: type[serializers.Serializer],
         filepath: Optional[str] = None,
         notify_email: Optional[str] = None,
         **kwargs,
@@ -154,15 +154,15 @@ class QueryCsvUploadJob(ModelBase):
             return 0
 
     @property
-    def serializer_class(self) -> Type[CsvModelSerializer]:
+    def serializer_class(self) -> type[CsvModelSerializer]:
         return import_from_path(self.serializer)
 
     @serializer_class.setter
-    def serializer_class(self, value: Type[CsvModelSerializer]):
+    def serializer_class(self, value: type[CsvModelSerializer]):
         self.serializer = get_import_path(value)
 
     @cached_property
-    def model_class(self) -> Type[ModelBase]:
+    def model_class(self) -> type[ModelBase]:
         return self.serializer_class.Meta.model
 
     @cached_property
@@ -226,9 +226,9 @@ class QueryCsvUploadJob(ModelBase):
         if self.spreadsheet is not None:
             column_options = list(self.spreadsheet.columns)
 
-            assert (
-                column_name in column_options
-            ), f"The name {column_name} is not in available columns: {', '.join(column_options)}"
+            assert column_name in column_options, (
+                f"The name {column_name} is not in available columns: {', '.join(column_options)}"
+            )
 
         self.custom_field_mappings["fields"].append(
             {"column_name": column_name, "field_name": field_name}

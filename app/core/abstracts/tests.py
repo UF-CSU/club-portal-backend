@@ -1,7 +1,7 @@
 import datetime
 import json
 import os
-from typing import Literal, Optional, Type
+from typing import Literal, Optional
 
 from django import forms
 from django.core import mail
@@ -132,7 +132,6 @@ class TestsBase(TestCase):
 
 
 class APIClientWrapper(APIClient):
-
     def get(self, path, data=None, follow=False, **extra) -> Response:
         return super().get(path, data, follow, **extra)
 
@@ -268,7 +267,7 @@ class ViewTestsBase(PublicApiTestsBase):
     def assertHasForm(
         self,
         res: HttpResponse,
-        form_class: Type[forms.Form],
+        form_class: type[forms.Form],
         initial_data: dict | None = None,
     ) -> forms.Form:
         """Response should have a form object."""

@@ -1,7 +1,6 @@
 import copy
 from enum import Enum
 from time import sleep
-from typing import Type
 
 import requests
 from django.contrib.auth.models import Permission
@@ -14,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+
 from utils.helpers import get_full_url
 from utils.permissions import get_perm_label, get_permission
 
@@ -37,7 +37,7 @@ class SerializerBase(serializers.Serializer):
     def all_fields(self) -> list[str]:
         """Get list of all fields in serializer."""
 
-        return [key for key in self.get_fields().keys()]
+        return list(self.get_fields().keys())
 
     @cached_property
     def readable_fields(self) -> list[str]:
@@ -258,7 +258,7 @@ class ModelSerializerBase(SerializerBase, serializers.ModelSerializer):
         model = None
 
     @property
-    def model_class(self) -> Type[models.Model]:
+    def model_class(self) -> type[models.Model]:
         return self.Meta.model
 
     @cached_property
@@ -370,7 +370,7 @@ class ModelSerializer(ModelSerializerBase):
 class UpdateListSerializer(serializers.ListSerializer):
     # Ref: https://levelup.gitconnected.com/really-fast-bulk-updates-with-django-rest-framework-43594b18bd75
     def update(self, instances, validated_data):
-        instance_hash = {index: instance for index, instance in enumerate(instances)}
+        instance_hash = dict(enumerate(instances))
 
         result = [
             self.child.update(instance_hash[index], attrs)

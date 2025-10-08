@@ -1,6 +1,7 @@
 import re
 import traceback
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 
 from django.db import models
 from rest_framework import serializers
@@ -40,7 +41,7 @@ class FlatField:
         return "FlatField"
 
     def __repr__(self):
-        return f'<{self.__name__}: key={self.__str__()},  types={",".join([str(t) for t in self.field_types])}>'
+        return f"<{self.__name__}: key={self.__str__()},  types={','.join([str(t) for t in self.field_types])}>"
 
     def parse_value(self, value):
         """Given a raw value, will parse and return the current format."""
@@ -276,9 +277,9 @@ class FlatSerializer(SerializerBase):
                 # Handle nested object
 
                 main_field, nested_field = nested_obj_res.groups()
-                assert (
-                    main_field in self.nested_fields
-                ), f"Field {main_field} is not a nested object."
+                assert main_field in self.nested_fields, (
+                    f"Field {main_field} is not a nested object."
+                )
 
                 # Create new nested object if not exists
                 if main_field not in parsed.keys():
@@ -295,16 +296,16 @@ class FlatSerializer(SerializerBase):
                 main_field, index, nested_field = list_objs_res.groups()
                 index = int(index)
 
-                assert (
-                    main_field in self.many_nested_fields
-                ), f"Field {main_field} is not a list of nested objects {self.many_nested_fields}."
+                assert main_field in self.many_nested_fields, (
+                    f"Field {main_field} is not a list of nested objects {self.many_nested_fields}."
+                )
 
                 if main_field not in parsed.keys():
                     parsed[main_field] = []
 
-                assert isinstance(
-                    parsed[main_field], list
-                ), f"Inconsistent types for field {main_field}"
+                assert isinstance(parsed[main_field], list), (
+                    f"Inconsistent types for field {main_field}"
+                )
 
                 # Need to ensure the object is put at that specific location,
                 # since the other fields will expect it there.
@@ -584,7 +585,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
 
         try:
             instance = ModelClass._default_manager.create(**validated_data)
-        except TypeError:
+        except TypeError as e:
             tb = traceback.format_exc()
             msg = (
                 "Got a `TypeError` when calling `%s.%s.create()`. "
@@ -602,7 +603,7 @@ class CsvModelSerializer(FlatSerializer, ModelSerializerBase):
                     tb,
                 )
             )
-            raise TypeError(msg)
+            raise TypeError(msg) from e
 
         # Save many-to-many relationships after the instance is created.
         if many_to_many:

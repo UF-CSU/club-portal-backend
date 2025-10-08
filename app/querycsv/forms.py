@@ -27,7 +27,6 @@ class CsvHeaderMappingForm(forms.Form):
     )
 
     def __init__(self, *args, available_fields: list[str], **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.fields["object_field"].choices = [

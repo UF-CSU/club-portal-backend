@@ -30,7 +30,7 @@ def read_spreadsheet(path: str, file: File = None):
                 df = pd.json_normalize(data)
             else:
                 data = None
-                with open(path, mode="r") as f:
+                with open(path) as f:
                     data = json.load(f)
 
                 df = pd.json_normalize(data)

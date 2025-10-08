@@ -14,7 +14,7 @@ services:
     networks:
       - cluster
     healthcheck:
-      test: ['CMD-SHELL', 'healthcheck.sh']
+      test: ["CMD-SHELL", "healthcheck.sh"]
       interval: 60s
       timeout: 10s
       retries: 10
@@ -55,7 +55,7 @@ services:
       context: .
     restart: unless-stopped
     user: django-user
-    command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+    command: ["celery", "-A", "app", "worker", "--loglevel=info"]
     volumes:
       - ./app:/app
       - static-clubs-prod:/vol/web
@@ -76,13 +76,13 @@ services:
     restart: unless-stopped
     command:
       [
-        'celery',
-        '-A',
-        'app',
-        'beat',
-        '--loglevel=info',
-        '--scheduler',
-        'django_celery_beat.schedulers:DatabaseScheduler'
+        "celery",
+        "-A",
+        "app",
+        "beat",
+        "--loglevel=info",
+        "--scheduler",
+        "django_celery_beat.schedulers:DatabaseScheduler",
       ]
     volumes:
       - ./app:/app
@@ -122,12 +122,12 @@ services:
     networks:
       - cluster
 
-  # USED FOR TESTING ONLY
+  # # USED FOR TESTING ONLY
   # postgres:
-  #   image: postgres:13-alpine
-  #   command: -c 'max_connections=200'
+  #   image: postgres:15-alpine
+  #   command: -c 'max_connections=1000'
   #   volumes:
-  #     - postgres-clubs-dev:/var/lib/postgresql/data
+  #     - postgres-clubs-prod:/var/lib/postgresql/data
   #   environment:
   #     - POSTGRES_DB=devdatabase
   #     - POSTGRES_USER=devuser
@@ -135,12 +135,54 @@ services:
   #   networks:
   #     - cluster
 
+  # pgbouncer:
+  #   image: edoburu/pgbouncer
+  #   container_name: pgbouncer
+  #   restart: always
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - cluster
+  #   configs:
+  #     - source: pgbouncer.ini
+  #       target: /etc/pgbouncer/pgbouncer.ini
+  #     - source: userlist.txt
+  #       target: /etc/pgbouncer/userlist.txt
+
 volumes:
   static-clubs-prod:
 
-  # USED FOR TESTING ONLY
-  # static-clubs-dev:
-  # postgres-clubs-dev:
+  # # USED FOR TESTING ONLY
+  # postgres-clubs-prod:
+
+# # USED FOR TESTING ONLY
+# # Mimics production database pooling support
+# configs:
+#   pgbouncer.ini:
+#     content: |
+#       [databases]
+#       * = host=postgres port=5432 auth_user=devuser dbname=devdatabase
+#       devdatabase = host=postgres port=5432 auth_user=devuser
+
+#       [pgbouncer]
+#       listen_addr = *
+#       listen_port = 6432
+#       auth_type = plain
+#       auth_file = /etc/pgbouncer/userlist.txt
+#       pool_mode = transaction
+#       max_client_conn = 1000
+#       default_pool_size = 100
+
+#       client_idle_timeout = 600 ; 10 minutes
+#       server_idle_timeout = 300 ; 5 minutes
+#       server_lifetime = 3600 ; 1 hour
+#       query_wait_timeout = 120 ; 2 minutes
+#       connect_timeout = 5
+
+#       admin_users = devuser
+#   userlist.txt:
+#     content: |
+#       "devuser" "devpass"
 
 networks:
   cluster:
