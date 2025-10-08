@@ -144,17 +144,18 @@ class EventSerializer(ModelSerializerBase):
         poll = validated_data.pop("poll", None)
         attachment_data = validated_data.pop("attachments", [])
 
-        # Unlink old poll
-        if has_poll and instance.poll and instance.poll != poll:
-            old_poll = instance.poll
-            old_poll.event = None
-            old_poll.save()
-
+        # Temporarily disable enable_attendance
+        enable_attendance = instance.enable_attendance
+        validated_data["enable_attendance"] = False
         event = super().update(instance, validated_data)
 
-        if poll:
-            instance.poll = poll
-            instance.save()
+        if has_poll and event.poll != poll:
+            event.poll = poll
+        event.refresh_from_db()
+
+        # Re-enable enable_attendance
+        event.enable_attendance = enable_attendance
+        event.save()
 
         event.attachments.clear()
 
