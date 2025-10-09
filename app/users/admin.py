@@ -6,6 +6,8 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.db import models
+from django.http import HttpRequest
 from django.utils.safestring import mark_safe
 
 from clubs.models import ClubMembership
@@ -102,7 +104,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
     csv_serializer_class = UserCsvSerializer
 
     list_display = ("username", "email", "name", "is_staff")
-    search_fields = ("username", "name", "email")
+    search_fields = ("username", "email")
     select_related_fields = ("profile",)
     prefetch_related_fields = (
         "club_memberships",
@@ -163,6 +165,13 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
         if not getattr(obj, "profile", None):
             return False
         return obj.profile.is_school_email_verified
+
+    def get_search_results(
+        self, request: HttpRequest, queryset: models.QuerySet, search_term: str
+    ):
+        print("search term:", search_term)
+        queryset |= self.model.objects.filter(profile__name__contains=search_term)
+        return super().get_search_results(request, queryset, search_term)
 
     @admin.action
     def sync_permissions(self, request, queryset):

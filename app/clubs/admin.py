@@ -41,7 +41,9 @@ class ClubMembershipInlineAdmin(admin.StackedInline):
         # Restrict roles to ones owned by club
         try:
             roles_qs = formset.form.base_fields["roles"].queryset
-            formset.form.base_fields["roles"].queryset = roles_qs.filter(club__id=obj.id)
+            formset.form.base_fields["roles"].queryset = roles_qs.filter(
+                club__id=obj.id
+            )
         except Exception as e:
             print("Unable to override membership field in admin:", e)
 
@@ -215,7 +217,9 @@ class TeamMembershipInlineAdmin(admin.TabularInline):
         # Restrict roles to ones owned by club
         try:
             roles_qs = formset.form.base_fields["roles"].queryset
-            formset.form.base_fields["roles"].queryset = roles_qs.filter(team__id=obj.id)
+            formset.form.base_fields["roles"].queryset = roles_qs.filter(
+                team__id=obj.id
+            )
         except Exception as e:
             print("Unable to override membership field in admin:", e)
 
