@@ -24,11 +24,11 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         email = data.get("email")
 
         existing_user = User.objects.find_by_email(email=email)
-        if existing_user:
-            raise exceptions.AuthenticationFailed(
-                detail=f"User already exists with email {email}"
-            )
-
+#        if existing_user:
+#            raise exceptions.AuthenticationFailed(
+#                detail=f"User already exists with email {email}"
+#            )
+#
         return super().populate_user(request, sociallogin, data)
 
 

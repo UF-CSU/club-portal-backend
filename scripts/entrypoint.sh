@@ -15,4 +15,4 @@ python manage.py init_superuser
 # uwsgi --http :${PORT} --module app.wsgi --ini /app/uwsgi.ini
 # daphne -b 0.0.0.0 -p ${PORT} app.asgi:application
 
-gunicorn app.asgi:application -k uvicorn_worker.UvicornWorker 
+gunicorn app.asgi:application -k app.asgi.DjangoUvicornWorker
