@@ -5,7 +5,7 @@ from typing import Optional
 from django.core.files import File
 from django.db import models
 
-from app.settings import MEDIA_ROOT, S3_STORAGE_BACKEND
+from app.settings import MEDIA_URL, S3_STORAGE_BACKEND
 
 # def get_media_dir(nested_path=""):
 #     return Path(MEDIA_ROOT, nested_path)
@@ -36,7 +36,7 @@ def get_media_path(
     if nested_path.startswith("/"):
         nested_path = nested_path[1:]
 
-    path = Path(MEDIA_ROOT, nested_path)
+    path = Path(MEDIA_URL, nested_path)
 
     if create_path:
         path.mkdir(parents=True, exist_ok=True)

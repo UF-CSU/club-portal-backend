@@ -10,10 +10,22 @@ server {
   
   resolver 127.0.0.11 valid=5s;
   
-  location /static {
-    alias /vol/web;
+  # Pass media files directly to S3
+  location ~ ^/files/media/(.*)$ {
+    proxy_intercept_errors  on;
+    proxy_redirect          off;
+    proxy_hide_header       X-Amz-Id-2;
+    proxy_hide_header       X-Amz-Request-Id;
+    
+    proxy_pass "https://$S3_STORAGE_BUCKET_NAME.s3.amazonaws.com/$1";
   }
   
+  # Pass static files to mounted volume
+  location ~ ^/files/static/(.*)$ {
+    alias "/vol/web/static/$1";
+  }
+  
+  # Docs go to S3 bucket the files were uploaded to
   location /docs {
     proxy_intercept_errors  on;
     proxy_redirect          off;
@@ -23,6 +35,7 @@ server {
     proxy_pass              "$PROXY_DOCS_URI";
   }
   
+  # Pass everything else to Django
   location / {
     proxy_pass                 http://app_upstream;
     

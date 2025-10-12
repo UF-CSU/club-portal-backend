@@ -2,7 +2,6 @@
 
 # AWS S3
 boto3>=1.40.42,<1.41
-django-storages>=1.14.6,<1.15
 
 # Sentry
 sentry-sdk>=2.39.0,<2.40
