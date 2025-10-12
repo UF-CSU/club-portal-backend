@@ -7,6 +7,7 @@ PORT = os.environ.get("PORT", "9000")
 
 bind = f"0.0.0.0:{PORT}"
 
+lifespan = "off"
 timeout = 300
 workers = os.environ.get(
     "WORKER_COUNT", 5
