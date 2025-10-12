@@ -74,6 +74,7 @@ ASGI_APPLICATION = "app.asgi.application"
 # Application definition
 
 INSTALLED_APPS = [
+    "storages",
     "django_celery_beat",
     "rest_framework",
     "rest_framework.authtoken",
@@ -108,7 +109,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.middleware.common.CommonMiddleware",
-    # "django.middleware.csrf.CsrfViewMiddleware", # TODO: Enable CSRF, implement with frontend
+    # "django.middleware.csrf.CsrfViewMiddleware",  # TODO: Enable CSRF, implement with frontend
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # "django.middleware.locale.LocaleMiddleware",
@@ -160,13 +161,13 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
         "CONN_MAX_AGE": 0,
-        "OPTIONS": {
-            "pool": {
-                "min_size": 1,
-                "max_size": int(os.environ.get("POSTGRES_MAX_POOL_SIZE", 1)),
-                "timeout": 60,
-            }
-        },
+        # "OPTIONS": {
+        #     "pool": {
+        #         "min_size": 1,
+        #         "max_size": int(os.environ.get("POSTGRES_MAX_POOL_SIZE", 1)),
+        #         "timeout": 60,
+        #     }
+        # },
     }
 }
 
@@ -202,19 +203,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
-
-STATIC_URL = "/static/static/"
-MEDIA_URL = "/static/media/"
-
-MEDIA_ROOT = "/vol/web/media"
-STATIC_ROOT = "/vol/web/static"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -326,13 +314,27 @@ ACCOUNT_ADAPTER = "lib.allauth.CustomAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "lib.allauth.CustomSocialAccountAdapter"
 
 
-############################
-# ==  Production Config == #
-############################
-# AWS S3
-S3_STORAGE_BACKEND = bool(int(os.environ.get("S3_STORAGE_BACKEND", 1)))
-if S3_STORAGE_BACKEND is True and TESTING is False:
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+##########################################
+# == Production & Static Files Config == #
+##########################################
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+S3_STORAGE_BACKEND = environ_bool("S3_STORAGE_BACKEND", 1) and not TESTING
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+
+STATIC_URL = "/files/static/"
+MEDIA_URL = "/files/media/public/"
+
+STATIC_ROOT = "/vol/web/static"
+
+if S3_STORAGE_BACKEND:
+    # Set S3 Config
+    DEFAULT_FILE_STORAGE = "core.storages.PublicMediaStorage"
+else:
+    MEDIA_ROOT = "/vol/web/media"
+
 
 AWS_DEFAULT_ACL = "public-read"
 AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
@@ -419,13 +421,13 @@ if DEV:
     import socket
 
     # INSTALLED_APPS.append("debug_toolbar")
-    INSTALLED_APPS.append("django_browser_reload")
+    # INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
     # Insert near top, adjust pos as needed
     # MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     # DJANGO_ALLOW_ASYNC_UNSAFE = True  # Allows django debug toolbar to work
-    MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
+    # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
     CORS_ORIGIN_ALLOW_ALL = True
 
