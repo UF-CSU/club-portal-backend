@@ -56,49 +56,23 @@ def invite_club_admin_view(request):
         if form.is_valid():
             data = request.POST
 
-            print(data)
-
             email = data["email"]
             user = None
-            created = False
+
             try:
                 user = get_object_or_404(User, email=email)
             except:
-
-                print("No user")
-
                 user = User.objects.create_user(email)
-                created = True
-                #if not create user
-
-            print(user)
-
 
             club_id = data["club"]
             club = Club.objects.get(pk=club_id)
 
-            print(club)
-
             # Get list of club roles, and pick an admin role
             admin_roles = club.roles.filter(role_type=RoleType.ADMIN).exclude(name__iexact="President")
-            print(admin_roles)
             assigned_role = [admin_roles.first()]
-            print(assigned_role)
-
-            #check if they are a member
-            #try:
-            #    membership = ClubService(club)._get_user_membership(user)
-            #    
-            #except:
-            #    print()
-
-            #Email that they joined the club
-
 
             send_inv = data["send_inv"]
-            print(send_inv)
             #Email for account set up if needed
-
             ClubService(club).add_member(user, assigned_role, send_email=send_inv)
 
             #Email for account set up if needed
