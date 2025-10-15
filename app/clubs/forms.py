@@ -1,5 +1,4 @@
 from django import forms
-from django.db.models import query
 
 from clubs.models import Club, Team, TeamMembership
 from users.models import User
@@ -35,5 +34,3 @@ class AdminInviteForm(forms.Form):
     email = forms.CharField(max_length=100)
     club = forms.ModelChoiceField(queryset=Club.objects.all())
     send_inv = forms.BooleanField(label="Send Invite", required=True)
-
-    
