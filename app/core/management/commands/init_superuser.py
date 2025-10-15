@@ -35,4 +35,8 @@ class Command(BaseCommand):
                 )
             )
         elif existing_user.exists() and not super_users.exists():
-            self.stdout.write(self.style.WARNING(f"Cannot create super user, a user with email {email} already exists"))
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Cannot create super user, a user with email {email} already exists"
+                )
+            )

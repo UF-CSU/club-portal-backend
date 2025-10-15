@@ -187,8 +187,12 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
                 "OrganizationName": "Computing Student Union",
                 "Acronym": "CSU",
                 "OrganizationDescription": fake.paragraph(),
-                "DateCreated": (timezone.now() - timezone.timedelta(days=365 * 2)).isoformat(),
-                "LastUpdated": (timezone.now() - timezone.timedelta(days=365 * 1)).isoformat(),
+                "DateCreated": (
+                    timezone.now() - timezone.timedelta(days=365 * 2)
+                ).isoformat(),
+                "LastUpdated": (
+                    timezone.now() - timezone.timedelta(days=365 * 1)
+                ).isoformat(),
                 "OrganizationState": True,
                 "OrganizationTypeName": "Example Type",
                 "SupportingInstitution": fake.title(),
@@ -276,8 +280,12 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
             self.assertTrue(User.objects.filter(email=expected["user.email"]).exists())
 
             for role in expected["roles"]:
-                self.assertTrue(ClubRole.objects.filter(name=role, club=self.club).exists())
+                self.assertTrue(
+                    ClubRole.objects.filter(name=role, club=self.club).exists()
+                )
 
             self.assertTrue(
-                self.repo.filter(club=expected["club"], user__email=expected["user.email"]).exists()
+                self.repo.filter(
+                    club=expected["club"], user__email=expected["user.email"]
+                ).exists()
             )
