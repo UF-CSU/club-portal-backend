@@ -151,6 +151,7 @@ WSGI_APPLICATION = "app.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+POSTGRES_MAX_POOL_SIZE = int(os.environ.get('POSTGRES_MAX_POOL_SIZE', '0'))
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -161,16 +162,18 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
         "CONN_MAX_AGE": 0,
-        # "OPTIONS": {
-        #     "pool": {
-        #         "min_size": 1,
-        #         "max_size": int(os.environ.get("POSTGRES_MAX_POOL_SIZE", 1)),
-        #         "timeout": 60,
-        #     }
-        # },
+        "OPTIONS": {}
     }
 }
 
+if POSTGRES_MAX_POOL_SIZE > 0:
+    DATABASES['default']['OPTIONS']['pool'] = {
+        "pool": {
+            "min_size": 1,
+            "max_size": POSTGRES_MAX_POOL_SIZE,
+            "timeout": 60,
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
