@@ -2,13 +2,20 @@
 Club views for API and rendering html pages.
 """
 
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from clubs.models import Club
+#from asgiref import sync_to_async
+
+from clubs.forms import AdminInviteForm
+from clubs.models import Club, RoleType
 from clubs.services import ClubService
+from users.models import User, UserManager
+from users.services import UserService
+from utils.admin import get_admin_context
 
 
 @login_required()
@@ -35,3 +42,45 @@ def available_clubs_view(request: HttpRequest):
     """Display list of clubs to user for them to join."""
 
     return render(request, "clubs/available_clubs.html")
+
+
+@staff_member_required
+@login_required
+def invite_club_admin_view(request):
+    context = get_admin_context(request)
+    
+    form = AdminInviteForm()
+
+    if request.method == "POST":
+        form = AdminInviteForm(request.POST)
+        if form.is_valid():
+            data = request.POST
+
+            email = data["email"]
+            user = None
+
+            try:
+                user = get_object_or_404(User, email=email)
+            except:
+                user = User.objects.create_user(email)
+
+            club_id = data["club"]
+            club = Club.objects.get(pk=club_id)
+
+            # Get list of club roles, and pick an admin role
+            admin_roles = club.roles.filter(role_type=RoleType.ADMIN).exclude(name__iexact="President")
+            assigned_role = [admin_roles.first()]
+
+            send_inv = data["send_inv"]
+            #Email for account set up if needed
+            ClubService(club).add_member(user, assigned_role, send_email=send_inv)
+
+            #Email for account set up if needed
+            UserService(user).send_account_setup_link()
+
+    else:
+        form = AdminInviteForm()
+
+    context["form"] = form
+
+    return render(request, "admin/clubs/invite_club_admin.html", context=context)
