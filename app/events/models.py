@@ -317,8 +317,15 @@ class Event(EventFields):
 
     @poll.setter
     def poll(self, value):
-        value.event = self
-        value.save()
+        if self.poll:
+            # Unlink old poll
+            old_poll = self.poll
+            old_poll.event = None
+            old_poll.save()
+        if value:
+            # Link new poll
+            value.event = self
+            value.save()
 
     @property
     def submissions(self):
