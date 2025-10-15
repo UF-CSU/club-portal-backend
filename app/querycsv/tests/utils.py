@@ -4,10 +4,12 @@ CSV Data Tests Utilities
 
 import random
 import uuid
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import pandas as pd
+from django.core.files import File
 from django.db import models
 
 from app.settings import MEDIA_ROOT
@@ -122,7 +124,7 @@ class CsvDataTestsBase(TestsBase):
 
         df.to_csv(filepath, index=False, mode="w")
 
-        return filepath
+        return self.load_file(filepath)
 
     def data_to_df(self, data: list[dict]):
         """Convert output of serializer to dataframe."""
@@ -158,6 +160,16 @@ class CsvDataTestsBase(TestsBase):
         df.replace(np.nan, "", inplace=True)
 
         return df
+
+    def load_file(self, path: str):
+        """Load file from path."""
+
+        file = None
+        path_obj = Path(path)
+
+        file = File(path_obj.open(mode="rb"), path_obj.name)
+
+        return file
 
     # Custom assertions
     #####################
@@ -535,7 +547,7 @@ class UploadCsvTestsBase(CsvDataTestsBase):
         data = self.serializer_class(query, many=True).data
         self.df = self.data_to_df(data)
         self.df = self.df.fillna("")
-        self.df_to_csv(self.df)
+        return self.df_to_csv(self.df)
 
     def initialize_csv_data(self, clear_db=True):
         """Create csv with data, then clear the database."""
@@ -544,13 +556,13 @@ class UploadCsvTestsBase(CsvDataTestsBase):
         self.initialize_dataset()
         objects = self.repo.all()
         objects_before = objects.values()
-        self.dump_csv(objects)
+        file = self.dump_csv(objects)
 
         # Clear database
         if clear_db:
             self.clear_db()
 
-        return objects_before
+        return objects_before, file
 
     def clear_db(self) -> list:
         """Save list of current objects and clear the database."""
@@ -567,10 +579,10 @@ class UploadCsvTestsBase(CsvDataTestsBase):
     ):
         """Given a list of flattened dicts, will convert to csv and upload."""
 
-        self.data_to_csv(payload)
+        file = self.data_to_csv(payload)
 
         success, failed = self.service.upload_csv(
-            self.filepath, custom_field_maps=custom_field_maps, **kwargs
+            file=file, custom_field_maps=custom_field_maps, **kwargs
         )
 
         if not validate_res:

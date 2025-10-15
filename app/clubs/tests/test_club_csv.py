@@ -61,8 +61,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "logo": fake.image_url(placeholder_url="https://dummyimage.com/200x200"),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -118,8 +118,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "socials[1].url": fake.url(),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -158,8 +158,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "socials[1].url": fake.url(),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -221,9 +221,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
         with open(filepath, mode="w+") as f:
             json.dump(payload, f, indent=4)
 
-        success, failed = self.service.upload_csv(
-            path=filepath, custom_field_maps=mappings
-        )
+        file = self.load_file(filepath)
+        success, failed = self.service.upload_csv(file=file, custom_field_maps=mappings)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
         self.assertEqual(self.repo.count(), 1)
@@ -267,10 +266,10 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
             }
             for _ in range(self.dataset_size)
         ]
-        self.data_to_csv(payload)
+        file = self.data_to_csv(payload)
 
         # Call service
-        _, failed = self.service.upload_csv(path=self.filepath)
+        _, failed = self.service.upload_csv(file=file)
 
         # Validate database,
         # Memberships are non-standard schemas so we do manual testing

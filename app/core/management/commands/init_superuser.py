@@ -19,17 +19,24 @@ class Command(BaseCommand):
         #     )
 
         #     return
+        email = os.environ.get("DJANGO_SUPERUSER_EMAIL")
+        password = os.environ.get("DJANGO_SUPERUSER_PASS")
 
         User = get_user_model()
         super_users = User.objects.filter(is_superuser=True)
+        existing_user = User.objects.filter(email=email)
 
-        if not super_users.exists():
-            email = os.environ.get("DJANGO_SUPERUSER_EMAIL")
-            password = os.environ.get("DJANGO_SUPERUSER_PASS")
+        if not super_users.exists() and not existing_user.exists():
             User.objects.create_superuser(email=email, password=password)
 
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Created super user with email {email} and password {password}."
+                )
+            )
+        elif existing_user.exists() and not super_users.exists():
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Cannot create super user, a user with email {email} already exists"
                 )
             )
