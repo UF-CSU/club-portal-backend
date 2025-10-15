@@ -138,7 +138,7 @@ class QueryCsvUploadJob(ModelBase):
             return None
 
         try:
-            return read_spreadsheet(self.filepath, self.file)
+            return read_spreadsheet(self.file)
         except Exception as e:
             print_error()
             self.error = e

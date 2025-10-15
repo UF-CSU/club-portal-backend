@@ -44,10 +44,10 @@ class UploadCsvTests(UploadCsvTestsBase):
         """Should be able to take csv and create models."""
 
         # Initialize data
-        objects_before = self.initialize_csv_data()
+        objects_before, file = self.initialize_csv_data()
 
         # Call service upload function
-        _, failed = self.service.upload_csv(path=self.filepath)
+        _, failed = self.service.upload_csv(file=file)
 
         # Validate database
         self.assertObjectsExist(objects_before, failed)
@@ -55,13 +55,13 @@ class UploadCsvTests(UploadCsvTestsBase):
 
     def test_update_objects_from_csv(self):
         # Initialize data
-        objects_before = self.initialize_csv_data(clear_db=False)
+        objects_before, file = self.initialize_csv_data(clear_db=False)
 
         for obj in self.repo.all():
             self.update_mock_object(obj)
 
         # Call service upload function
-        self.service.upload_csv(path=self.filepath)
+        self.service.upload_csv(file=file)
 
         # Validate database
         self.assertObjectsExist(objects_before)
@@ -71,13 +71,13 @@ class UploadCsvTests(UploadCsvTestsBase):
         """Should create objects and ignore bad fields."""
 
         # Initialize csv, add invalid column
-        objects_before = self.initialize_csv_data()
+        objects_before, _ = self.initialize_csv_data()
         self.df["Invalid field"] = "bad value"
-        self.df_to_csv(self.df)
+        file = self.df_to_csv(self.df)
 
         self.assertTrue("Invalid field" in list(self.df.columns))
 
-        self.service.upload_csv(path=self.filepath)
+        self.service.upload_csv(file=file)
 
         # Validate database
         self.assertObjectsExist(objects_before)
@@ -87,7 +87,7 @@ class UploadCsvTests(UploadCsvTestsBase):
         """Uploading a csv should update objects."""
 
         # Prep data, create csv
-        objects_before = self.initialize_csv_data(clear_db=False)
+        objects_before, _ = self.initialize_csv_data(clear_db=False)
 
         updated_records = []
 
@@ -96,10 +96,10 @@ class UploadCsvTests(UploadCsvTestsBase):
             payload = self.get_update_params(obj, **payload)
             updated_records.append(payload)
 
-        self.data_to_csv(updated_records)
+        file = self.data_to_csv(updated_records)
 
         # Upload CSV
-        self.service.upload_csv(path=self.filepath)
+        self.service.upload_csv(file=file)
 
         # Validate data
         self.assertObjectsHaveFields(updated_records)
@@ -108,7 +108,7 @@ class UploadCsvTests(UploadCsvTestsBase):
         """Should remove pre/post spaces from fields before updating/creating."""
 
         # Prep data, create csv
-        objects_before = self.initialize_csv_data(clear_db=False)
+        objects_before, _ = self.initialize_csv_data(clear_db=False)
 
         updated_records = []
 
@@ -117,11 +117,11 @@ class UploadCsvTests(UploadCsvTestsBase):
             payload = self.get_update_params(obj, **payload)
             updated_records.append(payload)
 
-        self.data_to_csv(updated_records)
+        file = self.data_to_csv(updated_records)
         self.assertObjectsExist(objects_before)
 
         # Upload CSV
-        self.service.upload_csv(path=self.filepath)
+        self.service.upload_csv(file=file)
 
         # Validate data
         self.assertObjectsHaveFields(updated_records)
@@ -280,7 +280,8 @@ class UploadJsonTests(UploadCsvTestsBase):
         with open(filepath, mode="w+") as f:
             json.dump(payload, f, indent=4)
 
-        success, failed = self.service.upload_csv(path=filepath)
+        file = self.load_file(filepath)
+        success, failed = self.service.upload_csv(file=file)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
         self.assertEqual(self.repo.count(), 1)
@@ -324,7 +325,8 @@ class UploadJsonTests(UploadCsvTestsBase):
         with open(filepath, mode="w+") as f:
             json.dump(payload, f, indent=4)
 
-        success, failed = self.service.upload_csv(path=filepath)
+        file = self.load_file(filepath)
+        success, failed = self.service.upload_csv(file=file)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
         self.assertEqual(self.repo.count(), 1)
@@ -346,7 +348,7 @@ class UploadCsvJobTests(UploadCsvTestsBase):
         """Should upload and process csv from model."""
 
         # Initialize data
-        objects_before = self.initialize_csv_data(clear_db=False)
+        objects_before, _ = self.initialize_csv_data(clear_db=False)
 
         # Update fields after create csv
         for obj in self.repo.all():
@@ -366,7 +368,7 @@ class UploadCsvJobTests(UploadCsvTestsBase):
     def test_upload_custom_fields(self):
         """Should process csv with custom field mappings."""
 
-        objects_before = self.initialize_csv_data()
+        objects_before, _ = self.initialize_csv_data()
 
         # Rename csv field
         self.df.rename(columns={"name": "Test Value"}, inplace=True)
@@ -417,10 +419,10 @@ class UploadCsvM2OFieldsTests(UploadCsvTestsBase, CsvDataM2OTestsBase):
         """
 
         # Initialize data
-        objects_before = self.initialize_csv_data()
+        objects_before, file = self.initialize_csv_data()
 
         # Call upload function
-        self.service.upload_csv(path=self.filepath)
+        self.service.upload_csv(file=file)
 
         # Validate database
         self.assertObjectsHaveFields(objects_before)
@@ -432,14 +434,14 @@ class UploadCsvM2OFieldsTests(UploadCsvTestsBase, CsvDataM2OTestsBase):
         """Should update models with Many-to-One fields."""
 
         # Initialize data
-        objects_before = self.initialize_csv_data(clear_db=False)
+        objects_before, file = self.initialize_csv_data(clear_db=False)
 
         # Update fields after create csv
         for obj in self.repo.all():
             self.update_mock_object(obj)
 
         # Call upload function
-        self.service.upload_csv(path=self.filepath)
+        self.service.upload_csv(file=file)
 
         # Validate database
         self.assertObjectsHaveFields(objects_before)
@@ -455,10 +457,10 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         """When csv is uploaded, m2m fields should be handled properly."""
 
         # Initialize data
-        objects_before = self.initialize_csv_data()
+        objects_before, file = self.initialize_csv_data()
 
         # Upload csv using service
-        success, failed = self.service.upload_csv(path=self.filepath)
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, self.dataset_size, failed)
         self.assertLength(failed, 0)
 
@@ -471,7 +473,7 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
     def test_upload_csv_m2m_fields_spaces(self):
         """When csv is uploaded, m2m fields should be stripped of leading/trailing spaces."""
 
-        objects_before = self.initialize_csv_data()
+        objects_before, _ = self.initialize_csv_data()
 
         # Iterate through csv, manually add spacing
         for _i, row in self.df.iterrows():
@@ -480,10 +482,10 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
             modified_value = "  ,  ".join(pre_values)
             row[self.m2m_serializer_key] = modified_value
 
-        self.df_to_csv(self.df)
+        file = self.df_to_csv(self.df)
 
         # Upload csv using service
-        success, failed = self.service.upload_csv(path=self.filepath)
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, self.dataset_size, failed)
         self.assertLength(failed, 0)
 
@@ -497,7 +499,7 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         """When csv is uploaded, should update objects with many-to-many fields."""
 
         # Initialize data
-        objects_before = self.initialize_csv_data(clear_db=False)
+        objects_before, file = self.initialize_csv_data(clear_db=False)
 
         # Update fields after create csv
         self.update_dataset()
@@ -516,7 +518,7 @@ class UploadCsvM2MFieldsTests(UploadCsvTestsBase, CsvDataM2MTestsBase):
         )
 
         # Upload csv using service
-        success, failed = self.service.upload_csv(path=self.filepath)
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, self.dataset_size, failed)
         self.assertLength(failed, 0)
 

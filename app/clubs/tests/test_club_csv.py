@@ -61,8 +61,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "logo": fake.image_url(placeholder_url="https://dummyimage.com/200x200"),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -118,8 +118,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "socials[1].url": fake.url(),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -158,8 +158,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "socials[1].url": fake.url(),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -187,12 +187,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
                 "OrganizationName": "Computing Student Union",
                 "Acronym": "CSU",
                 "OrganizationDescription": fake.paragraph(),
-                "DateCreated": (
-                    timezone.now() - timezone.timedelta(days=365 * 2)
-                ).isoformat(),
-                "LastUpdated": (
-                    timezone.now() - timezone.timedelta(days=365 * 1)
-                ).isoformat(),
+                "DateCreated": (timezone.now() - timezone.timedelta(days=365 * 2)).isoformat(),
+                "LastUpdated": (timezone.now() - timezone.timedelta(days=365 * 1)).isoformat(),
                 "OrganizationState": True,
                 "OrganizationTypeName": "Example Type",
                 "SupportingInstitution": fake.title(),
@@ -221,9 +217,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
         with open(filepath, mode="w+") as f:
             json.dump(payload, f, indent=4)
 
-        success, failed = self.service.upload_csv(
-            path=filepath, custom_field_maps=mappings
-        )
+        file = self.load_file(filepath)
+        success, failed = self.service.upload_csv(file=file, custom_field_maps=mappings)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
         self.assertEqual(self.repo.count(), 1)
@@ -267,10 +262,10 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
             }
             for _ in range(self.dataset_size)
         ]
-        self.data_to_csv(payload)
+        file = self.data_to_csv(payload)
 
         # Call service
-        _, failed = self.service.upload_csv(path=self.filepath)
+        _, failed = self.service.upload_csv(file=file)
 
         # Validate database,
         # Memberships are non-standard schemas so we do manual testing
@@ -281,12 +276,8 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
             self.assertTrue(User.objects.filter(email=expected["user.email"]).exists())
 
             for role in expected["roles"]:
-                self.assertTrue(
-                    ClubRole.objects.filter(name=role, club=self.club).exists()
-                )
+                self.assertTrue(ClubRole.objects.filter(name=role, club=self.club).exists())
 
             self.assertTrue(
-                self.repo.filter(
-                    club=expected["club"], user__email=expected["user.email"]
-                ).exists()
+                self.repo.filter(club=expected["club"], user__email=expected["user.email"]).exists()
             )

@@ -8,39 +8,18 @@ SPREADSHEET_EXTS = ("csv", "xls", "xlsx", "json")
 """Tuple of supported spreadsheet extensions."""
 
 
-def read_spreadsheet(path: str, file: File = None):
+def read_spreadsheet(file: File):
     """Import spreadsheet from filepath."""
 
-    if isinstance(path, str):
-        # assert os.path.exists(path), f"File doesn't exist at {path}."
-        # func = pd.read_csv
+    path = file.name
 
-        if path.endswith(".xlsx") or path.endswith(".xls"):
-            if file:
-                df = pd.read_excel(file.open("r"), dtype=str)
-            else:
-                df = pd.read_excel(path, dtype=str)
-        elif path.endswith(".json"):
-            # df = pd.read_json(path, dtype=str, orient="records")
-            if file:
-                data = None
-                with file.open(mode="r") as f:
-                    data = json.load(f)
-
-                df = pd.json_normalize(data)
-            else:
-                data = None
-                with open(path) as f:
-                    data = json.load(f)
-
-                df = pd.json_normalize(data)
-        else:
-            if file:
-                df = pd.read_csv(file.open("r"), dtype=str)
-            else:
-                df = pd.read_csv(path, dtype=str)
+    if file.name.endswith(".xlsx") or path.endswith(".xls"):
+        df = pd.read_excel(file.open(mode="r"), dtype=str)
+    elif file.name.endswith(".json"):
+        data = json.load(file.open(mode="r"))
+        df = pd.json_normalize(data)
     else:
-        df = pd.read_csv(path, dtype=str)
+        df = pd.read_csv(file.open(mode="r"), dtype=str)
 
     df.replace(np.nan, "", inplace=True)
 

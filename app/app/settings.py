@@ -332,6 +332,7 @@ STATIC_ROOT = "/vol/web/static"
 if S3_STORAGE_BACKEND:
     # Set S3 Config
     DEFAULT_FILE_STORAGE = "core.storages.PublicMediaStorage"
+    MEDIA_ROOT = "/"
 else:
     MEDIA_ROOT = "/vol/web/media"
 
