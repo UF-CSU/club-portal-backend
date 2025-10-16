@@ -79,8 +79,9 @@ class EventSerializer(ModelSerializerBase):
         required=False,
     )
     attachments = ClubFileNestedSerializer(many=True, required=False)
-    poll = EventPollField(queryset=Poll.objects.all(), required=False, allow_null=True)
+    # poll = EventPollField(queryset=Poll.objects.all(), required=False, allow_null=True)
     attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
+    poll = serializers.PrimaryKeyRelatedField(queryset=Poll.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = Event

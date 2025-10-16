@@ -20,8 +20,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Entrypoint for command."""
 
-        print("args:", args)
-        print("options:", options)
         write_types = not options.get("check", False)
 
         tg = TypeGenerator(

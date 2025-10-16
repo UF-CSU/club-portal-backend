@@ -159,7 +159,7 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
         return SocialAccount.objects.filter(user=self.request.user)
 
 
-class RedirectToProviderView(viewsets.GenericViewSet):
+class RedirectToProviderView(APIView):
     """
     Override allauth's redirect logic to authenticate existing users
     with their token as a query param.
