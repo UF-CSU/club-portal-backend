@@ -11,7 +11,7 @@ from core.abstracts.serializers import (
     ModelSerializerBase,
     UpdateListSerializer,
 )
-from events.models import Event
+from events.models import Event, EventType
 from polls import models
 from users.models import User
 from users.serializers import UserNestedSerializer
@@ -340,6 +340,13 @@ class PollSerializer(ModelSerializer):
             validated_data["event"] = get_object_or_404(Event, id=event.get("id"))
 
         return super().create(validated_data)
+
+
+class PollTemplateSerializer(PollSerializer):
+    """Json definition for poll templates"""
+
+    template_name = serializers.CharField()
+    event_type = serializers.ChoiceField(choices=EventType.choices, allow_blank=True, required=True)
 
 
 class PollPreviewSerializer(ModelSerializer):

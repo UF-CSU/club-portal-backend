@@ -8,12 +8,11 @@ from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-#from asgiref import sync_to_async
-
+# from asgiref import sync_to_async
 from clubs.forms import AdminInviteForm
 from clubs.models import Club, RoleType
 from clubs.services import ClubService
-from users.models import User, UserManager
+from users.models import User
 from users.services import UserService
 from utils.admin import get_admin_context
 
@@ -48,7 +47,7 @@ def available_clubs_view(request: HttpRequest):
 @login_required
 def invite_club_admin_view(request):
     context = get_admin_context(request)
-    
+
     form = AdminInviteForm()
 
     if request.method == "POST":
@@ -61,21 +60,23 @@ def invite_club_admin_view(request):
 
             try:
                 user = get_object_or_404(User, email=email)
-            except:
+            except Exception:
                 user = User.objects.create_user(email)
 
             club_id = data["club"]
             club = Club.objects.get(pk=club_id)
 
             # Get list of club roles, and pick an admin role
-            admin_roles = club.roles.filter(role_type=RoleType.ADMIN).exclude(name__iexact="President")
+            admin_roles = club.roles.filter(role_type=RoleType.ADMIN).exclude(
+                name__iexact="President"
+            )
             assigned_role = [admin_roles.first()]
 
             send_inv = data["send_inv"]
-            #Email for account set up if needed
+            # Email for account set up if needed
             ClubService(club).add_member(user, assigned_role, send_email=send_inv)
 
-            #Email for account set up if needed
+            # Email for account set up if needed
             UserService(user).send_account_setup_link()
 
     else:

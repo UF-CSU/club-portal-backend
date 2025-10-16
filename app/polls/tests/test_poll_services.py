@@ -3,8 +3,11 @@ from unittest.mock import patch
 import pytz
 from django.utils import timezone
 
+from clubs.models import Club
+from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
-from polls.models import Poll, PollStatusType, PollTemplate
+from lib.faker import fake
+from polls.models import Poll, PollField, PollInputType, PollQuestion, PollStatusType, PollTemplate
 from polls.services import PollService, PollTemplateService
 from polls.tests.utils import (
     create_test_poll,
@@ -195,31 +198,39 @@ class PollTemplateServiceTests(TestsBase):
         )
         self.service = PollTemplateService(self.tpl)
 
-    # def test_create_poll(self):
-    #     """Should create new poll from template."""
+    def test_create_poll(self):
+        """Should create new poll from template."""
 
-    #     # Setup fields
-    #     f1 = PollField.objects.create(poll=self.tpl, order=1)
-    #     f2 = PollField.objects.create(poll=self.tpl, order=2)
+        # Setup fields
+        f1 = PollField.objects.create(poll=self.tpl, order=2)
+        f2 = PollField.objects.create(poll=self.tpl, order=3)
 
-    #     expected_q1 = PollQuestion.objects.create(
-    #         field=f1,
-    #         label=fake.sentence(),
-    #         input_type=PollInputType.TEXT,
-    #         create_input=True,
-    #     )
-    #     expected_q2 = PollQuestion.objects.create(
-    #         field=f2,
-    #         label=fake.sentence(),
-    #         input_type=PollInputType.TEXT,
-    #         create_input=True,
-    #     )
+        club = create_test_club()
+
+        expected_q1 = PollQuestion.objects.create(
+            field=f1,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+        expected_q2 = PollQuestion.objects.create(
+            field=f2,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
 
     #     # Generate poll
-    #     poll = self.service.create_poll()
-    #     self.assertIsNotNone(poll)
-    #     self.assertEqual(poll.fields.count(), 2)
-    #     self.assertEqual(PollField.objects.count(), 4)
+        poll = self.service.create_poll(club=club)
+        self.assertIsNotNone(poll)
+        
 
-    #     self.assertEqual(poll.fields.get(order=1).question.label, expected_q1.label)
-    #     self.assertEqual(poll.fields.get(order=2).question.label, expected_q2.label)
+        for field in poll.fields.all():
+            print(field.question.label)
+
+
+        self.assertEqual(poll.fields.count(), 3)
+        self.assertEqual(PollField.objects.count(), 5)
+        
+        self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
+        self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)

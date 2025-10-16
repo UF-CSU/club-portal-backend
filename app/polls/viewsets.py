@@ -18,6 +18,7 @@ from polls.serializers import (
     PollPreviewSerializer,
     PollSerializer,
     PollSubmissionSerializer,
+    PollTemplateSerializer,
 )
 from polls.services import PollService
 
@@ -90,6 +91,12 @@ class PollViewset(ModelViewSetBase):
                 last_submission_at=models.Max("submissions__created_at"),
             )
         )
+
+class PollTemplateViewSet(PollViewset):
+    """Manage poll templates in api"""
+
+    serializer_class = PollTemplateSerializer
+
 
 
 class PollFieldViewSet(ModelViewSetBase):
@@ -199,3 +206,4 @@ class PollSubmissionViewSet(ModelViewSetBase):
     @extend_schema(auth=[{"security": []}, {}])
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+    
