@@ -23,7 +23,8 @@ CreateSerializerType = type[SerializerBase]
 UpdateSerializerType = type[SerializerBase]
 
 InputSerializerType = (
-    type[SerializerBase] | tuple[ReadSerializerType, CreateSerializerType, UpdateSerializerType]
+    type[SerializerBase]
+    | tuple[ReadSerializerType, CreateSerializerType, UpdateSerializerType]
 )
 
 DRF_FIELD_TO_TS_MAP = {
@@ -156,7 +157,9 @@ class TypeGenerator:
 
     @property
     def types_generated(self):
-        return (len(self.serializer_classes) * 3) + len(self.readonly_serializer_classes)
+        return (len(self.serializer_classes) * 3) + len(
+            self.readonly_serializer_classes
+        )
 
     def _get_model_article(self, model_name: str):
         """Get a/an depending on a model's name."""
@@ -227,7 +230,9 @@ class TypeGenerator:
 
         if isinstance(field, serializers.ManyRelatedField):
             # Coerce type away from ManyToManyDescriptor
-            model_field: models.ManyToManyField = getattr(model_field, "field", None) or model_field
+            model_field: models.ManyToManyField = (
+                getattr(model_field, "field", None) or model_field
+            )
             # Get actual field on serializer
             field = field.child_relation
             is_list = True
@@ -235,7 +240,9 @@ class TypeGenerator:
         if isinstance(field, serializers.ReadOnlyField):
             # FIXME: Raises error if cached_property
             if isinstance(model_field, cached_property):
-                field_type_class = model_field.real_func.__annotations__.get("return", "any")
+                field_type_class = model_field.real_func.__annotations__.get(
+                    "return", "any"
+                )
             else:
                 field_type_class = model_field.fget.__annotations__.get("return", "any")
             field_type = self._get_prop_type(
@@ -250,7 +257,9 @@ class TypeGenerator:
                 model_field = getattr(model_field.related_model, field.slug_field).field
             elif hasattr(model_field.field, "related_model"):
                 # model_field is a ForwardManyToOneDescriptor
-                model_field = getattr(model_field.field.related_model, field.slug_field).field
+                model_field = getattr(
+                    model_field.field.related_model, field.slug_field
+                ).field
 
             field_type = self._get_prop_type(
                 model_field,
@@ -264,7 +273,9 @@ class TypeGenerator:
 
         return field_type
 
-    def _get_prop_choice_type(self, prop_name: str, field: serializers.ChoiceField, is_list=False):
+    def _get_prop_choice_type(
+        self, prop_name: str, field: serializers.ChoiceField, is_list=False
+    ):
         """Returns either string literal union or enum."""
 
         # Check if type should be string literal or enum
@@ -331,7 +342,9 @@ class TypeGenerator:
         """Create function for generating props."""
         all_fields = serializer.get_fields()
 
-        def gen_prop(prop_name, prop_type=None, required=True, readonly=False, **kwargs):
+        def gen_prop(
+            prop_name, prop_type=None, required=True, readonly=False, **kwargs
+        ):
             field = all_fields[prop_name]
 
             show_nullable = not ignore_nonnull and getattr(field, "allow_null", True)
@@ -340,7 +353,9 @@ class TypeGenerator:
             kwargs = {
                 "property": prop_name,
                 "prop_type": prop_type
-                or self._get_prop_type_from_field(field, prop_name, serializer=serializer),
+                or self._get_prop_type_from_field(
+                    field, prop_name, serializer=serializer
+                ),
                 "doc": kwargs.pop("doc", None) or getattr(field, "help_text", None),
                 "indent_level": indent_level,
                 **kwargs,
@@ -425,7 +440,9 @@ class TypeGenerator:
             properties.append(field_prop)
             ignore_fields.append(serializer.pk_field)  # No on else should handle it
 
-        simple_fields = [field for field in serializer.simple_fields if field not in ignore_fields]
+        simple_fields = [
+            field for field in serializer.simple_fields if field not in ignore_fields
+        ]
 
         # Generate required fields
         for field_name in serializer.required_fields:
@@ -462,7 +479,9 @@ class TypeGenerator:
                 )
             elif getattr(field, "child", None) is not None:
                 if isinstance(field.child, serializers.ChoiceField):
-                    field_type = self._get_prop_choice_type(field_name, field.child, is_list=True)
+                    field_type = self._get_prop_choice_type(
+                        field_name, field.child, is_list=True
+                    )
                 else:
                     field_type = self._get_prop_type(
                         field.child, prop_name=field_name, is_list=True
@@ -497,14 +516,18 @@ class TypeGenerator:
 
                 if field not in self.serializer_interfaces_map.keys():
                     nested_mode = (
-                        mode if type(field) not in self.readonly_serializer_classes else "read"
+                        mode
+                        if type(field) not in self.readonly_serializer_classes
+                        else "read"
                     )
                     doc = self._generate_interface(serializer_field, mode=nested_mode)
                     self.other_interfaces.append(doc)
                 else:
                     nested_mode = mode
 
-                field_type = self.serializer_interfaces_map[f"{serializer_field}_{nested_mode}"]
+                field_type = self.serializer_interfaces_map[
+                    f"{serializer_field}_{nested_mode}"
+                ]
 
                 field_prop = gen_prop(
                     field_name,
@@ -549,12 +572,16 @@ class TypeGenerator:
 
                 if f"{field}_{mode}" not in self.serializer_interfaces_map.keys():
                     nested_mode = (
-                        mode if type(field) not in self.readonly_serializer_classes else "read"
+                        mode
+                        if type(field) not in self.readonly_serializer_classes
+                        else "read"
                     )
                     doc = self._generate_interface(serializer_field, mode=nested_mode)
                     self.other_interfaces.append(doc)
 
-                field_type = self.serializer_interfaces_map[f"{serializer_field}_{nested_mode}"]
+                field_type = self.serializer_interfaces_map[
+                    f"{serializer_field}_{nested_mode}"
+                ]
                 field_prop = gen_prop(
                     field_name,
                     prop_type=field_type + "[]",
@@ -582,7 +609,10 @@ class TypeGenerator:
 
         # Generate read only fields
         for field_name in serializer.readonly_fields:
-            if field_name not in serializer.simple_fields or field_name in ignore_fields:
+            if (
+                field_name not in serializer.simple_fields
+                or field_name in ignore_fields
+            ):
                 continue
 
             field = all_fields[field_name]
@@ -592,7 +622,9 @@ class TypeGenerator:
                 # type directly from the model (if possible)
 
                 try:
-                    field_type = self._get_prop_type_from_model(field_name, field, serializer)
+                    field_type = self._get_prop_type_from_model(
+                        field_name, field, serializer
+                    )
                     field_prop = gen_prop(
                         field_name,
                         prop_type=field_type,
@@ -601,7 +633,9 @@ class TypeGenerator:
                     )
                 except Exception as e:
                     field_type = "unknown"
-                    field_prop = gen_prop(field_name, prop_type=field_type, readonly=True)
+                    field_prop = gen_prop(
+                        field_name, prop_type=field_type, readonly=True
+                    )
                     print(e)
             else:
                 field_prop = gen_prop(

@@ -16,7 +16,6 @@ from events.models import (
 from events.tasks import sync_recurring_event_task
 from lib.celery import delay_task
 from polls.models import Poll
-from polls.serializers import EventPollField
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 
@@ -81,7 +80,9 @@ class EventSerializer(ModelSerializerBase):
     attachments = ClubFileNestedSerializer(many=True, required=False)
     # poll = EventPollField(queryset=Poll.objects.all(), required=False, allow_null=True)
     attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
-    poll = serializers.PrimaryKeyRelatedField(queryset=Poll.objects.all(), required=False, allow_null=True)
+    poll = serializers.PrimaryKeyRelatedField(
+        queryset=Poll.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Event

@@ -17,7 +17,6 @@ from rest_framework import (
     mixins,
     permissions,
     status,
-    viewsets,
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
