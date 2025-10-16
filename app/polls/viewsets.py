@@ -95,6 +95,12 @@ class PollViewset(ModelViewSetBase):
             )
         )
 
+class PollTemplateViewSet(PollViewset):
+    """Manage poll templates in api"""
+
+    serializer_class = PollTemplateSerializer
+
+
 
 class PollTemplateViewSet(ModelViewSetBase):
     """Manage poll templates in api"""
@@ -244,3 +250,4 @@ class PollSubmissionViewSet(ModelViewSetBase):
     @extend_schema(auth=[{"security": []}, {}])
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+    

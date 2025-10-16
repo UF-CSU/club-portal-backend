@@ -1,12 +1,11 @@
 from unittest.mock import patch
 
 import pytz
+from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from django.utils import timezone
-
-from clubs.models import Club
-from clubs.tests.utils import create_test_club
 from lib.faker import fake
+
 from polls.models import (
     Poll,
     PollField,
@@ -140,26 +139,22 @@ class PollServiceTests(PeriodicTaskTestsBase):
         self.assertEqual(poll.status, PollStatusType.SCHEDULED)
 
         # Set time to be within poll open time
-        timezone_now.return_value = timezone.datetime.now(
-            tz=pytz.utc
-        ) + timezone.timedelta(days=1, hours=1)
+        timezone_now.return_value = timezone.datetime.now(tz=pytz.utc) + timezone.timedelta(
+            days=1, hours=1
+        )
 
         # Check running open task
-        self.assertRunPeriodicTask(
-            poll.open_task, check_params={"status": PollStatusType.OPEN}
-        )
+        self.assertRunPeriodicTask(poll.open_task, check_params={"status": PollStatusType.OPEN})
         poll.refresh_from_db()
         self.assertEqual(poll.status, PollStatusType.OPEN)
 
         # Set time to be after poll open time
-        timezone_now.return_value = timezone.datetime.now(
-            tz=pytz.utc
-        ) + timezone.timedelta(days=2, hours=1)
+        timezone_now.return_value = timezone.datetime.now(tz=pytz.utc) + timezone.timedelta(
+            days=2, hours=1
+        )
 
         # Check running close task
-        self.assertRunPeriodicTask(
-            poll.open_task, check_params={"status": PollStatusType.OPEN}
-        )
+        self.assertRunPeriodicTask(poll.open_task, check_params={"status": PollStatusType.OPEN})
         poll.refresh_from_db()
         self.assertEqual(poll.status, PollStatusType.CLOSED)
 
