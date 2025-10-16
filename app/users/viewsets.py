@@ -17,7 +17,6 @@ from rest_framework import (
     mixins,
     permissions,
     status,
-    viewsets,
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -159,7 +158,7 @@ class SocialProviderViewSet(mixins.ListModelMixin, ViewSetBase):
         return SocialAccount.objects.filter(user=self.request.user)
 
 
-class RedirectToProviderView(viewsets.GenericViewSet):
+class RedirectToProviderView(APIView):
     """
     Override allauth's redirect logic to authenticate existing users
     with their token as a query param.

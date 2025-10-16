@@ -56,6 +56,7 @@ class PollViewset(ModelViewSetBase):
     """Manage polls in api."""
 
     serializer_class = PollSerializer
+    queryset = Poll.objects.none()
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)

@@ -30,7 +30,7 @@ urlpatterns = [
     path("me/providers/", viewsets.SocialProviderViewSet.as_view({"get": "list"})),
     path(
         "oauth/provider/",
-        viewsets.RedirectToProviderView.as_view({"post": "post"}),
+        viewsets.RedirectToProviderView.as_view(),
         name="oauth_redirect",
     ),
     path(
