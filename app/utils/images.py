@@ -1,8 +1,9 @@
 import random
+import uuid
+from io import BytesIO
 
+from django.core.files import File
 from PIL import Image, ImageDraw
-
-from utils.files import get_media_path
 
 
 def create_default_icon(initials: str, image_path: str, fileprefix=None):
@@ -29,7 +30,13 @@ def create_default_icon(initials: str, image_path: str, fileprefix=None):
 
     draw.text((150, 150), initials, fill="white", font_size=150, anchor="mm")
 
-    path = get_media_path(image_path, fileprefix=fileprefix, fileext="png")
-    img.save(path)
+    # path = get_media_path(image_path, fileprefix=fileprefix, fileext="png")
+    # img.save(path)
+    filename = f"{fileprefix}-{uuid.uuid4()}.png"
+    buffer = BytesIO()
+    img.save(buffer, format="png")
+    buffer.seek(0)
 
-    return path
+    file = File(buffer, name=filename)
+
+    return file

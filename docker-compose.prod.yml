@@ -117,72 +117,69 @@ services:
       - SERVER_URI=app:9000
       - SERVER_REPLICA_URI=app_replica:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
+      - S3_STORAGE_BUCKET_NAME=${S3_STORAGE_BUCKET_NAME}
       # No delay needed, since app has health checks
       - DELAY=0s
     networks:
       - cluster
 
   # # USED FOR TESTING ONLY
-  # postgres:
-  #   image: postgres:15-alpine
-  #   command: -c 'max_connections=1000'
-  #   volumes:
-  #     - postgres-clubs-prod:/var/lib/postgresql/data
-  #   environment:
-  #     - POSTGRES_DB=devdatabase
-  #     - POSTGRES_USER=devuser
-  #     - POSTGRES_PASSWORD=devpass
-  #   networks:
-  #     - cluster
+  postgres:
+    image: postgres:15-alpine
+    command: -c 'max_connections=1000'
+    volumes:
+      - postgres-clubs-prod:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=devdatabase
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=devpass
+    networks:
+      - cluster
 
-  # pgbouncer:
-  #   image: edoburu/pgbouncer
-  #   container_name: pgbouncer
-  #   restart: always
-  #   depends_on:
-  #     - postgres
-  #   networks:
-  #     - cluster
-  #   configs:
-  #     - source: pgbouncer.ini
-  #       target: /etc/pgbouncer/pgbouncer.ini
-  #     - source: userlist.txt
-  #       target: /etc/pgbouncer/userlist.txt
+  pgbouncer:
+    image: edoburu/pgbouncer
+    container_name: pgbouncer
+    restart: always
+    depends_on:
+      - postgres
+    networks:
+      - cluster
+    configs:
+      - source: pgbouncer.ini
+        target: /etc/pgbouncer/pgbouncer.ini
+      - source: userlist.txt
+        target: /etc/pgbouncer/userlist.txt
 
 volumes:
   static-clubs-prod:
 
   # # USED FOR TESTING ONLY
-  # postgres-clubs-prod:
+  postgres-clubs-prod:
 
 # # USED FOR TESTING ONLY
 # # Mimics production database pooling support
-# configs:
-#   pgbouncer.ini:
-#     content: |
-#       [databases]
-#       * = host=postgres port=5432 auth_user=devuser dbname=devdatabase
-#       devdatabase = host=postgres port=5432 auth_user=devuser
+configs:
+  pgbouncer.ini:
+    content: |
+      [databases]
+      * = host=postgres port=5432 auth_user=devuser dbname=devdatabase
+      devdatabase = host=postgres port=5432 auth_user=devuser
 
-#       [pgbouncer]
-#       listen_addr = *
-#       listen_port = 6432
-#       auth_type = plain
-#       auth_file = /etc/pgbouncer/userlist.txt
-#       pool_mode = transaction
-#       max_client_conn = 1000
-#       default_pool_size = 100
+      [pgbouncer]
+      listen_addr = *
+      listen_port = 6432
+      auth_type = plain
+      auth_file = /etc/pgbouncer/userlist.txt
+      pool_mode = transaction
+      max_client_conn = 1000
+      default_pool_size = 100
 
-#       client_idle_timeout = 600 ; 10 minutes
-#       server_idle_timeout = 300 ; 5 minutes
-#       server_lifetime = 3600 ; 1 hour
-#       query_wait_timeout = 120 ; 2 minutes
-#       connect_timeout = 5
 
-#       admin_users = devuser
-#   userlist.txt:
-#     content: |
-#       "devuser" "devpass"
+
+      admin_users = devuser
+  userlist.txt:
+    content: |
+      "devuser" "devpass"
 
 networks:
   cluster:

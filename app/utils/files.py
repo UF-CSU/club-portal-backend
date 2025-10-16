@@ -5,7 +5,7 @@ from typing import Optional
 from django.core.files import File
 from django.db import models
 
-from app.settings import MEDIA_ROOT, S3_STORAGE_BACKEND
+from app.settings import S3_STORAGE_BACKEND
 
 # def get_media_dir(nested_path=""):
 #     return Path(MEDIA_ROOT, nested_path)
@@ -36,9 +36,9 @@ def get_media_path(
     if nested_path.startswith("/"):
         nested_path = nested_path[1:]
 
-    path = Path(MEDIA_ROOT, nested_path)
+    path = Path("public", nested_path)
 
-    if create_path:
+    if create_path and not S3_STORAGE_BACKEND:
         path.mkdir(parents=True, exist_ok=True)
 
     if filename:
@@ -48,9 +48,9 @@ def get_media_path(
             # fileprefix = timezone.now().strftime("%d-%m-%Y_%H:%M:%S")
             fileprefix = "image"
 
-        assert fileext is not None, (
-            "If using a file prefix, a file extension must also be provided."
-        )
+        assert (
+            fileext is not None
+        ), "If using a file prefix, a file extension must also be provided."
         assert not fileext.startswith("."), "File extension must not start with a dot."
 
         filename = f"{fileprefix}-{uuid.uuid4()}.{fileext}"

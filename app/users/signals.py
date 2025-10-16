@@ -1,3 +1,5 @@
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -5,7 +7,6 @@ from app.settings import SCHOOL_EMAIL_DOMAIN
 from users.defaults import DEFAULT_USER_PERMISSIONS
 from users.models import Profile, User
 from utils.images import create_default_icon
-from utils.models import save_file_to_model
 from utils.permissions import parse_permissions
 
 # @receiver(pre_save, sender=User)
@@ -41,9 +42,7 @@ def on_save_user(sender, instance: User, created=False, **kwargs):
         Profile.objects.create(user=instance)
         instance.refresh_from_db()
 
-    if instance.profile.school_email is None and instance.email.endswith(
-        SCHOOL_EMAIL_DOMAIN
-    ):
+    if instance.profile.school_email is None and instance.email.endswith(SCHOOL_EMAIL_DOMAIN):
         instance.profile.school_email = instance.email
         instance.profile.save()
 
@@ -57,8 +56,16 @@ def on_save_user(sender, instance: User, created=False, **kwargs):
     else:
         initials = instance.email[0]
 
-    path = create_default_icon(
+    default_storage.save(
+        "heartbeat.txt",
+        ContentFile("File was generated to test if s3 connection worked."),
+    )
+    assert default_storage.exists("heartbeat.txt")
+    default_storage.delete("heartbeat.txt")
+
+    file = create_default_icon(
         initials, image_path="users/images/generated/", fileprefix=instance.pk
     )
 
-    save_file_to_model(instance.profile, path, field="image")
+    # save_file_to_model(instance.profile, path, field="image")
+    instance.profile.image.save(name=file.name, content=file, save=True)

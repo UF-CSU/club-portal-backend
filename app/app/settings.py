@@ -151,7 +151,7 @@ WSGI_APPLICATION = "app.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-POSTGRES_MAX_POOL_SIZE = int(os.environ.get('POSTGRES_MAX_POOL_SIZE', '0'))
+POSTGRES_MAX_POOL_SIZE = int(os.environ.get("POSTGRES_MAX_POOL_SIZE", "0"))
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -162,12 +162,12 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
         "CONN_MAX_AGE": 0,
-        "OPTIONS": {}
+        "OPTIONS": {},
     }
 }
 
 if POSTGRES_MAX_POOL_SIZE > 0:
-    DATABASES['default']['OPTIONS']['pool'] = {
+    DATABASES["default"]["OPTIONS"]["pool"] = {
         "pool": {
             "min_size": 1,
             "max_size": POSTGRES_MAX_POOL_SIZE,
@@ -327,23 +327,26 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
+AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
+AWS_DEFAULT_ACL = "public-read"
+AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
+AWS_QUERYSTRING_AUTH = False
+
 STATIC_URL = "/files/static/"
 MEDIA_URL = "/files/media/public/"
 
 STATIC_ROOT = "/vol/web/static"
 
+# AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
+# MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+
 if S3_STORAGE_BACKEND:
     # Set S3 Config
     DEFAULT_FILE_STORAGE = "core.storages.PublicMediaStorage"
-    MEDIA_ROOT = "/"
+    # MEDIA_ROOT = f"https://{AWS_S3_CUSTOM_DOMAIN}/public/"
 else:
     MEDIA_ROOT = "/vol/web/media"
 
-
-AWS_DEFAULT_ACL = "public-read"
-AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
-AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
-AWS_QUERYSTRING_AUTH = False
 
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")

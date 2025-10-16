@@ -51,7 +51,7 @@ def process_csv_job_task(job_id: int):
             "text/html",
         )
         try:
-            mail.attach_file(get_file_path(job.report))
+            mail.attach_file(job.report.path)
         except Exception:
             print_error()
         mail.send()
