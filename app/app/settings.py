@@ -151,7 +151,7 @@ WSGI_APPLICATION = "app.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-POSTGRES_MAX_POOL_SIZE = int(os.environ.get('POSTGRES_MAX_POOL_SIZE', '0'))
+POSTGRES_MAX_POOL_SIZE = int(os.environ.get("POSTGRES_MAX_POOL_SIZE", "0"))
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -162,12 +162,12 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
         "CONN_MAX_AGE": 0,
-        "OPTIONS": {}
+        "OPTIONS": {},
     }
 }
 
 if POSTGRES_MAX_POOL_SIZE > 0:
-    DATABASES['default']['OPTIONS']['pool'] = {
+    DATABASES["default"]["OPTIONS"]["pool"] = {
         "pool": {
             "min_size": 1,
             "max_size": POSTGRES_MAX_POOL_SIZE,
@@ -318,7 +318,7 @@ SOCIALACCOUNT_ADAPTER = "lib.allauth.CustomSocialAccountAdapter"
 
 
 ##########################################
-# == Production & Static Files Config == #
+# == Static Files Config =============== #
 ##########################################
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -327,26 +327,44 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
+# URL path to file
 STATIC_URL = "/files/static/"
 MEDIA_URL = "/files/media/public/"
 
+# Physical location in file system
+MEDIA_ROOT = "/vol/web/media/public"
 STATIC_ROOT = "/vol/web/static"
 
+# Media and static storage config
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {},
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "OPTIONS": {},
+    },
+}
+
 if S3_STORAGE_BACKEND:
-    # Set S3 Config
-    DEFAULT_FILE_STORAGE = "core.storages.PublicMediaStorage"
-    MEDIA_ROOT = "/"
-else:
-    MEDIA_ROOT = "/vol/web/media"
+    MEDIA_ROOT = None  # This is ignored by boto3, but still included for clarity
 
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
 
-AWS_DEFAULT_ACL = "public-read"
-AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
-AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
-AWS_QUERYSTRING_AUTH = False
+    # Split base url to provide to boto3 backend
+    protocol, domain = BASE_URL.split("//")
+    AWS_S3_CUSTOM_DOMAIN = domain + "/files/media"
+    AWS_S3_URL_PROTOCOL = protocol
 
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    # When enabled, set the default storage to use AWS S3
+    STORAGES["default"] = {
+        "BACKEND": "core.storage.PublicMediaStorage",
+    }
+
 
 # Sentry
 sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0)

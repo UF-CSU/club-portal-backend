@@ -2,12 +2,12 @@
 Import/upload data tests.
 """
 
-import json
-import os
 import uuid
+from io import BytesIO
 from unittest.mock import patch
 
 from django.contrib.postgres.aggregates import StringAgg
+from django.core.files import File
 from django.db import models
 
 from core.mock.models import BusterTag
@@ -252,9 +252,10 @@ class UploadCsvTests(UploadCsvTestsBase):
         """Should safely handle an error that doesn't relate to the serializer."""
 
         # Error strategy: unknown extension and file not found
-        self.filepath = self.filepath.replace(".csv", ".abc")
+        buffer = BytesIO()
+        file = File(buffer, name="test.abc")
 
-        success, failed = self.service.upload_csv(self.filepath)
+        success, failed = self.service.upload_csv(file)
         self.assertIsInstance(failed, Exception)
         self.assertLength(success, 0)
 
@@ -265,7 +266,6 @@ class UploadJsonTests(UploadCsvTestsBase):
     def test_upload_json_many_str(self):
         """Should be able to upload json file."""
 
-        filepath = self.get_unique_filepath(ext="json")
         payload = [
             {
                 "name": fake.title(),
@@ -274,13 +274,7 @@ class UploadJsonTests(UploadCsvTestsBase):
             }
         ]
 
-        dir = os.path.dirname(filepath)
-        os.makedirs(dir, exist_ok=True)
-
-        with open(filepath, mode="w+") as f:
-            json.dump(payload, f, indent=4)
-
-        file = self.load_file(filepath)
+        file = self.dump_json(payload)
         success, failed = self.service.upload_csv(file=file)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
@@ -297,7 +291,6 @@ class UploadJsonTests(UploadCsvTestsBase):
     def test_upload_json_many_nested(self):
         """Should be able to upload json file."""
 
-        filepath = self.get_unique_filepath(ext="json")
         payload = [
             {
                 "name": fake.title(),
@@ -319,13 +312,7 @@ class UploadJsonTests(UploadCsvTestsBase):
             }
         ]
 
-        dir = os.path.dirname(filepath)
-        os.makedirs(dir, exist_ok=True)
-
-        with open(filepath, mode="w+") as f:
-            json.dump(payload, f, indent=4)
-
-        file = self.load_file(filepath)
+        file = self.dump_json(payload)
         success, failed = self.service.upload_csv(file=file)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
@@ -348,7 +335,7 @@ class UploadCsvJobTests(UploadCsvTestsBase):
         """Should upload and process csv from model."""
 
         # Initialize data
-        objects_before, _ = self.initialize_csv_data(clear_db=False)
+        objects_before, file = self.initialize_csv_data(clear_db=False)
 
         # Update fields after create csv
         for obj in self.repo.all():
@@ -356,8 +343,8 @@ class UploadCsvJobTests(UploadCsvTestsBase):
 
         # Upload csv via service
         job = QueryCsvUploadJob.objects.create(
-            filepath=self.filepath,
             serializer_class=self.serializer_class,
+            file=file,
         )
         QueryCsvService.upload_from_job(job)
 
@@ -368,15 +355,15 @@ class UploadCsvJobTests(UploadCsvTestsBase):
     def test_upload_custom_fields(self):
         """Should process csv with custom field mappings."""
 
-        objects_before, _ = self.initialize_csv_data()
+        objects_before, file = self.initialize_csv_data()
 
         # Rename csv field
         self.df.rename(columns={"name": "Test Value"}, inplace=True)
-        self.df_to_csv(self.df, self.filepath)
+        file = self.df_to_csv(self.df)
 
         # Create and upload job
         job = QueryCsvUploadJob.objects.create(
-            serializer_class=self.serializer_class, filepath=self.filepath
+            serializer_class=self.serializer_class, file=file
         )
         job.add_field_mapping(column_name="Test Value", field_name="name")
         job.refresh_from_db()
@@ -390,10 +377,10 @@ class UploadCsvJobTests(UploadCsvTestsBase):
     def test_failed_job(self):
         """Should correctly handle a failed job."""
 
-        self.initialize_csv_data()
+        _, file = self.initialize_csv_data()
 
         job = QueryCsvUploadJob.objects.create(
-            serializer_class=self.serializer_class, filepath=self.filepath
+            serializer_class=self.serializer_class, file=file
         )
         # Error strategy: invalid field mapping
         job.custom_field_mappings = {"fields": ["Some invalid input"]}

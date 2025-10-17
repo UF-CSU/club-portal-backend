@@ -2,6 +2,7 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.core.management import BaseCommand
+from django.db import transaction
 
 
 class Command(BaseCommand):
@@ -27,7 +28,8 @@ class Command(BaseCommand):
         existing_user = User.objects.filter(email=email)
 
         if not super_users.exists() and not existing_user.exists():
-            User.objects.create_superuser(email=email, password=password)
+            with transaction.atomic():
+                User.objects.create_superuser(email=email, password=password)
 
             self.stdout.write(
                 self.style.SUCCESS(

@@ -2,7 +2,6 @@
 
 from django.db import migrations
 
-from utils.files import get_file_from_path
 from utils.images import create_default_icon
 
 
@@ -14,10 +13,10 @@ def migrate_set_club_logo(apps, schema_editor):
 
     for club in Club.objects.filter(logo__isnull=True):
         initials = club.alias or club.name[0]
-        logo_path = create_default_icon(
+        file = create_default_icon(
             initials, image_path="clubs/images/generated/", fileprefix=club.pk
         )
-        logo = ClubFile.objects.create(club=club, file=get_file_from_path(logo_path))
+        logo = ClubFile.objects.create(club=club, file=file)
 
         club.logo = logo
         club.save()
@@ -44,6 +43,4 @@ class Migration(migrations.Migration):
         ("clubs", "0043_alter_clubfile_uploaded_by"),
     ]
 
-    operations = [
-        migrations.RunPython(migrate_set_club_logo, migrate_reverse_set_club_logo)
-    ]
+    operations = [migrations.RunPython(migrate_set_club_logo, migrate_reverse_set_club_logo)]

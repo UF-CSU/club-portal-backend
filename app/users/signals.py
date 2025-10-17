@@ -5,7 +5,6 @@ from app.settings import SCHOOL_EMAIL_DOMAIN
 from users.defaults import DEFAULT_USER_PERMISSIONS
 from users.models import Profile, User
 from utils.images import create_default_icon
-from utils.models import save_file_to_model
 from utils.permissions import parse_permissions
 
 # @receiver(pre_save, sender=User)
@@ -57,8 +56,9 @@ def on_save_user(sender, instance: User, created=False, **kwargs):
     else:
         initials = instance.email[0]
 
-    path = create_default_icon(
+    file = create_default_icon(
         initials, image_path="users/images/generated/", fileprefix=instance.pk
     )
 
-    save_file_to_model(instance.profile, path, field="image")
+    instance.profile.image = file
+    instance.profile.save()

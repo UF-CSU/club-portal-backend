@@ -594,7 +594,7 @@ class ClubCsvSerializer(CsvModelSerializer):
     def create(self, validated_data):
         logo = validated_data.pop("logo", None)
 
-        club = super().create(validated_data)
+        club: Club = super().create(validated_data)
 
         if logo:
             file = ClubFile.objects.create(club=club, file=logo)

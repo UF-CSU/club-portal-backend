@@ -26,7 +26,6 @@ from core.abstracts.models import (
 )
 from core.models import Major
 from users.models import ApiKeyType, User, UserAgent
-from utils.files import get_file_path
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
 from utils.models import UploadNestedClubFilepathFactory
@@ -316,7 +315,7 @@ class ClubFile(ClubScopedModel, ModelBase):
     def file_type(self) -> str:
         """Get the type of file stored (using file extension)."""
         try:
-            return get_file_path(self.file).split(".")[-1]
+            return self.file.name.split(".")[-1]
         except Exception:
             return "Unknown"
 

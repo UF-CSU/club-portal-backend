@@ -1,5 +1,3 @@
-import pandas as pd
-
 from querycsv.tests.utils import CsvDataTestsBase
 
 
@@ -9,8 +7,8 @@ class CsvSerializerTests(CsvDataTestsBase):
     def test_csv_template_all_fields(self):
         """A csv template should have all flat fields."""
 
-        template_path = self.service.get_csv_template("all")
-        df = pd.read_csv(template_path)
+        file = self.service.get_csv_template("all")
+        df = self.csv_to_df(file)
         fields = list(df.columns)
 
         expected_fields = [
@@ -36,8 +34,8 @@ class CsvSerializerTests(CsvDataTestsBase):
     def test_csv_template_required_fields(self):
         """A csv template should have required flat fields."""
 
-        template_path = self.service.get_csv_template("required")
-        df = pd.read_csv(template_path)
+        file = self.service.get_csv_template("required")
+        df = self.csv_to_df(file)
         fields = list(df.columns)
 
         expected_fields = ["name"]
@@ -48,8 +46,8 @@ class CsvSerializerTests(CsvDataTestsBase):
     def test_csv_template_writable_fields(self):
         """A csv template should have writable flat fields."""
 
-        template_path = self.service.get_csv_template("writable")
-        df = pd.read_csv(template_path)
+        file = self.service.get_csv_template("writable")
+        df = self.csv_to_df(file)
         fields = list(df.columns)
 
         expected_fields = [

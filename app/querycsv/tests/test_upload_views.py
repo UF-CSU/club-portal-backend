@@ -1,4 +1,3 @@
-import pandas as pd
 from django.template.response import TemplateResponse
 from django.test import RequestFactory
 from rest_framework import status
@@ -58,9 +57,9 @@ class UploadCsvViewsTests(UploadCsvTestsBase):
     def test_map_upload_csv_headers_get(self):
         """Should show form for header associations."""
 
-        self.initialize_csv_data()
+        _, file = self.initialize_csv_data()
         job = QueryCsvUploadJob.objects.create(
-            serializer_class=self.serializer_class, filepath=self.filepath
+            serializer_class=self.serializer_class, file=file
         )
 
         req = self.req_factory.get("/")
@@ -79,13 +78,14 @@ class UploadCsvViewsTests(UploadCsvTestsBase):
         """Should add custom header associations for upload job."""
 
         # Initialize data
-        self.initialize_csv_data()
-        df = pd.read_csv(self.filepath)
+        _, file = self.initialize_csv_data()
+        df = self.csv_to_df(file)
         df.rename(columns={"name": "Test Name"}, inplace=True)
-        self.df_to_csv(df, self.filepath)
+        file = self.df_to_csv(df, file)
 
+        # Create job
         job = QueryCsvUploadJob.objects.create(
-            serializer_class=self.serializer_class, filepath=self.filepath
+            serializer_class=self.serializer_class, file=file
         )
         data = {
             "form-TOTAL_FORMS": "1",
