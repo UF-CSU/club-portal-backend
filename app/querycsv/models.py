@@ -113,7 +113,7 @@ class QueryCsvUploadJob(ModelBase):
     # Dynamic properties
     @cached_property
     def display_name(self):
-        if self.spreadsheet:
+        if self.spreadsheet is not None and not self.spreadsheet.empty:
             return f'Upload for "{self.object_type}" objects, {self.row_count} rows'
         else:
             return f'Upload for "{self.object_type}" objects'
