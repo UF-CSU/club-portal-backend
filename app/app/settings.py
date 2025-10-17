@@ -327,31 +327,33 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
-# Required when using "staticfiles" app
+# URL path to file
 STATIC_URL = "/files/static/"
-# MEDIA_URL = "/files/media/public/"
-MEDIA_ROOT = "/vol/web/media/"
-STATIC_ROOT = "/vol/web/static/"
+MEDIA_URL = "/files/media/public/"
+
+# Physical location in file system
+MEDIA_ROOT = "/vol/web/media"
+STATIC_ROOT = "/vol/web/static"
 
 # Media and static storage config
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
         "OPTIONS": {
-            "location": f"/vol/web/media/public",  # Physical dir location
-            "base_url": "/files/media/public/",  # URL path
+            "location": f"{MEDIA_ROOT}/public",  # Physical dir location
         },
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         "OPTIONS": {
-            "location": f"/vol/web/static",  # Physical dir location
-            "base_url": STATIC_URL,  # URL path
+            "location": STATIC_ROOT,
         },
     },
 }
 
 if S3_STORAGE_BACKEND:
+    MEDIA_ROOT = None  # This is ignored by boto3, but still included for clarity
+
     AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
     AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
@@ -363,7 +365,9 @@ if S3_STORAGE_BACKEND:
     AWS_S3_URL_PROTOCOL = protocol
 
     # When enabled, set the default storage to use AWS S3
-    STORAGES["default"] = {"BACKEND": "core.storage.PublicMediaStorage"}
+    STORAGES["default"] = {
+        "BACKEND": "core.storage.PublicMediaStorage",
+    }
 
 
 # Sentry

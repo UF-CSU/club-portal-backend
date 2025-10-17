@@ -1,5 +1,3 @@
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -56,16 +54,9 @@ def on_save_user(sender, instance: User, created=False, **kwargs):
     else:
         initials = instance.email[0]
 
-    default_storage.save(
-        "heartbeat.txt",
-        ContentFile("File was generated to test if s3 connection worked."),
-    )
-    assert default_storage.exists("heartbeat.txt")
-    default_storage.delete("heartbeat.txt")
-
     file = create_default_icon(
         initials, image_path="users/images/generated/", fileprefix=instance.pk
     )
 
-    # save_file_to_model(instance.profile, path, field="image")
-    instance.profile.image.save(name=file.name, content=file, save=True)
+    instance.profile.image = file
+    instance.profile.save()
