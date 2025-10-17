@@ -1,6 +1,3 @@
-import json
-import os
-
 from django.utils import timezone
 
 from clubs.models import Club, ClubFile, ClubMembership, ClubRole, ClubSocialProfile
@@ -187,12 +184,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
                 "OrganizationName": "Computing Student Union",
                 "Acronym": "CSU",
                 "OrganizationDescription": fake.paragraph(),
-                "DateCreated": (
-                    timezone.now() - timezone.timedelta(days=365 * 2)
-                ).isoformat(),
-                "LastUpdated": (
-                    timezone.now() - timezone.timedelta(days=365 * 1)
-                ).isoformat(),
+                "DateCreated": (timezone.now() - timezone.timedelta(days=365 * 2)).isoformat(),
+                "LastUpdated": (timezone.now() - timezone.timedelta(days=365 * 1)).isoformat(),
                 "OrganizationState": True,
                 "OrganizationTypeName": "Example Type",
                 "SupportingInstitution": fake.title(),
@@ -214,23 +207,11 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             {"column_name": "CurrentlyRegistering", "field_name": "SKIP"},
         ]
 
-        filepath = self.get_unique_filepath(ext="json")
-        dir = os.path.dirname(filepath)
-        os.makedirs(dir, exist_ok=True)
-
-        with open(filepath, mode="w+") as f:
-            json.dump(payload, f, indent=4)
-
-        file = self.load_file(filepath)
+        file = self.dump_json(payload)
         success, failed = self.service.upload_csv(file=file, custom_field_maps=mappings)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
         self.assertEqual(self.repo.count(), 1)
-
-        # self.assertUploadPayload(
-        #     payload=payload,
-        #     custom_field_maps=mappings,
-        # )
 
         self.assertEqual(self.repo.count(), 1)
         obj = self.repo.first()
@@ -248,7 +229,6 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
     def setUp(self):
         self.club = create_test_club()
         self.club2 = create_test_club()
-        # self.user = create_test_user()
         return super().setUp()
 
     def get_create_params(self, **kwargs):
@@ -280,12 +260,8 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
             self.assertTrue(User.objects.filter(email=expected["user.email"]).exists())
 
             for role in expected["roles"]:
-                self.assertTrue(
-                    ClubRole.objects.filter(name=role, club=self.club).exists()
-                )
+                self.assertTrue(ClubRole.objects.filter(name=role, club=self.club).exists())
 
             self.assertTrue(
-                self.repo.filter(
-                    club=expected["club"], user__email=expected["user.email"]
-                ).exists()
+                self.repo.filter(club=expected["club"], user__email=expected["user.email"]).exists()
             )

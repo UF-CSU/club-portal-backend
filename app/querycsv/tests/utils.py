@@ -2,23 +2,24 @@
 CSV Data Tests Utilities
 """
 
+import json
 import random
-import uuid
-from pathlib import Path
+from io import BytesIO, StringIO
 from typing import Optional
 
-import numpy as np
 import pandas as pd
 from django.core.files import File
+from django.core.files.storage import default_storage
 from django.db import models
 
 from core.abstracts.tests import TestsBase
 from core.mock.models import Buster, BusterTag
 from core.mock.serializers import BusterCsvSerializer
 from lib.faker import fake
+from lib.spreadsheets import read_spreadsheet
 from querycsv.models import CsvUploadStatus, FieldMappingType, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
-from utils.files import get_media_path
+from utils.files import get_unique_filename
 from utils.helpers import clean_list
 
 
@@ -106,69 +107,40 @@ class CsvDataTestsBase(TestsBase):
 
         return obj
 
-    def get_unique_filepath(self, ext="csv"):
-        return get_media_path(
-            nested_path="tests/querydata/uploads/",
-            filename=f"{uuid.uuid4()}.{ext}",
-            create_path=True,
-        )
+    def get_unique_filename(self, ext="csv"):
+        """Get unique file name for a file used in these tests."""
 
-    def df_to_csv(self, df: pd.DataFrame, filepath: Optional[str] = None):
+        return get_unique_filename(prefix="test-csv", ext=ext)
+
+    def df_to_csv(self, df: pd.DataFrame, file_prefix: str = "test-csv"):
         """
-        Dump a dataframe to a csv, return filepath.
+        Dump a dataframe to a csv, return file.
         """
 
-        if filepath is None:
-            filepath = self.filepath
+        filename = get_unique_filename(file_prefix, ext="csv")
 
-        df.to_csv(filepath, index=False, mode="w")
+        buffer = BytesIO()
+        df.to_csv(buffer, index=False, mode="w")
+        default_storage.save(filename, content=buffer)
 
-        return self.load_file(filepath)
+        return File(buffer, filename)
 
     def data_to_df(self, data: list[dict]):
         """Convert output of serializer to dataframe."""
-        # data_copy = [{**obj} for obj in data]
 
         data_copy = [self.serializer.json_to_flat(obj) for obj in data]
-
-        # for model in data_copy:
-        #     for key, value in model.items():
-        #         if isinstance(value, list):
-        #             if not islistinstance(value, dict):
-        #                 model[key] = ",".join([str(v) for v in value])
-        #             else:
-        #                 model[key] =
-
         return pd.DataFrame.from_records(data_copy)
 
     def data_to_csv(self, data: list[dict]):
-        """Convert list of dicts to a csv, return filepath."""
+        """Convert list of dicts to a csv, return file."""
 
         df = self.data_to_df(data)
         return self.df_to_csv(df)
 
-    def csv_to_df(self, path: str):
+    def csv_to_df(self, file: File):
         """Convert csv at path to list of objects."""
 
-        # Start by importing csv
-        if path.endswith(".xlsx") or path.endswith(".xls"):
-            df = pd.read_excel(path, dtype=str)
-        else:
-            df = pd.read_csv(path, dtype=str)
-
-        df.replace(np.nan, "", inplace=True)
-
-        return df
-
-    def load_file(self, path: str):
-        """Load file from path."""
-
-        file = None
-        path_obj = Path(path)
-
-        file = File(path_obj.open(mode="rb"), path_obj.name)
-
-        return file
+        return read_spreadsheet(file)
 
     # Custom assertions
     #####################
@@ -443,20 +415,11 @@ class DownloadCsvTestsBase(CsvDataTestsBase):
     - objects: all instances of Model in database
     """
 
-    # def initialize_dataset(self):
-    #     """Create database objects, return queryset."""
+    def assertValidCsv(self, file: File):
+        """File at file should be a valid csv."""
 
-    #     self.create_mock_objects()
-    #     self.assertObjectsCount(self.dataset_size)
-
-    #     return self.repo.all()
-
-    def assertValidCsv(self, filepath: str):
-        """File at filepath should be a valid csv."""
-
-        self.assertFileExists(filepath)
-        # self.assertStartsWith(filepath, MEDIA_ROOT)
-        self.assertEndsWith(filepath, ".csv")
+        self.assertEndsWith(file.name, ".csv")
+        read_spreadsheet(file)
 
     def assertCsvHasFields(self, df: pd.DataFrame):
         """Iterate over csv data and verify with DB."""
@@ -511,11 +474,6 @@ class UploadCsvTestsBase(CsvDataTestsBase):
         - unique_field
     """
 
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.filepath = self.get_unique_filepath()
-
     def create_objects(self):
         # Create test models
         self.assertNoObjects()
@@ -533,6 +491,16 @@ class UploadCsvTestsBase(CsvDataTestsBase):
         self.df = self.data_to_df(data)
         self.df = self.df.fillna("")
         return self.df_to_csv(self.df)
+
+    def dump_json(self, payload: list[dict]):
+        """Dump contents of json to a new file."""
+
+        filename = self.get_unique_filename(ext="json")
+        buffer = StringIO()
+
+        json.dump(payload, buffer, indent=4)
+
+        return File(buffer, name=filename)
 
     def initialize_csv_data(self, clear_db=True):
         """Create csv with data, then clear the database."""

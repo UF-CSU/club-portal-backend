@@ -1,6 +1,8 @@
 import re
 from collections import OrderedDict
 from enum import Enum
+from io import BytesIO
+from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 import pandas as pd
@@ -10,13 +12,10 @@ from django.utils import timezone
 
 from core.abstracts.serializers import ModelSerializerBase
 from lib.spreadsheets import read_spreadsheet
-from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
 from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.serializers import CsvModelSerializer
-from utils.files import get_media_path
 from utils.helpers import str_to_list
 from utils.logging import print_error
-from utils.models import save_file_to_model
 
 
 class FieldMappingType(TypedDict):
@@ -90,20 +89,22 @@ class QueryCsvService:
         job.save()
 
         # Create report
-        report_file_path = get_media_path(
-            QUERYCSV_MEDIA_SUBDIR + f"reports/{job.model_class.__name__}/",
-            fileprefix=str(timezone.now().strftime("%d-%m-%Y_%H:%M:%S")),
-            fileext="xlsx",
+        report_file_path = Path(
+            f"reports/{job.model_class.__name__}/",
+            f"{timezone.now().strftime("%d-%m-%Y_%H:%M:%S")}.xlsx",
         )
+        report_buffer = BytesIO()
 
         success_report = pd.json_normalize(success)
         failed_report = pd.json_normalize(failed)
 
-        with pd.ExcelWriter(report_file_path) as writer:
+        with pd.ExcelWriter(report_buffer) as writer:
             success_report.to_excel(writer, sheet_name="Successful", index=False)
             failed_report.to_excel(writer, sheet_name="Failed", index=False)
 
-        save_file_to_model(job, report_file_path, field="report")
+        report_file = File(report_buffer, report_file_path.__str__())
+        job.report = report_file
+        job.save()
 
         return success, failed
 
@@ -124,25 +125,21 @@ class QueryCsvService:
         if self.job:
             self.job.add_log(value, key=key)
 
-    def download_csv(self, queryset: models.QuerySet) -> str:
+    def download_csv(self, queryset: models.QuerySet):
         """Download: Convert queryset to csv, return path to csv."""
 
         data = self.serializer_class(queryset, many=True).data
         flattened = [self.serializer_class.json_to_flat(obj) for obj in data]
 
         df = pd.json_normalize(flattened)
-        filepath = get_media_path(
-            QUERYCSV_MEDIA_SUBDIR + "downloads/",
-            fileprefix=f"{self.model_name}",
-            fileext="csv",
-        )
-        df.to_csv(filepath, index=False)
+        buffer = BytesIO()
+        df.to_csv(buffer, index=False)
 
-        return filepath
+        filename = f"{self.model_name.lower()}_download.csv"
 
-    def get_csv_template(
-        self, field_types: Literal["all", "required", "writable"]
-    ) -> str:
+        return File(buffer, name=filename)
+
+    def get_csv_template(self, field_types: Literal["all", "required", "writable"]):
         """
         Get path to csv file containing required fields for upload.
 
@@ -159,29 +156,21 @@ class QueryCsvService:
 
         match field_types:
             case "required":
-                template_fields = [
-                    str(field) for field in flat_field_names if field.is_required
-                ]
+                template_fields = [str(field) for field in flat_field_names if field.is_required]
             case "writable":
-                template_fields = [
-                    str(field) for field in flat_field_names if field.is_writable
-                ]
+                template_fields = [str(field) for field in flat_field_names if field.is_writable]
             case "all" | _:
                 template_fields = [str(field) for field in flat_field_names]
 
-        filepath = get_media_path(
-            QUERYCSV_MEDIA_SUBDIR + "templates/",
-            f"{self.model_name}_template.csv",
-            create_path=True,
-        )
+        filename = f"{self.model_name.lower()}_upload_template.csv"
         df = pd.DataFrame([], columns=template_fields)
-        df.to_csv(filepath, index=False)
 
-        return filepath
+        buffer = BytesIO()
+        df.to_csv(buffer, index=False)
 
-    def upload_csv(
-        self, file: File, custom_field_maps: Optional[list[FieldMappingType]] = None
-    ):
+        return File(buffer, name=filename)
+
+    def upload_csv(self, file: File, custom_field_maps: Optional[list[FieldMappingType]] = None):
         """
         Upload: Given path to csv, create/update models and
         return successful and failed objects.
@@ -192,9 +181,7 @@ class QueryCsvService:
 
             # Start by importing csv
             df = read_spreadsheet(file)
-            self._log_job_msg(
-                "Finished reading spreadsheet, processing field mappings..."
-            )
+            self._log_job_msg("Finished reading spreadsheet, processing field mappings...")
 
             # Strip leading/trailing spaces from column names
             df.columns = df.columns.str.strip()
@@ -241,22 +228,16 @@ class QueryCsvService:
 
                     # Determine type
                     numbers = re.findall(r"\d+", column_name)
-                    assert len(numbers) <= 1, (
-                        "List items can only contain 0 or 1 numbers (multi digit allowed)."
-                    )
+                    assert (
+                        len(numbers) <= 1
+                    ), "List items can only contain 0 or 1 numbers (multi digit allowed)."
 
                     if len(numbers) == 1:
                         # Number was provided in spreadsheet
                         index = numbers[0]
                     else:
                         # Number was not provided in spreadsheet, get index of field
-                        index = len(
-                            [
-                                key
-                                for key in generic_list_keys
-                                if key == field.generic_key
-                            ]
-                        )
+                        index = len([key for key in generic_list_keys if key == field.generic_key])
 
                     field.set_index(index)
                     generic_list_keys.append(field.generic_key)
@@ -281,15 +262,12 @@ class QueryCsvService:
                         ]
                     )
                 else:
-                    df[field_name] = df[field_name].map(
-                        lambda val: val if val != "" else None
-                    )
+                    df[field_name] = df[field_name].map(lambda val: val if val != "" else None)
 
             # Convert df to list of dicts, drop null fields
             upload_data = df.to_dict("records")
             filtered_data = [
-                {k: v for k, v in record.items() if v is not None}
-                for record in upload_data
+                {k: v for k, v in record.items() if v is not None} for record in upload_data
             ]
 
             # Finally, save data if valid
@@ -299,9 +277,7 @@ class QueryCsvService:
             self._log_job_msg("Unflattening csv data...")
 
             # Note: string stripping is done in the serializer
-            serializers = [
-                self.serializer_class(data=data, flat=True) for data in filtered_data
-            ]
+            serializers = [self.serializer_class(data=data, flat=True) for data in filtered_data]
 
             self._log_job_msg("Starting database update process...")
 

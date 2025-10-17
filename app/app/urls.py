@@ -18,6 +18,7 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.core.files.storage import default_storage
 from django.urls import include, path
 from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -56,14 +57,17 @@ urlpatterns = [
     path("polls/", include("polls.urls")),
 ]
 
+
 if DEV:
     # from debug_toolbar.toolbar import debug_toolbar_urls
-
-    urlpatterns += static(
-        settings.MEDIA_URL,
-        document_root=settings.MEDIA_ROOT,
-    )
     # urlpatterns += debug_toolbar_urls()
     # urlpatterns.append(
     #     path("__reload__/", include("django_browser_reload.urls")),
     # )
+
+    # When in dev mode, server is not behind NGINX proxy,
+    # so we have to serve up the files via Django
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=default_storage.path(""),
+    )

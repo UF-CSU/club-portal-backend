@@ -30,9 +30,7 @@ class AdminBase:
     def get_admin_url(
         self,
         model: models.Model,
-        url_context: Literal[
-            "changelist", "add", "history", "delete", "change"
-        ] = "changelist",
+        url_context: Literal["changelist", "add", "history", "delete", "change"] = "changelist",
         admin_name=None,
         as_link=False,
         link_text=None,
@@ -234,8 +232,8 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
 
         include_fields = request.GET.get("fields", None)
 
-        filepath = self.csv_svc.get_csv_template(field_types=include_fields)
-        return FileResponse(open(filepath, "rb"))
+        file = self.csv_svc.get_csv_template(field_types=include_fields)
+        return FileResponse(file.open(mode="rb"), filename=file.name)
 
     ##############################
     # == Custom Admin Actions == #
@@ -253,8 +251,8 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
             )
             return redirect(f"{self.admin_name}:{self._url_name()}")
 
-        filepath = self.csv_svc.download_csv(queryset)
-        return FileResponse(open(filepath, "rb"))
+        file = self.csv_svc.download_csv(queryset)
+        return FileResponse(file.open(mode="rb"))
 
 
 class InlineBase(AdminBase):

@@ -1,7 +1,5 @@
-from pathlib import Path
 from typing import ClassVar, Optional
 
-from django.core.files import File
 from django.db import models
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -28,9 +26,7 @@ class LinkManager(ManagerBase["Link"]):
 class Link(ClubScopedModel, ModelBase):
     """Track visits to target url."""
 
-    club = models.ForeignKey(
-        "clubs.Club", on_delete=models.CASCADE, related_name="links"
-    )
+    club = models.ForeignKey("clubs.Club", on_delete=models.CASCADE, related_name="links")
     target_url = models.URLField(help_text="The final url we want to track clicks to.")
     display_name = models.CharField(null=True, blank=True)
     is_tracked = models.BooleanField(
@@ -103,9 +99,7 @@ class LinkVisit(ClubScopedModel, ModelBase):
     ipaddress = models.GenericIPAddressField(
         help_text="IP Address of the person that visited the link"
     )
-    context = models.JSONField(
-        null=True, blank=True, help_text="Extra meta information"
-    )
+    context = models.JSONField(null=True, blank=True, help_text="Extra meta information")
     amount = models.IntegerField(
         default=0, help_text="Number of times this person clicked the link"
     )
@@ -147,15 +141,6 @@ class QRCode(ClubScopedModel, ModelBase):
         Link, on_delete=models.CASCADE, related_name="qrcode", primary_key=True
     )
     image = models.ImageField(null=True, blank=True, upload_to=qrcode_upload_path)
-
-    def save_image(self, filepath: str):
-        """Takes path for image and sets it to the image field."""
-
-        path = Path(filepath)
-
-        with path.open(mode="rb") as f:
-            self.image = File(f, name=f.name)
-            self.save()
 
     # Dynamic Properties
     @property

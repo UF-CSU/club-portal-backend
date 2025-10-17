@@ -7,7 +7,6 @@ from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
 from clubs.services import ClubService
 from lib.faker import fake
 from users.models import User
-from utils.files import get_file_from_path
 from utils.testing import create_test_image
 
 ####################################################
@@ -66,7 +65,7 @@ def create_test_clubfile(club: Club, **kwargs):
 
     payload = {
         "club": club,
-        "file": get_file_from_path(create_test_image()),
+        "file": create_test_image(),
         **kwargs,
     }
 

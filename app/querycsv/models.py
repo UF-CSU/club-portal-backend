@@ -3,7 +3,6 @@ CSV data logging models.
 """
 
 import logging
-from pathlib import Path
 from typing import ClassVar, Optional, TypedDict
 
 from django.core.files import File
@@ -18,7 +17,6 @@ from core.abstracts.models import ManagerBase, ModelBase
 from lib.spreadsheets import SPREADSHEET_EXTS, read_spreadsheet
 from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
 from querycsv.serializers import CsvModelSerializer
-from utils.files import get_file_path
 from utils.formatting import format_timedelta
 from utils.helpers import get_import_path, import_from_path
 from utils.logging import print_error
@@ -47,7 +45,7 @@ class QueryCsvUploadJobManager(ManagerBase["QueryCsvUploadJob"]):
     def create(
         self,
         serializer_class: type[serializers.Serializer],
-        filepath: Optional[str] = None,
+        file: File,
         notify_email: Optional[str] = None,
         **kwargs,
     ) -> "QueryCsvUploadJob":
@@ -56,16 +54,7 @@ class QueryCsvUploadJobManager(ManagerBase["QueryCsvUploadJob"]):
         """
 
         kwargs["serializer"] = get_import_path(serializer_class)
-
-        if filepath:
-            path = Path(filepath)
-            with path.open(mode="rb") as f:
-                kwargs["file"] = File(f, name=path.name)
-                job = super().create(notify_email=notify_email, **kwargs)
-        else:
-            job = super().create(notify_email=notify_email, **kwargs)
-
-        return job
+        return super().create(notify_email=notify_email, file=file, **kwargs)
 
 
 class QueryCsvUploadJob(ModelBase):
@@ -81,14 +70,10 @@ class QueryCsvUploadJob(ModelBase):
         upload_to=csv_upload_path,
         validators=[FileExtensionValidator(allowed_extensions=SPREADSHEET_EXTS)],
     )
-    serializer = models.CharField(
-        max_length=64, validators=[validate_import_string], null=True
-    )
+    serializer = models.CharField(max_length=64, validators=[validate_import_string], null=True)
 
     # Meta fields
-    status = models.CharField(
-        choices=CsvUploadStatus.choices, default=CsvUploadStatus.PENDING
-    )
+    status = models.CharField(choices=CsvUploadStatus.choices, default=CsvUploadStatus.PENDING)
     notify_email = models.EmailField(null=True, blank=True)
     report = models.FileField(
         upload_to=QUERYCSV_MEDIA_SUBDIR + "reports/",
@@ -124,13 +109,10 @@ class QueryCsvUploadJob(ModelBase):
     # Dynamic properties
     @cached_property
     def display_name(self):
-        if self.filepath:
+        if self.spreadsheet:
             return f'Upload for "{self.object_type}" objects, {self.row_count} rows'
-        return f'Upload for "{self.object_type}" objects'
-
-    @cached_property
-    def filepath(self):
-        return get_file_path(self.file)
+        else:
+            return f'Upload for "{self.object_type}" objects'
 
     @cached_property
     def spreadsheet(self):
@@ -176,9 +158,7 @@ class QueryCsvUploadJob(ModelBase):
     @property
     def ellapsed_time(self):
         if self.started_at and self.ended_at:
-            return format_timedelta(
-                self.ended_at - self.started_at, minutes=True, seconds=True
-            )
+            return format_timedelta(self.ended_at - self.started_at, minutes=True, seconds=True)
         else:
             return "--"
 
@@ -226,9 +206,9 @@ class QueryCsvUploadJob(ModelBase):
         if self.spreadsheet is not None:
             column_options = list(self.spreadsheet.columns)
 
-            assert column_name in column_options, (
-                f"The name {column_name} is not in available columns: {', '.join(column_options)}"
-            )
+            assert (
+                column_name in column_options
+            ), f"The name {column_name} is not in available columns: {', '.join(column_options)}"
 
         self.custom_field_mappings["fields"].append(
             {"column_name": column_name, "field_name": field_name}

@@ -4,7 +4,6 @@ from django.utils.safestring import mark_safe
 
 from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
-from utils.files import get_file_path
 from utils.helpers import import_from_path
 from utils.logging import print_error
 
@@ -51,7 +50,11 @@ def process_csv_job_task(job_id: int):
             "text/html",
         )
         try:
-            mail.attach_file(job.report.path)
+            mail.attach(
+                job.report.name,
+                job.report.open(mode="rb"),
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
         except Exception:
             print_error()
         mail.send()

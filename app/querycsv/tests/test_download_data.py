@@ -21,11 +21,11 @@ class DownloadDataTests(DownloadCsvTestsBase):
         self.initialize_dataset()
         qs = self.repo.all()
 
-        filepath = self.service.download_csv(queryset=qs)
-        self.assertValidCsv(filepath)
+        file = self.service.download_csv(queryset=qs)
+        self.assertValidCsv(file)
 
         # Check csv
-        df = self.csv_to_df(filepath)
+        df = self.csv_to_df(file)
         self.assertEqual(len(df.index), self.dataset_size)
 
         expected_fields = self.serializer.readable_fields
@@ -50,11 +50,11 @@ class DownloadCsvM2OFieldsTests(DownloadCsvTestsBase, CsvDataM2OTestsBase):
         self.initialize_dataset()
         qs = self.repo.all()
 
-        filepath = self.service.download_csv(queryset=qs)
-        self.assertValidCsv(filepath)
+        file = self.service.download_csv(queryset=qs)
+        self.assertValidCsv(file)
 
         # Check csv
-        df = self.csv_to_df(filepath)
+        df = self.csv_to_df(file)
         self.assertCsvHasFields(df)
 
         # For each row, check the many-to-one field
@@ -86,11 +86,11 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
         self.initialize_dataset()
         qs = self.repo.all()
 
-        filepath = self.service.download_csv(queryset=qs)
-        self.assertValidCsv(filepath)
+        file = self.service.download_csv(queryset=qs)
+        self.assertValidCsv(file)
 
         # Check csv
-        df = self.csv_to_df(filepath)
+        df = self.csv_to_df(file)
         self.assertCsvHasFields(df)
 
         # For each row, check the many-to-one field
@@ -100,16 +100,11 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
 
             expected_m2m_objs = getattr(expected_obj, self.m2m_model_selector)
             expected_values = clean_list(
-                [
-                    str(getattr(obj, self.m2m_model_foreign_key))
-                    for obj in expected_m2m_objs.all()
-                ]
+                [str(getattr(obj, self.m2m_model_foreign_key)) for obj in expected_m2m_objs.all()]
             )
 
             actual_value_raw = str(row[self.m2m_serializer_key])
-            actual_values = clean_list(
-                [str(v).strip() for v in actual_value_raw.split(",")]
-            )
+            actual_values = clean_list([str(v).strip() for v in actual_value_raw.split(",")])
 
             self.assertListEqual(actual_values, expected_values)
 
@@ -127,10 +122,10 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
 
         qs = self.repo.all()
 
-        filepath = self.service.download_csv(queryset=qs)
-        self.assertValidCsv(filepath)
+        file = self.service.download_csv(queryset=qs)
+        self.assertValidCsv(file)
 
-        df = self.csv_to_df(filepath)
+        df = self.csv_to_df(file)
 
         for _index, row in df.iterrows():
             obj_id = row["id"]
@@ -138,10 +133,7 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
 
             expected_m2m_objs = getattr(expected_obj, self.m2m_model_selector)
             expected_values = clean_list(
-                [
-                    str(getattr(obj, self.m2m_model_foreign_key))
-                    for obj in expected_m2m_objs.all()
-                ]
+                [str(getattr(obj, self.m2m_model_foreign_key)) for obj in expected_m2m_objs.all()]
             )
 
             actual_value_raw = str(row[self.m2m_serializer_key])

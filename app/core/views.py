@@ -39,21 +39,6 @@ async def health_check(request):
 
     await Club.objects.afirst()
 
-    if S3_STORAGE_BACKEND:
-        try:
-            default_storage.save(
-                "heartbeat.txt",
-                ContentFile("File was generated to test if s3 connection worked."),
-            )
-            assert default_storage.exists("heartbeat.txt")
-            s3_status = "Online"
-            default_storage.delete("heartbeat.txt")
-
-        except Exception as e:
-            s3_status = "Offline"
-            print_error()
-            sentry_sdk.capture_exception(e)
-
     return JsonResponse(payload, status=200)
 
 

@@ -4,23 +4,21 @@ Manage library for creating QR Codes.
 Reference: https://realpython.com/python-generate-qr-code/
 """
 
-import uuid
+from io import BytesIO
 
 import segno
-from django.utils import timezone
+from django.core.files import File
 
-from utils.files import get_media_path
+from utils.files import get_unique_filename
 
 
-def create_qrcode_image(url: str):
+def create_qrcode_image(url: str, file_prefix="qrcode"):
     """Create QR Code image, return file path."""
 
-    img_path = get_media_path(
-        "core/qrcodes/",
-        f"{uuid.uuid4()}-{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.svg",
-    )
+    name = get_unique_filename(prefix=file_prefix, ext="svg")
 
+    qrcode_buffer = BytesIO()
     qrcode = segno.make_qr(url)
-    qrcode.save(img_path)
+    qrcode.save(qrcode_buffer, kind='svg')
 
-    return img_path
+    return File(qrcode_buffer, name=name)

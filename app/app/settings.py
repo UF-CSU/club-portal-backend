@@ -318,7 +318,7 @@ SOCIALACCOUNT_ADAPTER = "lib.allauth.CustomSocialAccountAdapter"
 
 
 ##########################################
-# == Production & Static Files Config == #
+# == Static Files Config =============== #
 ##########################################
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -327,29 +327,44 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
-AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
-AWS_DEFAULT_ACL = "public-read"
-AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
-AWS_QUERYSTRING_AUTH = False
-
+# Required when using "staticfiles" app
 STATIC_URL = "/files/static/"
-MEDIA_URL = "/files/media/public/"
+# MEDIA_URL = "/files/media/public/"
+MEDIA_ROOT = "/vol/web/media/"
+STATIC_ROOT = "/vol/web/static/"
 
-STATIC_ROOT = "/vol/web/static"
-
-# AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
-# MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+# Media and static storage config
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": f"/vol/web/media/public",  # Physical dir location
+            "base_url": "/files/media/public/",  # URL path
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "OPTIONS": {
+            "location": f"/vol/web/static",  # Physical dir location
+            "base_url": STATIC_URL,  # URL path
+        },
+    },
+}
 
 if S3_STORAGE_BACKEND:
-    # Set S3 Config
-    DEFAULT_FILE_STORAGE = "core.storages.PublicMediaStorage"
-    # MEDIA_ROOT = f"https://{AWS_S3_CUSTOM_DOMAIN}/public/"
-else:
-    MEDIA_ROOT = "/vol/web/media"
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
 
+    # Split base url to provide to boto3 backend
+    protocol, domain = BASE_URL.split("//")
+    AWS_S3_CUSTOM_DOMAIN = domain + "/files/media"
+    AWS_S3_URL_PROTOCOL = protocol
 
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    # When enabled, set the default storage to use AWS S3
+    STORAGES["default"] = {"BACKEND": "core.storage.PublicMediaStorage"}
+
 
 # Sentry
 sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0)
