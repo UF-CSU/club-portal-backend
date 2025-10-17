@@ -124,62 +124,60 @@ services:
       - cluster
 
   # # USED FOR TESTING ONLY
-  postgres:
-    image: postgres:15-alpine
-    command: -c 'max_connections=1000'
-    volumes:
-      - postgres-clubs-prod:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=devdatabase
-      - POSTGRES_USER=devuser
-      - POSTGRES_PASSWORD=devpass
-    networks:
-      - cluster
+  # postgres:
+  #   image: postgres:15-alpine
+  #   command: -c 'max_connections=1000'
+  #   volumes:
+  #     - postgres-clubs-prod:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_DB=devdatabase
+  #     - POSTGRES_USER=devuser
+  #     - POSTGRES_PASSWORD=devpass
+  #   networks:
+  #     - cluster
 
-  pgbouncer:
-    image: edoburu/pgbouncer
-    container_name: pgbouncer
-    restart: always
-    depends_on:
-      - postgres
-    networks:
-      - cluster
-    configs:
-      - source: pgbouncer.ini
-        target: /etc/pgbouncer/pgbouncer.ini
-      - source: userlist.txt
-        target: /etc/pgbouncer/userlist.txt
+  # pgbouncer:
+  #   image: edoburu/pgbouncer
+  #   container_name: pgbouncer
+  #   restart: always
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - cluster
+  #   configs:
+  #     - source: pgbouncer.ini
+  #       target: /etc/pgbouncer/pgbouncer.ini
+  #     - source: userlist.txt
+  #       target: /etc/pgbouncer/userlist.txt
 
 volumes:
   static-clubs-prod:
 
   # # USED FOR TESTING ONLY
-  postgres-clubs-prod:
+  # postgres-clubs-prod:
 
 # # USED FOR TESTING ONLY
 # # Mimics production database pooling support
-configs:
-  pgbouncer.ini:
-    content: |
-      [databases]
-      * = host=postgres port=5432 auth_user=devuser dbname=devdatabase
-      devdatabase = host=postgres port=5432 auth_user=devuser
+# configs:
+#   pgbouncer.ini:
+#     content: |
+#       [databases]
+#       * = host=postgres port=5432 auth_user=devuser dbname=devdatabase
+#       devdatabase = host=postgres port=5432 auth_user=devuser
 
-      [pgbouncer]
-      listen_addr = *
-      listen_port = 6432
-      auth_type = plain
-      auth_file = /etc/pgbouncer/userlist.txt
-      pool_mode = transaction
-      max_client_conn = 1000
-      default_pool_size = 100
+#       [pgbouncer]
+#       listen_addr = *
+#       listen_port = 6432
+#       auth_type = plain
+#       auth_file = /etc/pgbouncer/userlist.txt
+#       pool_mode = transaction
+#       max_client_conn = 1000
+#       default_pool_size = 100
 
-
-
-      admin_users = devuser
-  userlist.txt:
-    content: |
-      "devuser" "devpass"
+#       admin_users = devuser
+#   userlist.txt:
+#     content: |
+#       "devuser" "devpass"
 
 networks:
   cluster:

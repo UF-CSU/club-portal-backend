@@ -81,7 +81,9 @@ class ClubScopedModel:
         if hasattr(self, "club"):
             return Club.objects.filter(id=self.club.id)
 
-        raise NotImplementedError("Club scoped objects must have pointer to all allowed clubs.")
+        raise NotImplementedError(
+            "Club scoped objects must have pointer to all allowed clubs."
+        )
 
 
 class ClubManager(ManagerBase["Club"]):
@@ -102,7 +104,10 @@ class ClubManager(ManagerBase["Club"]):
             return self.all()
         elif user.is_anonymous:
             return self.none()
-        elif getattr(user, "is_useragent", False) and user.useragent.apikey_type == "club":
+        elif (
+            getattr(user, "is_useragent", False)
+            and user.useragent.apikey_type == "club"
+        ):
             # TODO: Abstract this useragent club
             return self.filter(id=user.useragent.club_apikey.club.id)
 
@@ -173,7 +178,9 @@ class Club(ClubScopedModel, UniqueModel):
         blank=True,
         help_text="Link to the gatorconnect page",
         validators=[
-            RegexValidator(r"^https:\/\/orgs\.studentinvolvement\.ufl\.edu\/Organization\/")
+            RegexValidator(
+                r"^https:\/\/orgs\.studentinvolvement\.ufl\.edu\/Organization\/"
+            )
         ],
     )
     gatorconnect_organization_id = models.IntegerField(null=True, blank=True)
@@ -282,7 +289,9 @@ class ClubFile(ClubScopedModel, ModelBase):
     # When uploading a new file, it must be required to set the uploaded_by field
     # for management purposes, but it should be ok to have null values in the database
     # for when a user is deleted, or if a file is generated, etc.
-    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
     origin = models.CharField(
         choices=ClubFileOrigin.choices, default=ClubFileOrigin.ADMIN, blank=True
     )
@@ -328,7 +337,9 @@ class ClubPhoto(ClubScopedModel, ModelBase):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["order", "club"], name="unique_order_per_club"),
+            models.UniqueConstraint(
+                fields=["order", "club"], name="unique_order_per_club"
+            ),
         ]
 
 
@@ -367,7 +378,9 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
 
         # perm_labels = perm_labels if perm_labels is not None else []
-        permissions = kwargs.pop("permissions", []) + parse_permissions(perm_labels or [])
+        permissions = kwargs.pop("permissions", []) + parse_permissions(
+            perm_labels or []
+        )
 
         # Set default role type
         if role_type is None and len(permissions) > 0:
@@ -397,7 +410,9 @@ class ClubRole(ClubScopedModel, ModelBase):
     name = models.CharField(max_length=32)
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="roles")
 
-    role_type = models.CharField(choices=RoleType.choices, default=RoleType.VIEWER, blank=True)
+    role_type = models.CharField(
+        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
+    )
     order = models.PositiveIntegerField(
         default=0, help_text="Used to determine the list ordering of a member"
     )
@@ -446,7 +461,9 @@ class ClubRole(ClubScopedModel, ModelBase):
                 condition=models.Q(is_default=True),
                 name="only_one_default_club_role_per_club",
             ),
-            models.UniqueConstraint(fields=("name", "club"), name="unique_rolename_per_club"),
+            models.UniqueConstraint(
+                fields=("name", "club"), name="unique_rolename_per_club"
+            ),
         ]
 
     def __str__(self):
@@ -517,7 +534,9 @@ class ClubMembership(ClubScopedModel, ModelBase):
     """Connection between user and club."""
 
     club = models.ForeignKey(Club, related_name="memberships", on_delete=models.CASCADE)
-    user = models.ForeignKey(User, related_name="club_memberships", on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User, related_name="club_memberships", on_delete=models.CASCADE
+    )
     points = models.IntegerField(default=0, blank=True)
     roles = models.ManyToManyField(ClubRole, blank=True)
 
@@ -600,7 +619,9 @@ class ClubMembership(ClubScopedModel, ModelBase):
         # Use the prefetched roles if available
         roles = getattr(self, "_prefetched_roles_cache", None)
         if roles is not None:
-            return not any(r.role_type in [RoleType.ADMIN, RoleType.CUSTOM] for r in roles)
+            return not any(
+                r.role_type in [RoleType.ADMIN, RoleType.CUSTOM] for r in roles
+            )
 
         # Fallback to DB query
         return not self.roles.filter(
@@ -712,7 +733,9 @@ class Team(ClubScopedModel, ModelBase):
     name = models.CharField(max_length=64)
     points = models.IntegerField(default=0, blank=True)
 
-    access = models.CharField(choices=TeamAccessType.choices, default=TeamAccessType.OPEN)
+    access = models.CharField(
+        choices=TeamAccessType.choices, default=TeamAccessType.OPEN
+    )
 
     show_on_roster = models.BooleanField(
         default=False, help_text="Show this team on the club's roster."
@@ -725,14 +748,18 @@ class Team(ClubScopedModel, ModelBase):
     # Overrides
     class Meta:
         constraints = [
-            models.UniqueConstraint(name="unique_team_per_club", fields=("club", "name"))
+            models.UniqueConstraint(
+                name="unique_team_per_club", fields=("club", "name")
+            )
         ]
 
 
 class TeamRoleManager(ManagerBase["TeamRole"]):
     """Manage queries for team roles."""
 
-    def create(self, team: Team, name: str, is_default=False, perm_labels=None, **kwargs):
+    def create(
+        self, team: Team, name: str, is_default=False, perm_labels=None, **kwargs
+    ):
         """
         Create new team role.
 
@@ -763,7 +790,9 @@ class TeamRole(ClubScopedModel, ModelBase):
     order = models.PositiveIntegerField(
         default=0, help_text="Used to determine the list ordering of a team member"
     )
-    role_type = models.CharField(choices=RoleType.choices, default=RoleType.VIEWER, blank=True)
+    role_type = models.CharField(
+        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
+    )
 
     is_default = models.BooleanField(
         default=False,
@@ -790,7 +819,9 @@ class TeamRole(ClubScopedModel, ModelBase):
                 condition=models.Q(is_default=True),
                 name="only_one_default_team_role_per_team",
             ),
-            models.UniqueConstraint(fields=("name", "team"), name="unique_rolename_per_team"),
+            models.UniqueConstraint(
+                fields=("name", "team"), name="unique_rolename_per_team"
+            ),
         ]
 
     def __str__(self):
@@ -814,7 +845,9 @@ class TeamRole(ClubScopedModel, ModelBase):
 class TeamMembershipManager(ManagerBase["TeamMembership"]):
     """Manage queries for TeamMemberships."""
 
-    def create(self, team: Team, user: User, roles: Optional[list[ClubRole]] = None, **kwargs):
+    def create(
+        self, team: Team, user: User, roles: Optional[list[ClubRole]] = None, **kwargs
+    ):
         """Create new team membership."""
         roles = roles if roles is not None else []
 
@@ -856,7 +889,9 @@ class TeamMembership(ClubScopedModel, ModelBase):
     """Manage club member's assignment to a team."""
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="memberships")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="team_memberships")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="team_memberships"
+    )
     roles = models.ManyToManyField(TeamRole, blank=True)
     order_override = models.PositiveIntegerField(null=True, blank=True)
 
@@ -885,7 +920,9 @@ class TeamMembership(ClubScopedModel, ModelBase):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(name="user_single_team_membership", fields=("user", "team"))
+            models.UniqueConstraint(
+                name="user_single_team_membership", fields=("user", "team")
+            )
         ]
 
     def clean(self):
@@ -976,7 +1013,9 @@ class ClubApiKey(ClubScopedModel, ModelBase):
     class Meta:
         verbose_name = "Api Key"
         constraints = [
-            models.UniqueConstraint(name="unique_apikey_name_per_club", fields=("name", "club"))
+            models.UniqueConstraint(
+                name="unique_apikey_name_per_club", fields=("name", "club")
+            )
         ]
 
     def save(self, *args, **kwargs):

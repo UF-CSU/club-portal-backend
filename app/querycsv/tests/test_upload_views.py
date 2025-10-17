@@ -20,7 +20,9 @@ class UploadCsvViewsTests(UploadCsvTestsBase):
         return "core:index"
 
     def setUp(self):
-        self.views = QueryCsvViewSet(self.serializer_class, get_reverse=self.get_reverse)
+        self.views = QueryCsvViewSet(
+            self.serializer_class, get_reverse=self.get_reverse
+        )
         self.req_factory = RequestFactory()
 
         return super().setUp()
@@ -40,7 +42,9 @@ class UploadCsvViewsTests(UploadCsvTestsBase):
 
         # Check context
         self.assertIsInstance(res.context_data["form"], CsvUploadForm)
-        self.assertEqual(res.context_data["template_url"], self.get_reverse("csv_template"))
+        self.assertEqual(
+            res.context_data["template_url"], self.get_reverse("csv_template")
+        )
         # FIXME: Checking csv fields in context failes
         # self.assertEqual(
         #     res.context_data["all_fields"], self.service.flat_fields.values()
@@ -54,10 +58,14 @@ class UploadCsvViewsTests(UploadCsvTestsBase):
         """Should show form for header associations."""
 
         _, file = self.initialize_csv_data()
-        job = QueryCsvUploadJob.objects.create(serializer_class=self.serializer_class, file=file)
+        job = QueryCsvUploadJob.objects.create(
+            serializer_class=self.serializer_class, file=file
+        )
 
         req = self.req_factory.get("/")
-        res: TemplateResponse = self.views.map_upload_csv_headers(request=req, id=job.id)
+        res: TemplateResponse = self.views.map_upload_csv_headers(
+            request=req, id=job.id
+        )
         self.assertIsInstance(res, TemplateResponse)
 
         # Check context
@@ -76,7 +84,9 @@ class UploadCsvViewsTests(UploadCsvTestsBase):
         file = self.df_to_csv(df, file)
 
         # Create job
-        job = QueryCsvUploadJob.objects.create(serializer_class=self.serializer_class, file=file)
+        job = QueryCsvUploadJob.objects.create(
+            serializer_class=self.serializer_class, file=file
+        )
         data = {
             "form-TOTAL_FORMS": "1",
             "form-INITIAL_FORMS": "0",

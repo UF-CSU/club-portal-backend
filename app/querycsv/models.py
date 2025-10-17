@@ -70,10 +70,14 @@ class QueryCsvUploadJob(ModelBase):
         upload_to=csv_upload_path,
         validators=[FileExtensionValidator(allowed_extensions=SPREADSHEET_EXTS)],
     )
-    serializer = models.CharField(max_length=64, validators=[validate_import_string], null=True)
+    serializer = models.CharField(
+        max_length=64, validators=[validate_import_string], null=True
+    )
 
     # Meta fields
-    status = models.CharField(choices=CsvUploadStatus.choices, default=CsvUploadStatus.PENDING)
+    status = models.CharField(
+        choices=CsvUploadStatus.choices, default=CsvUploadStatus.PENDING
+    )
     notify_email = models.EmailField(null=True, blank=True)
     report = models.FileField(
         upload_to=QUERYCSV_MEDIA_SUBDIR + "reports/",
@@ -158,7 +162,9 @@ class QueryCsvUploadJob(ModelBase):
     @property
     def ellapsed_time(self):
         if self.started_at and self.ended_at:
-            return format_timedelta(self.ended_at - self.started_at, minutes=True, seconds=True)
+            return format_timedelta(
+                self.ended_at - self.started_at, minutes=True, seconds=True
+            )
         else:
             return "--"
 
@@ -206,9 +212,9 @@ class QueryCsvUploadJob(ModelBase):
         if self.spreadsheet is not None:
             column_options = list(self.spreadsheet.columns)
 
-            assert (
-                column_name in column_options
-            ), f"The name {column_name} is not in available columns: {', '.join(column_options)}"
+            assert column_name in column_options, (
+                f"The name {column_name} is not in available columns: {', '.join(column_options)}"
+            )
 
         self.custom_field_mappings["fields"].append(
             {"column_name": column_name, "field_name": field_name}

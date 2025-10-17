@@ -30,7 +30,9 @@ class AdminBase:
     def get_admin_url(
         self,
         model: models.Model,
-        url_context: Literal["changelist", "add", "history", "delete", "change"] = "changelist",
+        url_context: Literal[
+            "changelist", "add", "history", "delete", "change"
+        ] = "changelist",
         admin_name=None,
         as_link=False,
         link_text=None,

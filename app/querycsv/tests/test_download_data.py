@@ -100,11 +100,16 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
 
             expected_m2m_objs = getattr(expected_obj, self.m2m_model_selector)
             expected_values = clean_list(
-                [str(getattr(obj, self.m2m_model_foreign_key)) for obj in expected_m2m_objs.all()]
+                [
+                    str(getattr(obj, self.m2m_model_foreign_key))
+                    for obj in expected_m2m_objs.all()
+                ]
             )
 
             actual_value_raw = str(row[self.m2m_serializer_key])
-            actual_values = clean_list([str(v).strip() for v in actual_value_raw.split(",")])
+            actual_values = clean_list(
+                [str(v).strip() for v in actual_value_raw.split(",")]
+            )
 
             self.assertListEqual(actual_values, expected_values)
 
@@ -133,7 +138,10 @@ class DownloadCsvM2MFieldsStrTests(DownloadCsvTestsBase, CsvDataM2MTestsBase):
 
             expected_m2m_objs = getattr(expected_obj, self.m2m_model_selector)
             expected_values = clean_list(
-                [str(getattr(obj, self.m2m_model_foreign_key)) for obj in expected_m2m_objs.all()]
+                [
+                    str(getattr(obj, self.m2m_model_foreign_key))
+                    for obj in expected_m2m_objs.all()
+                ]
             )
 
             actual_value_raw = str(row[self.m2m_serializer_key])

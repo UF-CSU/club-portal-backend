@@ -26,7 +26,9 @@ class LinkManager(ManagerBase["Link"]):
 class Link(ClubScopedModel, ModelBase):
     """Track visits to target url."""
 
-    club = models.ForeignKey("clubs.Club", on_delete=models.CASCADE, related_name="links")
+    club = models.ForeignKey(
+        "clubs.Club", on_delete=models.CASCADE, related_name="links"
+    )
     target_url = models.URLField(help_text="The final url we want to track clicks to.")
     display_name = models.CharField(null=True, blank=True)
     is_tracked = models.BooleanField(
@@ -99,7 +101,9 @@ class LinkVisit(ClubScopedModel, ModelBase):
     ipaddress = models.GenericIPAddressField(
         help_text="IP Address of the person that visited the link"
     )
-    context = models.JSONField(null=True, blank=True, help_text="Extra meta information")
+    context = models.JSONField(
+        null=True, blank=True, help_text="Extra meta information"
+    )
     amount = models.IntegerField(
         default=0, help_text="Number of times this person clicked the link"
     )

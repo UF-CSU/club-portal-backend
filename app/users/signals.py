@@ -40,7 +40,9 @@ def on_save_user(sender, instance: User, created=False, **kwargs):
         Profile.objects.create(user=instance)
         instance.refresh_from_db()
 
-    if instance.profile.school_email is None and instance.email.endswith(SCHOOL_EMAIL_DOMAIN):
+    if instance.profile.school_email is None and instance.email.endswith(
+        SCHOOL_EMAIL_DOMAIN
+    ):
         instance.profile.school_email = instance.email
         instance.profile.save()
 

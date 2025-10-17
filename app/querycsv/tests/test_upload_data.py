@@ -362,7 +362,9 @@ class UploadCsvJobTests(UploadCsvTestsBase):
         file = self.df_to_csv(self.df)
 
         # Create and upload job
-        job = QueryCsvUploadJob.objects.create(serializer_class=self.serializer_class, file=file)
+        job = QueryCsvUploadJob.objects.create(
+            serializer_class=self.serializer_class, file=file
+        )
         job.add_field_mapping(column_name="Test Value", field_name="name")
         job.refresh_from_db()
 
@@ -377,7 +379,9 @@ class UploadCsvJobTests(UploadCsvTestsBase):
 
         _, file = self.initialize_csv_data()
 
-        job = QueryCsvUploadJob.objects.create(serializer_class=self.serializer_class, file=file)
+        job = QueryCsvUploadJob.objects.create(
+            serializer_class=self.serializer_class, file=file
+        )
         # Error strategy: invalid field mapping
         job.custom_field_mappings = {"fields": ["Some invalid input"]}
         job.save()
