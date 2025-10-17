@@ -20,5 +20,6 @@ def create_qrcode_image(url: str, file_prefix="qrcode"):
     qrcode_buffer = BytesIO()
     qrcode = segno.make_qr(url)
     qrcode.save(qrcode_buffer, kind="svg")
+    qrcode_buffer.seek(0)
 
     return File(qrcode_buffer, name=name)

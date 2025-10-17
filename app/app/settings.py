@@ -332,22 +332,18 @@ STATIC_URL = "/files/static/"
 MEDIA_URL = "/files/media/public/"
 
 # Physical location in file system
-MEDIA_ROOT = "/vol/web/media"
+MEDIA_ROOT = "/vol/web/media/public"
 STATIC_ROOT = "/vol/web/static"
 
 # Media and static storage config
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
-        "OPTIONS": {
-            "location": f"{MEDIA_ROOT}/public",  # Physical dir location
-        },
+        "OPTIONS": {},
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        "OPTIONS": {
-            "location": STATIC_ROOT,
-        },
+        "OPTIONS": {},
     },
 }
 
