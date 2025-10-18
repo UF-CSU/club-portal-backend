@@ -34,6 +34,21 @@ server {
     
     proxy_pass              "$PROXY_DOCS_URI";
   }
+
+  # WebSockets
+  location /ws/ {
+      proxy_pass http://app_upstream;
+
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+      proxy_read_timeout 3600s;
+      proxy_send_timeout 3600s;
+  }
   
   # Pass everything else to Django
   location / {

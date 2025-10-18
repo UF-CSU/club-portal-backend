@@ -10,7 +10,7 @@ services:
       - dev
     restart: unless-stopped
     ports:
-      - '8000:8000'
+      - '8080:8000'
     volumes:
       - ./app:/app
       - ./docs:/docs
@@ -21,7 +21,7 @@ services:
              python manage.py migrate &&
              python manage.py collectstatic --no-input &&
              python manage.py init_superuser &&
-             python manage.py runserver 0.0.0.0:8000"
+             python -m uvicorn app.asgi:application --reload --host 0.0.0.0 --port 8000 --lifespan off"
     env_file:
       - .env
     environment:
@@ -172,6 +172,19 @@ services:
         target: /pgadmin4/servers.json
       - source: pgpass
         target: /pgpass
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    profiles:
+      - dev
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf
+      - static-clubs-dev:/vol/web
+    depends_on:
+      - app
 
 volumes:
   postgres-clubs-dev:
