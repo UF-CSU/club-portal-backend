@@ -57,7 +57,11 @@ class ConsumerBase(AsyncJsonWebsocketConsumer):
             await self.close(code=3000)  # 401 equivalent for WebSockets
             return False
 
-        await self.accept()
+        subprotocols = self.scope["subprotocols"]
+        if "Authorization" in subprotocols:
+            await self.accept("Authorization")
+        else:
+            await self.accept()
         return True
 
     async def disconnect(self, _close_code):

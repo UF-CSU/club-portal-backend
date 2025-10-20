@@ -1,7 +1,7 @@
 from channels.routing import URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 
-from core.middleware import WebSocketMiddlewareStack
+from core.middleware import WebSocketMiddleware
 from polls.routing import websocket_urlpatterns as polls_ws
 
 websocket_urlpatterns = [
@@ -9,5 +9,5 @@ websocket_urlpatterns = [
 ]
 
 application = AllowedHostsOriginValidator(
-    WebSocketMiddlewareStack(URLRouter(websocket_urlpatterns))
+    WebSocketMiddleware(URLRouter(websocket_urlpatterns))
 )

@@ -81,7 +81,7 @@ class TicketView(generics.RetrieveAPIView):
     Generate a ticket for use with WebSocket authentication.
 
     To use WebSockets, submit a get request to the given route.
-    When opening the socket, provide the ticket as a query param.
+    When opening the socket, provide the ticket in Sec-WebSocket-Protocol.
     """
 
     serializer_class = TicketSerializer

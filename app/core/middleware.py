@@ -1,15 +1,14 @@
 import zoneinfo
 
 from asgiref.sync import sync_to_async
-from channels.sessions import CookieMiddleware
 from django.contrib.auth.models import AnonymousUser
 from django.db import close_old_connections
 from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
-from app import settings
 from core.abstracts.middleware import BaseMiddleware
+from users.models import Ticket
 
 
 class TimezoneMiddleware(BaseMiddleware):
@@ -26,15 +25,10 @@ class TimezoneMiddleware(BaseMiddleware):
         return await super().on_request(request, *args, **kwargs)
 
 
-"""
-Ref: https://gist.github.com/J-Priebe/58fda441698536d64e04781d9214e1db
-"""
-
-
 class WebSocketMiddleware:
     """
-    Custom middleware for Token authentication. Must be wrapped in CookieMiddleware.
-    Adds user to scope if they have a valid token.
+    Custom middleware for WebSocket authentication. Implements ticket-based auth.
+    Ref: https://devcenter.heroku.com/articles/websocket-security
     """
 
     def __init__(self, inner):
@@ -43,25 +37,20 @@ class WebSocketMiddleware:
     async def __call__(self, scope, receive, send):
         await sync_to_async(close_old_connections)()
 
-        # cookies are in scope, since we're wrapped in CookieMiddleware
-        cookie = scope["cookies"].get(settings.AUTH_TOKEN_KEY)
+        subprotocols = scope["subprotocols"]  # ["Authorization", "<ticket>"]
 
-        if not cookie:
+        if len(subprotocols) != 2 or subprotocols[0] != "Authorization":
             scope["user"] = AnonymousUser()
         else:
+            key = subprotocols[1]
+
             try:
-                token = await sync_to_async(Token.objects.select_related("user").get)(
-                    key=cookie
+                ticket = await sync_to_async(Ticket.objects.select_related("user").get)(
+                    key=key
                 )
-                scope["user"] = token.user
+                scope["user"] = ticket.user
+                await sync_to_async(ticket.delete)()
             except Token.DoesNotExist:
                 scope["user"] = AnonymousUser()
 
         return await self.inner(scope, receive, send)
-
-
-def WebSocketMiddlewareStack(inner):
-    """
-    Handy shortcut to ensure we're wrapped in CookieMiddleware.
-    """
-    return CookieMiddleware(WebSocketMiddleware(inner))
