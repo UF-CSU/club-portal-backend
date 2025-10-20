@@ -13,7 +13,7 @@ from django.utils.safestring import mark_safe
 from clubs.models import ClubMembership
 from core.abstracts.admin import ModelAdminBase, StackedInlineBase
 from users.defaults import DEFAULT_USER_PERMISSIONS
-from users.models import Profile, SocialProfile, Ticket, User, VerifiedEmail
+from users.models import Profile, SocialProfile, User, VerifiedEmail
 from users.serializers import UserCsvSerializer
 from users.services import UserService
 from utils.formatting import plural_noun, plural_noun_display
@@ -233,4 +233,3 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
 
 admin.site.register(User, UserAdmin)
 admin.site.register(VerifiedEmail)
-admin.site.register(Ticket)

@@ -5,7 +5,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import close_old_connections
 from django.http import HttpRequest
 from django.utils import timezone
-from rest_framework.authtoken.models import Token
 
 from core.abstracts.middleware import BaseMiddleware
 from users.models import Ticket
@@ -50,7 +49,7 @@ class WebSocketMiddleware:
                 )
                 scope["user"] = ticket.user
                 await sync_to_async(ticket.delete)()
-            except Token.DoesNotExist:
+            except Ticket.DoesNotExist:
                 scope["user"] = AnonymousUser()
 
         return await self.inner(scope, receive, send)
