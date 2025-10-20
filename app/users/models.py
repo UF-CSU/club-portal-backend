@@ -2,6 +2,8 @@
 User Models.
 """
 
+import binascii
+import os
 import random
 import string
 from typing import ClassVar, Optional
@@ -19,8 +21,11 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from django_celery_beat.models import PeriodicTask
 
+from app import settings
 from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
+from core.abstracts.schedules import schedule_clocked_func
 from lib.countries import CountryField
 from utils.models import UploadFilepathFactory
 
@@ -477,3 +482,45 @@ class VerifiedEmail(ModelBase):
 
     def __str__(self):
         return self.email
+
+
+class Ticket(ModelBase):
+    """Ticket for WebSocket Authentication (based on Token)"""
+
+    key = models.CharField(_("Key"), max_length=40, primary_key=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        related_name="ws_ticket",
+        on_delete=models.CASCADE,
+        verbose_name=_("User"),
+    )
+    expire_at = models.DateTimeField(null=True, blank=True)
+    expire_task = models.ForeignKey(
+        PeriodicTask, null=True, blank=True, editable=False, on_delete=models.SET_NULL
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+            # Expire ticket after 10 minutes
+            self.expire_at = timezone.now() + timezone.timedelta(minutes=10)
+            task = schedule_clocked_func(
+                name=f"Expire {self.key} ticket",
+                due_at=self.expire_at,
+                func=expire_ticket,
+                kwargs={"key": self.key},
+            )
+            self.expire_task = task
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def generate_key(cls):
+        return binascii.hexlify(os.urandom(20)).decode()
+
+    def __str__(self):
+        return self.key
+
+
+def expire_ticket(key: str):
+    """Expires WebSocket authentication ticket."""
+    Ticket.objects.filter(key=key).delete()
