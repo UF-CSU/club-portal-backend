@@ -3,7 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 
 
 # ---------- Consumer Permissions ----------
-class Permission:
+class ConsumerPermission:
     """
     A base class from which all consumer permission classes should inherit.
     """
@@ -15,7 +15,7 @@ class Permission:
         return True
 
 
-class AllowAny(Permission):
+class ConsumerAllowAny(ConsumerPermission):
     """
     Allow any access.
     This isn't strictly required, since you could use an empty
@@ -27,7 +27,7 @@ class AllowAny(Permission):
         return True
 
 
-class IsAuthenticated(Permission):
+class ConsumerIsAuthenticated(ConsumerPermission):
     """
     Allows access only to authenticated users.
     """
@@ -42,7 +42,7 @@ class ConsumerBase(AsyncJsonWebsocketConsumer):
     Provide core functionality, additional type hints, and improved documentaton for consumers.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ConsumerIsAuthenticated]
     """Determines what a user can do."""
 
     group_name = None
