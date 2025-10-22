@@ -162,17 +162,16 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
         "CONN_MAX_AGE": 0,
+        "CONN_HEALTH_CHECKS": True,
         "OPTIONS": {},
     }
 }
 
 if POSTGRES_MAX_POOL_SIZE > 0:
     DATABASES["default"]["OPTIONS"]["pool"] = {
-        "pool": {
-            "min_size": 1,
-            "max_size": POSTGRES_MAX_POOL_SIZE,
-            "timeout": 60,
-        }
+        "min_size": 1,
+        "max_size": POSTGRES_MAX_POOL_SIZE,
+        "timeout": 60,
     }
 
 # Password validation
