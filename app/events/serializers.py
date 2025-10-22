@@ -24,12 +24,8 @@ class EventHostSerializer(ModelSerializerBase):
     """JSON representation for hosts inside events."""
 
     # TODO: Rename to "club" or change to serializers.IntegerField
-    club_id = serializers.PrimaryKeyRelatedField(
-        source="club", queryset=Club.objects.all()
-    )
-    club_name = serializers.SlugRelatedField(
-        source="club", read_only=True, slug_field="name"
-    )
+    club_id = serializers.PrimaryKeyRelatedField(source="club", queryset=Club.objects.all())
+    club_name = serializers.SlugRelatedField(source="club", read_only=True, slug_field="name")
     club_logo = serializers.ImageField(
         source="club.logo", read_only=True, required=False, allow_null=True
     )
@@ -93,14 +89,10 @@ class EventSerializer(ModelSerializerBase):
         hosts = attrs.get("hosts", None)
 
         if not self.instance:
-            primary_hosts = [
-                host for host in hosts if host.get("is_primary", False) is True
-            ]
+            primary_hosts = [host for host in hosts if host.get("is_primary", False) is True]
 
             if len(primary_hosts) == 0 and len(hosts) > 0:
-                raise exceptions.ValidationError(
-                    "Event with hosts must have a primary host."
-                )
+                raise exceptions.ValidationError("Event with hosts must have a primary host.")
 
         return super().validate(attrs)
 
@@ -120,16 +112,21 @@ class EventSerializer(ModelSerializerBase):
             if not EventTag.objects.filter(name=tag.name).exists():
                 validated_tags.append(EventTag.objects.create(name=tag.name))
 
-        event = Event.objects.create(**validated_data)
+        hosts_payload = {"host": None, "secondary_hosts": []}
+        for host in hosts_data:
+            is_primary = host.get("is_primary", False)
+            club = host["club"]
+
+            if is_primary:
+                hosts_payload["host"] = club
+            else:
+                hosts_payload["secondary_hosts"].append(club)
+
+        event = Event.objects.create(**validated_data, **hosts_payload)
 
         if poll:
             event.poll = poll
             event.save()
-
-        for host in hosts_data:
-            EventHost.objects.create(
-                event=event, club=host["club"], is_primary=host.get("is_primary", False)
-            )
 
         for attachment in attachment_data:
             attachment_id = attachment["id"]
@@ -218,15 +215,9 @@ class EventCsvSerializer(CsvModelSerializer):
 
 class EventAttendanceCsvSerializer(CsvModelSerializer):
     event = None
-    name = serializers.CharField(
-        write_only=True, max_length=128, help_text="Name of event"
-    )
-    start_at = serializers.DateTimeField(
-        write_only=True, help_text="Start datetime of event"
-    )
-    end_at = serializers.DateTimeField(
-        write_only=True, help_text="End datetime of event"
-    )
+    name = serializers.CharField(write_only=True, max_length=128, help_text="Name of event")
+    start_at = serializers.DateTimeField(write_only=True, help_text="Start datetime of event")
+    end_at = serializers.DateTimeField(write_only=True, help_text="End datetime of event")
 
     user = WritableSlugRelatedField(
         slug_field="email",

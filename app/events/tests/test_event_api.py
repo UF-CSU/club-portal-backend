@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
+from events.models import Event
 from events.tests.utils import (
     EVENT_LIST_URL,
     create_test_event,
@@ -303,9 +304,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_event(
             host=club,
             start_at=today_event_time + mod_shift - timedelta(days=1),
-            end_at=(today_event_time + mod_shift)
-            + timedelta(hours=1)
-            - timedelta(days=1),
+            end_at=(today_event_time + mod_shift) + timedelta(hours=1) - timedelta(days=1),
         )
         # 2 events are one day between range (3 valid)
         create_test_event(
@@ -403,9 +402,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_event(
             host=club,
             start_at=today_event_time + mod_shift - timedelta(days=1),
-            end_at=(today_event_time + mod_shift)
-            + timedelta(hours=1)
-            - timedelta(days=1),
+            end_at=(today_event_time + mod_shift) + timedelta(hours=1) - timedelta(days=1),
         )
         # 2 events are one day between range (3 valid)
         create_test_event(
@@ -475,3 +472,25 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         data = res.json()
 
         self.assertEqual(len(data), events_in_range)
+
+    def test_create_event_poll(self):
+        """Should create a new event and it's poll."""
+
+        club = create_test_club(admins=[self.user])
+
+        payload = {
+            "start_at": "2025-10-22T13:00:00Z",
+            "end_at": "2025-10-22T15:00:00Z",
+            "name": "Test Event",
+            "hosts": [{"club_id": club.id, "is_primary": True}],
+            "enable_attendance": True,
+        }
+
+        url = event_list_url()
+        res = self.client.post(url, payload)
+        self.assertResCreated(res)
+
+        # Check database event
+        self.assertEqual(Event.objects.count(), 1)
+        event = Event.objects.first()
+        self.assertIsNotNone(event.poll)

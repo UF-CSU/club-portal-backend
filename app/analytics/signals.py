@@ -13,6 +13,5 @@ def on_save_qrcode(sender, instance: Optional[QRCode], **kwargs):
         return
 
     img = create_qrcode_image(instance.url)
-    print("image:", img.name)
     instance.image = img
     instance.save()
