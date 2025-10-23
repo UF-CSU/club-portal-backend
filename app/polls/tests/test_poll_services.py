@@ -225,8 +225,8 @@ class PollTemplateServiceTests(TestsBase):
         self.assertIsNotNone(poll)
         
 
-        for field in poll.fields.all():
-            print(field.question.label)
+        #for field in poll.fields.all():
+         #   print(field.question.label)
 
 
         self.assertEqual(poll.fields.count(), 3)

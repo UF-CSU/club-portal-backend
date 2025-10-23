@@ -17,6 +17,7 @@ from polls.models import (
     PollQuestionAnswer,
     PollSubmission,
     PollSubmissionLink,
+    PollTemplate,
     ScaleInput,
     TextInput,
     UploadInput,
@@ -105,6 +106,11 @@ class PollAdmin(ModelAdminBase):
         )
 
         return
+    
+
+class PollTemplateAdmin(PollAdmin):
+    """Manage poll templates in admin"""
+
 
 
 class TextInputInlineAdmin(admin.TabularInline):
@@ -192,3 +198,4 @@ admin.site.register(PollQuestion, PollQuestionAdmin)
 admin.site.register(PollMarkup)
 admin.site.register(ChoiceInput, ChoiceInputAdmin)
 admin.site.register(PollSubmission, PollSubmissionAdmin)
+admin.site.register(PollTemplate, PollTemplateAdmin)

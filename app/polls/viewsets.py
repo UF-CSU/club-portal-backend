@@ -1,3 +1,4 @@
+from urllib import request
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
@@ -11,6 +12,7 @@ from polls.models import (
     PollQuestionAnswer,
     PollStatusType,
     PollSubmission,
+    PollTemplate,
 )
 from polls.serializers import (
     ChoiceInputOptionSerializer,
@@ -92,10 +94,48 @@ class PollViewset(ModelViewSetBase):
             )
         )
 
-class PollTemplateViewSet(PollViewset):
+class PollTemplateViewSet(ModelViewSetBase):
     """Manage poll templates in api"""
 
+    queryset = PollTemplate.objects.all()
     serializer_class = PollTemplateSerializer
+
+
+    def get_queryset(self):
+        user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
+
+        return (
+            PollTemplate.objects.filter(club__id__in=user_clubs)
+            .select_related("club", "event")
+            .prefetch_related(
+                models.Prefetch(
+                    "fields",
+                    queryset=PollField.objects.select_related(
+                        "_markup",
+                        "_question",
+                        "_question___textinput",
+                        "_question___choiceinput",
+                        "_question___scaleinput",
+                        "_question___uploadinput",
+                        "_question___numberinput",
+                        "_question___emailinput",
+                        "_question___phoneinput",
+                        "_question___dateinput",
+                        "_question___timeinput",
+                        "_question___urlinput",
+                        "_question___checkboxinput",
+                    ).order_by("order", "id"),
+                ),
+                "_submission_link__qrcode",
+                "submissions",
+            )
+            .annotate(
+                submissions_count=models.Count("submissions", distinct=True),
+                last_submission_at=models.Max("submissions__created_at"),
+            )
+        )
+    
+    
 
 
 

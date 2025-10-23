@@ -347,6 +347,34 @@ class PollTemplateSerializer(PollSerializer):
 
     template_name = serializers.CharField()
     event_type = serializers.ChoiceField(choices=EventType.choices, allow_blank=True, required=True)
+    #poll_name = serializers.CharField()
+    club = PollClubNestedSerializer(required=False, allow_null=True)
+    
+    class Meta:
+        model = models.PollTemplate
+        exclude = ["open_task", "close_task"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+    def create(self, validated_data):
+
+        #is_published = validated_data.pop("is_published")
+        event = validated_data.pop('event')
+
+        print(event["id"])
+
+        club = validated_data.pop("club", None)
+        if club is not None:
+            validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
+        else:
+            validated_data["club"] = club
+
+        print(validated_data)
+
+        poll_name = validated_data.pop('name')
+        
+        return models.PollTemplate.objects.create(poll_name=poll_name, **validated_data)
+    
 
 
 class PollPreviewSerializer(ModelSerializer):
