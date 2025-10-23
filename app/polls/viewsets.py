@@ -95,12 +95,12 @@ class PollViewset(ModelViewSetBase):
             )
         )
 
+
 class PollTemplateViewSet(ModelViewSetBase):
     """Manage poll templates in api"""
 
     queryset = PollTemplate.objects.all()
     serializer_class = PollTemplateSerializer
-
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
@@ -135,9 +135,6 @@ class PollTemplateViewSet(ModelViewSetBase):
                 last_submission_at=models.Max("submissions__created_at"),
             )
         )
-    
-    
-
 
 
 class PollFieldViewSet(ModelViewSetBase):
@@ -247,4 +244,3 @@ class PollSubmissionViewSet(ModelViewSetBase):
     @extend_schema(auth=[{"security": []}, {}])
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
-    

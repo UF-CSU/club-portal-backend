@@ -41,9 +41,9 @@ class PollTemplateService(ServiceBase[PollTemplate]):
                     max_length=question_tpl.text_input.max_length,
                 )
             case PollInputType.CHOICE:
-                #ChoiceInput.object.create(
-                    #questin=target_question,
-                #)
+                # ChoiceInput.object.create(
+                # questin=target_question,
+                # )
                 choice_input = ChoiceInput.objects.create(
                     question=target_question,
                 )
@@ -51,8 +51,8 @@ class PollTemplateService(ServiceBase[PollTemplate]):
     def _clone_field(self, field_tpl: PollField, target_poll: Poll):
         """Clone field to poll."""
 
-        #field = target_poll.add_field(field_type=field_tpl.field_type)
-        #print(field)
+        # field = target_poll.add_field(field_type=field_tpl.field_type)
+        # print(field)
         # Create new field directly instead of using add_field
         field = PollField.objects.create(
             poll=target_poll,
@@ -79,18 +79,20 @@ class PollTemplateService(ServiceBase[PollTemplate]):
         """Create a new poll from this one if it is a template."""
 
         # Create the poll without any auto-created fields
-        poll = Poll.objects.create(name=self.obj.name, description=self.obj.description, **kwargs)
+        poll = Poll.objects.create(
+            name=self.obj.name, description=self.obj.description, **kwargs
+        )
 
         # Get template fields ordered by their order field
-        template_fields = self.obj.fields.all().order_by('order')
-        
+        template_fields = self.obj.fields.all().order_by("order")
+
         # Clone each field
         for field_tpl in template_fields:
             self._clone_field(field_tpl, poll)
 
         # Refresh to get accurate field count
         poll.refresh_from_db()
-        
+
         return poll
 
 

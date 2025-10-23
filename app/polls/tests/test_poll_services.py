@@ -7,7 +7,14 @@ from clubs.models import Club
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from lib.faker import fake
-from polls.models import Poll, PollField, PollInputType, PollQuestion, PollStatusType, PollTemplate
+from polls.models import (
+    Poll,
+    PollField,
+    PollInputType,
+    PollQuestion,
+    PollStatusType,
+    PollTemplate,
+)
 from polls.services import PollService, PollTemplateService
 from polls.tests.utils import (
     create_test_poll,
@@ -220,17 +227,15 @@ class PollTemplateServiceTests(TestsBase):
             create_input=True,
         )
 
-    #     # Generate poll
+        #     # Generate poll
         poll = self.service.create_poll(club=club)
         self.assertIsNotNone(poll)
-        
 
-        #for field in poll.fields.all():
-         #   print(field.question.label)
-
+        # for field in poll.fields.all():
+        #   print(field.question.label)
 
         self.assertEqual(poll.fields.count(), 3)
         self.assertEqual(PollField.objects.count(), 5)
-        
+
         self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
         self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)
