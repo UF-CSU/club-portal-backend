@@ -1,7 +1,5 @@
-from pathlib import Path
 from typing import ClassVar, Optional
 
-from django.core.files import File
 from django.db import models
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -147,15 +145,6 @@ class QRCode(ClubScopedModel, ModelBase):
         Link, on_delete=models.CASCADE, related_name="qrcode", primary_key=True
     )
     image = models.ImageField(null=True, blank=True, upload_to=qrcode_upload_path)
-
-    def save_image(self, filepath: str):
-        """Takes path for image and sets it to the image field."""
-
-        path = Path(filepath)
-
-        with path.open(mode="rb") as f:
-            self.image = File(f, name=f.name)
-            self.save()
 
     # Dynamic Properties
     @property

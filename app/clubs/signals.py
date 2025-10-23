@@ -8,7 +8,6 @@ from clubs.defaults import (
     VIEWER_ROLE_PERMISSIONS,
 )
 from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
-from utils.files import get_file_from_path
 from utils.images import create_default_icon
 from utils.permissions import parse_permissions
 
@@ -19,12 +18,10 @@ def on_save_club(sender, instance: Club, created=False, **kwargs):
 
     if instance.logo is None:
         initials = instance.alias or instance.name[0]
-        logo_path = create_default_icon(
+        logo = create_default_icon(
             initials, image_path="clubs/images/generated/", fileprefix=instance.pk
         )
-        logo = ClubFile.objects.create(
-            club=instance, file=get_file_from_path(logo_path)
-        )
+        logo = ClubFile.objects.create(club=instance, file=logo)
 
         instance.logo = logo
         instance.save()

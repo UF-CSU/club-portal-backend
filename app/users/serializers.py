@@ -35,7 +35,7 @@ class ProfileNestedSerializer(ModelSerializerBase):
     """Represent user profiles in api."""
 
     is_school_email_verified = serializers.BooleanField(read_only=True)
-    image = ImageUrlField(allow_null=True, required=False)
+    # image = ImageUrlField(allow_null=True, required=False)
 
     class Meta:
         model = Profile

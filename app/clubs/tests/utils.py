@@ -7,7 +7,6 @@ from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
 from clubs.services import ClubService
 from lib.faker import fake
 from users.models import User
-from utils.files import get_file_from_path
 from utils.testing import create_test_image
 
 ####################################################
@@ -66,14 +65,16 @@ def create_test_clubfile(club: Club, **kwargs):
 
     payload = {
         "club": club,
-        "file": get_file_from_path(create_test_image()),
+        "file": create_test_image(),
         **kwargs,
     }
 
     return ClubFile.objects.create(**payload)
 
 
-def create_test_club(name=None, members: Optional[list[User]] = None, **kwargs) -> Club:
+def create_test_club(
+    name=None, members: Optional[list[User]] = None, admins: Optional[list[User]] = None, **kwargs
+) -> Club:
     """Create unique club for unit tests."""
     if name is None:
         name = f"Test Club {uuid.uuid4()}"
@@ -90,10 +91,17 @@ def create_test_club(name=None, members: Optional[list[User]] = None, **kwargs) 
     club = Club.objects.create(name=name, alias=alias, **kwargs)
 
     members = members or []
+    admins = admins or []
     svc = ClubService(club)
 
     for member in members:
         svc.add_member(member)
+
+    if len(admins) > 0:
+        ClubRole.objects.create(club=club, name="Admin", role_type=RoleType.ADMIN)
+
+    for admin in admins:
+        svc.add_member(admin, roles=["Admin"])
 
     return club
 

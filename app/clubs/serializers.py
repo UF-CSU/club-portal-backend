@@ -355,9 +355,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
 class ClubMembershipCreateSerializer(ClubMembershipSerializer):
     """Connects a User to a Club, determines how memberships should be added."""
 
-    send_email = serializers.BooleanField(
-        default=False, write_only=True, required=False
-    )
+    send_email = serializers.BooleanField(default=False, write_only=True, required=False)
     club_redirect_url = serializers.URLField(
         required=False,
         write_only=True,
@@ -557,9 +555,7 @@ class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipCreateSerial
                 continue
 
             if not ClubRole.objects.filter(name=role, club=club).exists():
-                validated_data["roles"].append(
-                    ClubRole.objects.create(name=role, club=club)
-                )
+                validated_data["roles"].append(ClubRole.objects.create(name=role, club=club))
 
         return super().create(validated_data)
 
@@ -594,7 +590,7 @@ class ClubCsvSerializer(CsvModelSerializer):
     def create(self, validated_data):
         logo = validated_data.pop("logo", None)
 
-        club = super().create(validated_data)
+        club: Club = super().create(validated_data)
 
         if logo:
             file = ClubFile.objects.create(club=club, file=logo)
@@ -607,7 +603,9 @@ class ClubCsvSerializer(CsvModelSerializer):
         logo = validated_data.pop("logo", None)
         club = super().update(instance, validated_data)
 
-        if logo and not club.logo.display_name == logo.name:
+        # TODO: Reenable this so images aren't always replaced
+        # if logo and not club.logo.display_name == logo.name:
+        if logo:  # Always replace logos
             file = ClubFile.objects.create(club=club, file=logo)
             club.logo = file
             club.save()
@@ -634,9 +632,7 @@ class TeamCsvSerializer(CsvModelSerializer):
     """Represent teams in csvs."""
 
     club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
-    members = TeamMemberNestedCsvSerializer(
-        many=True, required=False, source="memberships"
-    )
+    members = TeamMemberNestedCsvSerializer(many=True, required=False, source="memberships")
 
     class Meta:
         model = Team
@@ -669,9 +665,9 @@ class TeamCsvSerializer(CsvModelSerializer):
         for role in roles:
             TeamRole.objects.get_or_create(team=self.instance, name=role)
 
-        self.fields["members"].child.fields[
-            "roles"
-        ].child_relation.queryset = TeamRole.objects.filter(team=self.instance)
+        self.fields["members"].child.fields["roles"].child_relation.queryset = (
+            TeamRole.objects.filter(team=self.instance)
+        )
 
 
 class ClubRoleCsvSerializer(CsvModelSerializer):

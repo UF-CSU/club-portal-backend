@@ -15,7 +15,7 @@ from events.models import (
 )
 from events.tasks import sync_recurring_event_task
 from lib.celery import delay_task
-from polls.serializers import PollNestedSerializer
+from polls.models import Poll
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from users.models import User
 
@@ -24,12 +24,8 @@ class EventHostSerializer(ModelSerializerBase):
     """JSON representation for hosts inside events."""
 
     # TODO: Rename to "club" or change to serializers.IntegerField
-    club_id = serializers.PrimaryKeyRelatedField(
-        source="club", queryset=Club.objects.all()
-    )
-    club_name = serializers.SlugRelatedField(
-        source="club", read_only=True, slug_field="name"
-    )
+    club_id = serializers.PrimaryKeyRelatedField(source="club", queryset=Club.objects.all())
+    club_name = serializers.SlugRelatedField(source="club", read_only=True, slug_field="name")
     club_logo = serializers.ImageField(
         source="club.logo", read_only=True, required=False, allow_null=True
     )
@@ -78,8 +74,11 @@ class EventSerializer(ModelSerializerBase):
         required=False,
     )
     attachments = ClubFileNestedSerializer(many=True, required=False)
-    poll = PollNestedSerializer(required=False, allow_null=True)
+    # poll = EventPollField(queryset=Poll.objects.all(), required=False, allow_null=True)
     attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
+    poll = serializers.PrimaryKeyRelatedField(
+        queryset=Poll.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = Event
@@ -90,18 +89,15 @@ class EventSerializer(ModelSerializerBase):
         hosts = attrs.get("hosts", None)
 
         if not self.instance:
-            primary_hosts = [
-                host for host in hosts if host.get("is_primary", False) is True
-            ]
+            primary_hosts = [host for host in hosts if host.get("is_primary", False) is True]
 
             if len(primary_hosts) == 0 and len(hosts) > 0:
-                raise exceptions.ValidationError(
-                    "Event with hosts must have a primary host."
-                )
+                raise exceptions.ValidationError("Event with hosts must have a primary host.")
 
         return super().validate(attrs)
 
     def create(self, validated_data):
+        poll = validated_data.pop("poll", None)
         hosts_data = validated_data.pop("hosts", [])
         attachment_data = validated_data.pop("attachments", [])
 
@@ -116,12 +112,21 @@ class EventSerializer(ModelSerializerBase):
             if not EventTag.objects.filter(name=tag.name).exists():
                 validated_tags.append(EventTag.objects.create(name=tag.name))
 
-        event = Event.objects.create(**validated_data)
-
+        hosts_payload = {"host": None, "secondary_hosts": []}
         for host in hosts_data:
-            EventHost.objects.create(
-                event=event, club=host["club"], is_primary=host.get("is_primary", False)
-            )
+            is_primary = host.get("is_primary", False)
+            club = host["club"]
+
+            if is_primary:
+                hosts_payload["host"] = club
+            else:
+                hosts_payload["secondary_hosts"].append(club)
+
+        event = Event.objects.create(**validated_data, **hosts_payload)
+
+        if poll:
+            event.poll = poll
+            event.save()
 
         for attachment in attachment_data:
             attachment_id = attachment["id"]
@@ -133,9 +138,22 @@ class EventSerializer(ModelSerializerBase):
         return event
 
     def update(self, instance, validated_data):
+        has_poll = "poll" in validated_data
+        poll = validated_data.pop("poll", None)
         attachment_data = validated_data.pop("attachments", [])
 
+        # Temporarily disable enable_attendance
+        enable_attendance = instance.enable_attendance
+        validated_data["enable_attendance"] = False
         event = super().update(instance, validated_data)
+
+        if has_poll and event.poll != poll:
+            event.poll = poll
+        event.refresh_from_db()
+
+        # Re-enable enable_attendance
+        event.enable_attendance = enable_attendance
+        event.save()
 
         event.attachments.clear()
 
@@ -197,15 +215,9 @@ class EventCsvSerializer(CsvModelSerializer):
 
 class EventAttendanceCsvSerializer(CsvModelSerializer):
     event = None
-    name = serializers.CharField(
-        write_only=True, max_length=128, help_text="Name of event"
-    )
-    start_at = serializers.DateTimeField(
-        write_only=True, help_text="Start datetime of event"
-    )
-    end_at = serializers.DateTimeField(
-        write_only=True, help_text="End datetime of event"
-    )
+    name = serializers.CharField(write_only=True, max_length=128, help_text="Name of event")
+    start_at = serializers.DateTimeField(write_only=True, help_text="Start datetime of event")
+    end_at = serializers.DateTimeField(write_only=True, help_text="End datetime of event")
 
     user = WritableSlugRelatedField(
         slug_field="email",

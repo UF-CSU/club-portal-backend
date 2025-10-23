@@ -117,6 +117,7 @@ services:
       - SERVER_URI=app:9000
       - SERVER_REPLICA_URI=app_replica:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
+      - S3_STORAGE_BUCKET_NAME=${S3_STORAGE_BUCKET_NAME}
       # No delay needed, since app has health checks
       - DELAY=0s
     networks:
@@ -172,12 +173,6 @@ volumes:
 #       pool_mode = transaction
 #       max_client_conn = 1000
 #       default_pool_size = 100
-
-#       client_idle_timeout = 600 ; 10 minutes
-#       server_idle_timeout = 300 ; 5 minutes
-#       server_lifetime = 3600 ; 1 hour
-#       query_wait_timeout = 120 ; 2 minutes
-#       connect_timeout = 5
 
 #       admin_users = devuser
 #   userlist.txt:

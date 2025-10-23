@@ -1,6 +1,3 @@
-import json
-import os
-
 from django.utils import timezone
 
 from clubs.models import Club, ClubFile, ClubMembership, ClubRole, ClubSocialProfile
@@ -61,8 +58,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "logo": fake.image_url(placeholder_url="https://dummyimage.com/200x200"),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -118,8 +115,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "socials[1].url": fake.url(),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -158,8 +155,8 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             "socials[1].url": fake.url(),
         }
 
-        self.data_to_csv([payload])
-        success, failed = self.service.upload_csv(path=self.filepath)
+        file = self.data_to_csv([payload])
+        success, failed = self.service.upload_csv(file=file)
         self.assertLength(success, 1, failed)
         self.assertLength(failed, 0)
 
@@ -214,24 +211,11 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
             {"column_name": "CurrentlyRegistering", "field_name": "SKIP"},
         ]
 
-        filepath = self.get_unique_filepath(ext="json")
-        dir = os.path.dirname(filepath)
-        os.makedirs(dir, exist_ok=True)
-
-        with open(filepath, mode="w+") as f:
-            json.dump(payload, f, indent=4)
-
-        success, failed = self.service.upload_csv(
-            path=filepath, custom_field_maps=mappings
-        )
+        file = self.dump_json(payload)
+        success, failed = self.service.upload_csv(file=file, custom_field_maps=mappings)
         self.assertEqual(len(success), 1, failed)
         self.assertEqual(len(failed), 0)
         self.assertEqual(self.repo.count(), 1)
-
-        # self.assertUploadPayload(
-        #     payload=payload,
-        #     custom_field_maps=mappings,
-        # )
 
         self.assertEqual(self.repo.count(), 1)
         obj = self.repo.first()
@@ -249,7 +233,6 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
     def setUp(self):
         self.club = create_test_club()
         self.club2 = create_test_club()
-        # self.user = create_test_user()
         return super().setUp()
 
     def get_create_params(self, **kwargs):
@@ -267,10 +250,10 @@ class ClubMembershipCsvUploadTests(UploadCsvTestsBase):
             }
             for _ in range(self.dataset_size)
         ]
-        self.data_to_csv(payload)
+        file = self.data_to_csv(payload)
 
         # Call service
-        _, failed = self.service.upload_csv(path=self.filepath)
+        _, failed = self.service.upload_csv(file=file)
 
         # Validate database,
         # Memberships are non-standard schemas so we do manual testing

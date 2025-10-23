@@ -1,21 +1,21 @@
 import re
 from collections import OrderedDict
 from enum import Enum
+from io import BytesIO
+from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 import pandas as pd
+from django.core.files import File
 from django.db import models
 from django.utils import timezone
 
 from core.abstracts.serializers import ModelSerializerBase
 from lib.spreadsheets import read_spreadsheet
-from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
 from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.serializers import CsvModelSerializer
-from utils.files import get_file_path, get_media_path
 from utils.helpers import str_to_list
 from utils.logging import print_error
-from utils.models import save_file_to_model
 
 
 class FieldMappingType(TypedDict):
@@ -68,9 +68,7 @@ class QueryCsvService:
         job.save()
 
         svc = cls(serializer_class=job.serializer_class, job=job)
-        success, failed = svc.upload_csv(
-            get_file_path(job.file), custom_field_maps=job.custom_fields
-        )
+        success, failed = svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
 
         # Set final job status
         if not isinstance(failed, list):
@@ -91,20 +89,22 @@ class QueryCsvService:
         job.save()
 
         # Create report
-        report_file_path = get_media_path(
-            QUERYCSV_MEDIA_SUBDIR + f"reports/{job.model_class.__name__}/",
-            fileprefix=str(timezone.now().strftime("%d-%m-%Y_%H:%M:%S")),
-            fileext="xlsx",
+        report_file_path = Path(
+            f"reports/{job.model_class.__name__}/",
+            f"{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.xlsx",
         )
+        report_buffer = BytesIO()
 
         success_report = pd.json_normalize(success)
         failed_report = pd.json_normalize(failed)
 
-        with pd.ExcelWriter(report_file_path) as writer:
+        with pd.ExcelWriter(report_buffer) as writer:
             success_report.to_excel(writer, sheet_name="Successful", index=False)
             failed_report.to_excel(writer, sheet_name="Failed", index=False)
 
-        save_file_to_model(job, report_file_path, field="report")
+        report_file = File(report_buffer, report_file_path.__str__())
+        job.report = report_file
+        job.save()
 
         return success, failed
 
@@ -125,25 +125,21 @@ class QueryCsvService:
         if self.job:
             self.job.add_log(value, key=key)
 
-    def download_csv(self, queryset: models.QuerySet) -> str:
+    def download_csv(self, queryset: models.QuerySet):
         """Download: Convert queryset to csv, return path to csv."""
 
         data = self.serializer_class(queryset, many=True).data
         flattened = [self.serializer_class.json_to_flat(obj) for obj in data]
 
         df = pd.json_normalize(flattened)
-        filepath = get_media_path(
-            QUERYCSV_MEDIA_SUBDIR + "downloads/",
-            fileprefix=f"{self.model_name}",
-            fileext="csv",
-        )
-        df.to_csv(filepath, index=False)
+        buffer = BytesIO()
+        df.to_csv(buffer, index=False)
 
-        return filepath
+        filename = f"{self.model_name.lower()}_download.csv"
 
-    def get_csv_template(
-        self, field_types: Literal["all", "required", "writable"]
-    ) -> str:
+        return File(buffer, name=filename)
+
+    def get_csv_template(self, field_types: Literal["all", "required", "writable"]):
         """
         Get path to csv file containing required fields for upload.
 
@@ -170,18 +166,16 @@ class QueryCsvService:
             case "all" | _:
                 template_fields = [str(field) for field in flat_field_names]
 
-        filepath = get_media_path(
-            QUERYCSV_MEDIA_SUBDIR + "templates/",
-            f"{self.model_name}_template.csv",
-            create_path=True,
-        )
+        filename = f"{self.model_name.lower()}_upload_template.csv"
         df = pd.DataFrame([], columns=template_fields)
-        df.to_csv(filepath, index=False)
 
-        return filepath
+        buffer = BytesIO()
+        df.to_csv(buffer, index=False)
+
+        return File(buffer, name=filename)
 
     def upload_csv(
-        self, path: str, custom_field_maps: Optional[list[FieldMappingType]] = None
+        self, file: File, custom_field_maps: Optional[list[FieldMappingType]] = None
     ):
         """
         Upload: Given path to csv, create/update models and
@@ -192,7 +186,7 @@ class QueryCsvService:
                 self.job.start_clock()
 
             # Start by importing csv
-            df = read_spreadsheet(path)
+            df = read_spreadsheet(file)
             self._log_job_msg(
                 "Finished reading spreadsheet, processing field mappings..."
             )

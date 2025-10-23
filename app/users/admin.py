@@ -169,7 +169,6 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
     def get_search_results(
         self, request: HttpRequest, queryset: models.QuerySet, search_term: str
     ):
-        print("search term:", search_term)
         queryset |= self.model.objects.filter(profile__name__contains=search_term)
         return super().get_search_results(request, queryset, search_term)
 

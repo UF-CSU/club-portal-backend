@@ -56,14 +56,17 @@ urlpatterns = [
     path("polls/", include("polls.urls")),
 ]
 
+
 if DEV:
     # from debug_toolbar.toolbar import debug_toolbar_urls
+    # urlpatterns += debug_toolbar_urls()
+    # urlpatterns.append(
+    #     path("__reload__/", include("django_browser_reload.urls")),
+    # )
 
+    # When in dev mode, server is not behind NGINX proxy,
+    # so we have to serve up the files via Django
     urlpatterns += static(
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT,
-    )
-    # urlpatterns += debug_toolbar_urls()
-    urlpatterns.append(
-        path("__reload__/", include("django_browser_reload.urls")),
     )

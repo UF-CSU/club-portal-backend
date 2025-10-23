@@ -12,6 +12,7 @@ from typing import Literal, Optional
 from uuid import UUID
 
 from django.db import models
+from django.utils.functional import cached_property
 from pandas import show_versions
 from rest_framework import serializers
 
@@ -222,7 +223,7 @@ class TypeGenerator:
     ):
         """Get the type for the field by going to the model."""
 
-        model_field: models.Field | property = getattr(
+        model_field: models.Field | property | cached_property = getattr(
             serializer.model_class, field.source or field_name
         )
         field_type = "any"
@@ -238,7 +239,12 @@ class TypeGenerator:
 
         if isinstance(field, serializers.ReadOnlyField):
             # FIXME: Raises error if cached_property
-            field_type_class = model_field.fget.__annotations__.get("return", "any")
+            if isinstance(model_field, cached_property):
+                field_type_class = model_field.real_func.__annotations__.get(
+                    "return", "any"
+                )
+            else:
+                field_type_class = model_field.fget.__annotations__.get("return", "any")
             field_type = self._get_prop_type(
                 field_type_class,
                 prop_name=field_name,

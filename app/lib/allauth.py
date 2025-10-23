@@ -4,8 +4,6 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.providers.base import Provider
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 
-from users.models import User
-
 ProviderType = Provider
 OauthProviderType = OAuth2Provider
 
@@ -20,9 +18,9 @@ class CustomAccountAdapter(DefaultAccountAdapter):
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     def populate_user(self, request, sociallogin, data):
-        email = data.get("email")
+        # email = data.get("email")
 
-        existing_user = User.objects.find_by_email(email=email)
+        # existing_user = User.objects.find_by_email(email=email)
         #        if existing_user:
         #            raise exceptions.AuthenticationFailed(
         #                detail=f"User already exists with email {email}"

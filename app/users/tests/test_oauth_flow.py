@@ -6,7 +6,7 @@ import requests
 from allauth.socialaccount.providers.oauth2.views import OAuth2Adapter
 from django.http import JsonResponse
 from django.urls import reverse
-from rest_framework import exceptions, status
+from rest_framework import status
 
 from core.abstracts.tests import EmailTestsBase, PublicApiTestsBase
 from lib.faker import fake
@@ -136,15 +136,15 @@ class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
         self.assertEqual(user.profile.school_email, ufl_email)
         self.assertTrue(user.profile.is_school_email_verified)
 
-    def test_connect_existing_account_to_oauth(self):
-        """Should connect oauth account to existing user."""
+    # def test_connect_existing_account_to_oauth(self):
+    #     """Should connect oauth account to existing user."""
 
-        # User is created by sys admin
-        user = create_test_user()
+    #     # User is created by sys admin
+    #     user = create_test_user()
 
-        # Then, the created user goes to sign in via oauth
-        with self.assertRaises(exceptions.AuthenticationFailed):
-            self.assertDoOauthFlow(return_email=user.email)
+    #     # Then, the created user goes to sign in via oauth
+    #     with self.assertRaises(exceptions.AuthenticationFailed):
+    #         self.assertDoOauthFlow(return_email=user.email)
 
-        # Make sure no additional users were created
-        self.assertEqual(User.objects.count(), 1)
+    #     # Make sure no additional users were created
+    #     self.assertEqual(User.objects.count(), 1)

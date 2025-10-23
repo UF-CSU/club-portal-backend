@@ -1,13 +1,17 @@
 Django>=5.2.7,<5.3
+
 djangorestframework>=3.16.1,<3.17
-drf-spectacular>=0.28.0,<0.29
-requests>=2.31.0,<2.33
-django-cors-headers>=4.9.0,<4.10
+django-storages>=1.14.6,<1.15
 django-admin-tools>=0.9.3,<1.0
+django-cors-headers>=4.9.0,<4.10
+django-filter>=25.1,<26.0
+
+drf-spectacular>=0.28.0,<0.29
+drf-standardized-errors>=0.15.0,<0.16
+
+requests>=2.31.0,<2.33
 Pillow>=11.3.0,<11.4
 typing_extensions>=4.15.0,<4.16
-django-filter>=25.1,<26.0
-drf-standardized-errors>=0.15.0,<0.16
 
 # csv files
 pandas>=2.3.3,<2.4

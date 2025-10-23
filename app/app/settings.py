@@ -74,6 +74,7 @@ ASGI_APPLICATION = "app.asgi.application"
 # Application definition
 
 INSTALLED_APPS = [
+    "storages",
     "django_celery_beat",
     "rest_framework",
     "rest_framework.authtoken",
@@ -108,7 +109,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.middleware.common.CommonMiddleware",
-    # "django.middleware.csrf.CsrfViewMiddleware", # TODO: Enable CSRF, implement with frontend
+    # "django.middleware.csrf.CsrfViewMiddleware",  # TODO: Enable CSRF, implement with frontend
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # "django.middleware.locale.LocaleMiddleware",
@@ -150,7 +151,7 @@ WSGI_APPLICATION = "app.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-POSTGRES_MAX_POOL_SIZE = int(os.environ.get('POSTGRES_MAX_POOL_SIZE', '0'))
+POSTGRES_MAX_POOL_SIZE = int(os.environ.get("POSTGRES_MAX_POOL_SIZE", "0"))
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -161,17 +162,16 @@ DATABASES = {
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "DISABLE_SERVER_SIDE_CURSORS": True,  # Fixes "InvalidCursorName" issues in prod
         "CONN_MAX_AGE": 0,
-        "OPTIONS": {}
+        "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {},
     }
 }
 
 if POSTGRES_MAX_POOL_SIZE > 0:
-    DATABASES['default']['OPTIONS']['pool'] = {
-        "pool": {
-            "min_size": 1,
-            "max_size": POSTGRES_MAX_POOL_SIZE,
-            "timeout": 60,
-        }
+    DATABASES["default"]["OPTIONS"]["pool"] = {
+        "min_size": 1,
+        "max_size": POSTGRES_MAX_POOL_SIZE,
+        "timeout": 60,
     }
 
 # Password validation
@@ -205,19 +205,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
-
-STATIC_URL = "/static/static/"
-MEDIA_URL = "/static/media/"
-
-MEDIA_ROOT = "/vol/web/media"
-STATIC_ROOT = "/vol/web/static"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -329,21 +316,54 @@ ACCOUNT_ADAPTER = "lib.allauth.CustomAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "lib.allauth.CustomSocialAccountAdapter"
 
 
-############################
-# ==  Production Config == #
-############################
-# AWS S3
-S3_STORAGE_BACKEND = bool(int(os.environ.get("S3_STORAGE_BACKEND", 1)))
-if S3_STORAGE_BACKEND is True and TESTING is False:
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+##########################################
+# == Static Files Config =============== #
+##########################################
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+S3_STORAGE_BACKEND = environ_bool("S3_STORAGE_BACKEND", 1) and not TESTING
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
 
-AWS_DEFAULT_ACL = "public-read"
-AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
-AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
-AWS_QUERYSTRING_AUTH = False
+# URL path to file
+STATIC_URL = "/files/static/"
+MEDIA_URL = "/files/media/public/"
 
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+# Physical location in file system
+MEDIA_ROOT = "/vol/web/media/public"
+STATIC_ROOT = "/vol/web/static"
+
+# Media and static storage config
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {},
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "OPTIONS": {},
+    },
+}
+
+if S3_STORAGE_BACKEND:
+    MEDIA_ROOT = None  # This is ignored by boto3, but still included for clarity
+
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("S3_STORAGE_BUCKET_NAME", "")
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
+
+    # Split base url to provide to boto3 backend
+    protocol, domain = BASE_URL.split("//")
+    AWS_S3_CUSTOM_DOMAIN = domain + "/files/media"
+    AWS_S3_URL_PROTOCOL = protocol
+
+    # When enabled, set the default storage to use AWS S3
+    STORAGES["default"] = {
+        "BACKEND": "core.storage.PublicMediaStorage",
+    }
+
 
 # Sentry
 sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0)
@@ -422,13 +442,13 @@ if DEV:
     import socket
 
     # INSTALLED_APPS.append("debug_toolbar")
-    INSTALLED_APPS.append("django_browser_reload")
+    # INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
     # Insert near top, adjust pos as needed
     # MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     # DJANGO_ALLOW_ASYNC_UNSAFE = True  # Allows django debug toolbar to work
-    MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
+    # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
     CORS_ORIGIN_ALLOW_ALL = True
 
