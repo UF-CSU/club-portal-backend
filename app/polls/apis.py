@@ -20,6 +20,12 @@ router.register(
     basename="pollchoiceoption",
 )
 
+router.register(
+    r"polltemplates",
+    viewsets.PollTemplateViewSet,
+    basename="polltemplate",
+)
+
 app_name = "api-polls"
 
 urlpatterns = [path("", include(router.urls))]

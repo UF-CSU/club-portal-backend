@@ -73,7 +73,10 @@ def create_test_clubfile(club: Club, **kwargs):
 
 
 def create_test_club(
-    name=None, members: Optional[list[User]] = None, admins: Optional[list[User]] = None, **kwargs
+    name=None,
+    members: Optional[list[User]] = None,
+    admins: Optional[list[User]] = None,
+    **kwargs,
 ) -> Club:
     """Create unique club for unit tests."""
     if name is None:
