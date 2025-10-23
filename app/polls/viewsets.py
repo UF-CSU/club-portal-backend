@@ -95,11 +95,46 @@ class PollViewset(ModelViewSetBase):
             )
         )
 
-class PollTemplateViewSet(PollViewset):
+
+class PollTemplateViewSet(ModelViewSetBase):
     """Manage poll templates in api"""
 
+    queryset = PollTemplate.objects.all()
     serializer_class = PollTemplateSerializer
 
+    def get_queryset(self):
+        user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
+
+        return (
+            PollTemplate.objects.filter(club__id__in=user_clubs)
+            .select_related("club", "event")
+            .prefetch_related(
+                models.Prefetch(
+                    "fields",
+                    queryset=PollField.objects.select_related(
+                        "_markup",
+                        "_question",
+                        "_question___textinput",
+                        "_question___choiceinput",
+                        "_question___scaleinput",
+                        "_question___uploadinput",
+                        "_question___numberinput",
+                        "_question___emailinput",
+                        "_question___phoneinput",
+                        "_question___dateinput",
+                        "_question___timeinput",
+                        "_question___urlinput",
+                        "_question___checkboxinput",
+                    ).order_by("order", "id"),
+                ),
+                "_submission_link__qrcode",
+                "submissions",
+            )
+            .annotate(
+                submissions_count=models.Count("submissions", distinct=True),
+                last_submission_at=models.Max("submissions__created_at"),
+            )
+        )
 
 
 class PollTemplateViewSet(ModelViewSetBase):
@@ -190,9 +225,7 @@ class PollChoiceOptionViewSet(ModelViewSetBase):
         poll = get_object_or_404(Poll, id=poll_id)
 
         field = get_object_or_404(poll.fields, id=field_id)
-        if not (
-            field.field_type == "question" and field.question.input_type == "choice"
-        ):
+        if not (field.field_type == "question" and field.question.input_type == "choice"):
             raise exceptions.ParseError(detail="Can only add options to a choice input")
 
         serializer.save(input=field.question.choice_input)
@@ -216,9 +249,7 @@ class PollSubmissionViewSet(ModelViewSetBase):
             .prefetch_related(
                 models.Prefetch(
                     "answers",
-                    queryset=PollQuestionAnswer.objects.prefetch_related(
-                        "options_value"
-                    ),
+                    queryset=PollQuestionAnswer.objects.prefetch_related("options_value"),
                 ),
                 "user__verified_emails",
             )
@@ -229,9 +260,7 @@ class PollSubmissionViewSet(ModelViewSetBase):
         poll = get_object_or_404(Poll, id=poll_id)
 
         if poll.status != PollStatusType.OPEN:
-            raise exceptions.ParseError(
-                detail="Cannot create submission for poll that is not open"
-            )
+            raise exceptions.ParseError(detail="Cannot create submission for poll that is not open")
 
         service = PollService(poll)
         user = self.request.user
@@ -250,4 +279,3 @@ class PollSubmissionViewSet(ModelViewSetBase):
     @extend_schema(auth=[{"security": []}, {}])
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
-    
