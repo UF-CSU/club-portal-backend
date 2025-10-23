@@ -1,3 +1,15 @@
+map $ENV $media_target {
+  default    "http://app_upstream/files/media";
+  DEV        "http://app_upstream/files/media";
+  PROD       "https://$S3_STORAGE_BUCKET_NAME.s3.amazonaws.com";
+}
+
+map $ENV $proxy_host {
+  default    $http_host;
+  DEV        $http_host;
+  PROD       $host;
+}
+
 gzip on;
 
 upstream app_upstream {
@@ -17,7 +29,7 @@ server {
     proxy_hide_header       X-Amz-Id-2;
     proxy_hide_header       X-Amz-Request-Id;
     
-    proxy_pass "https://$S3_STORAGE_BUCKET_NAME.s3.amazonaws.com/$1";
+    proxy_pass $media_target/$1;
   }
   
   # Pass static files to mounted volume
@@ -43,7 +55,7 @@ server {
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection "Upgrade";
 
-      proxy_set_header Host $host;
+      proxy_set_header Host $proxy_host;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
       proxy_read_timeout 3600s;
@@ -54,7 +66,7 @@ server {
   location / {
     proxy_pass                 http://app_upstream;
     
-    proxy_set_header           Host "$host";
+    proxy_set_header           Host "$proxy_host";
     proxy_set_header           X-Forwarded-For "$proxy_add_x_forwarded_for";
     proxy_pass_header          Token;
     
