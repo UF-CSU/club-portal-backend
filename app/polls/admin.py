@@ -106,11 +106,6 @@ class PollAdmin(ModelAdminBase):
         )
 
         return
-    
-
-class PollTemplateAdmin(PollAdmin):
-    """Manage poll templates in admin"""
-
 
 
 class PollTemplateAdmin(PollAdmin):

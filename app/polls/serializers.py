@@ -364,7 +364,9 @@ class PollTemplateSerializer(PollSerializer):
     """Json definition for poll templates"""
 
     template_name = serializers.CharField()
-    event_type = serializers.ChoiceField(choices=EventType.choices, allow_blank=True, required=True)
+    event_type = serializers.ChoiceField(
+        choices=EventType.choices, allow_blank=True, required=True
+    )
     club = PollClubNestedSerializer(required=False, allow_null=True)
 
     # Hiding Fields
