@@ -25,6 +25,7 @@ urlpatterns = [
         viewsets.AuthTokenView.as_view({"get": "retrieve", "post": "post"}),
         name="login",
     ),
+    path("ticket/", viewsets.TicketView.as_view()),
     path("me/", viewsets.ManageUserView.as_view(), name="me"),
     path("oauth-directory/", viewsets.OauthDirectoryView.as_view()),
     path("me/providers/", viewsets.SocialProviderViewSet.as_view({"get": "list"})),

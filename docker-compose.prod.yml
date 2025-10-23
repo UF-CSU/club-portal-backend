@@ -118,6 +118,7 @@ services:
       - SERVER_REPLICA_URI=app_replica:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
       - S3_STORAGE_BUCKET_NAME=${S3_STORAGE_BUCKET_NAME}
+      - ENV=PROD
       # No delay needed, since app has health checks
       - DELAY=0s
     networks:

@@ -355,7 +355,9 @@ class ClubMembershipSerializer(ModelSerializerBase):
 class ClubMembershipCreateSerializer(ClubMembershipSerializer):
     """Connects a User to a Club, determines how memberships should be added."""
 
-    send_email = serializers.BooleanField(default=False, write_only=True, required=False)
+    send_email = serializers.BooleanField(
+        default=False, write_only=True, required=False
+    )
     club_redirect_url = serializers.URLField(
         required=False,
         write_only=True,
@@ -555,7 +557,9 @@ class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipCreateSerial
                 continue
 
             if not ClubRole.objects.filter(name=role, club=club).exists():
-                validated_data["roles"].append(ClubRole.objects.create(name=role, club=club))
+                validated_data["roles"].append(
+                    ClubRole.objects.create(name=role, club=club)
+                )
 
         return super().create(validated_data)
 
@@ -632,7 +636,9 @@ class TeamCsvSerializer(CsvModelSerializer):
     """Represent teams in csvs."""
 
     club = serializers.SlugRelatedField(slug_field="name", queryset=Club.objects.all())
-    members = TeamMemberNestedCsvSerializer(many=True, required=False, source="memberships")
+    members = TeamMemberNestedCsvSerializer(
+        many=True, required=False, source="memberships"
+    )
 
     class Meta:
         model = Team
@@ -665,9 +671,9 @@ class TeamCsvSerializer(CsvModelSerializer):
         for role in roles:
             TeamRole.objects.get_or_create(team=self.instance, name=role)
 
-        self.fields["members"].child.fields["roles"].child_relation.queryset = (
-            TeamRole.objects.filter(team=self.instance)
-        )
+        self.fields["members"].child.fields[
+            "roles"
+        ].child_relation.queryset = TeamRole.objects.filter(team=self.instance)
 
 
 class ClubRoleCsvSerializer(CsvModelSerializer):

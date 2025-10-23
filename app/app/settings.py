@@ -71,6 +71,18 @@ SCHOOL_EMAIL_DOMAIN = "ufl.edu"
 
 ASGI_APPLICATION = "app.asgi.application"
 
+# Channels
+CHANNELS_REDIS_URL = os.environ.get("CHANNELS_REDIS_URL", None)
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [CHANNELS_REDIS_URL],
+        },
+    },
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -94,6 +106,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     "users",
     "users.authentication",
     "querycsv",
@@ -144,9 +157,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = "app.wsgi.application"
-
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

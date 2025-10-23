@@ -1,5 +1,6 @@
 import pandas as pd
 import pytz
+from django.db import models
 from django.utils import timezone
 
 from app.settings import POLL_SUBMISSION_REDIRECT_URL
@@ -14,6 +15,7 @@ from polls.models import (
     PollInputType,
     PollMarkup,
     PollQuestion,
+    PollQuestionAnswer,
     PollStatusType,
     PollSubmission,
     PollSubmissionLink,
@@ -21,6 +23,7 @@ from polls.models import (
     PollUserFieldType,
     TextInput,
 )
+from polls.serializers import PollSubmissionSerializer
 from utils.logging import print_error
 
 
@@ -160,6 +163,25 @@ class PollService(ServiceBase[Poll]):
             self._schedule_poll_close()
 
         poll.save()
+
+    @staticmethod
+    def get_submissions(poll_id: int):
+        """Get all submissions for a poll."""
+        submissions = (
+            PollSubmission.objects.filter(poll_id=poll_id)
+            .select_related("user", "user__profile")
+            .prefetch_related(
+                models.Prefetch(
+                    "answers",
+                    queryset=PollQuestionAnswer.objects.prefetch_related(
+                        "options_value"
+                    ),
+                ),
+                "user__verified_emails",
+            )
+        )
+        serializer = PollSubmissionSerializer(submissions, many=True)
+        return serializer.data
 
     def get_submissions_df(self, tzname=None) -> pd.DataFrame:
         """Convert submissions to pandas dataframe."""

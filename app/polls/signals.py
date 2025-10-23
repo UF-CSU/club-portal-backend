@@ -1,7 +1,10 @@
-from django.db.models.signals import post_save
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from polls.models import Poll, PollInputType
+from polls.models import Poll, PollInputType, PollSubmission
+from polls.serializers import PollSubmissionSerializer
 from polls.services import PollService
 
 
@@ -24,3 +27,41 @@ def on_save_poll(sender, instance: Poll, created=False, **kwargs):
 
     if instance.submission_link is None:
         service.create_submission_link()
+
+
+@receiver(post_save, sender=PollSubmission)
+def on_save_poll_submission(sender, instance: PollSubmission, created=False, **kwargs):
+    """Automations to run when poll submission is saved."""
+
+    channel_layer = get_channel_layer()
+    data = PollSubmissionSerializer(instance).data
+
+    event = {"data": data}
+
+    if created:  # Poll submission creation
+        event["type"] = "submission_create"
+    else:  # Poll submission update
+        event["type"] = "submission_update"
+
+    async_to_sync(channel_layer.group_send)(
+        f"poll_{instance.poll.id}",
+        event,
+    )
+
+
+@receiver(post_delete, sender=PollSubmission)
+def on_delete_poll_submission(sender, instance: PollSubmission, **kwargs):
+    """Automations to run when poll submission is deleted."""
+
+    channel_layer = get_channel_layer()
+    data = instance.id
+
+    event = {
+        "type": "submission_delete",
+        "data": data,
+    }
+
+    async_to_sync(channel_layer.group_send)(
+        f"poll_{instance.poll.id}",
+        event,
+    )
