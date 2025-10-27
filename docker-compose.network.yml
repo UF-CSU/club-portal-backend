@@ -153,6 +153,8 @@ services:
       - SERVER_URI=club-app-network:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
       - SERVER_REPLICA_URI=club-app-network:9000
+      - S3_STORAGE_BUCKET_NAME=${S3_STORAGE_BUCKET_NAME:-'testbucket'}
+      - ENV=DEV
 
 volumes:
   # postgres-clubs-network:
