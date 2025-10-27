@@ -365,9 +365,10 @@ if S3_STORAGE_BACKEND:
     AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
 
     # Split base url to provide to boto3 backend
-    protocol, domain = BASE_URL.split("//")
-    AWS_S3_CUSTOM_DOMAIN = domain + "/files/media"
-    AWS_S3_URL_PROTOCOL = protocol
+    # TODO: Figure out why proxy no longer works with s3
+    # protocol, domain = BASE_URL.split("//")
+    # AWS_S3_CUSTOM_DOMAIN = domain + "/files/media"
+    # AWS_S3_URL_PROTOCOL = protocol
 
     # When enabled, set the default storage to use AWS S3
     STORAGES["default"] = {
