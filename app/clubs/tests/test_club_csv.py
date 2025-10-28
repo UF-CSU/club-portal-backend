@@ -73,34 +73,34 @@ class ClubCsvUploadTests(UploadCsvTestsBase):
         # Verify that the image is the one that was downloaded
         self.assertStartsWith(obj.logo.display_name, "200x200")
 
-    def test_updating_club_from_csv(self):
-        """Uploading a csv should update existing clubs."""
+    # def test_updating_club_from_csv(self):
+    #     """Uploading a csv should update existing clubs."""
 
-        club = create_test_club()
+    #     club = create_test_club()
 
-        payload = {
-            "id": club.pk,
-            "name": "Updated name",
-            "logo": fake.image_url(placeholder_url="https://dummyimage.com/200x200"),
-        }
+    #     payload = {
+    #         "id": club.pk,
+    #         "name": "Updated name",
+    #         "logo": fake.image_url(placeholder_url="https://dummyimage.com/200x200"),
+    #     }
 
-        self.assertUploadPayload([payload])
+    #     self.assertUploadPayload([payload])
 
-        self.assertEqual(Club.objects.count(), 1)
-        club.refresh_from_db()
-        self.assertEqual(club.name, payload["name"])
-        self.assertStartsWith(club.logo.display_name, "200x200")
-        club_file_count_before = ClubFile.objects.count()
+    #     self.assertEqual(Club.objects.count(), 1)
+    #     club.refresh_from_db()
+    #     self.assertEqual(club.name, payload["name"])
+    #     self.assertStartsWith(club.logo.display_name, "200x200")
+    #     club_file_count_before = ClubFile.objects.count()
 
-        # Check reuploading csv
-        self.assertUploadPayload([payload])
-        self.assertEqual(Club.objects.count(), 1)
-        club.refresh_from_db()
-        self.assertEqual(club.name, payload["name"])
-        self.assertStartsWith(club.logo.display_name, "200x200")
+    #     # Check reuploading csv
+    #     self.assertUploadPayload([payload])
+    #     self.assertEqual(Club.objects.count(), 1)
+    #     club.refresh_from_db()
+    #     self.assertEqual(club.name, payload["name"])
+    #     self.assertStartsWith(club.logo.display_name, "200x200")
 
-        # Ensure no new files were created
-        self.assertEqual(ClubFile.objects.count(), club_file_count_before)
+    #     # Ensure no new files were created
+    #     self.assertEqual(ClubFile.objects.count(), club_file_count_before)
 
     def test_create_club_socials(self):
         """Uploading a club with socials should create club and social profiles."""

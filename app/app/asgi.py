@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
 
 import os
 
+from channels.routing import ProtocolTypeRouter
 from django.core.asgi import get_asgi_application
 from uvicorn.workers import UvicornWorker
 
@@ -22,4 +23,10 @@ class DjangoUvicornWorker(UvicornWorker):
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
 
 
-application = get_asgi_application()
+django_application = get_asgi_application()
+
+from .routing import application as ws_application  # noqa: E402
+
+application = ProtocolTypeRouter(
+    {"http": django_application, "websocket": ws_application}
+)

@@ -11,13 +11,7 @@ from django.http import HttpRequest
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from drf_spectacular.utils import extend_schema
-from rest_framework import (
-    authentication,
-    generics,
-    mixins,
-    permissions,
-    status,
-)
+from rest_framework import authentication, generics, mixins, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import action
@@ -27,12 +21,13 @@ from rest_framework.settings import api_settings
 
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from lib.allauth import OauthProviderType
-from users.models import User
+from users.models import Ticket, User
 from users.serializers import (
     CheckEmailVerificationRequestSerializer,
     EmailVerificationRequestSerializer,
     OauthDirectorySerializer,
     SocialProviderSerializer,
+    TicketSerializer,
     UserSerializer,
 )
 from users.services import UserService
@@ -79,6 +74,29 @@ class AuthTokenView(
 
         token, _ = Token.objects.get_or_create(user=request.user)
         return Response({"token": token.key})
+
+
+class TicketView(generics.RetrieveAPIView):
+    """
+    Generate a ticket for use with WebSocket authentication.
+
+    To use WebSockets, submit a get request to the given route.
+    When opening the socket, provide the ticket in Sec-WebSocket-Protocol.
+    """
+
+    serializer_class = TicketSerializer
+    queryset = Ticket.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        if request.user.is_anonymous:
+            raise AuthenticationFailed(
+                "Unable to retrieve ticket for unauthenticated user."
+            )
+
+        ticket, _ = Ticket.objects.get_or_create(user=request.user)
+        serializer = self.get_serializer(ticket)
+        return Response(serializer.data)
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):

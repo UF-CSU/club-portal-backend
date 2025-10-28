@@ -71,6 +71,18 @@ SCHOOL_EMAIL_DOMAIN = "ufl.edu"
 
 ASGI_APPLICATION = "app.asgi.application"
 
+# Channels
+CHANNELS_REDIS_URL = os.environ.get("CHANNELS_REDIS_URL", None)
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [CHANNELS_REDIS_URL],
+        },
+    },
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -94,6 +106,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     "users",
     "users.authentication",
     "querycsv",
@@ -144,9 +157,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = "app.wsgi.application"
-
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -355,9 +365,10 @@ if S3_STORAGE_BACKEND:
     AWS_S3_REGION_NAME = os.environ.get("S3_STORAGE_BUCKET_REGION", "us-east-1")
 
     # Split base url to provide to boto3 backend
-    protocol, domain = BASE_URL.split("//")
-    AWS_S3_CUSTOM_DOMAIN = domain + "/files/media"
-    AWS_S3_URL_PROTOCOL = protocol
+    # TODO: Figure out why proxy no longer works with s3
+    # protocol, domain = BASE_URL.split("//")
+    # AWS_S3_CUSTOM_DOMAIN = domain + "/files/media"
+    # AWS_S3_URL_PROTOCOL = protocol
 
     # When enabled, set the default storage to use AWS S3
     STORAGES["default"] = {

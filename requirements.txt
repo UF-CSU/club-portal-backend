@@ -41,7 +41,10 @@ icalendar>=6.3.1,<6.4
 Pygments>=2.19.2,<2.20
 
 # ASGI Server
-uvicorn>=0.37.0,<0.38
+uvicorn[standard]>=0.37.0,<0.38
 gunicorn>=23.0.0,<23.1
 uvicorn-worker>=0.4.0,<0.5
 
+# Channels
+channels>=4.3.1,<4.4
+channels-redis>=4.3.0,<4.4

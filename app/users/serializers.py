@@ -13,7 +13,7 @@ from core.abstracts.serializers import (
     ModelSerializerBase,
 )
 from querycsv.serializers import CsvModelSerializer
-from users.models import EmailVerificationCode, Profile, SocialProfile, User
+from users.models import EmailVerificationCode, Profile, SocialProfile, Ticket, User
 
 
 class UserClubNestedSerializer(ModelSerializerBase):
@@ -158,6 +158,12 @@ class SocialProviderSerializer(ModelSerializerBase):
     class Meta:
         model = SocialAccount
         fields = ["id", "provider", "uid", "last_login", "date_joined"]
+
+
+class TicketSerializer(ModelSerializerBase):
+    class Meta:
+        model = Ticket
+        fields = ["key"]
 
 
 #######################################

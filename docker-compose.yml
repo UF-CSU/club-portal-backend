@@ -10,7 +10,7 @@ services:
       - dev
     restart: unless-stopped
     ports:
-      - '8000:8000'
+      - '9000:8000'
     volumes:
       - ./app:/app
       - ./docs:/docs
@@ -21,15 +21,23 @@ services:
              python manage.py migrate &&
              python manage.py collectstatic --no-input &&
              python manage.py init_superuser &&
-             python manage.py runserver 0.0.0.0:8000"
+             python -m uvicorn app.asgi:application --reload --host 0.0.0.0 --port 8000 --lifespan off"
     env_file:
       - .env
     environment:
+      - PORT=8000
       - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8000}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000/admin/}
     depends_on:
       - postgres
       - redis
+    healthcheck:
+      test: ["CMD-SHELL", "/scripts/healthcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+      start_interval: 15s
 
   postgres:
     image: postgres:15-alpine
@@ -172,6 +180,26 @@ services:
         target: /pgadmin4/servers.json
       - source: pgpass
         target: /pgpass
+
+  proxy:
+    build:
+      context: ./deploy/proxy/
+    restart: unless-stopped
+    profiles:
+      - dev
+    ports:
+      - 8000:8080
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - static-clubs-dev:/vol/web
+    environment:
+      - SERVER_URI=app:8000
+      - SERVER_REPLICA_URI=app:8000
+      - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
+      - S3_STORAGE_BUCKET_NAME=''
+      - ENV=DEV
 
 volumes:
   postgres-clubs-dev:
