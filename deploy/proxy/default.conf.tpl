@@ -23,14 +23,14 @@ server {
   resolver 127.0.0.11 valid=5s;
   
   # Pass media files directly to S3
-  location ~ ^/files/media/(.*)$ {
-    proxy_intercept_errors  on;
-    proxy_redirect          off;
-    proxy_hide_header       X-Amz-Id-2;
-    proxy_hide_header       X-Amz-Request-Id;
+  # location ~ ^/files/media/(.*)$ {
+  #   proxy_intercept_errors  on;
+  #   proxy_redirect          off;
+  #   proxy_hide_header       X-Amz-Id-2;
+  #   proxy_hide_header       X-Amz-Request-Id;
     
-    proxy_pass $media_target/$1;
-  }
+  #   proxy_pass $media_target/$1;
+  # }
   
   # Pass static files to mounted volume
   location ~ ^/files/static/(.*)$ {
