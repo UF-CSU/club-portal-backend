@@ -304,7 +304,9 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_event(
             host=club,
             start_at=today_event_time + mod_shift - timedelta(days=1),
-            end_at=(today_event_time + mod_shift) + timedelta(hours=1) - timedelta(days=1),
+            end_at=(today_event_time + mod_shift)
+            + timedelta(hours=1)
+            - timedelta(days=1),
         )
         # 2 events are one day between range (3 valid)
         create_test_event(
@@ -402,7 +404,9 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_event(
             host=club,
             start_at=today_event_time + mod_shift - timedelta(days=1),
-            end_at=(today_event_time + mod_shift) + timedelta(hours=1) - timedelta(days=1),
+            end_at=(today_event_time + mod_shift)
+            + timedelta(hours=1)
+            - timedelta(days=1),
         )
         # 2 events are one day between range (3 valid)
         create_test_event(
