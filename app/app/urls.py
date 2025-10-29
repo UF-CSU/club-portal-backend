@@ -23,7 +23,7 @@ from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from analytics.views import redirect_link_view
-from app.settings import DEV
+from app.settings import DEV, S3_STORAGE_BACKEND
 
 apipatterns = [
     path("schema/club-portal", SpectacularAPIView.as_view(), name="api-schema"),
@@ -63,7 +63,9 @@ if DEV:
     # urlpatterns.append(
     #     path("__reload__/", include("django_browser_reload.urls")),
     # )
+    pass
 
+if not S3_STORAGE_BACKEND:
     # When in dev mode, server is not behind NGINX proxy,
     # so we have to serve up the files via Django
     urlpatterns += static(
