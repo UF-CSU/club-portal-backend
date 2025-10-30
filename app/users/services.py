@@ -183,7 +183,7 @@ class UserService(ServiceBase[User]):
         send_html_mail(
             "Finish account setup",
             to=[self.obj.email],
-            html_template="users/setup_account_email.html",
+            html_template="users/account-setup-link.html",
             html_context={"setup_url": url},
         )
 
