@@ -197,7 +197,7 @@ services:
     environment:
       - SERVER_URI=app:8000
       - SERVER_REPLICA_URI=app:8000
-      - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
+      - PROXY_DOCS_URI=${PROXY_DOCS_URI:-'0.0.0.0:80'}
       - S3_STORAGE_BUCKET_NAME=''
       - ENV=DEV
 
