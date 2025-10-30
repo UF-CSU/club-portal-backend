@@ -324,7 +324,7 @@ HEADLESS_SERVE_SPECIFICATION = True
 HEADLESS_ADAPTER = "lib.allauth.CustomHeadlessAdapter"
 ACCOUNT_ADAPTER = "lib.allauth.CustomAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "lib.allauth.CustomSocialAccountAdapter"
-
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
 
 ##########################################
 # == Static Files Config =============== #
@@ -462,6 +462,7 @@ if DEV:
     # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
     CORS_ORIGIN_ALLOW_ALL = True
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http" # Set allauth to use http instead of https
 
     INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
