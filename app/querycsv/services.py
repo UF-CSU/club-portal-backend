@@ -6,16 +6,16 @@ from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 import pandas as pd
+from core.abstracts.serializers import ModelSerializerBase
 from django.core.files import File
 from django.db import models
 from django.utils import timezone
-
-from core.abstracts.serializers import ModelSerializerBase
 from lib.spreadsheets import read_spreadsheet
-from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
-from querycsv.serializers import CsvModelSerializer
 from utils.helpers import str_to_list
 from utils.logging import print_error
+
+from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
+from querycsv.serializers import CsvModelSerializer
 
 
 class FieldMappingType(TypedDict):

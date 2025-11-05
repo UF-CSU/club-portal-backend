@@ -2,6 +2,7 @@ from clubs.tests.utils import create_test_club
 from core.abstracts.tests import TestsBase
 from events.tests.utils import create_test_event
 from polls.tests.utils import create_test_poll, create_test_pollsubmission
+
 from users.models import User
 from users.services import UserService
 from users.tests.utils import create_test_user

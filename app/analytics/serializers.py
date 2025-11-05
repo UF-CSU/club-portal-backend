@@ -2,11 +2,11 @@
 Serializers for the analytics API View
 """
 
+from clubs.models import Club
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from analytics.models import Link, QRCode
-from clubs.models import Club
 
 
 class LinkClubNestedSerializer(serializers.ModelSerializer):

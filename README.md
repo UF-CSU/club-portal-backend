@@ -8,7 +8,6 @@
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Quick Start](#quick-start)
-  - [Dev Setup](#dev-setup)
   - [Running the Server](#running-the-server)
 - [Admin Dashboard](#admin-dashboard)
 - [Usage](#usage)
@@ -26,6 +25,7 @@
 - Docker, Docker Compose: <https://docs.docker.com/desktop/>
 - Python: <https://www.python.org/downloads/>
 - VSCode: <https://code.visualstudio.com/download>
+- UV: <https://docs.astral.sh/uv/getting-started/installation/>
 
 Optional:
 
@@ -41,22 +41,15 @@ If you have docker installed, run these commands:
 git clone https://github.com/UF-CSU/club-portal-backend.git
 cd ./club-portal-backend
 
-# Setup and start the server
+# Copy env variables
 cp sample.env .env
+
+# Sync packages for local dev
+uv sync --no-group prod
+
+# Start docker compose
 docker-compose --profile dev up --build
 ```
-
-### Dev Setup
-
-To setup your vscode environment, you will need to create a python virtual environment and install the packages found in `requirements.txt` and `requirements.dev.txt`.
-
-This command will create a new python environment with venv and install the necessary packages:
-
-```sh
-task setup
-```
-
-_This command is still being ironed out, and may not work for certain environments_
 
 ### Running the Server
 
@@ -93,6 +86,18 @@ Finally, to stop all docker container and clear the database:
 
 ```sh
 task clean
+```
+
+To clear all cache:
+
+```sh
+task cache_clear
+```
+
+To clear cache with a certain prefix (ex: "club-previews"):
+
+```sh
+task cache_clear -- club-previews
 ```
 
 #### Without Taskfile
@@ -188,28 +193,34 @@ You can run the project in multiple different environments, which are referred t
 
 If you have Taskfile installed, you can use the following:
 
-| Command                       | Purpose                                                          |
-| ----------------------------- | ---------------------------------------------------------------- |
-| `task setup`                  | Setup local python environment                                   |
-| `task dev`                    | Start the server in "dev" mode                                   |
-| `task dev:slim`               | Start only essential dev services                                |
-| `task network`                | Starts the server in "network" mode                              |
-| `task test`                   | Run unit tests                                                   |
-| `task test -- app_name`       | Run unit tests for a specific app (replace app_name)             |
-| `task makemigrations`         | Create database migration files                                  |
-| `task makemigrations:dry-run` | Test makemigrations output and don't create files                |
-| `task migrate`                | Apply migration files to the database                            |
-| `task lint`                   | Check code lint rules with Flake8                                |
-| `task format`                 | Check but don't apply formatting rules                           |
-| `task format:fix`             | Format codebase using Black                                      |
-| `task shell`                  | Start a new Django interactive shell                             |
-| `task show_urls`              | Show all available urls for the server, and their reverse labels |
-| `task loaddata`               | Load all available fixtures/mock data into database              |
-| `task generate_types`         | Create TypeScript interfaces for serializers                    |
-| `task down`                   | Stop all docker containers created by `task dev`                 |
-| `task clean`                  | Stop containers and remove volumes created by `task dev`         |
-| `task down:slim`              | Stop all docker containers created by `task dev:slim`            |
-| `task clean:slim`             | Stop containers and remove volumes created by `task dev:slim`    |
+| Command                            | Purpose                                                          |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| `task setup`                       | Setup local python environment                                   |
+| `task dev`                         | Start the server in "dev" mode                                   |
+| `task dev:slim`                    | Start only essential dev services                                |
+| `task network`                     | Starts the server in "network" mode                              |
+| `task test`                        | Run unit tests                                                   |
+| `task test -- app_name`            | Run unit tests for a specific app (replace "app_name")           |
+| `task makemigrations`              | Create database migration files                                  |
+| `task makemigrations:dry-run`      | Test makemigrations output and don't create files                |
+| `task migrate`                     | Apply migration files to the database                            |
+| `task lint`                        | Check code lint rules with Flake8                                |
+| `task format`                      | Check but don't apply formatting rules                           |
+| `task format:fix`                  | Format codebase using Black                                      |
+| `task shell`                       | Start a new Django interactive shell                             |
+| `task shell:redis`                 | Starts a new interactive redis shell using redis-cli             |
+| `task shell:db`                    | Starts a new interactive postgres shell using Django's dbshell   |
+| `task show_urls`                   | Show all available urls for the server, and their reverse labels |
+| `task loaddata`                    | Load all available fixtures/mock data into database              |
+| `task generate_types`              | Create TypeScript interfaces for serializers                     |
+| `task cache_clear`                 | Clear all cached data                                            |
+| `task cache_clear -- cache_prefix` | Clear cache with prefix (replace "cache_prefix")                 |
+| `task cache_keys`                  | List all keys in cache                                           |
+| `task cache_keys -- cache_prefix`  | List all keys matching prefix (replace "cache_prefix")           |
+| `task down`                        | Stop all docker containers created by `task dev`                 |
+| `task clean`                       | Stop containers and remove volumes created by `task dev`         |
+| `task down:slim`                   | Stop all docker containers created by `task dev:slim`            |
+| `task clean:slim`                  | Stop containers and remove volumes created by `task dev:slim`    |
 
 ## Local Dev Links
 

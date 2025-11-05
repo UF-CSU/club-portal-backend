@@ -5,9 +5,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import close_old_connections
 from django.http import HttpRequest
 from django.utils import timezone
+from users.models import Ticket
 
 from core.abstracts.middleware import BaseMiddleware
-from users.models import Ticket
 
 
 class TimezoneMiddleware(BaseMiddleware):

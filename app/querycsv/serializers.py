@@ -3,13 +3,12 @@ import traceback
 from collections.abc import Iterable
 from typing import Optional
 
+from core.abstracts.serializers import FieldType, ModelSerializerBase, SerializerBase
 from django.db import models
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.relations import SlugRelatedField
 from rest_framework.utils import model_meta
-
-from core.abstracts.serializers import FieldType, ModelSerializerBase, SerializerBase
 from utils.helpers import str_to_bool, str_to_list
 from utils.types import islistinstance
 

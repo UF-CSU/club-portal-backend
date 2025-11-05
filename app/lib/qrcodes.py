@@ -8,7 +8,6 @@ from io import BytesIO
 
 import segno
 from django.core.files import File
-
 from utils.files import get_unique_filename
 
 

@@ -4,12 +4,12 @@ Event views for static pages, and non-API routes.
 
 import re
 
+from clubs.models import Club
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 
-from clubs.models import Club
 from events.models import Event, EventCancellation
 from events.services import EventService
 

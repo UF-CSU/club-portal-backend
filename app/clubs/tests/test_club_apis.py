@@ -2,7 +2,13 @@
 Unit tests focused around REST APIs for the Clubs Service.
 """
 
+from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
+from core.models import Major
+from lib.faker import fake
 from rest_framework.test import APIClient
+from users.models import User
+from users.tests.utils import create_test_user
+from utils.testing import create_test_uploadable_image
 
 from clubs.models import ClubApiKey, ClubFile, ClubRole, RoleType
 from clubs.services import ClubService
@@ -19,12 +25,6 @@ from clubs.tests.utils import (
     create_test_club,
     create_test_clubs,
 )
-from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
-from core.models import Major
-from lib.faker import fake
-from users.models import User
-from users.tests.utils import create_test_user
-from utils.testing import create_test_uploadable_image
 
 
 class ClubsApiPublicTests(PublicApiTestsBase):

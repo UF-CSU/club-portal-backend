@@ -1,9 +1,9 @@
+from core.mock.models import Buster
+from core.mock.serializers import BusterCsvSerializer
 from django.template.response import TemplateResponse
 from django.test import RequestFactory
 from rest_framework import status
 
-from core.mock.models import Buster
-from core.mock.serializers import BusterCsvSerializer
 from querycsv.forms import CsvHeaderMappingFormSet, CsvUploadForm
 from querycsv.models import QueryCsvUploadJob
 from querycsv.tests.test_upload_data import UploadCsvTestsBase

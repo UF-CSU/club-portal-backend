@@ -28,6 +28,9 @@ Poll
 from datetime import datetime
 from typing import ClassVar, Optional
 
+from analytics.models import Link
+from clubs.models import Club, ClubFile, ClubScopedModel
+from core.abstracts.models import ManagerBase, ModelBase
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -36,12 +39,8 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
-from rest_framework import exceptions
-
-from analytics.models import Link
-from clubs.models import Club, ClubFile, ClubScopedModel
-from core.abstracts.models import ManagerBase, ModelBase
 from events.models import Event, EventType
+from rest_framework import exceptions
 from users.models import User
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url

@@ -13,7 +13,6 @@ from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
-
 from utils.helpers import get_full_url
 from utils.permissions import get_perm_label, get_permission
 

@@ -10,6 +10,9 @@ from lib.faker import fake
 from users.models import User
 from utils.testing import create_test_image
 
+from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
+from clubs.services import ClubService
+
 ####################################################
 # URLS
 ####################################################

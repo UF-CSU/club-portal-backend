@@ -2,17 +2,17 @@ import logging
 import re
 from time import sleep
 
+from core.abstracts.serializers import ModelSerializerBase
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
+from utils.logging import print_error
 
-from core.abstracts.serializers import ModelSerializerBase
 from querycsv.forms import CsvHeaderMappingFormSet, CsvUploadForm
 from querycsv.models import QueryCsvUploadJob
 from querycsv.serializers import FlatListField
 from querycsv.services import QueryCsvService
 from querycsv.signals import send_process_csv_job_signal
-from utils.logging import print_error
 
 
 class QueryCsvViewSet:

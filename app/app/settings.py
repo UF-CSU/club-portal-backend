@@ -324,7 +324,7 @@ HEADLESS_SERVE_SPECIFICATION = True
 HEADLESS_ADAPTER = "lib.allauth.CustomHeadlessAdapter"
 ACCOUNT_ADAPTER = "lib.allauth.CustomAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "lib.allauth.CustomSocialAccountAdapter"
-
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
 
 ##########################################
 # == Static Files Config =============== #
@@ -429,17 +429,16 @@ if CELERY_BEAT_ENABLE_HEARTBEAT:
 
 DJANGO_REDIS_URL = os.environ.get("DJANGO_REDIS_URL", None)
 
-if DJANGO_REDIS_URL is not None:
-    # assert (
-    #     DEV is True or DEBUG is True
-    # ), "Django needs a redis server in production mode."
 
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": os.environ.get("DJANGO_REDIS_URL"),
-        }
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": DJANGO_REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
     }
+}
 
 
 ###############################
@@ -452,16 +451,16 @@ if environ_bool("AWS_EXECUTION_ENV", 1):
 if DEV:
     import socket
 
-    # INSTALLED_APPS.append("debug_toolbar")
-    # INSTALLED_APPS.append("django_browser_reload")
+    INSTALLED_APPS.append("debug_toolbar")
+    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
     # Insert near top, adjust pos as needed
-    # MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
-    # DJANGO_ALLOW_ASYNC_UNSAFE = True  # Allows django debug toolbar to work
-    # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
+    MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
     CORS_ORIGIN_ALLOW_ALL = True
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"  # Set allauth to use http instead of https
 
     INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
@@ -484,6 +483,17 @@ if DEV:
             },
         },
     }
+
+    POSTGRES_ECHO = environ_bool("POSTGRES_ECHO", 0)
+
+    if POSTGRES_ECHO:
+        LOGGING["loggers"]["django.db.backends"] = {
+            "handlers": [
+                "console",
+            ],
+            "level": "DEBUG",
+            "propagate": False,
+        }
 
 if DEV and not TESTING:
 
@@ -528,10 +538,3 @@ if TESTING:
 if DEV or TESTING:
     # Allow for migrations during dev mode
     INSTALLED_APPS.append("core.mock")
-
-    # Disable caching
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-        }
-    }

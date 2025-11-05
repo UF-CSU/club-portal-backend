@@ -1,7 +1,7 @@
 from django import forms
+from users.models import User
 
 from clubs.models import Club, Team, TeamMembership
-from users.models import User
 
 
 class TeamMembershipForm(forms.ModelForm):

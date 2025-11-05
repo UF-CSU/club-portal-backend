@@ -1,9 +1,13 @@
-from django.core import exceptions
-from rest_framework import serializers
-
 from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
 from core.abstracts.serializers import ModelSerializerBase
+from django.core import exceptions
+from lib.celery import delay_task
+from polls.models import Poll
+from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from rest_framework import serializers
+from users.models import User
+
 from events.models import (
     Event,
     EventAttendance,
@@ -14,10 +18,6 @@ from events.models import (
     RecurringEvent,
 )
 from events.tasks import sync_recurring_event_task
-from lib.celery import delay_task
-from polls.models import Poll
-from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from users.models import User
 
 
 class EventHostSerializer(ModelSerializerBase):

@@ -1,8 +1,8 @@
 from typing import Optional
 
 from django import dispatch
-
 from lib.celery import delay_task
+
 from querycsv.models import QueryCsvUploadJob
 from querycsv.tasks import process_csv_job_task
 

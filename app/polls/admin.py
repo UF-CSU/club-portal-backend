@@ -2,11 +2,12 @@
 Club Polls Admin.
 """
 
+from core.abstracts.admin import ModelAdminBase, StackedInlineBase
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from utils.formatting import plural_noun_display
 
-from core.abstracts.admin import ModelAdminBase, StackedInlineBase
 from polls.models import (
     ChoiceInput,
     ChoiceInputOption,
@@ -23,7 +24,6 @@ from polls.models import (
     UploadInput,
 )
 from polls.services import PollService
-from utils.formatting import plural_noun_display
 
 
 class PollFieldInlineAdmin(StackedInlineBase):

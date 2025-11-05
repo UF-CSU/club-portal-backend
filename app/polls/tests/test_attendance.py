@@ -1,11 +1,13 @@
 from unittest.mock import patch
 
-from django.utils import timezone
-
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
+from django.utils import timezone
 from events.models import EventAttendance
 from events.tests.utils import create_test_event
+from users.models import User
+from users.tests.utils import create_test_user
+
 from polls.models import (
     Poll,
     PollInputType,
@@ -16,8 +18,6 @@ from polls.models import (
 )
 from polls.tests.test_poll_views import pollsubmission_list_url
 from polls.tests.utils import create_test_pollquestion
-from users.models import User
-from users.tests.utils import create_test_user
 
 
 class AttendancePublicTests(PublicApiTestsBase):

@@ -6,16 +6,6 @@ Club models.
 
 from typing import ClassVar, Optional, Union
 
-from django.contrib.auth.models import Permission
-from django.core import exceptions
-from django.core.validators import MinValueValidator, RegexValidator
-from django.db import models, transaction
-from django.utils import timezone
-from django.utils.functional import cached_property
-from django.utils.text import slugify
-from django.utils.translation import gettext_lazy as _
-from rest_framework.authtoken.models import Token
-
 from core.abstracts.models import (
     ManagerBase,
     ModelBase,
@@ -25,6 +15,15 @@ from core.abstracts.models import (
     UniqueModel,
 )
 from core.models import Major
+from django.contrib.auth.models import Permission
+from django.core import exceptions
+from django.core.validators import MinValueValidator, RegexValidator
+from django.db import models, transaction
+from django.utils import timezone
+from django.utils.functional import cached_property
+from django.utils.text import slugify
+from django.utils.translation import gettext_lazy as _
+from rest_framework.authtoken.models import Token
 from users.models import ApiKeyType, User, UserAgent
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
