@@ -528,10 +528,3 @@ if TESTING:
 if DEV or TESTING:
     # Allow for migrations during dev mode
     INSTALLED_APPS.append("core.mock")
-
-    # Disable caching unless dev cache is enabled
-    ENABLE_DEV_CACHE = environ_bool("DJANGO_ENABLE_DEV_CACHE", 0)
-    if not ENABLE_DEV_CACHE:
-        CACHES["default"] = {
-            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-        }
