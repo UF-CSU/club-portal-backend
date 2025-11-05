@@ -208,6 +208,20 @@ tasks:
     desc: 'Just start the coverage nginx server'
     cmds:
       - docker-compose up coverage -d
+      
+  cache_clear:
+    desc: "Clear django's default cache backend, optionally searching by prefix"
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py cache clear {{.CLI_ARGS}}"
+  
+  cache_keys:
+    desc: "List all keys in django's default cache backend, optionally searching by prefix"
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py cache keys {{.CLI_ARGS}}"
 
   ###################################
   # Sphinx Docs

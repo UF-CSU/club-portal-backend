@@ -10,7 +10,7 @@ services:
       - dev
     restart: unless-stopped
     ports:
-      - '9000:8000'
+      - "9000:8000"
     volumes:
       - ./app:/app
       - ./docs:/docs
@@ -56,11 +56,13 @@ services:
   redis:
     image: redis:alpine
     restart: unless-stopped
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-clubs-dev:/data
     profiles:
       - slim
       - dev
-    # ports:
-    #   - 6379:6379
 
   celery:
     build:
@@ -72,7 +74,7 @@ services:
       - slim
       - dev
     user: django-user
-    command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
+    command: ["celery", "-A", "app", "worker", "--loglevel=info"]
     volumes:
       - ./app:/app
       - static-clubs-dev:/vol/web
@@ -95,13 +97,13 @@ services:
       - dev
     command:
       [
-        'celery',
-        '-A',
-        'app',
-        'beat',
-        '--loglevel=info',
-        '--scheduler',
-        'django_celery_beat.schedulers:DatabaseScheduler'
+        "celery",
+        "-A",
+        "app",
+        "beat",
+        "--loglevel=info",
+        "--scheduler",
+        "django_celery_beat.schedulers:DatabaseScheduler",
       ]
     volumes:
       - ./app:/app
@@ -121,7 +123,7 @@ services:
     profiles:
       - dev
     ports:
-      - '8001:80'
+      - "8082:80"
     volumes:
       - ./docs/_build:/usr/share/nginx/html
 
@@ -132,7 +134,7 @@ services:
     profiles:
       - dev
     ports:
-      - '8002:80'
+      - "8083:80"
     volumes:
       - ./app/htmlcov:/usr/share/nginx/html
 
@@ -163,7 +165,7 @@ services:
       - dev
     attach: false
     ports:
-      - '8888:80'
+      - "8888:80"
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@example.com
       - PGADMIN_DEFAULT_PASSWORD=changeme
@@ -200,12 +202,14 @@ services:
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-'0.0.0.0:80'}
       - S3_STORAGE_BUCKET_NAME=''
       - ENV=DEV
+      - DELAY=0s
 
 volumes:
   postgres-clubs-dev:
   static-clubs-dev:
   mail-clubs-dev:
   pgadmin-clubs-dev:
+  redis-clubs-dev:
 
 configs:
   pgpass:
