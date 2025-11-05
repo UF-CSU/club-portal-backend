@@ -2,13 +2,13 @@
 Tests for the user API.
 """
 
+from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from lib.faker import fake
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
-from lib.faker import fake
 from users.models import EmailVerificationCode
 from users.tests.utils import CHECK_EMAIL_VERIFICATION_URL, SEND_EMAIL_VERIFICATION_URL
 

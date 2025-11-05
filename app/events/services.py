@@ -3,15 +3,15 @@ import io
 from zoneinfo import ZoneInfo
 
 import icalendar
-from django.db import models
-from django.utils import timezone
-
 from app.settings import EVENT_ATTENDANCE_REDIRECT_URL
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
-from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
+from django.db import models
+from django.utils import timezone
 from utils.dates import get_day_count
+
+from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
 
 
 class RecurringEventService(ServiceBase[RecurringEvent]):

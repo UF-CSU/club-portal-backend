@@ -1,11 +1,10 @@
 from typing import ClassVar, Optional
 
+from clubs.models import ClubScopedModel
+from core.abstracts.models import ManagerBase, ModelBase
 from django.db import models
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-
-from clubs.models import ClubScopedModel
-from core.abstracts.models import ManagerBase, ModelBase
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url
 from utils.models import OneToOneOrNoneField, UploadFilepathFactory

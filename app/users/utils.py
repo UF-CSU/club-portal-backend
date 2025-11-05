@@ -1,7 +1,6 @@
+from app.settings import SCHOOL_EMAIL_DOMAIN
 from django.core import exceptions
 from django.core.validators import validate_email
-
-from app.settings import SCHOOL_EMAIL_DOMAIN
 
 
 def is_school_email(email: str):

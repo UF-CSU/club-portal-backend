@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from analytics.views import redirect_link_view
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -22,7 +23,6 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from analytics.views import redirect_link_view
 from app.settings import DEV, S3_STORAGE_BACKEND
 
 apipatterns = [
@@ -59,6 +59,7 @@ urlpatterns = [
 
 if DEV:
     from debug_toolbar.toolbar import debug_toolbar_urls
+
     urlpatterns += debug_toolbar_urls()
     urlpatterns.append(
         path("__reload__/", include("django_browser_reload.urls")),

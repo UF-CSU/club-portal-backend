@@ -6,13 +6,14 @@ import uuid
 from io import BytesIO
 from unittest.mock import patch
 
+from core.mock.models import BusterTag
+from core.mock.serializers import BusterTagNestedSerializer
 from django.contrib.postgres.aggregates import StringAgg
 from django.core.files import File
 from django.db import models
-
-from core.mock.models import BusterTag
-from core.mock.serializers import BusterTagNestedSerializer
 from lib.faker import fake
+from utils.testing import set_mock_return_image
+
 from querycsv.models import CsvUploadStatus, FieldMappingType, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
 from querycsv.tests.utils import (
@@ -20,7 +21,6 @@ from querycsv.tests.utils import (
     CsvDataM2OTestsBase,
     UploadCsvTestsBase,
 )
-from utils.testing import set_mock_return_image
 
 
 class UploadCsvTests(UploadCsvTestsBase):

@@ -1,11 +1,12 @@
-from clubs.defaults import INITIAL_TEAM_ROLES
-from clubs.models import Team, TeamRole
-from clubs.serializers import TeamCsvSerializer
-from clubs.tests.utils import create_test_club, create_test_team
 from lib.faker import fake
 from querycsv.tests.utils import UploadCsvTestsBase
 from users.tests.utils import create_test_user
 from utils.helpers import str_to_list
+
+from clubs.defaults import INITIAL_TEAM_ROLES
+from clubs.models import Team, TeamRole
+from clubs.serializers import TeamCsvSerializer
+from clubs.tests.utils import create_test_club, create_test_team
 
 
 class TeamCsvTests(UploadCsvTestsBase):

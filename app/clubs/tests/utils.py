@@ -2,12 +2,12 @@ import uuid
 from typing import Optional
 
 from django.urls import reverse
-
-from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
-from clubs.services import ClubService
 from lib.faker import fake
 from users.models import User
 from utils.testing import create_test_image
+
+from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
+from clubs.services import ClubService
 
 ####################################################
 # URLS
@@ -73,7 +73,10 @@ def create_test_clubfile(club: Club, **kwargs):
 
 
 def create_test_club(
-    name=None, members: Optional[list[User]] = None, admins: Optional[list[User]] = None, **kwargs
+    name=None,
+    members: Optional[list[User]] = None,
+    admins: Optional[list[User]] = None,
+    **kwargs,
 ) -> Club:
     """Create unique club for unit tests."""
     if name is None:

@@ -12,9 +12,9 @@ from django_celery_beat.models import (
     IntervalSchedule,
     PeriodicTask,
 )
+from utils.helpers import get_import_path, import_from_path
 
 from core.abstracts.models import ModelBase
-from utils.helpers import get_import_path, import_from_path
 
 
 @shared_task

@@ -2,6 +2,8 @@
 Users admin config.
 """
 
+from clubs.models import ClubMembership
+from core.abstracts.admin import ModelAdminBase, StackedInlineBase
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -9,15 +11,13 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.db import models
 from django.http import HttpRequest
 from django.utils.safestring import mark_safe
+from utils.formatting import plural_noun, plural_noun_display
+from utils.permissions import parse_permissions
 
-from clubs.models import ClubMembership
-from core.abstracts.admin import ModelAdminBase, StackedInlineBase
 from users.defaults import DEFAULT_USER_PERMISSIONS
 from users.models import Profile, SocialProfile, User, VerifiedEmail
 from users.serializers import UserCsvSerializer
 from users.services import UserService
-from utils.formatting import plural_noun, plural_noun_display
-from utils.permissions import parse_permissions
 
 
 class UserProfileInline(admin.StackedInline):

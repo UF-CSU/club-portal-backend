@@ -1,10 +1,9 @@
 from typing import Optional
 
+from app.settings import DEFAULT_FROM_EMAIL
 from django.core import mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-
-from app.settings import DEFAULT_FROM_EMAIL
 
 
 def send_html_mail(

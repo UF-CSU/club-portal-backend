@@ -1,5 +1,4 @@
 from asgiref.sync import sync_to_async
-
 from core.abstracts.consumers import ConsumerBase
 
 from .services import PollService

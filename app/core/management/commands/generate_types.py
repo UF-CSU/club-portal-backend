@@ -1,7 +1,7 @@
 from django.core.management import BaseCommand
+from lib.serializer_typegen import TypeGenerator
 
 from core.typegen import SERIALIZERS_CREATE_READ_UPDATE, SERIALIZERS_READONLY
-from lib.serializer_typegen import TypeGenerator
 
 FILE_OUT = "generated/"
 

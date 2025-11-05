@@ -8,6 +8,8 @@ import random
 import string
 from typing import ClassVar, Optional
 
+from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
+from core.abstracts.schedules import schedule_clocked_func
 from django.contrib import auth
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -22,12 +24,10 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
-
-from app import settings
-from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
-from core.abstracts.schedules import schedule_clocked_func
 from lib.countries import CountryField
 from utils.models import UploadFilepathFactory
+
+from app import settings
 
 # class UserType(enum):
 #     """The type of user object."""

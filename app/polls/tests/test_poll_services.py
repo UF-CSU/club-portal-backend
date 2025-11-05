@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
 import pytz
+from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from django.utils import timezone
 
-from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from polls.models import Poll, PollStatusType, PollTemplate
 from polls.services import PollService, PollTemplateService
 from polls.tests.utils import (

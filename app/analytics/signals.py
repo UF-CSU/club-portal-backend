@@ -2,9 +2,9 @@ from typing import Optional
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from lib.qrcodes import create_qrcode_image
 
 from analytics.models import QRCode
-from lib.qrcodes import create_qrcode_image
 
 
 @receiver(post_save, sender=QRCode)

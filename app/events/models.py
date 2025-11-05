@@ -6,16 +6,15 @@ from datetime import date, time
 from typing import ClassVar, Optional
 from zoneinfo import ZoneInfo
 
+from analytics.models import Link
+from clubs.models import Club, ClubFile, ClubScopedModel
+from core.abstracts.models import ManagerBase, ModelBase, Tag
 from django.core import exceptions
 from django.db import models
 from django.utils import timezone
 from django.utils.timezone import datetime
 from django.utils.translation import gettext_lazy as _
 from django_celery_beat.models import PeriodicTask
-
-from analytics.models import Link
-from clubs.models import Club, ClubFile, ClubScopedModel
-from core.abstracts.models import ManagerBase, ModelBase, Tag
 from users.models import User
 from utils.dates import get_day_count
 from utils.formatting import format_timedelta
@@ -81,11 +80,15 @@ class EventFields(ClubScopedModel, ModelBase):
     """Common fields for club event models."""
 
     name = models.CharField(max_length=128)
-    event_type = models.CharField(choices=EventType.choices, default=EventType.OTHER, blank=True)
+    event_type = models.CharField(
+        choices=EventType.choices, default=EventType.OTHER, blank=True
+    )
     description = models.TextField(null=True, blank=True)
     location = models.CharField(null=True, blank=True, max_length=255)
 
-    attachments = models.ManyToManyField(ClubFile, blank=True, related_name="%(class)ss")
+    attachments = models.ManyToManyField(
+        ClubFile, blank=True, related_name="%(class)ss"
+    )
     enable_attendance = models.BooleanField(
         default=False, help_text="Create poll for event and users to attend."
     )
@@ -189,7 +192,9 @@ class RecurringEvent(EventFields):
     # Dynamic properties & methods
     @property
     def expected_event_count(self):
-        return sum([get_day_count(self.start_date, self.end_date, day) for day in self.days])
+        return sum(
+            [get_day_count(self.start_date, self.end_date, day) for day in self.days]
+        )
 
     @property
     def is_all_day(self) -> bool:
@@ -288,7 +293,9 @@ class Event(EventFields):
     # is_poll_submission_required = models.BooleanField(default=True)
 
     # Foreign Relationships
-    clubs = models.ManyToManyField(Club, through="events.EventHost", blank=True, db_index=True)
+    clubs = models.ManyToManyField(
+        Club, through="events.EventHost", blank=True, db_index=True
+    )
     attendance_links: models.QuerySet["EventAttendanceLink"]
     hosts: models.QuerySet["EventHost"]
     attendances: models.QuerySet["EventAttendance"]
@@ -367,7 +374,9 @@ class Event(EventFields):
 
     def clean(self, *args, **kwargs):
         if self.start_at > self.end_at:
-            raise exceptions.ValidationError("Start date cannot be greater than end date")
+            raise exceptions.ValidationError(
+                "Start date cannot be greater than end date"
+            )
 
         # If creating event, ensure no name clashes
         if self.pk is None and Event.objects.filter(
@@ -439,7 +448,9 @@ class EventHost(ClubScopedModel, ModelBase):
     """Attach clubs to events."""
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="hosts")
-    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="event_hostings")
+    club = models.ForeignKey(
+        Club, on_delete=models.CASCADE, related_name="event_hostings"
+    )
     is_primary = models.BooleanField(
         default=False,
         blank=True,
@@ -476,7 +487,9 @@ class EventAttendance(ClubScopedModel, ModelBase):
         # blank=True,
         # null=True,
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="event_attendances")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="event_attendances"
+    )
 
     @property
     def clubs(self):
@@ -531,7 +544,9 @@ class EventAttendanceLink(Link):
 
     # TODO: How to handle permissions with multiple clubs and event hosts?
 
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="attendance_links")
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="attendance_links"
+    )
     reference = models.CharField(
         null=True, blank=True, help_text="Used to differentiate between links"
     )
@@ -565,7 +580,9 @@ class EventAttendanceLink(Link):
 class EventCancellation(ClubScopedModel, ModelBase):
     """Record when an event is canceled."""
 
-    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name="cancellation")
+    event = models.OneToOneField(
+        Event, on_delete=models.CASCADE, related_name="cancellation"
+    )
     reason = models.TextField(blank=True)
     cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     cancelled_at = models.DateTimeField(auto_now_add=True)

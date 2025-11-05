@@ -1,9 +1,13 @@
-from django.core import exceptions
-from rest_framework import serializers
-
 from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
 from core.abstracts.serializers import ModelSerializerBase
+from django.core import exceptions
+from lib.celery import delay_task
+from polls.models import Poll
+from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from rest_framework import serializers
+from users.models import User
+
 from events.models import (
     Event,
     EventAttendance,
@@ -14,18 +18,18 @@ from events.models import (
     RecurringEvent,
 )
 from events.tasks import sync_recurring_event_task
-from lib.celery import delay_task
-from polls.models import Poll
-from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from users.models import User
 
 
 class EventHostSerializer(ModelSerializerBase):
     """JSON representation for hosts inside events."""
 
     # TODO: Rename to "club" or change to serializers.IntegerField
-    club_id = serializers.PrimaryKeyRelatedField(source="club", queryset=Club.objects.all())
-    club_name = serializers.SlugRelatedField(source="club", read_only=True, slug_field="name")
+    club_id = serializers.PrimaryKeyRelatedField(
+        source="club", queryset=Club.objects.all()
+    )
+    club_name = serializers.SlugRelatedField(
+        source="club", read_only=True, slug_field="name"
+    )
     club_logo = serializers.ImageField(
         source="club.logo", read_only=True, required=False, allow_null=True
     )
@@ -89,10 +93,14 @@ class EventSerializer(ModelSerializerBase):
         hosts = attrs.get("hosts", None)
 
         if not self.instance:
-            primary_hosts = [host for host in hosts if host.get("is_primary", False) is True]
+            primary_hosts = [
+                host for host in hosts if host.get("is_primary", False) is True
+            ]
 
             if len(primary_hosts) == 0 and len(hosts) > 0:
-                raise exceptions.ValidationError("Event with hosts must have a primary host.")
+                raise exceptions.ValidationError(
+                    "Event with hosts must have a primary host."
+                )
 
         return super().validate(attrs)
 
@@ -215,9 +223,15 @@ class EventCsvSerializer(CsvModelSerializer):
 
 class EventAttendanceCsvSerializer(CsvModelSerializer):
     event = None
-    name = serializers.CharField(write_only=True, max_length=128, help_text="Name of event")
-    start_at = serializers.DateTimeField(write_only=True, help_text="Start datetime of event")
-    end_at = serializers.DateTimeField(write_only=True, help_text="End datetime of event")
+    name = serializers.CharField(
+        write_only=True, max_length=128, help_text="Name of event"
+    )
+    start_at = serializers.DateTimeField(
+        write_only=True, help_text="Start datetime of event"
+    )
+    end_at = serializers.DateTimeField(
+        write_only=True, help_text="End datetime of event"
+    )
 
     user = WritableSlugRelatedField(
         slug_field="email",

@@ -2,12 +2,12 @@
 Views for the links API.
 """
 
+from core.abstracts.viewsets import ModelViewSetBase
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from analytics.models import Link, QRCode
 from analytics.serializers import LinkSerializer, QrSerializer
-from core.abstracts.viewsets import ModelViewSetBase
 
 
 class LinkViewSet(ModelViewSetBase):

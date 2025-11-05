@@ -1,8 +1,8 @@
+from core.abstracts.services import ServiceBase
 from django.http import HttpRequest
+from utils.helpers import get_client_ip
 
 from analytics.models import Link, LinkVisit
-from core.abstracts.services import ServiceBase
-from utils.helpers import get_client_ip
 
 
 class LinkSvc(ServiceBase[Link]):

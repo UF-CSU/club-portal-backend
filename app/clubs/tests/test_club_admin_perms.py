@@ -1,5 +1,16 @@
 import pytz
+from core.abstracts.tests import PrivateApiTestsBase
 from django.utils import timezone
+from events.models import Event, RecurringEvent
+from events.tests.utils import (
+    EVENT_LIST_URL,
+    RECURRINGEVENT_LIST_URL,
+    create_test_event,
+    event_detail_url,
+)
+from lib.faker import fake
+from users.tests.utils import create_test_user
+from utils.testing import create_test_uploadable_image
 
 from clubs.models import ClubFile, ClubMembership, RoleType
 from clubs.services import ClubService
@@ -12,17 +23,6 @@ from clubs.tests.utils import (
     create_test_club,
     create_test_clubfile,
 )
-from core.abstracts.tests import PrivateApiTestsBase
-from events.models import Event, RecurringEvent
-from events.tests.utils import (
-    EVENT_LIST_URL,
-    RECURRINGEVENT_LIST_URL,
-    create_test_event,
-    event_detail_url,
-)
-from lib.faker import fake
-from users.tests.utils import create_test_user
-from utils.testing import create_test_uploadable_image
 
 
 class ApiClubAdminTests(PrivateApiTestsBase):

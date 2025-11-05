@@ -1,9 +1,10 @@
-from django.urls import reverse
-from rest_framework.authtoken.models import Token
-
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
+from django.urls import reverse
 from lib.faker import fake
+from rest_framework.authtoken.models import Token
+from utils.helpers import reverse_query
+
 from polls.models import (
     ChoiceInput,
     ChoiceInputOption,
@@ -19,7 +20,6 @@ from polls.models import (
     UploadInput,
 )
 from polls.tests.utils import create_test_poll
-from utils.helpers import reverse_query
 
 POLLS_URL = reverse("api-polls:poll-list")
 

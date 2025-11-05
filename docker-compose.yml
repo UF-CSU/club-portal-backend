@@ -12,7 +12,7 @@ services:
     ports:
       - "9000:8000"
     volumes:
-      - ./app:/app
+      - ./app:/app/app
       - ./docs:/docs
       - static-clubs-dev:/vol/web
     command: >
@@ -76,12 +76,15 @@ services:
     user: django-user
     command: ["celery", "-A", "app", "worker", "--loglevel=info"]
     volumes:
-      - ./app:/app
+      - ./app:/app/app
       - static-clubs-dev:/vol/web
     depends_on:
-      - redis
-      - postgres
-      - app
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_started
+      app:
+        condition: service_healthy
     env_file:
       - .env
 
@@ -106,13 +109,17 @@ services:
         "django_celery_beat.schedulers:DatabaseScheduler",
       ]
     volumes:
-      - ./app:/app
+      - ./app:/app/app
       - static-clubs-dev:/vol/web
     depends_on:
-      - redis
-      - postgres
-      - celery
-      - app
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_started
+      app:
+        condition: service_healthy
+      celery:
+        condition: service_started
     env_file:
       - .env
 

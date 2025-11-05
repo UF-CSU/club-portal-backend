@@ -11,12 +11,11 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import Literal, Optional
 from uuid import UUID
 
+from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 from django.db import models
 from django.utils.functional import cached_property
 from pandas import show_versions
 from rest_framework import serializers
-
-from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 
 ReadSerializerType = type[SerializerBase]
 CreateSerializerType = type[SerializerBase]

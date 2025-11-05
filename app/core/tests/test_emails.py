@@ -1,7 +1,7 @@
 from django.core import mail
+from lib.faker import fake
 
 from core.abstracts.tests import TestsBase
-from lib.faker import fake
 
 
 class CoreEmailsTests(TestsBase):

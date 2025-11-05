@@ -1,8 +1,12 @@
+from core.abstracts.admin import ModelAdminBase, StackedInlineBase, TabularInlineBase
 from django import forms
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from lib.celery import delay_task
+from polls.models import Poll
+from utils.admin import other_info_fields
+from utils.formatting import plural_noun_display
 
-from core.abstracts.admin import ModelAdminBase, StackedInlineBase, TabularInlineBase
 from events.models import (
     Event,
     EventAttendance,
@@ -13,10 +17,6 @@ from events.models import (
 )
 from events.serializers import EventAttendanceCsvSerializer, EventCsvSerializer
 from events.tasks import sync_event_attendance_links_task, sync_recurring_event_task
-from lib.celery import delay_task
-from polls.models import Poll
-from utils.admin import other_info_fields
-from utils.formatting import plural_noun_display
 
 
 class RecurringEventAdmin(admin.ModelAdmin):

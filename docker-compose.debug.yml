@@ -15,7 +15,7 @@ services:
       - 8000:8000
       - 5678:5678
     volumes:
-      - ./app:/app
+      - ./app:/app/app
       - static-clubs-dev:/vol/web
     env_file:
       - .env
@@ -36,7 +36,7 @@ services:
     user: django-user
     command: ['celery', '-A', 'app', 'worker', '--loglevel=info']
     volumes:
-      - ./app:/app
+      - ./app:/app/app
       - static-clubs-dev:/vol/web
     depends_on:
       - redis
@@ -63,7 +63,7 @@ services:
         'django_celery_beat.schedulers:DatabaseScheduler'
       ]
     volumes:
-      - ./app:/app
+      - ./app:/app/app
       - static-clubs-dev:/vol/web
     depends_on:
       - redis
@@ -74,7 +74,7 @@ services:
       - .env
 
   postgres:
-    image: postgres:13-alpine
+    image: postgres:15-alpine
     volumes:
       - postgres-clubs-dev:/var/lib/postgresql/data
     environment:
