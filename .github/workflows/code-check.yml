@@ -22,11 +22,11 @@ jobs:
           python-version: "3.13"
       
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v6
 
       - name: Setup Ruff
         run: |
-          uv sync --group dev
+          uv sync --group dev --locked --no-editable
           source ./.venv/source/activate
 
       - name: Check lint rules
@@ -48,11 +48,11 @@ jobs:
           python-version: "3.13"
           
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh/setup-uv@v6
 
       - name: Setup Ruff
         run: |
-          uv sync --group dev
+          uv sync --group dev --locked --no-editable
           source ./.venv/source/activate
 
       - name: Check Formatting
