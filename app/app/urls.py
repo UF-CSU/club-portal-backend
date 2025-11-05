@@ -60,9 +60,9 @@ urlpatterns = [
 if DEV:
     from debug_toolbar.toolbar import debug_toolbar_urls
     urlpatterns += debug_toolbar_urls()
-    # urlpatterns.append(
-    #     path("__reload__/", include("django_browser_reload.urls")),
-    # )
+    urlpatterns.append(
+        path("__reload__/", include("django_browser_reload.urls")),
+    )
 
 
 if not S3_STORAGE_BACKEND:
