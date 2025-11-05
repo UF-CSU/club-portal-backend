@@ -158,6 +158,18 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py shell"
 
+  shell:redis:
+    desc: 'Open a new shell using redis-cli'
+    cmds:
+      - docker-compose run --rm redis sh -c "redis-cli -h redis -p 6379"
+
+  shell:db:
+    desc: "Open a new database shell using django's dbshell"
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py dbshell"
+
   loaddata:
     desc: 'Load all available fixtures/mock data into database'
     deps:
@@ -208,14 +220,14 @@ tasks:
     desc: 'Just start the coverage nginx server'
     cmds:
       - docker-compose up coverage -d
-      
+
   cache_clear:
     desc: "Clear django's default cache backend, optionally searching by prefix"
     deps:
       - build
     cmds:
       - docker-compose run --rm app sh -c "python manage.py cache clear {{.CLI_ARGS}}"
-  
+
   cache_keys:
     desc: "List all keys in django's default cache backend, optionally searching by prefix"
     deps:

@@ -215,6 +215,8 @@ If you have Taskfile installed, you can use the following:
 | `task format`                      | Check but don't apply formatting rules                           |
 | `task format:fix`                  | Format codebase using Black                                      |
 | `task shell`                       | Start a new Django interactive shell                             |
+| `task shell:redis`                 | Starts a new interactive redis shell using redis-cli             |
+| `task shell:db`                    | Starts a new interactive postgres shell using Django's dbshell   |
 | `task show_urls`                   | Show all available urls for the server, and their reverse labels |
 | `task loaddata`                    | Load all available fixtures/mock data into database              |
 | `task generate_types`              | Create TypeScript interfaces for serializers                     |
