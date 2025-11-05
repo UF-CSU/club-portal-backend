@@ -4,7 +4,7 @@ Unit tests focused around REST APIs for the Clubs Service.
 
 from rest_framework.test import APIClient
 
-from clubs.models import ClubApiKey, ClubFile, ClubRole
+from clubs.models import ClubApiKey, ClubFile, ClubRole, RoleType
 from clubs.services import ClubService
 from clubs.tests.utils import (
     CLUBS_JOIN_URL,
@@ -421,3 +421,61 @@ class ClubsApiPermsTests(PublicApiTestsBase):
         # Accepted, has permission
         res = self.client.get(url)
         self.assertResOk(res)
+
+    def test_is_admin_none(self):
+        """Tests club response if is_admin is None"""
+
+        MY_CLUB_COUNT = 3
+
+
+        #clubs = create_test_clubs(CLUBS_COUNT)
+
+        ClubService(self.clubs[0]).add_member(self.user, roles=["President"])
+        ClubService(self.clubs[1]).add_member(self.user, roles=["Member"])
+        ClubService(self.clubs[2]).add_member(self.user, roles=["Member"])
+
+        url = club_list_url_member()
+
+        res = self.client.get(url)
+
+        self.assertResOk(res)
+        data = res.json()
+
+        self.assertEqual(len(data), MY_CLUB_COUNT)
+
+
+    def test_is_admin_true(self):
+        """Tests club response if is_admin is True"""
+
+        MY_CLUB_COUNT = 3
+
+        ClubService(self.clubs[0]).add_member(self.user, roles=["President"])
+        ClubService(self.clubs[1]).add_member(self.user, roles=["Member"])
+        ClubService(self.clubs[2]).add_member(self.user, roles=["Member"])
+
+        url = club_list_url_member(is_admin=True)
+
+        res = self.client.get(url)
+
+        self.assertResOk(res)
+        data = res.json()
+
+        self.assertEqual(len(data), MY_CLUB_COUNT)
+
+    def test_is_admin_false(self):
+        """Tests club response if is_admin is False"""
+
+        MY_CLUB_COUNT = 3
+
+        ClubService(self.clubs[0]).add_member(self.user, roles=["President"])
+        ClubService(self.clubs[1]).add_member(self.user, roles=["Member"])
+        ClubService(self.clubs[2]).add_member(self.user, roles=["Member"])
+
+        url = club_list_url_member(is_admin=False)
+
+        res = self.client.get(url)
+
+        self.assertResOk(res)
+        data = res.json()
+
+        self.assertEqual(len(data), MY_CLUB_COUNT)
