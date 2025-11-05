@@ -2,6 +2,7 @@
 HTML views.
 """
 
+from clubs.models import ClubMembership
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import SetPasswordForm
@@ -9,7 +10,6 @@ from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from rest_framework.authtoken.models import Token
 
-from clubs.models import ClubMembership
 from users.services import UserService
 
 

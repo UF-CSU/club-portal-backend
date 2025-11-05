@@ -1,11 +1,11 @@
-from django.utils import timezone
-
 from clubs.models import Club
 from clubs.tests.utils import create_test_clubs
-from events.models import Event, EventTag
-from events.serializers import EventCsvSerializer
+from django.utils import timezone
 from lib.faker import fake
 from querycsv.tests.utils import UploadCsvTestsBase
+
+from events.models import Event, EventTag
+from events.serializers import EventCsvSerializer
 
 
 class EventCsvTests(UploadCsvTestsBase):

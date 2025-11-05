@@ -1,6 +1,5 @@
-from django import forms
-
 from clubs.models import Club
+from django import forms
 from events.models import Event
 
 

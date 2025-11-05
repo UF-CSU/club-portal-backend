@@ -1,11 +1,11 @@
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives
 from django.utils.safestring import mark_safe
+from utils.helpers import import_from_path
+from utils.logging import print_error
 
 from querycsv.models import CsvUploadStatus, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
-from utils.helpers import import_from_path
-from utils.logging import print_error
 
 
 @shared_task

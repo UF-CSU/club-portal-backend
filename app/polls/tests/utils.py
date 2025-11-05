@@ -2,6 +2,8 @@ import random
 
 from clubs.tests.utils import create_test_club
 from lib.faker import fake
+from users.tests.utils import create_test_user
+
 from polls.models import (
     Poll,
     PollField,
@@ -11,7 +13,6 @@ from polls.models import (
     PollQuestionAnswer,
     PollSubmission,
 )
-from users.tests.utils import create_test_user
 
 
 def create_test_poll(**kwargs):

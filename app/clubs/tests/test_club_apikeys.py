@@ -1,12 +1,13 @@
-from clubs.models import ClubApiKey, Team, TeamMembership
-from clubs.services import ClubService
-from clubs.tests.utils import club_detail_url, club_roster_url, create_test_club
 from core.abstracts.tests import PrivateApiTestsBase
 from lib.faker import fake
 from querycsv.tests.utils import UploadCsvTestsBase
 from users.models import User
 from users.serializers import UserCsvSerializer
 from users.tests.utils import create_test_user
+
+from clubs.models import ClubApiKey, Team, TeamMembership
+from clubs.services import ClubService
+from clubs.tests.utils import club_detail_url, club_roster_url, create_test_club
 
 
 class ClubKeyApiTests(PrivateApiTestsBase):

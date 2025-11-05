@@ -13,9 +13,9 @@ from requests import Response
 from rest_framework import serializers, status
 from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
+from users.tests.utils import create_test_adminuser
 
 from core.abstracts.schedules import run_func
-from users.tests.utils import create_test_adminuser
 
 
 class TestsBase(TestCase):

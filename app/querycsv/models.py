@@ -5,22 +5,22 @@ CSV data logging models.
 import logging
 from typing import ClassVar, Optional, TypedDict
 
+from core.abstracts.models import ManagerBase, ModelBase
 from django.core.files import File
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
-
-from core.abstracts.models import ManagerBase, ModelBase
 from lib.spreadsheets import SPREADSHEET_EXTS, read_spreadsheet
-from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
-from querycsv.serializers import CsvModelSerializer
+from rest_framework import serializers
 from utils.formatting import format_timedelta
 from utils.helpers import get_import_path, import_from_path
 from utils.logging import print_error
 from utils.models import UploadFilepathFactory, ValidateImportString
+
+from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
+from querycsv.serializers import CsvModelSerializer
 
 
 class CsvUploadStatus(models.TextChoices):

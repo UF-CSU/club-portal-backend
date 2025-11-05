@@ -1,7 +1,8 @@
-from analytics.models import Link, QRCode
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import ViewTestsBase
 from lib.faker import fake
+
+from analytics.models import Link, QRCode
 
 
 def create_test_link(club=None, **kwargs):

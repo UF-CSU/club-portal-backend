@@ -1,12 +1,12 @@
-from django.utils import timezone
-
 from analytics.models import Link
 from app.settings import EVENT_ATTENDANCE_REDIRECT_URL
 from clubs.tests.utils import create_test_club, create_test_clubs
 from core.abstracts.tests import TestsBase
+from django.utils import timezone
+from polls.tests.utils import create_test_poll
+
 from events.models import Event
 from events.serializers import EventSerializer
-from polls.tests.utils import create_test_poll
 
 
 class ClubEventTests(TestsBase):

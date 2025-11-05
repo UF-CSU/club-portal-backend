@@ -1,10 +1,10 @@
+from core.abstracts.admin import ModelAdminBase
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+from utils.admin import other_info_fields
 
 from analytics.models import Link, LinkVisit, QRCode
-from core.abstracts.admin import ModelAdminBase
-from utils.admin import other_info_fields
 
 
 class QRCodeAdmin(ModelAdminBase):

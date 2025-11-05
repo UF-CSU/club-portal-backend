@@ -5,12 +5,14 @@ Views for the user API.
 from allauth.headless.base.views import APIView
 from allauth.headless.socialaccount.forms import RedirectToProviderForm
 from allauth.socialaccount.models import SocialAccount
+from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.core import exceptions
 from django.core.exceptions import BadRequest
 from django.http import HttpRequest
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from drf_spectacular.utils import extend_schema
+from lib.allauth import OauthProviderType
 from rest_framework import authentication, generics, mixins, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -18,9 +20,8 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
+from utils.urls import prepare_url
 
-from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
-from lib.allauth import OauthProviderType
 from users.models import Ticket, User
 from users.serializers import (
     CheckEmailVerificationRequestSerializer,
@@ -31,7 +32,6 @@ from users.serializers import (
     UserSerializer,
 )
 from users.services import UserService
-from utils.urls import prepare_url
 
 
 class UserViewSet(mixins.RetrieveModelMixin, ViewSetBase):
@@ -68,7 +68,9 @@ class AuthTokenView(
 
     def retrieve(self, request, *args, **kwargs):
         if request.user.is_anonymous:
-            raise AuthenticationFailed("Unable to retrieve token for unauthenticated user.")
+            raise AuthenticationFailed(
+                "Unable to retrieve token for unauthenticated user."
+            )
 
         token, _ = Token.objects.get_or_create(user=request.user)
         return Response({"token": token.key})
@@ -88,7 +90,9 @@ class TicketView(generics.RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         if request.user.is_anonymous:
-            raise AuthenticationFailed("Unable to retrieve ticket for unauthenticated user.")
+            raise AuthenticationFailed(
+                "Unable to retrieve ticket for unauthenticated user."
+            )
 
         ticket, _ = Ticket.objects.get_or_create(user=request.user)
         serializer = self.get_serializer(ticket)
@@ -119,7 +123,9 @@ class OauthDirectoryView(generics.RetrieveAPIView):
 
     def get_object(self):
         """List available oauth providers, all will have the same url."""
-        return {"google": reverse_lazy("headless:app:socialaccount:redirect_to_provider")}
+        return {
+            "google": reverse_lazy("headless:app:socialaccount:redirect_to_provider")
+        }
 
 
 class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
@@ -192,7 +198,11 @@ class RedirectToProviderView(APIView):
             raise exceptions.BadRequest(form.errors.as_json())
 
         provider: OauthProviderType = form.cleaned_data["provider"]
-        next_url = reverse("api-users:oauth_return") + "?next=" + form.cleaned_data["callback_url"]
+        next_url = (
+            reverse("api-users:oauth_return")
+            + "?next="
+            + form.cleaned_data["callback_url"]
+        )
         process = form.cleaned_data["process"]
         return provider.redirect(
             request,

@@ -1,3 +1,4 @@
+from app.settings import LOGIN_URL
 from django.contrib.auth.views import (
     LoginView,
     LogoutView,
@@ -9,8 +10,6 @@ from django.contrib.auth.views import (
     PasswordResetView,
 )
 from django.urls import reverse_lazy
-
-from app.settings import LOGIN_URL
 
 
 class AuthLoginView(LoginView):

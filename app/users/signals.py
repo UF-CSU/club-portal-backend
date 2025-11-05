@@ -1,11 +1,11 @@
+from app.settings import SCHOOL_EMAIL_DOMAIN
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-from app.settings import SCHOOL_EMAIL_DOMAIN
-from users.defaults import DEFAULT_USER_PERMISSIONS
-from users.models import Profile, User
 from utils.images import create_default_icon
 from utils.permissions import parse_permissions
+
+from users.defaults import DEFAULT_USER_PERMISSIONS
+from users.models import Profile, User
 
 # @receiver(pre_save, sender=User)
 # def pre_save_user(sender, instance: User, created=False, **kwargs):

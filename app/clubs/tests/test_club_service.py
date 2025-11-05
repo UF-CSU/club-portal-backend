@@ -2,14 +2,14 @@
 Unit tests for Club business logic.
 """
 
+from core.abstracts.tests import EmailTestsBase, TestsBase
 from django.core import exceptions
+from lib.faker import fake
+from users.tests.utils import create_test_user
 
 from clubs.models import Club
 from clubs.services import ClubService
 from clubs.tests.utils import create_test_club, join_club_url
-from core.abstracts.tests import EmailTestsBase, TestsBase
-from lib.faker import fake
-from users.tests.utils import create_test_user
 
 
 class ClubServiceLogicTests(TestsBase):

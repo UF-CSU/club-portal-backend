@@ -2,11 +2,10 @@ import re
 from typing import Optional
 from urllib.parse import urljoin
 
+from app.settings import BASE_URL, CLIENT_URL
 from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.module_loading import import_string
-
-from app.settings import BASE_URL, CLIENT_URL
 
 
 def reverse_query(viewname, query: Optional[dict] = None, **kwargs):

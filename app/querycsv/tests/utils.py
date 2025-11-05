@@ -8,19 +8,19 @@ from io import BytesIO, StringIO
 from typing import Optional
 
 import pandas as pd
-from django.core.files import File
-from django.core.files.storage import default_storage
-from django.db import models
-
 from core.abstracts.tests import TestsBase
 from core.mock.models import Buster, BusterTag
 from core.mock.serializers import BusterCsvSerializer
+from django.core.files import File
+from django.core.files.storage import default_storage
+from django.db import models
 from lib.faker import fake
 from lib.spreadsheets import read_spreadsheet
-from querycsv.models import CsvUploadStatus, FieldMappingType, QueryCsvUploadJob
-from querycsv.services import QueryCsvService
 from utils.files import get_unique_filename
 from utils.helpers import clean_list
+
+from querycsv.models import CsvUploadStatus, FieldMappingType, QueryCsvUploadJob
+from querycsv.services import QueryCsvService
 
 
 class CsvDataTestsBase(TestsBase):

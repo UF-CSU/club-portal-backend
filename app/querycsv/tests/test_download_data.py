@@ -3,12 +3,13 @@ CSV Download Tests
 """
 
 from lib.faker import fake
+from utils.helpers import clean_list, str_to_list
+
 from querycsv.tests.utils import (
     CsvDataM2MTestsBase,
     CsvDataM2OTestsBase,
     DownloadCsvTestsBase,
 )
-from utils.helpers import clean_list, str_to_list
 
 
 class DownloadDataTests(DownloadCsvTestsBase):

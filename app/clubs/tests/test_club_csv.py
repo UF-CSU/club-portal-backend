@@ -1,11 +1,11 @@
 from django.utils import timezone
+from lib.faker import fake
+from querycsv.tests.utils import UploadCsvTestsBase
+from users.models import User
 
 from clubs.models import Club, ClubFile, ClubMembership, ClubRole, ClubSocialProfile
 from clubs.serializers import ClubCsvSerializer, ClubMembershipCsvSerializer
 from clubs.tests.utils import create_test_club
-from lib.faker import fake
-from querycsv.tests.utils import UploadCsvTestsBase
-from users.models import User
 
 
 class ClubCsvUploadTests(UploadCsvTestsBase):

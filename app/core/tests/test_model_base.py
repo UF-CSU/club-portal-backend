@@ -2,9 +2,10 @@
 Unit tests for core base models.
 """
 
+from lib.faker import fake
+
 from core.abstracts.tests import TestsBase
 from core.mock.models import Buster
-from lib.faker import fake
 
 
 class BaseModelTests(TestsBase):

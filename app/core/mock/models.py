@@ -1,9 +1,9 @@
 import uuid
 
 from django.db import models
+from utils.models import UploadFilepathFactory
 
 from core.abstracts.models import ModelBase
-from utils.models import UploadFilepathFactory
 
 
 class BusterTag(ModelBase):

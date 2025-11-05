@@ -1,9 +1,10 @@
 from datetime import timedelta
 
-from django.utils import timezone
-
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
+from django.utils import timezone
+from users.tests.utils import create_test_user
+
 from events.models import Event
 from events.tests.utils import (
     EVENT_LIST_URL,
@@ -12,7 +13,6 @@ from events.tests.utils import (
     event_detail_url,
     event_list_url,
 )
-from users.tests.utils import create_test_user
 
 
 class EventPublicApiTests(PublicApiTestsBase):
@@ -304,7 +304,9 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_event(
             host=club,
             start_at=today_event_time + mod_shift - timedelta(days=1),
-            end_at=(today_event_time + mod_shift) + timedelta(hours=1) - timedelta(days=1),
+            end_at=(today_event_time + mod_shift)
+            + timedelta(hours=1)
+            - timedelta(days=1),
         )
         # 2 events are one day between range (3 valid)
         create_test_event(
@@ -402,7 +404,9 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         create_test_event(
             host=club,
             start_at=today_event_time + mod_shift - timedelta(days=1),
-            end_at=(today_event_time + mod_shift) + timedelta(hours=1) - timedelta(days=1),
+            end_at=(today_event_time + mod_shift)
+            + timedelta(hours=1)
+            - timedelta(days=1),
         )
         # 2 events are one day between range (3 valid)
         create_test_event(

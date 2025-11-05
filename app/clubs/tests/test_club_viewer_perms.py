@@ -1,13 +1,13 @@
 import pytz
-from django.utils import timezone
-
-from clubs.services import ClubService
-from clubs.tests.utils import club_detail_url, create_test_club
 from core.abstracts.tests import PrivateApiTestsBase
+from django.utils import timezone
 from events.models import Event
 from events.tests.utils import EVENT_LIST_URL, create_test_event, event_detail_url
 from lib.faker import fake
 from users.tests.utils import create_test_user
+
+from clubs.services import ClubService
+from clubs.tests.utils import club_detail_url, create_test_club
 
 
 class ApiClubViewerTests(PrivateApiTestsBase):

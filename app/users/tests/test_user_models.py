@@ -1,6 +1,6 @@
+from core.abstracts.tests import TestsBase
 from django.core import exceptions
 
-from core.abstracts.tests import TestsBase
 from users.models import VerifiedEmail
 from users.tests.utils import create_test_user
 

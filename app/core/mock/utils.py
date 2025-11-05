@@ -1,5 +1,6 @@
-from core.mock.models import Buster, BusterTag
 from lib.faker import fake
+
+from core.mock.models import Buster, BusterTag
 
 
 def create_test_buster(**kwargs):

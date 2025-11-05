@@ -1,5 +1,15 @@
+from core.abstracts.serializers import (
+    ImageUrlField,
+    ModelSerializerBase,
+    PermissionRelatedField,
+    SerializerBase,
+)
+from core.models import Major
+from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from rest_framework import serializers
 from rest_framework.fields import empty
+from users.models import SocialProfile, User
+from users.services import UserService
 
 from clubs.models import (
     Club,
@@ -15,16 +25,6 @@ from clubs.models import (
     TeamRole,
 )
 from clubs.services import ClubService
-from core.abstracts.serializers import (
-    ImageUrlField,
-    ModelSerializerBase,
-    PermissionRelatedField,
-    SerializerBase,
-)
-from core.models import Major
-from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from users.models import SocialProfile, User
-from users.services import UserService
 
 
 class ClubMemberNestedSerializer(ModelSerializerBase):
