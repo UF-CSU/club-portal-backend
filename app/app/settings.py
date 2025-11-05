@@ -451,12 +451,12 @@ if environ_bool("AWS_EXECUTION_ENV", 1):
 if DEV:
     import socket
 
-    # INSTALLED_APPS.append("debug_toolbar")
+    INSTALLED_APPS.append("debug_toolbar")
     # INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
     # Insert near top, adjust pos as needed
-    # MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     # DJANGO_ALLOW_ASYNC_UNSAFE = True  # Allows django debug toolbar to work
     # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
