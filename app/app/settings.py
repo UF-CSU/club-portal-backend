@@ -451,14 +451,13 @@ if environ_bool("AWS_EXECUTION_ENV", 1):
 if DEV:
     import socket
 
-    # INSTALLED_APPS.append("debug_toolbar")
-    # INSTALLED_APPS.append("django_browser_reload")
+    INSTALLED_APPS.append("debug_toolbar")
+    INSTALLED_APPS.append("django_browser_reload")
     INSTALLED_APPS.append("django_extensions")
 
     # Insert near top, adjust pos as needed
-    # MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
-    # DJANGO_ALLOW_ASYNC_UNSAFE = True  # Allows django debug toolbar to work
-    # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
+    MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
     CORS_ORIGIN_ALLOW_ALL = True
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"  # Set allauth to use http instead of https
@@ -484,6 +483,17 @@ if DEV:
             },
         },
     }
+
+    POSTGRES_ECHO = environ_bool("POSTGRES_ECHO", 0)
+
+    if POSTGRES_ECHO:
+        LOGGING["loggers"]["django.db.backends"] = {
+            "handlers": [
+                "console",
+            ],
+            "level": "DEBUG",
+            "propagate": False,
+        }
 
 if DEV and not TESTING:
 
