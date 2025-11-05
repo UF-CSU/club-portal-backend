@@ -8,7 +8,6 @@
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Quick Start](#quick-start)
-  - [Dev Setup](#dev-setup)
   - [Running the Server](#running-the-server)
 - [Admin Dashboard](#admin-dashboard)
 - [Usage](#usage)
@@ -26,6 +25,7 @@
 - Docker, Docker Compose: <https://docs.docker.com/desktop/>
 - Python: <https://www.python.org/downloads/>
 - VSCode: <https://code.visualstudio.com/download>
+- UV: <https://docs.astral.sh/uv/getting-started/installation/>
 
 Optional:
 
@@ -41,22 +41,15 @@ If you have docker installed, run these commands:
 git clone https://github.com/UF-CSU/club-portal-backend.git
 cd ./club-portal-backend
 
-# Setup and start the server
+# Copy env variables
 cp sample.env .env
+
+# Sync packages for local dev
+uv sync --no-group prod
+
+# Start docker compose
 docker-compose --profile dev up --build
 ```
-
-### Dev Setup
-
-To setup your vscode environment, you will need to create a python virtual environment and install the packages found in `requirements.txt` and `requirements.dev.txt`.
-
-This command will create a new python environment with venv and install the necessary packages:
-
-```sh
-task setup
-```
-
-_This command is still being ironed out, and may not work for certain environments_
 
 ### Running the Server
 
