@@ -27,11 +27,10 @@ jobs:
       - name: Setup Ruff
         run: |
           uv sync --group dev --locked --no-editable
-          source ./.venv/source/activate
 
       - name: Check lint rules
         run: |
-          ruff check --fix
+          uv run ruff check
 
   black-formatting:
     runs-on: ubuntu-latest
@@ -53,11 +52,10 @@ jobs:
       - name: Setup Ruff
         run: |
           uv sync --group dev --locked --no-editable
-          source ./.venv/source/activate
 
       - name: Check Formatting
         run: |
-          ruff check
+          uv run ruff format --check
 
   migrations-check:
     runs-on: ubuntu-latest
