@@ -484,6 +484,17 @@ if DEV:
         },
     }
 
+    POSTGRES_ECHO = environ_bool("POSTGRES_ECHO", 0)
+
+    if POSTGRES_ECHO:
+        LOGGING["loggers"]["django.db.backends"] = {
+            "handlers": [
+                "console",
+            ],
+            "level": "DEBUG",
+            "propagate": False,
+        }
+
 if DEV and not TESTING:
 
     # Ref: https://stackoverflow.com/a/64726422/10914922
