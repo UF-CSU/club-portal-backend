@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Literal
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
@@ -18,8 +19,16 @@ from users.tests.utils import (
 )
 
 
-class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
-    """Unit tests for oauth using unauthenticated users."""
+def patch_oauth_external_requests[T: Callable](func: T) -> T:
+    """
+    Provide necessary patches for oauth functionality.
+
+    Example:
+    ```
+    def test_oauth(self, mock_get_access_token: Mock, mock_session_get: Mock, **kwargs):
+        pass
+    ```
+    """
 
     @patch.object(requests.Session, "get")
     @patch.object(
@@ -27,17 +36,27 @@ class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
         "get_access_token_data",
         return_value={"access_token": "testaccesstoken"},
     )
-    def assertDoOauthFlow(
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
+    """Unit tests for oauth using unauthenticated users."""
+
+    @patch_oauth_external_requests
+    def make_oauth_request(
         self,
-        mock_get_access_token=None,
-        mock_session_get=None,
+        mock_get_access_token: Mock = None,
+        mock_session_get: Mock = None,
         return_email="john.doe@example.com",
         return_first_name="John",
         return_last_name="Doe",
         process: Literal["login", "connect"] = "login",
         **kwargs,
     ):
-        """Do the oauth flow for a user, and return final token."""
+        """Make oauth requests, return response."""
 
         # Allauth calls Session.get when getting user profile info from google
         mock_response = Mock()
@@ -75,8 +94,30 @@ class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
         return_url += f"?state={url_state}&code=testcode"
 
         res: JsonResponse = self.client.get(return_url, follow=True)
+
         mock_get_access_token.assert_called()
         mock_session_get.assert_called()
+
+        return res
+
+    def assertDoOauthFlow(
+        self,
+        return_email="john.doe@example.com",
+        return_first_name="John",
+        return_last_name="Doe",
+        process: Literal["login", "connect"] = "login",
+        **kwargs,
+    ):
+        """Do the oauth flow for a user, and return final token."""
+
+        res = self.make_oauth_request(
+            return_email=return_email,
+            return_first_name=return_first_name,
+            return_last_name=return_last_name,
+            process=process,
+            **kwargs,
+        )
+
         self.assertResOk(res)
 
         # Check token in url
@@ -136,15 +177,24 @@ class PublicGoogleOauthTests(PublicApiTestsBase, EmailTestsBase):
         self.assertEqual(user.profile.school_email, ufl_email)
         self.assertTrue(user.profile.is_school_email_verified)
 
-    # def test_connect_existing_account_to_oauth(self):
-    #     """Should connect oauth account to existing user."""
+    def test_connect_existing_account_to_oauth(self):
+        """Should connect oauth account to existing user."""
 
-    #     # User is created by sys admin
-    #     user = create_test_user()
+        # User is created by sys admin
+        user = create_test_user()
 
-    #     # Then, the created user goes to sign in via oauth
-    #     with self.assertRaises(exceptions.AuthenticationFailed):
-    #         self.assertDoOauthFlow(return_email=user.email)
+        # Then, the created user goes to sign in via oauth
+        res = self.make_oauth_request(return_email=user.email)
+        self.assertResOk(res)
 
-    #     # Make sure no additional users were created
-    #     self.assertEqual(User.objects.count(), 1)
+        # Check there's an error in the url
+        parsed_res_url = urlparse(res.wsgi_request.get_full_path())
+        res_query_params = parse_qs(parsed_res_url.query)
+        token = res_query_params.get("token", None)
+        error = res_query_params.get("error", None)
+
+        self.assertIsNone(token)
+        self.assertIsNotNone(error)
+
+        # Make sure no additional users were created
+        self.assertEqual(User.objects.count(), 1)
