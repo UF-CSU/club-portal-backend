@@ -3,9 +3,6 @@ from typing import Optional
 
 from django.urls import reverse
 from django.utils.http import urlencode
-
-from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
-from clubs.services import ClubService
 from lib.faker import fake
 from users.models import User
 from utils.testing import create_test_image
@@ -43,7 +40,7 @@ CLUBS_JOIN_URL = reverse("api-clubs:join")
 CLUBS_PREVIEW_LIST_URL = reverse("api-clubs:clubpreview-list")
 
 
-def club_list_url_member(is_admin:bool=None):
+def club_list_url_member(is_admin: bool = None):
     url = reverse("api-clubs:club-list")
 
     query_params = {}
@@ -53,7 +50,7 @@ def club_list_url_member(is_admin:bool=None):
 
     if query_params:
         return f"{url}?{urlencode(query_params)}"
-    
+
     return url
 
 
