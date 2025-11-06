@@ -11,14 +11,11 @@ const linkId = +match.groups.id
 
 const countSpan = document.getElementById('link-visit-count')
 
+const ticket = "{{ ticket }}"
 
-console.log("link id:", linkId)
-
-const socket = new WebSocket(`ws://${window.location.host}/ws/analytics/${linkId}/linkvisits/`)
+const socket = new WebSocket(`ws://${window.location.host}/ws/analytics/${linkId}/linkvisits/`, ['Authorization', ticket])
 socket.onmessage = function (e) {
   const payload = JSON.parse(e.data)
-  console.log('new event:', JSON.parse(e.data))
-  console.log('count:', payload.data)
   countSpan.textContent = payload.data
 }
 </script>

@@ -7,7 +7,7 @@ from analytics.models import Link
 class LinkVisitConsumer(ConsumerBase):
     """Send update when there's a new link visit."""
 
-    permission_classes = []
+    # permission_classes = []
 
     async def _get_link_visit_count(self):
         """Get visit count for link."""
