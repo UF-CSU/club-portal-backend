@@ -9,6 +9,7 @@ websocket_urlpatterns = [
     *polls_ws,
     *query_ws,
     *analytics_ws,
+    *query_ws,
 ]
 
 application = AllowedHostsOriginValidator(

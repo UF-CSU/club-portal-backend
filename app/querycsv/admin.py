@@ -1,8 +1,6 @@
-import json
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
 from core.abstracts.admin import ModelAdminBase
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from utils.admin import other_info_fields
 from utils.formatting import plural_noun
