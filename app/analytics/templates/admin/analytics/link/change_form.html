@@ -2,21 +2,23 @@
 {% block admin_change_form_document_ready %} 
 {{ block.super }}
 <script type="text/javascript">
-console.log("Reached!!")
-
-const path = window.location.pathname
-const re = /\/(?<id>[0-9]+)\/change\//g;
-const match = re.exec(path)
-const linkId = +match.groups.id
-
-const countSpan = document.getElementById('link-visit-count')
-
-const ticket = "{{ ticket }}"
-
-const socket = new WebSocket(`ws://${window.location.host}/ws/analytics/${linkId}/linkvisits/`, ['Authorization', ticket])
-socket.onmessage = function (e) {
-  const payload = JSON.parse(e.data)
-  countSpan.textContent = payload.data
+try {
+  const path = window.location.pathname
+  const re = /\/(?<id>[0-9]+)\/change\//g;
+  const match = re.exec(path)
+  const linkId = +match.groups.id
+  
+  const countSpan = document.getElementById('link-visit-count')
+  
+  const ticket = "{{ ticket }}"
+  
+  const socket = new WebSocket(`ws://${window.location.host}/ws/analytics/${linkId}/linkvisits/`, ['Authorization', ticket])
+  socket.onmessage = function (e) {
+    const payload = JSON.parse(e.data)
+    countSpan.textContent = payload.data
+  }
+} catch (e) {
+  console.error(e);
 }
 </script>
 {% endblock %}
