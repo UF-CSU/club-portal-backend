@@ -81,6 +81,12 @@ class QueryCsvUploadJobAdmin(ModelAdminBase):
     )
 
     def upload_logs(self, obj):
+        #TODO Try wrapping in html
+        # update the html on admin level
+        #Not simple json
+        #weird element since json
+        #Send html version of the logs
+
         return self.as_json(obj.logs)
         # return obj.logs
 

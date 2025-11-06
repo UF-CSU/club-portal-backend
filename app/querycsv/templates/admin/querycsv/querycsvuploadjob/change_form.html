@@ -1,0 +1,18 @@
+{% extends 'admin/change_form.html' %} 
+{% block admin_update_log %}
+{{ block.super }}
+<script type="text/javascript">
+try{
+  const path = window.location.pathname
+  const re = /\/(?<id>[0-9]+)\/change\//g;
+  const match = re.exec(path)
+  const job_id = +match.groups.id
+
+  
+
+}catch(e){
+  console.log(e);
+}
+
+</script>
+{% endblock %}

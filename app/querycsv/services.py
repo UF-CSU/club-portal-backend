@@ -125,6 +125,9 @@ class QueryCsvService:
         if self.job:
             self.job.add_log(value, key=key)
 
+    def _get_job(self):
+        return self.job
+
     def download_csv(self, queryset: models.QuerySet):
         """Download: Convert queryset to csv, return path to csv."""
 
@@ -190,6 +193,8 @@ class QueryCsvService:
             self._log_job_msg(
                 "Finished reading spreadsheet, processing field mappings..."
             )
+            
+
 
             # Strip leading/trailing spaces from column names
             df.columns = df.columns.str.strip()
@@ -259,6 +264,7 @@ class QueryCsvService:
                     df.rename(columns={column_name: str(field)}, inplace=True)
 
             self._log_job_msg("Cleaning csv data and standardizing fields...")
+
 
             # Normalize & clean fields before conversion to dict
             for field_name, field_type in self.serializer.get_flat_fields().items():
