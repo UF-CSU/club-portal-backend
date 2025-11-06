@@ -34,10 +34,14 @@ class LinkVisitConsumer(ConsumerBase):
 
         current_visit_count = await self._get_link_visit_count()
 
-        await self.send_json({"type": "linkvisit_initial_count", "data": current_visit_count})
+        await self.send_json(
+            {"type": "linkvisit_initial_count", "data": current_visit_count}
+        )
 
     async def new_visit(self, event):
         """Fires when a new link visit is created."""
 
         current_visit_count = await self._get_link_visit_count()
-        await self.send_json({"type": "linkvisit_update_count", "data": current_visit_count})
+        await self.send_json(
+            {"type": "linkvisit_update_count", "data": current_visit_count}
+        )

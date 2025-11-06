@@ -63,11 +63,15 @@ class LinkAdmin(ModelAdminBase):
         return mark_safe(f'<span id="link-visit-count">{obj.visit_count}</span>')
 
     def url_link(self, obj):
-        return mark_safe(f'<a href="{obj.tracking_url}" target="_blank">{obj.tracking_url}</a>')
+        return mark_safe(
+            f'<a href="{obj.tracking_url}" target="_blank">{obj.tracking_url}</a>'
+        )
 
-    def render_change_form(self, request, context, add=None, change=None, form_url=None, obj=None):
+    def render_change_form(
+        self, request, context, add=None, change=None, form_url=None, obj=None
+    ):
         ticket, _ = Ticket.objects.get_or_create(user=request.user)
-        context['ticket'] = ticket
+        context["ticket"] = ticket
         return super().render_change_form(request, context, add, change, form_url, obj)
 
 

@@ -50,7 +50,9 @@ class EventDateFilter(FilterBackendBase):
         shift = timedelta(days=14)
 
         if start_date is None and end_date is None:
-            return queryset.filter(Q(start_at__lte=today + shift) & Q(end_at__gte=today - shift))
+            return queryset.filter(
+                Q(start_at__lte=today + shift) & Q(end_at__gte=today - shift)
+            )
 
         if start_date is not None:
             queryset = queryset.filter(end_at__gte=start_date)
@@ -154,7 +156,9 @@ class EventViewset(ModelViewSetBase):
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])
 
-        if len(hosts) == 0 and not self.request.user.has_perm("events.add_event", is_global=True):
+        if len(hosts) == 0 and not self.request.user.has_perm(
+            "events.add_event", is_global=True
+        ):
             self.permission_denied(self.request, message="Cannot create global events")
 
         club_ids = [host.get("club").id for host in hosts]
@@ -233,4 +237,6 @@ class EventCancellationViewSet(ModelViewSetBase):
             )
             return Response(serializers.EventCancellationSerializer(cancellation).data)
         else:
-            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND
+            )

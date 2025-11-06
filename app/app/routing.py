@@ -9,4 +9,6 @@ websocket_urlpatterns = [
     *analytics_ws,
 ]
 
-application = AllowedHostsOriginValidator(WebSocketMiddleware(URLRouter(websocket_urlpatterns)))
+application = AllowedHostsOriginValidator(
+    WebSocketMiddleware(URLRouter(websocket_urlpatterns))
+)
