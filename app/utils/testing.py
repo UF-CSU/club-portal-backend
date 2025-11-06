@@ -3,9 +3,9 @@ from unittest.mock import Mock
 
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
+from lib.faker import fake
 from PIL import Image
 
-from lib.faker import fake
 from utils.files import get_unique_filename
 
 

@@ -17,7 +17,7 @@ def main():
     if running_tests:
         from coverage import Coverage
 
-        cov = Coverage()
+        cov = Coverage(config_file='../pyproject.toml')
         cov.erase()
         cov.start()
 

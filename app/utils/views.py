@@ -11,7 +11,8 @@ class Query:
     """Settings for a single query param."""
 
     qtype: type = attr.ib(
-        default=OpenApiTypes.STR, converter=lambda t: PYTHON_TYPE_MAPPING.get(t, OpenApiTypes.STR)
+        default=OpenApiTypes.STR,
+        converter=lambda t: PYTHON_TYPE_MAPPING.get(t, OpenApiTypes.STR),
     )
     default: Optional[Any] = attr.ib(default=None)
     description: Optional[str] = attr.ib(default=None)

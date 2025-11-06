@@ -4,18 +4,18 @@ Unit tests for Event business logic.
 
 import datetime
 
-from django.utils import timezone
-from django_celery_beat.models import PeriodicTask
-from freezegun import freeze_time
-
 from clubs.models import ClubFile
 from clubs.tests.utils import create_test_club, create_test_clubfile, create_test_clubs
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
+from django.utils import timezone
+from django_celery_beat.models import PeriodicTask
+from freezegun import freeze_time
+from lib.faker import fake
+from users.tests.utils import create_test_user
+
 from events.models import DayType, Event, EventAttendance, RecurringEvent
 from events.services import RecurringEventService
 from events.tests.utils import create_test_event
-from lib.faker import fake
-from users.tests.utils import create_test_user
 
 
 class EventServiceTests(PeriodicTaskTestsBase):

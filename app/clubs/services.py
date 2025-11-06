@@ -1,14 +1,14 @@
 from typing import Optional
 
+from core.abstracts.services import ServiceBase
 from django.core import exceptions
 from django.urls import reverse
-
-from clubs.models import Club, ClubMembership, ClubRole
-from core.abstracts.services import ServiceBase
 from events.models import EventAttendance
 from lib.emails import send_html_mail
 from users.models import User
 from utils.helpers import get_full_url
+
+from clubs.models import Club, ClubMembership, ClubRole
 
 
 class ClubService(ServiceBase[Club]):

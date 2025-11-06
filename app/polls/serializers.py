@@ -2,19 +2,19 @@
 Convert poll models to json objects.
 """
 
-from django.shortcuts import get_object_or_404
-from rest_framework import exceptions, serializers
-
 from clubs.models import Club
 from core.abstracts.serializers import (
     ModelSerializer,
     ModelSerializerBase,
     UpdateListSerializer,
 )
+from django.shortcuts import get_object_or_404
 from events.models import Event
-from polls import models
+from rest_framework import exceptions, serializers
 from users.models import User
 from users.serializers import UserNestedSerializer
+
+from polls import models
 
 
 class TextInputSerializer(ModelSerializerBase):

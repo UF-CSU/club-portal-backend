@@ -1,3 +1,4 @@
+# check=skip=UndefinedVar
 FROM python:3.13.7-alpine3.22
 
 LABEL maintainer="ikehunter.com"
@@ -11,6 +12,10 @@ USER root
 # default to production
 ARG DEV=false
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.6 /uv /uvx /bin/
+
+# Install other packages
 RUN python -m venv /py && \
     /py/bin/pip install --upgrade pip && \
     # Psycopg & handling images
@@ -26,14 +31,18 @@ RUN python -m venv /py && \
     postgresql-dev && \
     /py/bin/pip install uwsgi==2.0.28 --retries 10
 
-COPY ./requirements.txt /tmp/requirements.txt
-COPY ./requirements.dev.txt /tmp/requirements.dev.txt
-COPY ./requirements.prod.txt /tmp/requirements.prod.txt
+COPY ./pyproject.toml /app/pyproject.toml
+COPY ./uv.lock /app/uv.lock
 COPY ./scripts /scripts
+
+ENV UV_LINK_MODE=copy
     
-RUN /py/bin/pip install -r /tmp/requirements.txt && /py/bin/pip install -r /tmp/requirements.prod.txt && \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-editable --no-group dev && \
     if [ $DEV = "true" ]; \
-        then /py/bin/pip install -r /tmp/requirements.dev.txt ; \
+        then uv sync --locked --no-editable --all-groups; \
     fi && \
     rm -rf /tmp && \
     apk del .tmp-build-deps && \
@@ -45,15 +54,24 @@ RUN /py/bin/pip install -r /tmp/requirements.txt && /py/bin/pip install -r /tmp/
     mkdir -p /vol/web/media && \
     mkdir -p /vol/web/static && \
     mkdir /tmp && \
+    mkdir -p /docs/_build && \
     chown -R django-user:django-user /vol && \
     chown -R django-user:django-user /tmp && \
+    chown -R django-user:django-user /docs && \
+    chown -R django-user:django-user /app/.venv && \
+    chown django-user:django-user /app && \
     chmod -R 755 /vol && \
     chmod -R +x /scripts
 
 ENV DEV=${DEV}
 
-COPY ./app /app
-ENV PATH="/scripts:/py/bin:/usr/bin:$PATH"
+# Copy project into image
+COPY ./app /app/app
+
+WORKDIR /app/app
+
+ENV PATH="/scripts:/app/.venv/bin:/root/.local/bin:/py/bin:/usr/bin:$PATH"
+ENV PYTHONPATH="/app/.venv/bin:$PYTHONPATH"
 USER django-user
 
 CMD ["entrypoint.sh"]

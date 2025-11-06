@@ -1,5 +1,6 @@
-from core.models import Major
 from querycsv.serializers import CsvModelSerializer
+
+from core.models import Major
 
 
 class MajorCsvSerializer(CsvModelSerializer):

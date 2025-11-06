@@ -1,12 +1,13 @@
 import pandas as pd
 import pytz
-from django.db import models
-from django.utils import timezone
-
 from app.settings import POLL_SUBMISSION_REDIRECT_URL
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
+from django.db import models
+from django.utils import timezone
 from events.models import EventAttendance
+from utils.logging import print_error
+
 from polls.models import (
     ChoiceInput,
     Poll,
@@ -24,7 +25,6 @@ from polls.models import (
     TextInput,
 )
 from polls.serializers import PollSubmissionSerializer
-from utils.logging import print_error
 
 
 class PollTemplateService(ServiceBase[PollTemplate]):

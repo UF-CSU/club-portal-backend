@@ -1,8 +1,8 @@
+from core.abstracts.tests import PrivateApiTestsBase
 from django.urls import reverse
 
 from clubs.models import Club, Team
 from clubs.tests.utils import create_test_clubs, create_test_team
-from core.abstracts.tests import PrivateApiTestsBase
 
 
 def teams_list_url(club_id):

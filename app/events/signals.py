@@ -1,10 +1,10 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from polls.models import Poll
 
 from events.models import Event
 from events.services import EventService
-from polls.models import Poll
 
 
 @receiver(post_save, sender=Event)

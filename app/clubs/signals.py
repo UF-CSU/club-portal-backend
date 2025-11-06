@@ -1,5 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from utils.images import create_default_icon
+from utils.permissions import parse_permissions
 
 from clubs.defaults import (
     ADMIN_ROLE_PERMISSIONS,
@@ -8,8 +10,6 @@ from clubs.defaults import (
     VIEWER_ROLE_PERMISSIONS,
 )
 from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
-from utils.images import create_default_icon
-from utils.permissions import parse_permissions
 
 
 @receiver(post_save, sender=Club)

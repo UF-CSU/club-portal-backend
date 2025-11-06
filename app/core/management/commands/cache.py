@@ -1,6 +1,5 @@
 from django.core.cache import cache
 from django.core.management import BaseCommand, CommandError
-
 from utils.formatting import plural_noun_display
 
 
@@ -27,7 +26,9 @@ class Command(BaseCommand):
                         keys = [*keys, *cache.keys(f"*.{key}.*")]
 
                     if not keys:
-                        self.stdout.write(self.style.SUCCESS("Removed 0 keys from cache."))
+                        self.stdout.write(
+                            self.style.SUCCESS("Removed 0 keys from cache.")
+                        )
                     else:
                         cache.delete_many(keys=keys)
                         self.stdout.write(
@@ -45,7 +46,9 @@ class Command(BaseCommand):
                         keys = [*keys, *cache.keys(f"*.{key}.*")]
 
                 if keys:
-                    self.stdout.write(f"Keys ({len(keys)} total): \n\n{'\n'.join(keys)}")
+                    self.stdout.write(
+                        f"Keys ({len(keys)} total): \n\n{'\n'.join(keys)}"
+                    )
                 else:
                     self.stdout.write("0 keys found")
             case _:

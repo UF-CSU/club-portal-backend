@@ -1,11 +1,11 @@
+from core.abstracts.admin import ModelAdminBase
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-
-from core.abstracts.admin import ModelAdminBase
-from querycsv.models import QueryCsvUploadJob
-from querycsv.signals import send_process_csv_job_signal
 from utils.admin import other_info_fields
 from utils.formatting import plural_noun
+
+from querycsv.models import QueryCsvUploadJob
+from querycsv.signals import send_process_csv_job_signal
 
 
 class QueryCsvUploadJobAdmin(ModelAdminBase):

@@ -15,7 +15,8 @@ tasks:
     desc: 'Build docker image if necessary'
     sources:
       - ./Dockerfile
-      - ./requirements*.txt
+      - ./pyproject.toml
+      - ./uv.lock
       - ./docs/pages/*
     run: when_changed
     cmds:
@@ -25,7 +26,8 @@ tasks:
   build:network:
     sources:
       - ./Dockerfile
-      - ./requirements*.txt
+      - ./pyproject.toml
+      - ./uv.lock
     run: when_changed
     cmds:
       - docker-compose -f docker-compose.network.yml build
@@ -35,7 +37,6 @@ tasks:
     deps:
       - build
     cmds:
-      # - docker-compose up
       - docker-compose --profile dev up
 
   dev:slim:

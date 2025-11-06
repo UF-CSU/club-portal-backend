@@ -4,7 +4,6 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.providers.base import Provider
 from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 from django.http import HttpRequest
-
 from users.models import User
 
 ProviderType = Provider

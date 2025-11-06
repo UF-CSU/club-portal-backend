@@ -4,10 +4,10 @@ import re
 from django.core import exceptions
 from django.http import FileResponse, HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from users.services import UserService
 
 from polls.models import Poll, PollSubmission
 from polls.services import PollService
-from users.services import UserService
 
 
 def show_poll_view(request: HttpRequest, poll_id: int):

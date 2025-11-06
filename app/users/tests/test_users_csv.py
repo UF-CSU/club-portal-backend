@@ -4,10 +4,11 @@ from clubs.models import Club, ClubMembership, ClubRole, Team
 from clubs.tests.utils import create_test_club
 from lib.faker import fake
 from querycsv.tests.utils import UploadCsvTestsBase
+from utils.testing import set_mock_return_image
+
 from users.models import Profile, SocialProfile, User
 from users.serializers import UserCsvSerializer
 from users.tests.utils import create_test_user
-from utils.testing import set_mock_return_image
 
 
 class UserCsvTests(UploadCsvTestsBase):

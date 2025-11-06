@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
+from clubs.models import Club
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlencode
-
-from clubs.models import Club
-from events.models import Event
 from lib.faker import fake
+
+from events.models import Event
 
 EVENT_LIST_URL = reverse("api-events:event-list")
 RECURRINGEVENT_LIST_URL = reverse("api-events:recurringevent-list")

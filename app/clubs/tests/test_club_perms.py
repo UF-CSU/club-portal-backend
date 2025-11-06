@@ -1,10 +1,11 @@
+from core.abstracts.tests import TestsBase
+from events.tests.utils import create_test_event
+from users.tests.utils import create_test_user
+
 from clubs.defaults import INITIAL_CLUB_ROLES
 from clubs.models import ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import create_test_club, create_test_team
-from core.abstracts.tests import TestsBase
-from events.tests.utils import create_test_event
-from users.tests.utils import create_test_user
 
 
 class ClubPermsBasicTests(TestsBase):
