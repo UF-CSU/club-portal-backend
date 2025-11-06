@@ -1,0 +1,25 @@
+{% extends 'admin/change_form.html' %} {% load static %} 
+{% block admin_change_form_document_ready %} 
+{{ block.super }}
+<script type="text/javascript">
+console.log("Reached!!")
+
+const path = window.location.pathname
+const re = /\/(?<id>[0-9]+)\/change\//g;
+const match = re.exec(path)
+const linkId = +match.groups.id
+
+const countSpan = document.getElementById('link-visit-count')
+
+
+console.log("link id:", linkId)
+
+const socket = new WebSocket(`ws://${window.location.host}/ws/analytics/${linkId}/linkvisits/`)
+socket.onmessage = function (e) {
+  const payload = JSON.parse(e.data)
+  console.log('new event:', JSON.parse(e.data))
+  console.log('count:', payload.data)
+  countSpan.textContent = payload.data
+}
+</script>
+{% endblock %}

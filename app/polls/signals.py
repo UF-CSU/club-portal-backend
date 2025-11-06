@@ -8,7 +8,7 @@ from polls.serializers import PollSubmissionSerializer
 from polls.services import PollService
 
 
-@receiver(post_save, sender=Poll)
+@receiver(post_save, sender=Poll) 
 def on_save_poll(sender, instance: Poll, created=False, **kwargs):
     """Automations to run when poll is saved."""
 

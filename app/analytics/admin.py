@@ -53,11 +53,13 @@ class LinkAdmin(admin.ModelAdmin):
 
     list_display = ("__str__", "url_link", "link_visits")
     inlines = (LinkVisitInlineAdmin,)
+    readonly_fields = ("total_visit_count", "url_link",)
+
+    def total_visit_count(self, obj):
+        return mark_safe(f'<span id="link-visit-count">{obj.visit_count}</span>')
 
     def url_link(self, obj):
-        return mark_safe(
-            f'<a href="{obj.tracking_url}" target="_blank">{obj.tracking_url}</a>'
-        )
+        return mark_safe(f'<a href="{obj.tracking_url}" target="_blank">{obj.tracking_url}</a>')
 
 
 admin.site.register(QRCode, QRCodeAdmin)
