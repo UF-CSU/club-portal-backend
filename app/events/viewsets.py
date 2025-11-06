@@ -50,9 +50,7 @@ class EventDateFilter(FilterBackendBase):
         shift = timedelta(days=14)
 
         if start_date is None and end_date is None:
-            return queryset.filter(
-                Q(start_at__lte=today + shift) & Q(end_at__gte=today - shift)
-            )
+            return queryset.filter(Q(start_at__lte=today + shift) & Q(end_at__gte=today - shift))
 
         if start_date is not None:
             queryset = queryset.filter(end_at__gte=start_date)
@@ -156,9 +154,7 @@ class EventViewset(ModelViewSetBase):
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])
 
-        if len(hosts) == 0 and not self.request.user.has_perm(
-            "events.add_event", is_global=True
-        ):
+        if len(hosts) == 0 and not self.request.user.has_perm("events.add_event", is_global=True):
             self.permission_denied(self.request, message="Cannot create global events")
 
         club_ids = [host.get("club").id for host in hosts]
@@ -178,10 +174,46 @@ class EventViewset(ModelViewSetBase):
             elif not primary_club or not user_clubs.filter(id=primary_club.id).exists():
                 self.permission_denied(
                     self.request,
-                    "Need event creation priviledge for primary host club.",
+                    "Need event creation privilege for primary host club.",
                 )
 
         return super().perform_create(serializer)
+
+    # Cache detail view for 2 hours (per Authorization header)
+    # @method_decorator(cache_page(60 * 60 * 2))
+    # @method_decorator(vary_on_headers("Authorization"))
+    # def retrieve(self, request, *args, **kwargs):
+    #     return super().retrieve(request, *args, **kwargs)
+
+    # def list(self, request: Request, *args, **kwargs):
+    #     club_id_list = request.query_params.getlist("clubs", [])
+    #     more_than_one_club = len(club_id_list) > 1
+
+    #     if more_than_one_club:
+    #         events_set = set()
+    #         for id in club_id_list:
+    #             cached_events = check_event_cache(id, request.user.is_anonymous)
+    #             events_set.update(
+    #                 cached_events if cached_events else Event.objects.filter(host__id=id)
+    #             )
+
+    #         return Response(self.get_serializer(list(events_set), many=True).data)
+    #     else:
+    #         id = club_id_list[0] if len(club_id_list) == 1 else None
+    #         cached_events = check_event_cache(id, request.user.is_anonymous)
+    #         print("Cached Events: ", cached_events)
+    #         events = cached_events
+
+    #         if not events:
+    #             events = self.get_queryset()
+    #             print("Events: ", events)
+    #             set_event_cache(
+    #                 id,
+    #                 request.user.is_anonymous,
+    #                 events,
+    #             )
+
+    #         return Response(self.get_serializer(events, many=True).data)
 
 
 class RecurringEventViewSet(ModelViewSetBase):
@@ -234,6 +266,4 @@ class EventCancellationViewSet(ModelViewSetBase):
             )
             return Response(serializers.EventCancellationSerializer(cancellation).data)
         else:
-            return Response(
-                {"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)

@@ -14,7 +14,7 @@ RECURRINGEVENT_LIST_URL = reverse("api-events:recurringevent-list")
 
 
 def event_list_url(start_at: datetime = None, end_at: datetime = None):
-    url = reverse("api-events:event-list")
+    url = EVENT_LIST_URL
     query_params = {}
 
     if start_at:
