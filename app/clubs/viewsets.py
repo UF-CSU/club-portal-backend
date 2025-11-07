@@ -16,9 +16,11 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, filters, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from users.models import User
 
+from clubs.cache import check_preview_list_cache, set_preview_cache
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -92,9 +94,7 @@ class IsClubAdminFilter(FilterBackendBase):
 
         if is_admin is not None:
             admin_clubs = list(
-                request.user.club_memberships.filter_is_admin().values_list(
-                    "club__id", flat=True
-                )
+                request.user.club_memberships.filter_is_admin().values_list("club__id", flat=True)
             )
             queryset = queryset.filter(id__in=admin_clubs)
 
@@ -163,9 +163,7 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
             Prefetch("socials", queryset=ClubSocialProfile.objects.order_by("order")),
             Prefetch(
                 "memberships",
-                queryset=ClubMembership.objects.filter(is_owner=True).select_related(
-                    "user"
-                ),
+                queryset=ClubMembership.objects.filter(is_owner=True).select_related("user"),
                 to_attr="prefetched_owner_memberships",
             ),
         )
@@ -186,10 +184,22 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    # Cache list view for 2 hours (per Authorization header)
-    @method_decorator(cache_page(60 * 60 * 2, key_prefix="club-previews"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+    def list(self, request: Request, *args, **kwargs):
+        if len(request.query_params) > 1 and not request.query_params["is_csu_partner"]:
+            return super().list(request, *args, **kwargs)
+
+        is_csu_partner = bool(request.query_params.get("is_csu_partner", False))
+        cached_previews = check_preview_list_cache(is_csu_partner)
+
+        if cached_previews:
+            return Response(cached_previews)
+        else:
+            cached_previews = ClubPreviewSerializer(
+                Club.objects.filter(is_csu_partner=is_csu_partner), many=True
+            ).data
+            set_preview_cache(is_csu_partner, cached_previews)
+
+        return Response(cached_previews)
 
 
 class ClubTagsView(GenericAPIView):
@@ -209,9 +219,7 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
 
     serializer_class = ClubMembershipSerializer
-    queryset = ClubMembership.objects.select_related(
-        "user", "user__profile"
-    ).prefetch_related(
+    queryset = ClubMembership.objects.select_related("user", "user__profile").prefetch_related(
         "user__socials",
         Prefetch(
             "roles",
@@ -244,17 +252,13 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
 
     def perform_update(self, serializer):
         instance: ClubMembership = serializer.instance
-        user_membership = ClubMembership.objects.get(
-            user=self.request.user, club=instance.club
-        )
+        user_membership = ClubMembership.objects.get(user=self.request.user, club=instance.club)
 
         # Check club ownership edge cases
         is_owner_value = serializer.validated_data.get("is_owner", None)
         if is_owner_value is not None:
             if not user_membership.is_owner:
-                raise exceptions.PermissionDenied(
-                    detail="Only owners can change ownership"
-                )
+                raise exceptions.PermissionDenied(detail="Only owners can change ownership")
 
             elif user_membership.is_owner and is_owner_value is False:
                 raise exceptions.ParseError(

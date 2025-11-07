@@ -6,7 +6,7 @@ from lib.faker import fake
 from users.models import User
 from utils.testing import create_test_image
 
-from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
+from clubs.models import Club, ClubFile, ClubRole, ClubTag, RoleType, Team, TeamRole
 from clubs.services import ClubService
 
 ####################################################
@@ -138,6 +138,18 @@ def create_test_team(club: Club, clear_roles=False, **kwargs):
         TeamRole.objects.filter(team=team).delete()
 
     return team
+
+
+def create_test_club_tag(clubs: list[Club], name: str = "test tag"):
+    """Create valid club tag for unit tests."""
+    new_tag = ClubTag.objects.create(name=name)
+    new_tag.clubs.set(clubs)
+    return new_tag
+
+
+def club_preview_detail_url(club_id: int):
+    """Get the club preview for a club"""
+    return reverse("api-clubs:clubpreview-detail", args=[club_id])
 
 
 def join_club_url(club_id: int):
