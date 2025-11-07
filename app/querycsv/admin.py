@@ -1,3 +1,6 @@
+import json
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 from core.abstracts.admin import ModelAdminBase
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
@@ -81,13 +84,9 @@ class QueryCsvUploadJobAdmin(ModelAdminBase):
     )
 
     def upload_logs(self, obj):
-        #TODO Try wrapping in html
-        # update the html on admin level
-        #Not simple json
-        #weird element since json
-        #Send html version of the logs
 
-        return self.as_json(obj.logs)
+        json_logs = self.as_json(obj.logs)
+        return mark_safe(f'<span id="job-log-list">{json_logs}</span>')
         # return obj.logs
 
     def headers(self, obj):

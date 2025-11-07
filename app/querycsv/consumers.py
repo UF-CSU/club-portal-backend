@@ -2,7 +2,9 @@
 import json
 from channels.consumer import SyncConsumer
 from asgiref.sync import async_to_sync, sync_to_async
+from core.abstracts.admin import AdminBase
 from core.abstracts.consumers import ConsumerAllowAny, ConsumerBase
+from querycsv.models import QueryCsvUploadJob
 from querycsv.services import QueryCsvService
 
 
@@ -13,14 +15,23 @@ class QueryCsvConsumer(ConsumerBase):
 
     async def _get_job_logs(self):
 
-        self.job_id = self.scope["url_route"]["kwargs"]["job_id"]
-        self.job = await sync_to_async(QueryCsvService._get_job)()
+        job_id = self.scope["url_route"]["kwargs"]["job_id"]
+        service = await QueryCsvUploadJob.objects.aget(id=job_id)
+        #self.job = await sync_to_async(service._get_job)()
 
         def _get_logs():
-            return self.job.logs
+            return service.logs
         
-        logs = await sync_to_async(_get_logs)()
-        return logs
+        def _get_logs_html():
+            try:
+                renderer = AdminBase()
+                return str(renderer.as_json(service.logs))
+            except Exception:
+                # Fallback to raw json string
+                return json.dumps(service.logs or {})
+        
+        service = await sync_to_async(_get_logs_html)()
+        return service
 
     async def connect(self):
         connected = await super().connect()
@@ -34,6 +45,7 @@ class QueryCsvConsumer(ConsumerBase):
 
         current_job_log = await self._get_job_logs()
 
+
         await self.send_json({
             "type" : "initial_job_log",
             "data" : current_job_log
@@ -43,6 +55,7 @@ class QueryCsvConsumer(ConsumerBase):
         """Fires when job update occurs"""
 
         current_job_log = await self._get_job_logs()
+        
         await self.send_json({
             "type" : "initial_job_log",
             "data" : current_job_log

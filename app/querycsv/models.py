@@ -18,6 +18,8 @@ from utils.formatting import format_timedelta
 from utils.helpers import get_import_path, import_from_path
 from utils.logging import print_error
 from utils.models import UploadFilepathFactory, ValidateImportString
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from querycsv.consts import QUERYCSV_MEDIA_SUBDIR
 from querycsv.serializers import CsvModelSerializer
