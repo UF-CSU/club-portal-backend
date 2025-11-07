@@ -3,7 +3,10 @@ from django.dispatch import receiver
 from utils.images import create_default_icon
 from utils.permissions import parse_permissions
 
-from clubs.cache import delete_repopulate_preview_cache
+from clubs.cache import (
+    delete_repopulate_preview_detail_cache,
+    delete_repopulate_preview_list_cache,
+)
 from clubs.defaults import (
     ADMIN_ROLE_PERMISSIONS,
     INITIAL_CLUB_ROLES,
@@ -114,4 +117,7 @@ def on_save_club_role(sender, instance: ClubRole, created=False, **kwargs):
 def refresh_preview_cache(sender, instance: Club | ClubTag, created=False, **kwargs):
     """Refreshes the club preview cache when clubs are changed"""
     if sender == Club or sender == ClubTag:
-        delete_repopulate_preview_cache()
+        delete_repopulate_preview_list_cache()
+        delete_repopulate_preview_detail_cache(
+            [instance] if sender == Club else instance.clubs.all()
+        )

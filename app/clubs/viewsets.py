@@ -20,7 +20,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from users.models import User
 
-from clubs.cache import check_preview_list_cache, set_preview_cache
+from clubs.cache import (
+    check_preview_detail_cache,
+    check_preview_list_cache,
+    set_preview_detail_cache,
+    set_preview_list_cache,
+)
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -179,10 +184,15 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
-    # Cache detail view for 2 hours (per Authorization header)
-    @method_decorator(cache_page(60 * 60 * 2))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    def retrieve(self, request: Request, *args, **kwargs):
+        club_id = self.kwargs.get("pk")
+        cached_preview = check_preview_detail_cache(club_id)
+
+        if not cached_preview:
+            cached_preview = ClubPreviewSerializer(Club.objects.find_by_id(club_id)).data
+            set_preview_detail_cache(club_id, cached_preview)
+
+        return Response(cached_preview)
 
     def list(self, request: Request, *args, **kwargs):
         if len(request.query_params) > 1 and not request.query_params["is_csu_partner"]:
@@ -191,13 +201,11 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
         is_csu_partner = bool(request.query_params.get("is_csu_partner", False))
         cached_previews = check_preview_list_cache(is_csu_partner)
 
-        if cached_previews:
-            return Response(cached_previews)
-        else:
+        if not cached_previews:
             cached_previews = ClubPreviewSerializer(
                 Club.objects.filter(is_csu_partner=is_csu_partner), many=True
             ).data
-            set_preview_cache(is_csu_partner, cached_previews)
+            set_preview_list_cache(is_csu_partner, cached_previews)
 
         return Response(cached_previews)
 
