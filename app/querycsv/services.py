@@ -68,7 +68,7 @@ class QueryCsvService:
         job.save()
 
         svc = cls(serializer_class=job.serializer_class, job=job)
-        success, failed = svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
+        success, failed = svc.upload_csv(job.file.read(), custom_field_maps=job.custom_fields)
 
         # Set final job status
         if not isinstance(failed, list):
