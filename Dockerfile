@@ -28,8 +28,7 @@ RUN python -m venv /py && \
     # Oauth, celery, etc
     libressl libffi-dev libxslt-dev libxml2-dev \
     # Psycopg
-    postgresql-dev && \
-    /py/bin/pip install uwsgi==2.0.28 --retries 10
+    postgresql-dev
 
 COPY ./pyproject.toml /app/pyproject.toml
 COPY ./uv.lock /app/uv.lock
@@ -40,7 +39,7 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-editable --no-group dev && \
+    uv sync --locked --no-editable --all-groups --no-group dev && \
     if [ $DEV = "true" ]; \
         then uv sync --locked --no-editable --all-groups; \
     fi && \
