@@ -3,7 +3,15 @@ from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, mixins, permissions
+from rest_framework.request import Request
+from rest_framework.response import Response
 
+from polls.cache import (
+    DETAIL_POLL_PREVIEW_PREFIX,
+    LIST_POLL_PREVIEW_PREFIX,
+    check_poll_preview_cache,
+    set_poll_preview_cache,
+)
 from polls.models import (
     ChoiceInputOption,
     Poll,
@@ -50,6 +58,25 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
     )
 
     permission_classes = [permissions.AllowAny]
+
+    def retrieve(self, request: Request, *args, **kwargs):
+        poll_id = self.kwargs.get("pk")
+        cached_preview = check_poll_preview_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+
+        if not cached_preview:
+            cached_preview = PollPreviewSerializer(Poll.objects.find_by_id(poll_id)).data
+            set_poll_preview_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+
+        return Response(cached_preview)
+
+    def list(self, request: Request, *args, **kwargs):
+        cached_previews = check_poll_preview_cache(LIST_POLL_PREVIEW_PREFIX)
+
+        if not cached_previews:
+            cached_previews = PollPreviewSerializer(Poll.objects.all(), many=True).data
+            set_poll_preview_cache(cached_previews, LIST_POLL_PREVIEW_PREFIX)
+
+        return Response(cached_previews)
 
 
 class PollViewset(ModelViewSetBase):
@@ -140,9 +167,7 @@ class PollChoiceOptionViewSet(ModelViewSetBase):
         poll = get_object_or_404(Poll, id=poll_id)
 
         field = get_object_or_404(poll.fields, id=field_id)
-        if not (
-            field.field_type == "question" and field.question.input_type == "choice"
-        ):
+        if not (field.field_type == "question" and field.question.input_type == "choice"):
             raise exceptions.ParseError(detail="Can only add options to a choice input")
 
         serializer.save(input=field.question.choice_input)
@@ -166,9 +191,7 @@ class PollSubmissionViewSet(ModelViewSetBase):
             .prefetch_related(
                 models.Prefetch(
                     "answers",
-                    queryset=PollQuestionAnswer.objects.prefetch_related(
-                        "options_value"
-                    ),
+                    queryset=PollQuestionAnswer.objects.prefetch_related("options_value"),
                 ),
                 "user__verified_emails",
             )
@@ -179,9 +202,7 @@ class PollSubmissionViewSet(ModelViewSetBase):
         poll = get_object_or_404(Poll, id=poll_id)
 
         if poll.status != PollStatusType.OPEN:
-            raise exceptions.ParseError(
-                detail="Cannot create submission for poll that is not open"
-            )
+            raise exceptions.ParseError(detail="Cannot create submission for poll that is not open")
 
         service = PollService(poll)
         user = self.request.user

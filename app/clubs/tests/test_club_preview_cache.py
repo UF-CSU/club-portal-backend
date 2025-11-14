@@ -19,6 +19,10 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         cache.clear()
         return super().setUp()
 
+    def tearDown(self):
+        cache.clear()
+        return super().tearDown()
+
     def test_list_club_preview_cache(self):
         """For the list endpoint of club previews"""
         url = CLUBS_PREVIEW_LIST_URL

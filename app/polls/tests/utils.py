@@ -1,6 +1,7 @@
 import random
 
 from clubs.tests.utils import create_test_club
+from django.urls import reverse
 from lib.faker import fake
 from users.tests.utils import create_test_user
 
@@ -13,6 +14,37 @@ from polls.models import (
     PollQuestionAnswer,
     PollSubmission,
 )
+
+POLLS_URL = reverse("api-polls:poll-list")
+POLL_PREVIEW_LIST_URL = reverse("api-polls:pollpreview-list")
+
+
+def polls_detail_url(id: int):
+    return reverse("api-polls:poll-detail", args=[id])
+
+
+def pollpreview_detail_url(id: int):
+    return reverse("api-polls:pollpreview-detail", args=[id])
+
+
+def pollsubmission_list_url(poll_id: int):
+    return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
+
+
+def pollfield_list_url(poll_id: int):
+    return reverse("api-polls:pollfield-list", args=[poll_id])
+
+
+def pollfield_detail_url(poll_id: int, pollfield_id: int):
+    return reverse("api-polls:pollfield-detail", args=[poll_id, pollfield_id])
+
+
+def polloption_list_url(poll_id: int, pollfield_id: int):
+    return reverse("api-polls:pollchoiceoption-list", args=[poll_id, pollfield_id])
+
+
+def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
+    return reverse("api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id])
 
 
 def create_test_poll(**kwargs):
@@ -65,9 +97,7 @@ def create_test_pollsubmission(poll: Poll, user=None, **kwargs):
                 q.scale_input.min_value, q.scale_input.max_value
             )
         elif q.input_type == PollInputType.CHOICE:
-            answer_payload["choice_value"] = random.sample(
-                list(q.choice_input.options.all()), 1
-            )
+            answer_payload["choice_value"] = random.sample(list(q.choice_input.options.all()), 1)
 
         PollQuestionAnswer.objects.create(**answer_payload)
 
