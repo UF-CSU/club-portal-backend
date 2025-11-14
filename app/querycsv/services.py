@@ -2,7 +2,6 @@ import re
 from collections import OrderedDict
 from enum import Enum
 from io import BytesIO
-from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 import pandas as pd
@@ -68,7 +67,7 @@ class QueryCsvService:
         job.save()
 
         svc = cls(serializer_class=job.serializer_class, job=job)
-        success, failed = svc.upload_csv(job.file.read(), custom_field_maps=job.custom_fields)
+        success, failed = svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
 
         # Set final job status
         if not isinstance(failed, list):
@@ -89,10 +88,11 @@ class QueryCsvService:
         job.save()
 
         # Create report
-        report_file_path = Path(
-            f"reports/{job.model_class.__name__}/",
-            f"{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.xlsx",
-        )
+        # report_file_path = Path(
+        #     f"reports/{job.model_class.__name__}/",
+        #     f"{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.xlsx",
+        # )
+        report_name = f"{job.model_class.__name__}_{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}"
         report_buffer = BytesIO()
 
         success_report = pd.json_normalize(success)
@@ -102,7 +102,7 @@ class QueryCsvService:
             success_report.to_excel(writer, sheet_name="Successful", index=False)
             failed_report.to_excel(writer, sheet_name="Failed", index=False)
 
-        report_file = File(report_buffer, report_file_path.__str__())
+        report_file = File(report_buffer, report_name)
         job.report = report_file
         job.save()
 
@@ -159,13 +159,9 @@ class QueryCsvService:
 
         match field_types:
             case "required":
-                template_fields = [
-                    str(field) for field in flat_field_names if field.is_required
-                ]
+                template_fields = [str(field) for field in flat_field_names if field.is_required]
             case "writable":
-                template_fields = [
-                    str(field) for field in flat_field_names if field.is_writable
-                ]
+                template_fields = [str(field) for field in flat_field_names if field.is_writable]
             case "all" | _:
                 template_fields = [str(field) for field in flat_field_names]
 
@@ -177,9 +173,7 @@ class QueryCsvService:
 
         return File(buffer, name=filename)
 
-    def upload_csv(
-        self, file: File, custom_field_maps: Optional[list[FieldMappingType]] = None
-    ):
+    def upload_csv(self, file: File, custom_field_maps: Optional[list[FieldMappingType]] = None):
         """
         Upload: Given path to csv, create/update models and
         return successful and failed objects.
@@ -190,11 +184,7 @@ class QueryCsvService:
 
             # Start by importing csv
             df = read_spreadsheet(file)
-            self._log_job_msg(
-                "Finished reading spreadsheet, processing field mappings..."
-            )
-            
-
+            self._log_job_msg("Finished reading spreadsheet, processing field mappings...")
 
             # Strip leading/trailing spaces from column names
             df.columns = df.columns.str.strip()
@@ -241,22 +231,16 @@ class QueryCsvService:
 
                     # Determine type
                     numbers = re.findall(r"\d+", column_name)
-                    assert len(numbers) <= 1, (
-                        "List items can only contain 0 or 1 numbers (multi digit allowed)."
-                    )
+                    assert (
+                        len(numbers) <= 1
+                    ), "List items can only contain 0 or 1 numbers (multi digit allowed)."
 
                     if len(numbers) == 1:
                         # Number was provided in spreadsheet
                         index = numbers[0]
                     else:
                         # Number was not provided in spreadsheet, get index of field
-                        index = len(
-                            [
-                                key
-                                for key in generic_list_keys
-                                if key == field.generic_key
-                            ]
-                        )
+                        index = len([key for key in generic_list_keys if key == field.generic_key])
 
                     field.set_index(index)
                     generic_list_keys.append(field.generic_key)
@@ -264,7 +248,6 @@ class QueryCsvService:
                     df.rename(columns={column_name: str(field)}, inplace=True)
 
             self._log_job_msg("Cleaning csv data and standardizing fields...")
-
 
             # Normalize & clean fields before conversion to dict
             for field_name, field_type in self.serializer.get_flat_fields().items():
@@ -282,15 +265,12 @@ class QueryCsvService:
                         ]
                     )
                 else:
-                    df[field_name] = df[field_name].map(
-                        lambda val: val if val != "" else None
-                    )
+                    df[field_name] = df[field_name].map(lambda val: val if val != "" else None)
 
             # Convert df to list of dicts, drop null fields
             upload_data = df.to_dict("records")
             filtered_data = [
-                {k: v for k, v in record.items() if v is not None}
-                for record in upload_data
+                {k: v for k, v in record.items() if v is not None} for record in upload_data
             ]
 
             # Finally, save data if valid
@@ -300,9 +280,7 @@ class QueryCsvService:
             self._log_job_msg("Unflattening csv data...")
 
             # Note: string stripping is done in the serializer
-            serializers = [
-                self.serializer_class(data=data, flat=True) for data in filtered_data
-            ]
+            serializers = [self.serializer_class(data=data, flat=True) for data in filtered_data]
 
             self._log_job_msg("Starting database update process...")
 
