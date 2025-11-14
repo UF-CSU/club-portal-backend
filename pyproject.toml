@@ -103,7 +103,7 @@ profile = "black"
 skip = ['migrations']
 
 [tool.coverage.run]
-source = ['./app']
+# source = ['./app']
 branch = true
 
 [tool.coverage.report]

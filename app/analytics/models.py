@@ -59,7 +59,7 @@ class Link(ClubScopedModel, ModelBase):
         return self.tracking_url if self.is_tracked else self.target_url
 
     @property
-    def link_visits(self):
+    def visit_count(self):
         return self.visits.aggregate(sum=models.Sum("amount")).get("sum", 0)
 
     def as_html(self, new_tab=True):

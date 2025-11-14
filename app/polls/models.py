@@ -195,6 +195,11 @@ class Poll(ClubScopedModel, ModelBase):
         related_name="+",
     )
 
+    # Hopefully this works
+    # poll_template = models.ForeignKey(
+    #    "polls.pollTemplate", null=True, blank=True, on_delete=models.SET_NULL
+    # )
+
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
     submissions: models.QuerySet["PollSubmission"]
@@ -299,10 +304,8 @@ class Poll(ClubScopedModel, ModelBase):
             models.CheckConstraint(
                 name="only_poll_templates_allow_null_club",
                 check=(
-                    ~(
-                        models.Q(club__isnull=True)
-                        & models.Q(poll_type=PollType.STANDARD)
-                    )
+                    models.Q(club__isnull=False)
+                    | models.Q(poll_type=PollType.TEMPLATE.value)
                 ),
             ),
         ]
@@ -353,8 +356,10 @@ class PollSubmissionLink(Link):
 class PollTemplateManager(ManagerBase["PollTemplate"]):
     """Manage poll template queries."""
 
-    def create(self, template_name: str, poll_name: str, **kwargs):
-        return super().create(template_name=template_name, name=poll_name, **kwargs)
+    def create(self, template_name: str, poll_name: str = None, **kwargs):
+        kwargs.setdefault("name", poll_name)
+        kwargs.setdefault("poll_type", PollType.TEMPLATE)
+        return super().create(template_name=template_name, **kwargs)
 
 
 class PollTemplate(Poll):

@@ -513,6 +513,11 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
 
         return self.filter(roles__role_type=RoleType.ADMIN)
 
+    def filter_is_not_admin(self):
+        """Filter memberships that are not admin memberships."""
+
+        return self.exclude(roles__role_type=RoleType.ADMIN)
+
 
 class ClubMembership(ClubScopedModel, ModelBase):
     """Connection between user and club."""

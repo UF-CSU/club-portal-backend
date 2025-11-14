@@ -215,6 +215,9 @@ class EventViewset(ModelViewSetBase):
 
     #         return Response(self.get_serializer(events, many=True).data)
 
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class RecurringEventViewSet(ModelViewSetBase):
     """CRUD Api routes for Recurring Events."""

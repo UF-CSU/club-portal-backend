@@ -28,8 +28,7 @@ RUN python -m venv /py && \
     # Oauth, celery, etc
     libressl libffi-dev libxslt-dev libxml2-dev \
     # Psycopg
-    postgresql-dev && \
-    /py/bin/pip install uwsgi==2.0.28 --retries 10
+    postgresql-dev
 
 COPY ./pyproject.toml /app/pyproject.toml
 COPY ./uv.lock /app/uv.lock
@@ -40,9 +39,10 @@ ENV UV_LINK_MODE=copy
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-editable --no-group dev && \
-    if [ $DEV = "true" ]; \
-        then uv sync --locked --no-editable --all-groups; \
+    if [ $DEV = "true" ]; then \
+        uv sync --locked --no-editable --all-groups --no-install-project; \
+    else \
+        uv sync --locked --no-editable --all-groups  --no-install-project --no-group dev; \
     fi && \
     rm -rf /tmp && \
     apk del .tmp-build-deps && \
@@ -67,6 +67,14 @@ ENV DEV=${DEV}
 
 # Copy project into image
 COPY ./app /app/app
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    if [ $DEV = "true" ]; then \
+        uv sync --all-groups --locked ; \
+    else \
+        uv sync --all-groups --locked --no-group dev; \
+    fi
+    
 
 WORKDIR /app/app
 

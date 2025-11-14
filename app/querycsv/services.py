@@ -2,7 +2,6 @@ import re
 from collections import OrderedDict
 from enum import Enum
 from io import BytesIO
-from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 import pandas as pd
@@ -89,9 +88,12 @@ class QueryCsvService:
         job.save()
 
         # Create report
-        report_file_path = Path(
-            f"reports/{job.model_class.__name__}/",
-            f"{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.xlsx",
+        # report_file_path = Path(
+        #     f"reports/{job.model_class.__name__}/",
+        #     f"{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.xlsx",
+        # )
+        report_name = (
+            f"{job.model_class.__name__}_{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}"
         )
         report_buffer = BytesIO()
 
@@ -102,7 +104,7 @@ class QueryCsvService:
             success_report.to_excel(writer, sheet_name="Successful", index=False)
             failed_report.to_excel(writer, sheet_name="Failed", index=False)
 
-        report_file = File(report_buffer, report_file_path.__str__())
+        report_file = File(report_buffer, report_name)
         job.report = report_file
         job.save()
 
@@ -124,6 +126,9 @@ class QueryCsvService:
     def _log_job_kwarg(self, key: str, value: str):
         if self.job:
             self.job.add_log(value, key=key)
+
+    def _get_job(self):
+        return self.job
 
     def download_csv(self, queryset: models.QuerySet):
         """Download: Convert queryset to csv, return path to csv."""

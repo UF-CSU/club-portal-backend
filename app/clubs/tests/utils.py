@@ -2,6 +2,7 @@ import uuid
 from typing import Optional
 
 from django.urls import reverse
+from django.utils.http import urlencode
 from lib.faker import fake
 from users.models import User
 from utils.testing import create_test_image
@@ -39,8 +40,18 @@ CLUBS_JOIN_URL = reverse("api-clubs:join")
 CLUBS_PREVIEW_LIST_URL = reverse("api-clubs:clubpreview-list")
 
 
-def club_list_url_member():
-    return reverse("api-clubs:club-list")
+def club_list_url_member(is_admin: bool = None):
+    url = reverse("api-clubs:club-list")
+
+    query_params = {}
+
+    if is_admin:
+        query_params["is_admin"] = is_admin
+
+    if query_params:
+        return f"{url}?{urlencode(query_params)}"
+
+    return url
 
 
 def club_file_list_url(club_id: int):
