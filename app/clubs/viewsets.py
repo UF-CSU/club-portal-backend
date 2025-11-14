@@ -93,7 +93,9 @@ class IsClubAdminFilter(FilterBackendBase):
         # When type conversion works and is_admin is a boolean, update the code
         if is_admin == "true":
             admin_clubs = list(
-                request.user.club_memberships.filter_is_admin().values_list("club__id", flat=True)
+                request.user.club_memberships.filter_is_admin().values_list(
+                    "club__id", flat=True
+                )
             )
             queryset = queryset.filter(id__in=admin_clubs)
 
@@ -170,7 +172,9 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
             Prefetch("socials", queryset=ClubSocialProfile.objects.order_by("order")),
             Prefetch(
                 "memberships",
-                queryset=ClubMembership.objects.filter(is_owner=True).select_related("user"),
+                queryset=ClubMembership.objects.filter(is_owner=True).select_related(
+                    "user"
+                ),
                 to_attr="prefetched_owner_memberships",
             ),
         )
@@ -214,7 +218,9 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for ClubMembership for a specific Club."""
 
     serializer_class = ClubMembershipSerializer
-    queryset = ClubMembership.objects.select_related("user", "user__profile").prefetch_related(
+    queryset = ClubMembership.objects.select_related(
+        "user", "user__profile"
+    ).prefetch_related(
         "user__socials",
         Prefetch(
             "roles",
@@ -247,13 +253,17 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
 
     def perform_update(self, serializer):
         instance: ClubMembership = serializer.instance
-        user_membership = ClubMembership.objects.get(user=self.request.user, club=instance.club)
+        user_membership = ClubMembership.objects.get(
+            user=self.request.user, club=instance.club
+        )
 
         # Check club ownership edge cases
         is_owner_value = serializer.validated_data.get("is_owner", None)
         if is_owner_value is not None:
             if not user_membership.is_owner:
-                raise exceptions.PermissionDenied(detail="Only owners can change ownership")
+                raise exceptions.PermissionDenied(
+                    detail="Only owners can change ownership"
+                )
 
             elif user_membership.is_owner and is_owner_value is False:
                 raise exceptions.ParseError(

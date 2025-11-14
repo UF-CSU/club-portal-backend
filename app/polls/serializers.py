@@ -131,7 +131,9 @@ class PollQuestionSerializer(ModelSerializerBase):
     time_input = TimeInputSerializer(required=False, allow_null=True)
     url_input = UrlInputSerializer(required=False, allow_null=True)
     checkbox_input = CheckboxInputSerializer(required=False, allow_null=True)
-    answer_field = serializers.ChoiceField(read_only=True, choices=models.AnswerFieldType.choices)
+    answer_field = serializers.ChoiceField(
+        read_only=True, choices=models.AnswerFieldType.choices
+    )
 
     class Meta:
         model = models.PollQuestion
@@ -208,7 +210,9 @@ class PollFieldSerializer(ModelSerializerBase):
         model = models.PollField
         fields = ["id", "field_type", "order", "question", "markup"]
         extra_kwargs = {"field_type": {"allow_null": False}}
-        list_serializer_class = UpdateListSerializer  # TODO: Finish implementing bulk updates
+        list_serializer_class = (
+            UpdateListSerializer  # TODO: Finish implementing bulk updates
+        )
 
     def create(self, validated_data):
         question_data = validated_data.pop("question", None)
@@ -325,12 +329,16 @@ class PollSerializer(ModelSerializer):
     submissions_count = serializers.IntegerField(read_only=True)
     last_submission_at = serializers.DateTimeField(read_only=True, allow_null=True)
     is_published = serializers.BooleanField(required=False)
-    status = serializers.ChoiceField(choices=models.PollStatusType.choices, read_only=True)
+    status = serializers.ChoiceField(
+        choices=models.PollStatusType.choices, read_only=True
+    )
     poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     submissions_download_url = serializers.URLField(read_only=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)
-    link = PollLinkNestedSerializer(read_only=True, allow_null=True, source="submission_link")
+    link = PollLinkNestedSerializer(
+        read_only=True, allow_null=True, source="submission_link"
+    )
 
     class Meta:
         model = models.Poll
@@ -398,12 +406,16 @@ class PollPreviewSerializer(ModelSerializer):
     """Fields guest users can see for polls."""
 
     fields = PollFieldSerializer(many=True, read_only=True)
-    status = serializers.ChoiceField(choices=models.PollStatusType.choices, read_only=True)
+    status = serializers.ChoiceField(
+        choices=models.PollStatusType.choices, read_only=True
+    )
     is_published = serializers.BooleanField(required=False)
     poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)
-    link = PollLinkNestedSerializer(read_only=True, allow_null=True, source="submission_link")
+    link = PollLinkNestedSerializer(
+        read_only=True, allow_null=True, source="submission_link"
+    )
 
     class Meta:
         model = models.Poll
@@ -431,8 +443,10 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
         question_id = data.get("question")
 
         res = super().run_prevalidation(data)
-        self.fields["options_value"].child_relation.queryset = (
-            models.ChoiceInputOption.objects.filter(input__question__id=question_id)
+        self.fields[
+            "options_value"
+        ].child_relation.queryset = models.ChoiceInputOption.objects.filter(
+            input__question__id=question_id
         )
 
         return res

@@ -139,22 +139,26 @@ class PollServiceTests(PeriodicTaskTestsBase):
         self.assertEqual(poll.status, PollStatusType.SCHEDULED)
 
         # Set time to be within poll open time
-        timezone_now.return_value = timezone.datetime.now(tz=pytz.utc) + timezone.timedelta(
-            days=1, hours=1
-        )
+        timezone_now.return_value = timezone.datetime.now(
+            tz=pytz.utc
+        ) + timezone.timedelta(days=1, hours=1)
 
         # Check running open task
-        self.assertRunPeriodicTask(poll.open_task, check_params={"status": PollStatusType.OPEN})
+        self.assertRunPeriodicTask(
+            poll.open_task, check_params={"status": PollStatusType.OPEN}
+        )
         poll.refresh_from_db()
         self.assertEqual(poll.status, PollStatusType.OPEN)
 
         # Set time to be after poll open time
-        timezone_now.return_value = timezone.datetime.now(tz=pytz.utc) + timezone.timedelta(
-            days=2, hours=1
-        )
+        timezone_now.return_value = timezone.datetime.now(
+            tz=pytz.utc
+        ) + timezone.timedelta(days=2, hours=1)
 
         # Check running close task
-        self.assertRunPeriodicTask(poll.open_task, check_params={"status": PollStatusType.OPEN})
+        self.assertRunPeriodicTask(
+            poll.open_task, check_params={"status": PollStatusType.OPEN}
+        )
         poll.refresh_from_db()
         self.assertEqual(poll.status, PollStatusType.CLOSED)
 

@@ -8,11 +8,9 @@ from querycsv.models import QueryCsvUploadJob
 
 
 class QueryCsvConsumer(ConsumerBase):
-
     permission_classes = [ConsumerAllowAny]
 
     async def _get_job_logs(self):
-
         job_id = self.scope["url_route"]["kwargs"]["job_id"]
         service = await QueryCsvUploadJob.objects.aget(id=job_id)
         # self.job = await sync_to_async(service._get_job)()

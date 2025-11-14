@@ -82,7 +82,6 @@ class QueryCsvUploadJobAdmin(ModelAdminBase):
     )
 
     def upload_logs(self, obj):
-
         json_logs = self.as_json(obj.logs)
         return mark_safe(f'<span id="job-log-list">{json_logs}</span>')
         # return obj.logs
