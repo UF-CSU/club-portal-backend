@@ -1,0 +1,26 @@
+{% extends 'admin/change_form.html' %} 
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script type="text/javascript">
+
+try{
+  const path = window.location.pathname
+  const re = /\/(?<id>[0-9]+)\/change\//g;
+  const match = re.exec(path)
+  const job_id = +match.groups.id
+  const jobSpan = document.getElementById('job-log-list')
+
+  const ticket = "{{ ticket }}"
+
+  const socket = new WebSocket(`ws://${window.location.host}/ws/querycsv/${job_id}/querycsv/`)
+  socket.onmessage = function (e) {
+    const payload = JSON.parse(e.data)
+    jobSpan.innerHTML = payload.data
+  }
+
+}catch(e){
+  console.log(e);
+}
+
+</script>
+{% endblock %}

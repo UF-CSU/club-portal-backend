@@ -9,7 +9,7 @@ from core.abstracts.serializers import (
     UpdateListSerializer,
 )
 from django.shortcuts import get_object_or_404
-from events.models import Event
+from events.models import Event, EventType
 from rest_framework import exceptions, serializers
 from users.models import User
 from users.serializers import UserNestedSerializer
@@ -366,6 +366,40 @@ class PollSerializer(ModelSerializer):
                 validated_data["event"] = None
 
         return super().update(instance, validated_data)
+
+
+class PollTemplateSerializer(PollSerializer):
+    """Json definition for poll templates"""
+
+    template_name = serializers.CharField()
+    event_type = serializers.ChoiceField(
+        choices=EventType.choices, allow_blank=True, required=True
+    )
+    club = PollClubNestedSerializer(required=False, allow_null=True)
+
+    # Hiding Fields
+    submissions_download_url = None
+    event = None
+    is_published = None
+
+    class Meta:
+        model = models.PollTemplate
+        exclude = ["open_task", "close_task"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def create(self, validated_data):
+        # is_published = validated_data.pop("is_published")
+        validated_data.pop("event")
+
+        club = validated_data.pop("club", None)
+        if club is not None:
+            validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
+        else:
+            validated_data["club"] = club
+
+        poll_name = validated_data.pop("name")
+
+        return models.PollTemplate.objects.create(poll_name=poll_name, **validated_data)
 
 
 class PollPreviewSerializer(ModelSerializer):

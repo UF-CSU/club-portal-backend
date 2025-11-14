@@ -90,13 +90,22 @@ class IsClubAdminFilter(FilterBackendBase):
     def filter_queryset(self, request, queryset, view):
         is_admin = request.query_params.get("is_admin", None)
 
-        if is_admin is not None:
+        # When type conversion works and is_admin is a boolean, update the code
+        if is_admin == "true":
             admin_clubs = list(
                 request.user.club_memberships.filter_is_admin().values_list(
                     "club__id", flat=True
                 )
             )
             queryset = queryset.filter(id__in=admin_clubs)
+
+        elif is_admin == "false":
+            member_clubs = list(
+                request.user.club_memberships.filter_is_not_admin().values_list(
+                    "club__id", flat=True
+                )
+            )
+            queryset = queryset.filter(id__in=member_clubs)
 
         return queryset
 

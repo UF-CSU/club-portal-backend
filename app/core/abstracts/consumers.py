@@ -33,6 +33,7 @@ class ConsumerIsAuthenticated(ConsumerPermission):
     """
 
     def has_permission(self, user):
+        print(user)
         return bool(user and user.is_authenticated)
 
 
