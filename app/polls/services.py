@@ -79,7 +79,9 @@ class PollTemplateService(ServiceBase[PollTemplate]):
         """Create a new poll from this one if it is a template."""
 
         # Create the poll without any auto-created fields
-        poll = Poll.objects.create(name=self.obj.name, description=self.obj.description, **kwargs)
+        poll = Poll.objects.create(
+            name=self.obj.name, description=self.obj.description, **kwargs
+        )
 
         # Get template fields ordered by their order field
         template_fields = self.obj.fields.all().order_by("order")
@@ -157,7 +159,11 @@ class PollService(ServiceBase[Poll]):
             self._remove_task("open_task")
         elif has_open_at and not has_open_task:
             self._schedule_poll_open()
-        elif has_open_at and has_open_task and poll.open_at != poll.open_task.clocked.clocked_time:
+        elif (
+            has_open_at
+            and has_open_task
+            and poll.open_at != poll.open_task.clocked.clocked_time
+        ):
             self._schedule_poll_open()
 
         # Sync close task
@@ -183,7 +189,9 @@ class PollService(ServiceBase[Poll]):
             .prefetch_related(
                 models.Prefetch(
                     "answers",
-                    queryset=PollQuestionAnswer.objects.prefetch_related("options_value"),
+                    queryset=PollQuestionAnswer.objects.prefetch_related(
+                        "options_value"
+                    ),
                 ),
                 "user__verified_emails",
             )
@@ -206,7 +214,10 @@ class PollService(ServiceBase[Poll]):
                     "Submission Date": timezone.localtime(
                         submission.created_at, timezone=pytz.timezone(tzname)
                     ),
-                    **{answer.label: answer.value for answer in submission.answers.all()},
+                    **{
+                        answer.label: answer.value
+                        for answer in submission.answers.all()
+                    },
                 }
             except Exception as e:
                 row = {"User ID": submission.user.id}
@@ -264,21 +275,25 @@ class PollService(ServiceBase[Poll]):
                     user.profile.college = answer.value or user.profile.college
                     user.profile.save()
                 case PollUserFieldType.GRADUATION_YEAR:
-                    user.profile.graduation_year = answer.value or user.profile.graduation_year
+                    user.profile.graduation_year = (
+                        answer.value or user.profile.graduation_year
+                    )
                     user.profile.save()
 
     def process_submission(self, submission: PollSubmission):
         """Run all actions for submission object."""
 
-        assert (
-            submission.poll.pk == self.obj.pk
-        ), f"Invalid submission, expected poll id {self.obj.pk} but found {submission.poll.id}."
+        assert submission.poll.pk == self.obj.pk, (
+            f"Invalid submission, expected poll id {self.obj.pk} but found {submission.poll.id}."
+        )
 
         self._validate_submission(submission)
         self._update_user_fields_from_submission(submission)
 
         if self.obj.event is not None:
-            EventAttendance.objects.get_or_create(user=submission.user, event=self.obj.event)
+            EventAttendance.objects.get_or_create(
+                user=submission.user, event=self.obj.event
+            )
 
         submission.refresh_from_db()
         return submission

@@ -286,7 +286,9 @@ class Poll(ClubScopedModel, ModelBase):
         if (
             self.open_at is not None and self.close_at is not None
         ) and self.open_at > self.close_at:
-            raise exceptions.ValidationError("Open date cannot be greater than the close date")
+            raise exceptions.ValidationError(
+                "Open date cannot be greater than the close date"
+            )
 
         return super().clean()
 
@@ -295,11 +297,16 @@ class Poll(ClubScopedModel, ModelBase):
         constraints = [
             models.CheckConstraint(
                 name="poll_close_date_must_have_start_date",
-                check=(~(models.Q(close_at__isnull=False) & models.Q(open_at__isnull=True))),
+                check=(
+                    ~(models.Q(close_at__isnull=False) & models.Q(open_at__isnull=True))
+                ),
             ),
             models.CheckConstraint(
                 name="only_poll_templates_allow_null_club",
-                check=(models.Q(club__isnull=False) | models.Q(poll_type=PollType.TEMPLATE.value)),
+                check=(
+                    models.Q(club__isnull=False)
+                    | models.Q(poll_type=PollType.TEMPLATE.value)
+                ),
             ),
         ]
 
@@ -333,13 +340,17 @@ class Poll(ClubScopedModel, ModelBase):
         else:
             highest_order = 1
 
-        return PollField.objects.create(poll=self, order=highest_order, field_type=field_type)
+        return PollField.objects.create(
+            poll=self, order=highest_order, field_type=field_type
+        )
 
 
 class PollSubmissionLink(Link):
     """Manage links for poll submissions."""
 
-    poll = models.OneToOneField(Poll, on_delete=models.CASCADE, related_name="_submission_link")
+    poll = models.OneToOneField(
+        Poll, on_delete=models.CASCADE, related_name="_submission_link"
+    )
 
 
 class PollTemplateManager(ManagerBase["PollTemplate"]):
@@ -372,7 +383,9 @@ class PollField(ClubScopedModel, ModelBase):
     """Custom question field for poll forms."""
 
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="fields")
-    field_type = models.CharField(choices=PollFieldType.choices, default=PollFieldType.QUESTION)
+    field_type = models.CharField(
+        choices=PollFieldType.choices, default=PollFieldType.QUESTION
+    )
     order = models.IntegerField(blank=True)
 
     # Dynamic properties
@@ -419,7 +432,9 @@ class PollMarkup(ClubScopedModel, ModelBase):
     """Store markdown content for a poll."""
 
     label = models.CharField(null=True, blank=True)
-    field = models.OneToOneField(PollField, on_delete=models.CASCADE, related_name="_markup")
+    field = models.OneToOneField(
+        PollField, on_delete=models.CASCADE, related_name="_markup"
+    )
     content = models.TextField(default="")
 
 
@@ -434,7 +449,9 @@ class PollQuestionManager(ManagerBase["PollQuestion"]):
         create_input=False,
         **kwargs,
     ):
-        question = super().create(field=field, label=label, input_type=input_type, **kwargs)
+        question = super().create(
+            field=field, label=label, input_type=input_type, **kwargs
+        )
 
         if not create_input:
             return question
@@ -454,16 +471,22 @@ class PollQuestion(ClubScopedModel, ModelBase):
     Validation is handled at the field level.
     """
 
-    field = models.OneToOneField(PollField, on_delete=models.CASCADE, related_name="_question")
+    field = models.OneToOneField(
+        PollField, on_delete=models.CASCADE, related_name="_question"
+    )
 
-    input_type = models.CharField(choices=PollInputType.choices, default=PollInputType.TEXT)
+    input_type = models.CharField(
+        choices=PollInputType.choices, default=PollInputType.TEXT
+    )
     label = models.CharField()
     description = models.TextField(null=True, blank=True)
     image = models.ImageField(null=True, blank=True)
     is_required = models.BooleanField(default=False)
 
     is_user_lookup = models.BooleanField(default=False, editable=False)
-    link_user_field = models.CharField(choices=PollUserFieldType.choices, null=True, blank=True)
+    link_user_field = models.CharField(
+        choices=PollUserFieldType.choices, null=True, blank=True
+    )
 
     # TODO: Add is_editable so we can disable editing of certain profile fields like major/minor
     # is_editable = models.BooleaField(default=True, blank=True, editable=False)
@@ -567,10 +590,14 @@ class PollQuestion(ClubScopedModel, ModelBase):
 
     def clean(self):
         if (
-            PollQuestion.objects.filter(field__poll=self.field.poll, is_user_lookup=True).count()
+            PollQuestion.objects.filter(
+                field__poll=self.field.poll, is_user_lookup=True
+            ).count()
             > 1
         ):
-            raise exceptions.ValidationError("Can only have one user lookup field per poll.")
+            raise exceptions.ValidationError(
+                "Can only have one user lookup field per poll."
+            )
 
         elif (
             self.link_user_field is not None
@@ -690,7 +717,9 @@ class TextInput(TextInputBase):
     raise error if the field is required.
     """
 
-    text_type = models.CharField(choices=PollTextInputType.choices, default=PollTextInputType.SHORT)
+    text_type = models.CharField(
+        choices=PollTextInputType.choices, default=PollTextInputType.SHORT
+    )
 
     # Overrides
     class Meta:
@@ -720,7 +749,9 @@ class ChoiceInput(InputBase):
     """Dropdown or radio field."""
 
     is_multiple = models.BooleanField(default=False)
-    choice_type = models.CharField(choices=PollChoiceType.choices, default=PollChoiceType.DROPDOWN)
+    choice_type = models.CharField(
+        choices=PollChoiceType.choices, default=PollChoiceType.DROPDOWN
+    )
 
     # Foreign relations
     selections: models.QuerySet["PollQuestionAnswer"]
@@ -733,7 +764,9 @@ class ChoiceInput(InputBase):
 class ChoiceInputOption(ClubScopedModel, ModelBase):
     """Option element inside select field."""
 
-    input = models.ForeignKey(ChoiceInput, on_delete=models.CASCADE, related_name="options")
+    input = models.ForeignKey(
+        ChoiceInput, on_delete=models.CASCADE, related_name="options"
+    )
 
     order = models.IntegerField(blank=True)
     label = models.CharField(max_length=100)
@@ -819,7 +852,9 @@ class UploadInput(InputBase):
         null=True,
     )
     max_files = models.IntegerField(default=1)
-    max_file_size = models.BigIntegerField(default=get_default_upload_filesize, blank=True)
+    max_file_size = models.BigIntegerField(
+        default=get_default_upload_filesize, blank=True
+    )
 
     @property
     def max_file_size_display(self):
@@ -958,16 +993,24 @@ class PollQuestionAnswerManager(ManagerBase["PollQuestionAnswer"]):
 class PollQuestionAnswer(ClubScopedModel, ModelBase):
     """Store info about how a user answered a specific question."""
 
-    question = models.ForeignKey(PollQuestion, on_delete=models.CASCADE, related_name="answers")
-    submission = models.ForeignKey(PollSubmission, on_delete=models.CASCADE, related_name="answers")
+    question = models.ForeignKey(
+        PollQuestion, on_delete=models.CASCADE, related_name="answers"
+    )
+    submission = models.ForeignKey(
+        PollSubmission, on_delete=models.CASCADE, related_name="answers"
+    )
 
     # Answer values
     # Store them separately so calculations can be made in postgres/django orm
     text_value = models.CharField(null=True, blank=True)
     number_value = models.IntegerField(null=True, blank=True)
-    options_value = models.ManyToManyField(ChoiceInputOption, blank=True, related_name="selections")
+    options_value = models.ManyToManyField(
+        ChoiceInputOption, blank=True, related_name="selections"
+    )
     boolean_value = models.BooleanField(null=True, blank=True)
-    file_value = models.ForeignKey(ClubFile, on_delete=models.CASCADE, null=True, blank=True)
+    file_value = models.ForeignKey(
+        ClubFile, on_delete=models.CASCADE, null=True, blank=True
+    )
 
     # Only one other option is allowed for a question
     other_option_value = models.CharField(null=True, blank=True)
@@ -989,7 +1032,9 @@ class PollQuestionAnswer(ClubScopedModel, ModelBase):
         elif self.number_value is not None:
             return self.number_value
         elif self.options_value.exists():
-            options = ", ".join(list(self.options_value.all().values_list("value", flat=True)))
+            options = ", ".join(
+                list(self.options_value.all().values_list("value", flat=True))
+            )
             if self.options_value.filter(is_other=True).exists():
                 options.replace("other", self.other_option_value)
 
@@ -1016,9 +1061,18 @@ class PollQuestionAnswer(ClubScopedModel, ModelBase):
             models.CheckConstraint(
                 name="pollanswer_text_or_number_or_option_set",
                 check=(
-                    (models.Q(text_value__isnull=False) & models.Q(number_value__isnull=True))
-                    | (models.Q(text_value__isnull=True) & models.Q(number_value__isnull=False))
-                    | (models.Q(text_value__isnull=True) & models.Q(number_value__isnull=True))
+                    (
+                        models.Q(text_value__isnull=False)
+                        & models.Q(number_value__isnull=True)
+                    )
+                    | (
+                        models.Q(text_value__isnull=True)
+                        & models.Q(number_value__isnull=False)
+                    )
+                    | (
+                        models.Q(text_value__isnull=True)
+                        & models.Q(number_value__isnull=True)
+                    )
                 ),
                 violation_error_message='Can only set one of "text", "number", or "options".',
             )
@@ -1031,6 +1085,8 @@ class PollQuestionAnswer(ClubScopedModel, ModelBase):
         if self.options_value.count() > 0 and (
             self.text_value is not None or self.number_value is not None
         ):
-            raise exceptions.ValidationError("Cannot set options value if number or text is set.")
+            raise exceptions.ValidationError(
+                "Cannot set options value if number or text is set."
+            )
 
         return super().clean()
