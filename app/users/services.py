@@ -101,7 +101,7 @@ class UserService(ServiceBase[User]):
                     oldest_user.email = user.email
 
                 # Merge relationships
-                Token.objects.filter(user=user).update(user=oldest_user)
+                Token.objects.filter(user=user).delete()
                 VerifiedEmail.objects.filter(user=user).update(user=oldest_user)
                 PollSubmission.objects.filter(user=user).update(user=oldest_user)
                 SocialAccount.objects.filter(user=user).update(user=oldest_user)
