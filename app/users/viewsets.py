@@ -68,7 +68,9 @@ class AuthTokenView(
 
     def retrieve(self, request, *args, **kwargs):
         if request.user.is_anonymous:
-            raise AuthenticationFailed("Unable to retrieve token for unauthenticated user.")
+            raise AuthenticationFailed(
+                "Unable to retrieve token for unauthenticated user."
+            )
 
         token, _ = Token.objects.get_or_create(user=request.user)
         return Response({"token": token.key})
@@ -88,7 +90,9 @@ class TicketView(generics.RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         if request.user.is_anonymous:
-            raise AuthenticationFailed("Unable to retrieve ticket for unauthenticated user.")
+            raise AuthenticationFailed(
+                "Unable to retrieve ticket for unauthenticated user."
+            )
 
         ticket, _ = Ticket.objects.get_or_create(user=request.user)
         serializer = self.get_serializer(ticket)
@@ -119,7 +123,9 @@ class OauthDirectoryView(generics.RetrieveAPIView):
 
     def get_object(self):
         """List available oauth providers, all will have the same url."""
-        return {"google": reverse_lazy("headless:app:socialaccount:redirect_to_provider")}
+        return {
+            "google": reverse_lazy("headless:app:socialaccount:redirect_to_provider")
+        }
 
 
 class EmailVerificationViewSet(mixins.CreateModelMixin, ViewSetBase):
@@ -192,7 +198,11 @@ class RedirectToProviderView(APIView):
             raise exceptions.BadRequest(form.errors.as_json())
 
         provider: OauthProviderType = form.cleaned_data["provider"]
-        next_url = reverse("api-users:oauth_return") + "?next=" + form.cleaned_data["callback_url"]
+        next_url = (
+            reverse("api-users:oauth_return")
+            + "?next="
+            + form.cleaned_data["callback_url"]
+        )
         process = form.cleaned_data["process"]
         return provider.redirect(
             request,
