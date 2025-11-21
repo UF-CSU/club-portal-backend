@@ -2,6 +2,7 @@ from clubs.tests.utils import create_test_club
 from core.abstracts.tests import TestsBase
 from events.tests.utils import create_test_event
 from polls.tests.utils import create_test_poll, create_test_pollsubmission
+from rest_framework.authtoken.models import Token
 
 from users.models import User
 from users.services import UserService
@@ -34,6 +35,10 @@ class UserServiceTests(TestsBase):
         u1 = create_test_user()
         u2 = create_test_user()
 
+        # Each user has a token
+        t1 = Token.objects.create(user=u1)
+        t2 = Token.objects.create(user=u2)
+
         # Each user is a member of a different club, and member of same club
         c1 = create_test_club(members=[u1])
         c2 = create_test_club(members=[u2])
@@ -63,6 +68,11 @@ class UserServiceTests(TestsBase):
         self.assertTrue(User.objects.filter(id=u1.id).exists())
         self.assertFalse(User.objects.filter(id=u2.id).exists())
         self.assertEqual(user.id, u1.id)
+
+        # Check token assignment
+        self.assertTrue(Token.objects.filter(key=t1.key).exists())
+        self.assertFalse(Token.objects.filter(key=t2.key).exists())
+        self.assertEqual(Token.objects.filter(user__id=user.id).first().key, t1.key)
 
         # Check that the merged user is a part of all 3 clubs
         self.assertEqual(user.club_memberships.count(), 3)
