@@ -3,6 +3,7 @@ from datetime import timedelta
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
     FilterBackendBase,
+    ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewPermissions,
 )
@@ -10,6 +11,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
+from rest_framework.pagination import BasePagination
 from rest_framework.response import Response
 
 from events.models import (
@@ -23,8 +25,31 @@ from events.models import (
 from . import models, serializers
 
 
+class CustomDatePagination(BasePagination):
+    """Allow api pagination via start and end date."""
+
+    def paginate_queryset(self, queryset, request, view=None):
+        self.count = queryset.count()
+        return queryset
+
+    def get_paginated_response(self, data):
+        return Response(
+            {"count": self.count, "start_date": None, "end_date": None, "results": data}
+        )
+
+
+class EventPreviewViewSet(ModelPreviewViewSetBase):
+    """API For showing public event previews."""
+
+    queryset = Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
+    serializer_class = serializers.EventPreviewSerializer
+    pagination_class = CustomDatePagination
+
+
 class EventClubFilter(FilterBackendBase):
     """Get events filtered by club"""
+
+    pass
 
 
 class EventDateFilter(FilterBackendBase):

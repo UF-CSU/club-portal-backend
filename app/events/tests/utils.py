@@ -4,17 +4,19 @@ from typing import Optional
 from clubs.models import Club
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import urlencode
 from lib.faker import fake
+from utils.helpers import reverse_query
 
 from events.models import Event
 
 EVENT_LIST_URL = reverse("api-events:event-list")
+EVENTPREVIEW_LIST_URL = reverse("api-events:eventpreview-list")
 RECURRINGEVENT_LIST_URL = reverse("api-events:recurringevent-list")
 
 
-def event_list_url(start_at: datetime = None, end_at: datetime = None):
-    url = reverse("api-events:event-list")
+def event_list_url(start_at: Optional[datetime] = None, end_at: Optional[datetime] = None):
+    """Get URL for listing full events."""
+
     query_params = {}
 
     if start_at:
@@ -22,18 +24,38 @@ def event_list_url(start_at: datetime = None, end_at: datetime = None):
     if end_at:
         query_params["end_at"] = end_at
 
-    if query_params:
-        return f"{url}?{urlencode(query_params)}"
+    return reverse_query("api-events:event-list", query_params)
 
-    return url
+
+def event_preview_list_url(start_at: Optional[datetime] = None, end_at: Optional[datetime] = None):
+    """Get URL for listing event previews."""
+
+    query_params = {}
+
+    if start_at:
+        query_params["start_at"] = start_at
+    if end_at:
+        query_params["end_at"] = end_at
+
+    return reverse_query("api-events:eventpreview-list", query_params)
 
 
 def event_attendance_list_url(event_id: int):
+    """Get URL for listing event attendance data."""
+
     return reverse("api-events:attendance-list", args=[event_id])
 
 
 def event_detail_url(event_id: int):
+    """Get URL for viewing a single event."""
+
     return reverse("api-events:event-detail", args=[event_id])
+
+
+def event_preview_detail_url(event_id: int):
+    """Get URL for viewing a single event preview."""
+
+    return reverse("api-events:eventpreview-detail", args=[event_id])
 
 
 def create_test_event(

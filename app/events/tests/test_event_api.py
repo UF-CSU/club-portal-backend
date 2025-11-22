@@ -8,10 +8,12 @@ from users.tests.utils import create_test_user
 from events.models import Event
 from events.tests.utils import (
     EVENT_LIST_URL,
+    EVENTPREVIEW_LIST_URL,
     create_test_event,
     create_test_events,
     event_detail_url,
     event_list_url,
+    event_preview_detail_url,
 )
 
 
@@ -53,6 +55,53 @@ class EventPublicApiTests(PublicApiTestsBase):
         # Returns 404 not found
         res2 = self.client.get(url2)
         self.assertResNotFound(res2)
+
+    def test_list_event_previews(self):
+        """Should display preview version of public events."""
+
+        e1 = create_test_event(is_public=True)
+        create_test_event(is_public=False)
+        create_test_event(is_draft=True)
+
+        url = EVENTPREVIEW_LIST_URL
+
+        # Returns public event
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        assert len(data["results"]) == 1
+
+        event = data["results"][0]
+        assert event["id"] == e1.pk
+        assert "attendance_links" not in event
+        assert "attachments" not in event
+        assert "poll" not in event
+        assert "enable_attendance" not in event
+        assert "make_public_at" not in event
+
+    def test_detail_event_preview(self):
+        """Should only show event preview if event is public and not draft."""
+
+        e1 = create_test_event(is_public=True)
+        e2 = create_test_event(is_public=False)
+        e3 = create_test_event(is_draft=True)
+
+        url1 = event_preview_detail_url(e1.pk)
+        url2 = event_preview_detail_url(e2.pk)
+        url3 = event_preview_detail_url(e3.pk)
+
+        # Returns public event
+        res1 = self.client.get(url1)
+        self.assertResOk(res1)
+
+        # Returns 404 not found if not public
+        res2 = self.client.get(url2)
+        self.assertResNotFound(res2)
+
+        # Returns 404 not found if is draft
+        res3 = self.client.get(url3)
+        self.assertResNotFound(res3)
 
 
 class EventPrivateApiTests(PrivateApiTestsBase):
