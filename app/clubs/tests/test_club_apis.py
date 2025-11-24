@@ -402,9 +402,7 @@ class ClubsApiPermsTests(PublicApiTestsBase):
 
         club = self.clubs[0]
         svc = ClubService(club)
-        role = ClubRole.objects.create(
-            club, name="Subscriber", perm_labels=["clubs.view_club"]
-        )
+        role = ClubRole.objects.create(club, name="Subscriber", perm_labels=["clubs.view_club"])
         svc.add_member(self.user, roles=[role])
 
         url = club_members_list_url(club.id)

@@ -50,11 +50,14 @@ def check_preview_detail_cache(club_id: int) -> OrderedDict:
 def delete_repopulate_preview_list_cache():
     """Delete preview pairs from previews cache"""
     set_preview_list_cache(
-        True, ClubPreviewSerializer(Club.objects.filter(is_csu_partner=True), many=True).data
+        True,
+        ClubPreviewSerializer(Club.objects.filter(is_csu_partner=True).distinct(), many=True).data,
     )
     set_preview_list_cache(
-        False, ClubPreviewSerializer(Club.objects.filter(is_csu_partner=False), many=True).data
+        False,
+        ClubPreviewSerializer(Club.objects.filter(is_csu_partner=False).distinct(), many=True).data,
     )
+
 
 def delete_repopulate_preview_detail_cache(clubs: list[Club]):
     """Delete modified club keys from previews cache"""

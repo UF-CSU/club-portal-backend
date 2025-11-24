@@ -201,10 +201,12 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
             cached_preview = ClubPreviewSerializer(Club.objects.find_by_id(club_id)).data
             set_preview_detail_cache(club_id, cached_preview)
 
-        return Response(cached_preview)
+        return Response({"results": cached_preview})
 
     def list(self, request: Request, *args, **kwargs):
-        if len(request.query_params) > 1 and not request.query_params["is_csu_partner"]:
+        if len(request.query_params) > 1 or (
+            request.query_params.get("is_csu_partner") is None and len(request.query_params) != 0
+        ):
             return super().list(request, *args, **kwargs)
 
         is_csu_partner = bool(request.query_params.get("is_csu_partner", False))
@@ -212,11 +214,13 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
 
         if not cached_previews:
             cached_previews = ClubPreviewSerializer(
-                Club.objects.filter(is_csu_partner=is_csu_partner), many=True
+                Club.objects.filter(is_csu_partner=is_csu_partner).distinct(), many=True
             ).data
             set_preview_list_cache(is_csu_partner, cached_previews)
 
-        return Response(cached_previews)
+        page = self.paginate_queryset(cached_previews)
+        serializer = ClubPreviewSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
 
 class ClubTagsView(GenericAPIView):

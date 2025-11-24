@@ -36,10 +36,10 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         start_no_cache = time()
         res = self.client.get(url)
         end_no_cache = time()
-        self.assertEqual(len(res.data), 3)
+        self.assertEqual(len(res.json()["results"]), 3)
 
         cached_previews_no_csu = check_preview_list_cache(False)
-        self.assertEqual(cached_previews_no_csu, res.data)
+        self.assertCountEqual(cached_previews_no_csu, res.json()["results"])
 
         start_cache = time()
         res = self.client.get(url)
@@ -51,14 +51,14 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
 
         create_test_club()
         res = self.client.get(url)
-        self.assertEqual(res.data, check_preview_list_cache(False))
+        self.assertCountEqual(res.json()["results"], check_preview_list_cache(False))
 
         create_test_club_tag([])
-        self.assertEqual(res.data, check_preview_list_cache(False))
+        self.assertCountEqual(res.json()["results"], check_preview_list_cache(False))
 
         create_test_club_tag(test_clubs)
         res = self.client.get(url)
-        self.assertEqual(res.data, check_preview_list_cache(False))
+        self.assertCountEqual(res.json()["results"], check_preview_list_cache(False))
 
     def test_detail_club_preview_cache(self):
         """For the detail endpoint of club previews"""
@@ -74,10 +74,10 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         start_no_cache = time()
         res = self.client.get(url)
         end_no_cache = time()
-        self.assertEqual(test_club_preview, res.data)
+        self.assertEqual(test_club_preview, res.json()["results"])
 
         cached_preview = check_preview_detail_cache(test_club.pk)
-        self.assertEqual(cached_preview, res.data)
+        self.assertEqual(cached_preview, res.json()["results"])
 
         start_cache = time()
         res = self.client.get(url)
@@ -88,8 +88,8 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         )
 
         create_test_club_tag([])
-        self.assertEqual(res.data, check_preview_detail_cache(test_club.pk))
+        self.assertEqual(res.json()["results"], check_preview_detail_cache(test_club.pk))
 
         create_test_club_tag([test_club])
         res = self.client.get(url)
-        self.assertEqual(res.data, check_preview_detail_cache(test_club.pk))
+        self.assertEqual(res.json()["results"], check_preview_detail_cache(test_club.pk))
