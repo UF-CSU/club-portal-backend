@@ -5,12 +5,11 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, mixins, permissions
 from rest_framework.request import Request
 from rest_framework.response import Response
+from utils.cache import check_cache, set_cache
 
 from polls.cache import (
     DETAIL_POLL_PREVIEW_PREFIX,
     LIST_POLL_PREVIEW_PREFIX,
-    check_poll_preview_cache,
-    set_poll_preview_cache,
 )
 from polls.models import (
     ChoiceInputOption,
@@ -63,20 +62,20 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
 
     def retrieve(self, request: Request, *args, **kwargs):
         poll_id = self.kwargs.get("pk")
-        cached_preview = check_poll_preview_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+        cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
 
         if not cached_preview:
             cached_preview = PollPreviewSerializer(Poll.objects.find_by_id(poll_id)).data
-            set_poll_preview_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+            set_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
 
         return Response(cached_preview)
 
     def list(self, request: Request, *args, **kwargs):
-        cached_previews = check_poll_preview_cache(LIST_POLL_PREVIEW_PREFIX)
+        cached_previews = check_cache(LIST_POLL_PREVIEW_PREFIX)
 
         if not cached_previews:
             cached_previews = PollPreviewSerializer(Poll.objects.all(), many=True).data
-            set_poll_preview_cache(cached_previews, LIST_POLL_PREVIEW_PREFIX)
+            set_cache(cached_previews, LIST_POLL_PREVIEW_PREFIX)
 
         return Response(cached_previews)
 

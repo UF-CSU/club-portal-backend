@@ -19,12 +19,11 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from users.models import User
+from utils.cache import check_cache, set_cache
 
 from clubs.cache import (
-    check_preview_detail_cache,
-    check_preview_list_cache,
-    set_preview_detail_cache,
-    set_preview_list_cache,
+    DETAIL_CLUB_PREVIEW_PREFIX,
+    LIST_CLUB_PREVIEW_PREFIX,
 )
 from clubs.models import (
     Club,
@@ -195,28 +194,37 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
 
     def retrieve(self, request: Request, *args, **kwargs):
         club_id = self.kwargs.get("pk")
-        cached_preview = check_preview_detail_cache(club_id)
+        cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
         if not cached_preview:
             cached_preview = ClubPreviewSerializer(Club.objects.find_by_id(club_id)).data
-            set_preview_detail_cache(club_id, cached_preview)
+            set_cache(cached_preview, DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
         return Response({"results": cached_preview})
 
     def list(self, request: Request, *args, **kwargs):
-        if len(request.query_params) > 1 or (
-            request.query_params.get("is_csu_partner") is None and len(request.query_params) != 0
-        ):
+        params = request.query_params.copy()
+        limit = params.pop("limit", None)
+        offset = params.pop("offset", None)
+        if params.get("is_csu_partner") is None and len(params) != 0:
             return super().list(request, *args, **kwargs)
 
         is_csu_partner = bool(request.query_params.get("is_csu_partner", False))
-        cached_previews = check_preview_list_cache(is_csu_partner)
+        cached_previews = check_cache(
+            LIST_CLUB_PREVIEW_PREFIX, is_csu_partner=is_csu_partner, limit=limit, offset=offset
+        )
 
         if not cached_previews:
             cached_previews = ClubPreviewSerializer(
                 Club.objects.filter(is_csu_partner=is_csu_partner).distinct(), many=True
             ).data
-            set_preview_list_cache(is_csu_partner, cached_previews)
+            set_cache(
+                cached_previews,
+                LIST_CLUB_PREVIEW_PREFIX,
+                is_csu_partner=is_csu_partner,
+                limit=limit,
+                offset=offset,
+            )
 
         page = self.paginate_queryset(cached_previews)
         serializer = ClubPreviewSerializer(page, many=True)
