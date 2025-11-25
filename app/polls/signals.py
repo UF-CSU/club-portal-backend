@@ -78,7 +78,10 @@ def on_delete_poll_submission(sender, instance: PollSubmission, **kwargs):
 
 @receiver([post_save, post_delete])
 def refresh_poll_preview_cache(
-    sender, instance: Poll | Event | Club | PollField | PollSubmissionLink, created=False, **kwargs
+    sender,
+    instance: Poll | Event | Club | PollField | PollSubmissionLink,
+    created=False,
+    **kwargs,
 ):
     """Sets and invalidates poll previews cache when relations change"""
     if sender in [Poll, Event, Club, PollField, PollSubmissionLink]:

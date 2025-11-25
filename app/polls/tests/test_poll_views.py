@@ -307,7 +307,9 @@ class PollViewAuthTests(PrivateApiTestsBase):
             res = self.client.post(field_url, field, format="json")
             self.assertResCreated(res)
 
-        self.assertEqual(PollField.objects.count(), len(fields_payload) + initial_fields_count)
+        self.assertEqual(
+            PollField.objects.count(), len(fields_payload) + initial_fields_count
+        )
         self.assertEqual(PollQuestion.objects.count(), initial_question_count + 10)
         self.assertEqual(EmailInput.objects.count(), 1)  # Default email field
         self.assertEqual(TextInput.objects.count(), 3)
@@ -407,7 +409,9 @@ class PollViewAuthTests(PrivateApiTestsBase):
             },
         }
         add_field_url = pollfield_list_url(poll.pk)
-        add_field_res = self.client.post(add_field_url, add_field_payload, format="json")
+        add_field_res = self.client.post(
+            add_field_url, add_field_payload, format="json"
+        )
         self.assertResCreated(add_field_res)
 
         poll.refresh_from_db()
@@ -543,11 +547,15 @@ class PollViewAuthTests(PrivateApiTestsBase):
         submission = poll.submissions.first()
         self.assertIsNotNone(submission)
         self.assertEqual(submission.poll, poll)
-        self.assertEqual(submission.user, self.user)  # Assuming AuthViewsTestsBase sets self.user
+        self.assertEqual(
+            submission.user, self.user
+        )  # Assuming AuthViewsTestsBase sets self.user
 
         # Verify the submission data contains the correct answer
         self.assertEqual(submission.answers.count(), 1)
-        self.assertEqual(submission.answers.first().text_value, "This is a short answer.")
+        self.assertEqual(
+            submission.answers.first().text_value, "This is a short answer."
+        )
 
     def test_submission_poll_multiple_questions(self):
         """Should submit poll with multiple question types via api."""
@@ -570,7 +578,9 @@ class PollViewAuthTests(PrivateApiTestsBase):
         )
 
         # Create choice field
-        choice_field = PollField.objects.create(poll=poll, field_type="question", order=1)
+        choice_field = PollField.objects.create(
+            poll=poll, field_type="question", order=1
+        )
 
         choice_question = PollQuestion.objects.create(
             field=choice_field,
@@ -584,11 +594,17 @@ class PollViewAuthTests(PrivateApiTestsBase):
             question=choice_question, is_multiple=False, choice_type="select"
         )
 
-        ChoiceInputOption.objects.create(input=choice_input, order=0, label="Red", value="red")
-        ChoiceInputOption.objects.create(input=choice_input, order=1, label="Blue", value="blue")
+        ChoiceInputOption.objects.create(
+            input=choice_input, order=0, label="Red", value="red"
+        )
+        ChoiceInputOption.objects.create(
+            input=choice_input, order=1, label="Blue", value="blue"
+        )
 
         # Create number field
-        number_field = PollField.objects.create(poll=poll, field_type="question", order=2)
+        number_field = PollField.objects.create(
+            poll=poll, field_type="question", order=2
+        )
 
         number_question = PollQuestion.objects.create(
             field=number_field,
@@ -642,15 +658,21 @@ class PollViewAuthTests(PrivateApiTestsBase):
         )
 
         # Choice answer
-        self.assertEqual(submission.answers.get(question__id=number_question.pk).number_value, 8.0)
+        self.assertEqual(
+            submission.answers.get(question__id=number_question.pk).number_value, 8.0
+        )
 
         # Number answer
         self.assertEqual(
-            submission.answers.get(question__id=choice_question.pk).options_value.all().count(),
+            submission.answers.get(question__id=choice_question.pk)
+            .options_value.all()
+            .count(),
             1,
         )
         self.assertEqual(
-            submission.answers.get(question__id=choice_question.pk).options_value.first().value,
+            submission.answers.get(question__id=choice_question.pk)
+            .options_value.first()
+            .value,
             "blue",
         )
 

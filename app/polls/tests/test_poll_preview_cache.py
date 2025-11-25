@@ -55,7 +55,9 @@ class PollPreviewCacheTests(PublicApiTestsBase):
 
         test_poll.event = create_test_event()
         res = self.client.get(url)
-        self.assertEqual(res.data, check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk))
+        self.assertEqual(
+            res.data, check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk)
+        )
 
     def test_list_poll_preview_cache(self):
         """Test for the poll preview cache list endpoint"""
@@ -81,7 +83,7 @@ class PollPreviewCacheTests(PublicApiTestsBase):
         end_cache = time()
 
         print(
-            f"""Time No Cache: {end_no_cache- start_no_cache}\nTime Cached: {end_cache - start_cache}"""
+            f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
         )
 
         test_poll = create_test_poll()

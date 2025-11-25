@@ -179,7 +179,9 @@ class FilterBackendBase(filters.BaseFilterBackend):
 
     template = "core/filters/query.html"
 
-    def filter_queryset(self, request: Request, queryset: models.QuerySet, view: ViewSet):
+    def filter_queryset(
+        self, request: Request, queryset: models.QuerySet, view: ViewSet
+    ):
         return super().filter_queryset(request, queryset, view)
 
     def to_html(self, request, queryset, view):

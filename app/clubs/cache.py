@@ -11,14 +11,18 @@ def delete_repopulate_preview_list_cache():
     """Delete preview pairs from previews cache"""
     clear_cache(LIST_CLUB_PREVIEW_PREFIX)
     set_cache(
-        ClubPreviewSerializer(Club.objects.filter(is_csu_partner=True).distinct(), many=True).data,
+        ClubPreviewSerializer(
+            Club.objects.filter(is_csu_partner=True).distinct(), many=True
+        ).data,
         LIST_CLUB_PREVIEW_PREFIX,
         is_csu_partner=True,
         limit=None,
         offset=None,
     )
     set_cache(
-        ClubPreviewSerializer(Club.objects.filter(is_csu_partner=False).distinct(), many=True).data,
+        ClubPreviewSerializer(
+            Club.objects.filter(is_csu_partner=False).distinct(), many=True
+        ).data,
         LIST_CLUB_PREVIEW_PREFIX,
         is_csu_partner=False,
         limit=None,
@@ -27,7 +31,9 @@ def delete_repopulate_preview_list_cache():
 
     # INITIAL CACHE PREVIEW ENDPOINT
     set_cache(
-        ClubPreviewSerializer(Club.objects.filter(is_csu_partner=False).distinct(), many=True).data,
+        ClubPreviewSerializer(
+            Club.objects.filter(is_csu_partner=False).distinct(), many=True
+        ).data,
         LIST_CLUB_PREVIEW_PREFIX,
         is_csu_partner=False,
         limit=100,

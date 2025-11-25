@@ -33,7 +33,9 @@ def delete_repopulate_event_cache(hosts: QuerySet[EventHost]):
         cache.delete(generate_event_hash(club_id=host.pk, is_anonymous=True))
 
         set_event_cache(
-            club_id=host.pk, is_anonymous=True, response_data=Event.objects.filter(id=host.pk)
+            club_id=host.pk,
+            is_anonymous=True,
+            response_data=Event.objects.filter(id=host.pk),
         )
         set_event_cache(
             club_id=host.pk,

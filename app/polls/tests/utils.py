@@ -44,7 +44,9 @@ def polloption_list_url(poll_id: int, pollfield_id: int):
 
 
 def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
-    return reverse("api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id])
+    return reverse(
+        "api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id]
+    )
 
 
 def create_test_poll(**kwargs):
@@ -97,7 +99,9 @@ def create_test_pollsubmission(poll: Poll, user=None, **kwargs):
                 q.scale_input.min_value, q.scale_input.max_value
             )
         elif q.input_type == PollInputType.CHOICE:
-            answer_payload["choice_value"] = random.sample(list(q.choice_input.options.all()), 1)
+            answer_payload["choice_value"] = random.sample(
+                list(q.choice_input.options.all()), 1
+            )
 
         PollQuestionAnswer.objects.create(**answer_payload)
 

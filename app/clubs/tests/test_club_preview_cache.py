@@ -64,7 +64,7 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         end_cache = time()
 
         print(
-            f"""Time No Cache: {end_no_cache- start_no_cache}\nTime Cached: {end_cache - start_cache}"""
+            f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
         )
 
         create_test_club()
@@ -131,11 +131,13 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
 
         create_test_club_tag([])
         self.assertEqual(
-            res.json()["results"], check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk)
+            res.json()["results"],
+            check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk),
         )
 
         create_test_club_tag([test_club])
         res = self.client.get(url)
         self.assertEqual(
-            res.json()["results"], check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk)
+            res.json()["results"],
+            check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk),
         )
