@@ -213,7 +213,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
 
     logo = ClubFileNestedSerializer()
-    # banner = ClubFileNestedSerializer(required=False)
+    banner = ClubFileNestedSerializer(required=False)
     tags = ClubTagSerializer(many=True, read_only=True)
     socials = ClubSocialSerializer(many=True, read_only=True)
     majors = serializers.SlugRelatedField(many=True, slug_field="name", read_only=True)
@@ -222,6 +222,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
         model = Club
         fields = [
             "id",
+            "banner",
             "gatorconnect_url",
             "gatorconnect_organization_url",
             "name",

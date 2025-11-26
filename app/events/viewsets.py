@@ -293,10 +293,46 @@ class EventViewset(ModelViewSetBase):
             elif not primary_club or not user_clubs.filter(id=primary_club.id).exists():
                 self.permission_denied(
                     self.request,
-                    "Need event creation priviledge for primary host club.",
+                    "Need event creation privilege for primary host club.",
                 )
 
         return super().perform_create(serializer)
+
+    # Cache detail view for 2 hours (per Authorization header)
+    # @method_decorator(cache_page(60 * 60 * 2))
+    # @method_decorator(vary_on_headers("Authorization"))
+    # def retrieve(self, request, *args, **kwargs):
+    #     return super().retrieve(request, *args, **kwargs)
+
+    # def list(self, request: Request, *args, **kwargs):
+    #     club_id_list = request.query_params.getlist("clubs", [])
+    #     more_than_one_club = len(club_id_list) > 1
+
+    #     if more_than_one_club:
+    #         events_set = set()
+    #         for id in club_id_list:
+    #             cached_events = check_event_cache(id, request.user.is_anonymous)
+    #             events_set.update(
+    #                 cached_events if cached_events else Event.objects.filter(host__id=id)
+    #             )
+
+    #         return Response(self.get_serializer(list(events_set), many=True).data)
+    #     else:
+    #         id = club_id_list[0] if len(club_id_list) == 1 else None
+    #         cached_events = check_event_cache(id, request.user.is_anonymous)
+    #         print("Cached Events: ", cached_events)
+    #         events = cached_events
+
+    #         if not events:
+    #             events = self.get_queryset()
+    #             print("Events: ", events)
+    #             set_event_cache(
+    #                 id,
+    #                 request.user.is_anonymous,
+    #                 events,
+    #             )
+
+    #         return Response(self.get_serializer(events, many=True).data)
 
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)

@@ -39,3 +39,17 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
     # Make a job for scheduling event as public
     if instance.make_public_task is None and instance.make_public_at is not None:
         service.schedule_make_public_task()
+
+
+# @receiver(post_save, sender=Event)
+# def on_save_event_cache(sender, instance: Event, **kwargs):
+#     """Sets the event cache when an event is saved"""
+#     hosts = instance.hosts.all()
+#     delete_repopulate_event_cache(hosts)
+
+
+# @receiver(post_delete, sender=Event)
+# def on_delete_event_cache(sender, instance: Event, **kwargs):
+#     """Clear an event cache key on delete"""
+#     hosts = instance.hosts.all()
+#     delete_repopulate_event_cache(hosts)

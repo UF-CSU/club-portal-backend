@@ -1,9 +1,18 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from clubs.models import Club
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+from events.models import Event
 
-from polls.models import Poll, PollInputType, PollSubmission
+from polls.cache import delete_repopulate_poll_preview_cache
+from polls.models import (
+    Poll,
+    PollField,
+    PollInputType,
+    PollSubmission,
+    PollSubmissionLink,
+)
 from polls.serializers import PollSubmissionSerializer
 from polls.services import PollService
 
@@ -65,3 +74,15 @@ def on_delete_poll_submission(sender, instance: PollSubmission, **kwargs):
         f"poll_{instance.poll.id}",
         event,
     )
+
+
+@receiver([post_save, post_delete])
+def refresh_poll_preview_cache(
+    sender,
+    instance: Poll | Event | Club | PollField | PollSubmissionLink,
+    created=False,
+    **kwargs,
+):
+    """Sets and invalidates poll previews cache when relations change"""
+    if sender in [Poll, Event, Club, PollField, PollSubmissionLink]:
+        delete_repopulate_poll_preview_cache(instance)

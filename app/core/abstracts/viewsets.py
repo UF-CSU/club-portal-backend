@@ -39,7 +39,7 @@ class ViewSetBase(GenericViewSet):
     """
 
     request: Request
-    """The incomming request."""
+    """The incoming request."""
 
     kwargs: dict
     """

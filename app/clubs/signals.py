@@ -1,15 +1,19 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from utils.images import create_default_icon
 from utils.permissions import parse_permissions
 
+from clubs.cache import (
+    delete_repopulate_preview_detail_cache,
+    delete_repopulate_preview_list_cache,
+)
 from clubs.defaults import (
     ADMIN_ROLE_PERMISSIONS,
     INITIAL_CLUB_ROLES,
     INITIAL_TEAM_ROLES,
     VIEWER_ROLE_PERMISSIONS,
 )
-from clubs.models import Club, ClubFile, ClubRole, RoleType, Team, TeamRole
+from clubs.models import Club, ClubFile, ClubRole, ClubTag, RoleType, Team, TeamRole
 
 
 @receiver(post_save, sender=Club)
@@ -107,3 +111,13 @@ def on_save_club_role(sender, instance: ClubRole, created=False, **kwargs):
     else:
         # Unknown role type
         pass
+
+
+@receiver([post_save, post_delete])
+def refresh_preview_cache(sender, instance: Club | ClubTag, created=False, **kwargs):
+    """Refreshes the club preview cache when clubs are changed"""
+    if sender == Club or sender == ClubTag:
+        delete_repopulate_preview_list_cache()
+        delete_repopulate_preview_detail_cache(
+            [instance] if sender == Club else instance.clubs.all()
+        )
