@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
@@ -83,6 +83,48 @@ class CustomDatePagination(BasePagination):
                 "results": data,
             }
         )
+
+    def get_paginated_response_schema(self, schema):
+        return {
+            "type": "object",
+            "required": ["count", "start_date", "end_date", "results"],
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 123,
+                },
+                "start_date": {
+                    "type": "date",
+                    "nullable": False,
+                    "example": datetime.now().replace(day=1).strftime("%Y-%m-%d"),
+                },
+                "end_date": {
+                    "type": "date",
+                    "nullable": False,
+                    "example": datetime.now().replace(day=25).strftime("%Y-%m-%d"),
+                },
+                "results": schema,
+            },
+        }
+
+    def get_schema_operation_parameters(self, view):
+        parameters = [
+            {
+                "name": "start_date",
+                "required": False,
+                "in": "query",
+                "description": "Will return events starting after midnight of this date.",
+                "schema": {"type": "date"},
+            },
+            {
+                "name": "end_date",
+                "required": False,
+                "in": "query",
+                "description": "Will return events starting at a time before midnight of this date.",
+                "schema": {"type": "date"},
+            },
+        ]
+        return parameters
 
 
 class EventPreviewViewSet(ModelPreviewViewSetBase):
