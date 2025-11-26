@@ -1,6 +1,6 @@
 from core.abstracts.viewsets import (
-    CustomLimitOffsetPagination,
     FilterBackendBase,
+    ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewDetailsPermissions,
     ViewSetBase,
@@ -11,9 +11,8 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, filters, mixins, permissions, status
+from rest_framework import exceptions, mixins, status
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -161,7 +160,7 @@ class UserClubMembershipsViewSet(ModelViewSetBase):
         return super().check_object_permissions(request, obj)
 
 
-class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase):
+class ClubPreviewViewSet(ModelPreviewViewSetBase):
     """Access limited club data via the API."""
 
     queryset = (
@@ -181,14 +180,9 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
         .annotate(member_count=Count("memberships", distinct=True))
     )
     serializer_class = ClubPreviewSerializer
-    pagination_class = CustomLimitOffsetPagination
 
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["name", "alias"]
     filterset_fields = ["is_csu_partner", "majors__name", "tags"]
-
-    authentication_classes = []
-    permission_classes = [permissions.AllowAny]
 
     # Cache detail view for 2 hours (per Authorization header)
     @method_decorator(cache_page(60 * 60 * 2))
