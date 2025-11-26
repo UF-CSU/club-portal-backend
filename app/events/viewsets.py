@@ -36,10 +36,11 @@ class CustomDatePagination(BasePagination):
         end_date = request.query_params.get("end_date", None)
 
         current_tz = timezone.get_current_timezone()
+        now = datetime.now().astimezone(current_tz)
 
         # Parse start date
         if start_date is None:
-            start_date = timezone.now().date()
+            start_date = now.date()
         else:
             start_date = parse_date(start_date)
 
@@ -49,7 +50,7 @@ class CustomDatePagination(BasePagination):
 
         # Parse end date
         if end_date is None:
-            end_date = (timezone.now() + timedelta(days=6)).date()
+            end_date = (now + timedelta(days=7)).date()
         else:
             end_date = parse_date(end_date)
 

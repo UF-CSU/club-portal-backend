@@ -107,7 +107,10 @@ class EventPublicApiTests(PublicApiTestsBase):
 
     @freezegun.freeze_time("11/22/25 13:00:00")
     def test_list_event_preview_default_pagination(self):
-        """Should only show events for the next 7 days by default."""
+        """
+        Should only show events for the next 7 days by default.
+        This counts "today" as day 0, so 8 days are included in the response.
+        """
 
         # Create events (I=included in response, N=not included)
         # Yesterday event, N
@@ -116,12 +119,14 @@ class EventPublicApiTests(PublicApiTestsBase):
         e2 = create_test_event(start_at="11/22/25 17:00:00", end_at="11/22/25 19:00:00")
         # Tomorrow event, I
         e3 = create_test_event(start_at="11/23/25 17:00:00", end_at="11/23/25 19:00:00")
-        # In 6 days event (inclusive), I
+        # In 5 days event (inclusive), I
         e4 = create_test_event(start_at="11/27/25 17:00:00", end_at="11/27/25 19:00:00")
-        # In 7 days event, I
+        # In 6 days event, I
         e5 = create_test_event(start_at="11/28/25 17:00:00", end_at="11/28/25 19:00:00")
-        # In 8 days event, N
+        # In 7 days event, I
         e6 = create_test_event(start_at="11/29/25 17:00:00", end_at="11/29/25 19:00:00")
+        # In 8 days event, N
+        e7 = create_test_event(start_at="11/30/25 17:00:00", end_at="11/30/25 19:00:00")
 
         # Check api response
         url = EVENTPREVIEW_LIST_URL
@@ -131,16 +136,16 @@ class EventPublicApiTests(PublicApiTestsBase):
         # Check paginated response
         data = res.json()
         self.assertEqual(data["start_date"], "2025-11-22")
-        self.assertEqual(data["end_date"], "2025-11-28")  # 7 days inclusive
-        self.assertEqual(data["count"], 4)
+        self.assertEqual(data["end_date"], "2025-11-29")  # includes 7th day
+        self.assertEqual(data["count"], 5)
 
         # Check events returned
         events = data["results"]
-        self.assertEqual(len(events), 4)
+        self.assertEqual(len(events), 5)
 
         for event in events:
-            self.assertNotIn(event["id"], [e1.pk, e6.pk])
-            self.assertIn(event["id"], [e2.pk, e3.pk, e4.pk, e5.pk])
+            self.assertNotIn(event["id"], [e1.pk, e7.pk])
+            self.assertIn(event["id"], [e2.pk, e3.pk, e4.pk, e5.pk, e6.pk])
 
     @freezegun.freeze_time("11/24/25 13:00:00")
     def test_list_event_previews_date_range(self):
@@ -220,6 +225,19 @@ class EventPublicApiTests(PublicApiTestsBase):
 
         for event in events:
             self.assertIn(event["id"], november_events)
+
+    @freezegun.freeze_time("11/25/25 23:00:00-05:00")
+    def test_event_list_user_timezone(self):
+        """Should interpret date params as user's timezone."""
+
+        self.set_user_timezone("America/New_York")
+        url = EVENTPREVIEW_LIST_URL
+        res = self.client.get(url)
+
+        data = res.json()
+
+        self.assertEqual(data["start_date"], "2025-11-25")
+        self.assertEqual(data["end_date"], "2025-12-02")
 
 
 class EventPrivateApiTests(PrivateApiTestsBase):
