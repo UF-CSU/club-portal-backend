@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import freezegun
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from django.utils import timezone
@@ -8,10 +9,13 @@ from users.tests.utils import create_test_user
 from events.models import Event
 from events.tests.utils import (
     EVENT_LIST_URL,
+    EVENTPREVIEW_LIST_URL,
     create_test_event,
     create_test_events,
+    create_test_eventtag,
     event_detail_url,
     event_list_url,
+    event_preview_detail_url,
 )
 
 
@@ -53,6 +57,187 @@ class EventPublicApiTests(PublicApiTestsBase):
         # Returns 404 not found
         res2 = self.client.get(url2)
         self.assertResNotFound(res2)
+
+    def test_list_event_previews(self):
+        """Should display preview version of public events."""
+
+        e1 = create_test_event(is_public=True)
+        create_test_event(is_public=False)
+        create_test_event(is_draft=True)
+
+        url = EVENTPREVIEW_LIST_URL
+
+        # Returns public event
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        assert len(data["results"]) == 1
+
+        event = data["results"][0]
+        assert event["id"] == e1.pk
+        assert "attendance_links" not in event
+        assert "attachments" not in event
+        assert "poll" not in event
+        assert "enable_attendance" not in event
+        assert "make_public_at" not in event
+
+    def test_detail_event_preview(self):
+        """Should only show event preview if event is public and not draft."""
+
+        e1 = create_test_event(is_public=True)
+        e2 = create_test_event(is_public=False)
+        e3 = create_test_event(is_draft=True)
+
+        url1 = event_preview_detail_url(e1.pk)
+        url2 = event_preview_detail_url(e2.pk)
+        url3 = event_preview_detail_url(e3.pk)
+
+        # Returns public event
+        res1 = self.client.get(url1)
+        self.assertResOk(res1)
+
+        # Returns 404 not found if not public
+        res2 = self.client.get(url2)
+        self.assertResNotFound(res2)
+
+        # Returns 404 not found if is draft
+        res3 = self.client.get(url3)
+        self.assertResNotFound(res3)
+
+    @freezegun.freeze_time("11/22/25 13:00:00")
+    def test_list_event_preview_default_pagination(self):
+        """
+        Should only show events for the next 7 days by default.
+        This counts "today" as day 0, so 8 days are included in the response.
+        """
+
+        # Create events (I=included in response, N=not included)
+        # Yesterday event, N
+        e1 = create_test_event(start_at="11/21/25 17:00:00", end_at="11/21/25 19:00:00")
+        # Today event, I
+        e2 = create_test_event(start_at="11/22/25 17:00:00", end_at="11/22/25 19:00:00")
+        # Tomorrow event, I
+        e3 = create_test_event(start_at="11/23/25 17:00:00", end_at="11/23/25 19:00:00")
+        # In 5 days event (inclusive), I
+        e4 = create_test_event(start_at="11/27/25 17:00:00", end_at="11/27/25 19:00:00")
+        # In 6 days event, I
+        e5 = create_test_event(start_at="11/28/25 17:00:00", end_at="11/28/25 19:00:00")
+        # In 7 days event, I
+        e6 = create_test_event(start_at="11/29/25 17:00:00", end_at="11/29/25 19:00:00")
+        # In 8 days event, N
+        e7 = create_test_event(start_at="11/30/25 17:00:00", end_at="11/30/25 19:00:00")
+
+        # Check api response
+        url = EVENTPREVIEW_LIST_URL
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Check paginated response
+        data = res.json()
+        self.assertEqual(data["start_date"], "2025-11-22")
+        self.assertEqual(data["end_date"], "2025-11-29")  # includes 7th day
+        self.assertEqual(data["count"], 5)
+
+        # Check events returned
+        events = data["results"]
+        self.assertEqual(len(events), 5)
+
+        for event in events:
+            self.assertNotIn(event["id"], [e1.pk, e7.pk])
+            self.assertIn(event["id"], [e2.pk, e3.pk, e4.pk, e5.pk, e6.pk])
+
+    @freezegun.freeze_time("11/24/25 13:00:00")
+    def test_list_event_previews_date_range(self):
+        """Should only display events in date range."""
+
+        oct_tag = create_test_eventtag(name="October Event")
+        nov_tag = create_test_eventtag(name="November Event")
+        dec_tag = create_test_eventtag(name="December Event")
+
+        # October events
+        create_test_event(
+            start_at="10/21/25 17:00:00", end_at="10/21/25 19:00:00", tags=[oct_tag]
+        )
+        create_test_event(
+            start_at="10/23/25 17:00:00", end_at="10/23/25 19:00:00", tags=[oct_tag]
+        )
+        create_test_event(
+            start_at="10/27/25 17:00:00", end_at="10/30/25 19:00:00", tags=[oct_tag]
+        )
+
+        # November events (current month)
+        create_test_event(
+            start_at="11/4/25 17:00:00", end_at="11/4/25 19:00:00", tags=[nov_tag]
+        )
+        create_test_event(
+            start_at="11/6/25 17:00:00", end_at="11/6/25 19:00:00", tags=[nov_tag]
+        )
+        create_test_event(
+            start_at="11/11/25 17:00:00", end_at="11/11/25 19:00:00", tags=[nov_tag]
+        )
+        create_test_event(
+            start_at="11/13/25 17:00:00", end_at="11/13/25 19:00:00", tags=[nov_tag]
+        )
+        create_test_event(
+            start_at="11/18/25 17:00:00", end_at="11/18/25 19:00:00", tags=[nov_tag]
+        )
+        create_test_event(
+            start_at="11/20/25 17:00:00", end_at="11/20/25 19:00:00", tags=[nov_tag]
+        )
+        create_test_event(
+            start_at="11/25/25 17:00:00", end_at="11/25/25 19:00:00", tags=[nov_tag]
+        )
+        create_test_event(
+            start_at="11/27/25 17:00:00", end_at="11/27/25 19:00:00", tags=[nov_tag]
+        )
+
+        # December events
+        create_test_event(
+            start_at="12/2/25 17:00:00", end_at="12/2/25 19:00:00", tags=[dec_tag]
+        )
+        create_test_event(
+            start_at="12/4/25 17:00:00", end_at="12/4/25 19:00:00", tags=[dec_tag]
+        )
+        create_test_event(
+            start_at="12/8/25 17:00:00", end_at="12/8/25 19:00:00", tags=[dec_tag]
+        )
+        create_test_event(
+            start_at="12/11/25 17:00:00", end_at="12/11/25 19:00:00", tags=[dec_tag]
+        )
+
+        # Check api response
+        url = EVENTPREVIEW_LIST_URL + "?start_date=2025-11-01&end_date=2025-11-30"
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Check paginated response
+        data = res.json()
+        self.assertEqual(data["start_date"], "2025-11-01")
+        self.assertEqual(data["end_date"], "2025-11-30")  # 7 days inclusive
+        self.assertEqual(data["count"], 8)
+
+        # Check events returned
+        events = data["results"]
+        self.assertEqual(len(events), 8)
+
+        november_events = nov_tag.events.all().values_list("id", flat=True)
+
+        for event in events:
+            self.assertIn(event["id"], november_events)
+
+    @freezegun.freeze_time("11/25/25 23:00:00-05:00")
+    def test_event_list_user_timezone(self):
+        """Should interpret date params as user's timezone."""
+
+        self.set_user_timezone("America/New_York")
+        url = EVENTPREVIEW_LIST_URL
+        res = self.client.get(url)
+
+        data = res.json()
+
+        self.assertEqual(data["start_date"], "2025-11-25")
+        self.assertEqual(data["end_date"], "2025-12-02")
 
 
 class EventPrivateApiTests(PrivateApiTestsBase):

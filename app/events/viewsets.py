@@ -1,16 +1,20 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
     FilterBackendBase,
+    ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewPermissions,
 )
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
+from rest_framework.pagination import BasePagination
+from rest_framework.request import Request
 from rest_framework.response import Response
+from utils.dates import parse_date
 
 from events.models import (
     Event,
@@ -23,8 +27,119 @@ from events.models import (
 from . import models, serializers
 
 
+class CustomDatePagination(BasePagination):
+    """Allow api pagination via start and end date."""
+
+    def get_date_range(self, request: Request):
+        """Get start and end dates from url."""
+        start_date = request.query_params.get("start_date", None)
+        end_date = request.query_params.get("end_date", None)
+
+        current_tz = timezone.get_current_timezone()
+        now = datetime.now().astimezone(current_tz)
+
+        # Parse start date
+        if start_date is None:
+            start_date = now.date()
+        else:
+            start_date = parse_date(start_date)
+
+        start_date = timezone.datetime(
+            start_date.year, start_date.month, start_date.day, tzinfo=current_tz
+        )
+
+        # Parse end date
+        if end_date is None:
+            end_date = (now + timedelta(days=7)).date()
+        else:
+            end_date = parse_date(end_date)
+
+        end_date = timezone.datetime(
+            end_date.year,
+            end_date.month,
+            end_date.day,
+            hour=23,
+            minute=59,
+            second=59,
+            tzinfo=current_tz,
+        )
+
+        return (start_date, end_date)
+
+    def paginate_queryset(self, queryset: QuerySet[Event], request, view=None):
+        self.start_date, self.end_date = self.get_date_range(request)
+        queryset = queryset.filter(
+            Q(start_at__gte=self.start_date) & Q(start_at__lte=self.end_date)
+        )
+        self.count = queryset.count()
+
+        return queryset
+
+    def get_paginated_response(self, data):
+        return Response(
+            {
+                "count": self.count,
+                "start_date": self.start_date.date(),
+                "end_date": self.end_date.date(),
+                "results": data,
+            }
+        )
+
+    def get_paginated_response_schema(self, schema):
+        return {
+            "type": "object",
+            "required": ["count", "start_date", "end_date", "results"],
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 123,
+                },
+                "start_date": {
+                    "type": "date",
+                    "nullable": False,
+                    "example": datetime.now().replace(day=1).strftime("%Y-%m-%d"),
+                },
+                "end_date": {
+                    "type": "date",
+                    "nullable": False,
+                    "example": datetime.now().replace(day=25).strftime("%Y-%m-%d"),
+                },
+                "results": schema,
+            },
+        }
+
+    def get_schema_operation_parameters(self, view):
+        parameters = [
+            {
+                "name": "start_date",
+                "required": False,
+                "in": "query",
+                "description": "Will return events starting after midnight of this date.",
+                "schema": {"type": "date"},
+            },
+            {
+                "name": "end_date",
+                "required": False,
+                "in": "query",
+                "description": "Will return events starting at a time before midnight of this date.",
+                "schema": {"type": "date"},
+            },
+        ]
+        return parameters
+
+
+class EventPreviewViewSet(ModelPreviewViewSetBase):
+    """API For showing public event previews."""
+
+    queryset = Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
+    serializer_class = serializers.EventPreviewSerializer
+    pagination_class = CustomDatePagination
+
+
 class EventClubFilter(FilterBackendBase):
     """Get events filtered by club"""
+
+    pass
 
 
 class EventDateFilter(FilterBackendBase):

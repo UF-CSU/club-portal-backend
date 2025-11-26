@@ -5,14 +5,10 @@ from . import viewsets
 
 router = DefaultRouter()
 router.register("events", viewsets.EventViewset, basename="event")
+router.register("event-previews", viewsets.EventPreviewViewSet, basename="eventpreview")
 router.register(
     "recurring-events", viewsets.RecurringEventViewSet, basename="recurringevent"
 )
-# router.register(
-#     r"events/(?P<event_id>.+)/attendance",
-#     viewsets.EventAttendanceViewSet,
-#     basename="attendance",
-# )
 
 app_name = "api-events"
 
