@@ -1,3 +1,4 @@
+import logging
 from time import time
 
 from core.abstracts.tests import PublicApiTestsBase
@@ -15,6 +16,8 @@ from polls.tests.utils import (
     create_test_poll,
     pollpreview_detail_url,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class PollPreviewCacheTests(PublicApiTestsBase):
@@ -49,7 +52,7 @@ class PollPreviewCacheTests(PublicApiTestsBase):
         res = self.client.get(url)
         end_cache = time()
 
-        print(
+        logger.debug(
             f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
         )
 
@@ -82,7 +85,7 @@ class PollPreviewCacheTests(PublicApiTestsBase):
         res = self.client.get(url)
         end_cache = time()
 
-        print(
+        logger.debug(
             f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
         )
 

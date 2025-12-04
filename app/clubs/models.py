@@ -51,7 +51,7 @@ class ClubFileOrigin(models.TextChoices):
 class ClubTag(Tag):
     """Group clubs together based on topics."""
 
-    clubs: list["Club"]
+    clubs: models.QuerySet["Club"]
 
 
 def get_default_founding_year():

@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, mixins, status
+from rest_framework import exceptions, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request

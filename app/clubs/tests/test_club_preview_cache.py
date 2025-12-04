@@ -1,3 +1,4 @@
+import logging
 from time import time
 
 from core.abstracts.tests import PublicApiTestsBase
@@ -10,9 +11,11 @@ from clubs.tests.utils import (
     CLUBS_PREVIEW_LIST_URL,
     club_preview_detail_url,
     create_test_club,
-    create_test_club_tag,
     create_test_clubs,
+    create_test_clubtag,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ClubPreviewCacheTests(PublicApiTestsBase):
@@ -63,7 +66,7 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         res = self.client.get(url)
         end_cache = time()
 
-        print(
+        logger.debug(
             f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
         )
 
@@ -79,7 +82,7 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
             ),
         )
 
-        create_test_club_tag([])
+        create_test_clubtag([])
         self.assertCountEqual(
             res.json()["results"],
             check_cache(
@@ -90,7 +93,7 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
             ),
         )
 
-        create_test_club_tag(test_clubs)
+        create_test_clubtag(test_clubs)
         res = self.client.get(url)
         self.assertCountEqual(
             res.json()["results"],
@@ -125,17 +128,17 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         res = self.client.get(url)
         end_cache = time()
 
-        print(
+        logger.debug(
             f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
         )
 
-        create_test_club_tag([])
+        create_test_clubtag([])
         self.assertEqual(
             res.json()["results"],
             check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk),
         )
 
-        create_test_club_tag([test_club])
+        create_test_clubtag([test_club])
         res = self.client.get(url)
         self.assertEqual(
             res.json()["results"],

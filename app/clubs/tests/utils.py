@@ -151,9 +151,11 @@ def create_test_team(club: Club, clear_roles=False, **kwargs):
     return team
 
 
-def create_test_club_tag(clubs: list[Club], name: str = "test tag"):
+def create_test_clubtag(clubs: list[Club], name: str = "test tag", **kwargs):
     """Create valid club tag for unit tests."""
-    new_tag = ClubTag.objects.create(name=name)
+    payload = {"name": name, **kwargs}
+
+    new_tag = ClubTag.objects.create(**payload)
     new_tag.clubs.set(clubs)
     return new_tag
 
