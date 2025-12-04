@@ -19,39 +19,17 @@ from polls.models import (
     TextInput,
     UploadInput,
 )
-from polls.tests.utils import create_test_poll
-
-POLLS_URL = reverse("api-polls:poll-list")
-
-
-def polls_detail_url(id: int):
-    return reverse("api-polls:poll-detail", args=[id])
-
-
-def pollpreview_detail_url(id: int):
-    return reverse("api-polls:pollpreview-detail", args=[id])
-
-
-def pollsubmission_list_url(poll_id: int):
-    return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
-
-
-def pollfield_list_url(poll_id: int):
-    return reverse("api-polls:pollfield-list", args=[poll_id])
-
-
-def pollfield_detail_url(poll_id: int, pollfield_id: int):
-    return reverse("api-polls:pollfield-detail", args=[poll_id, pollfield_id])
-
-
-def polloption_list_url(poll_id: int, pollfield_id: int):
-    return reverse("api-polls:pollchoiceoption-list", args=[poll_id, pollfield_id])
-
-
-def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
-    return reverse(
-        "api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id]
-    )
+from polls.tests.utils import (
+    POLLS_URL,
+    create_test_poll,
+    pollfield_detail_url,
+    pollfield_list_url,
+    polloption_detail_url,
+    polloption_list_url,
+    pollpreview_detail_url,
+    polls_detail_url,
+    pollsubmission_list_url,
+)
 
 
 class PollViewPublicTests(PublicApiTestsBase):
