@@ -381,7 +381,6 @@ prod = [
     { name = "boto3" },
     { name = "psycopg", extra = ["c", "pool"] },
     { name = "sentry-sdk" },
-    { name = "uwsgi" },
 ]
 
 [package.metadata]
@@ -443,7 +442,6 @@ prod = [
     { name = "boto3", specifier = ">=1.40.42,<1.41" },
     { name = "psycopg", extras = ["c", "pool"], specifier = ">=3.2.6,<3.3" },
     { name = "sentry-sdk", specifier = ">=2.39.0,<2.40" },
-    { name = "uwsgi", specifier = "==2.0.28" },
 ]
 
 [[package]]
@@ -1798,12 +1796,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/53/8369e5219a5855869bcee5f4d317f6da0e2c669aecf0ef7d371e3d084449/uvloop-0.22.1-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:bc5ef13bbc10b5335792360623cc378d52d7e62c2de64660616478c32cd0598e", size = 4119472, upload-time = "2025-10-16T22:16:41.694Z" },
     { url = "https://files.pythonhosted.org/packages/f8/ba/d69adbe699b768f6b29a5eec7b47dd610bd17a69de51b251126a801369ea/uvloop-0.22.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:1f38ec5e3f18c8a10ded09742f7fb8de0108796eb673f30ce7762ce1b8550cad", size = 4239051, upload-time = "2025-10-16T22:16:43.224Z" },
 ]
-
-[[package]]
-name = "uwsgi"
-version = "2.0.28"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/24/c2/d58480aadc9a1f420dd96fc43cf0dcd8cb5ededb95cab53743529c23b6cd/uwsgi-2.0.28.tar.gz", hash = "sha256:79ca1891ef2df14508ab0471ee8c0eb94bd2d51d03f32f90c4bbe557ab1e99d0", size = 816212, upload-time = "2024-10-26T10:06:16.107Z" }
 
 [[package]]
 name = "vine"

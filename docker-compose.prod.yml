@@ -9,6 +9,7 @@ services:
     environment:
       - PORT=9000
       - WORKER_COUNT=${WORKER_COUNT:-6}
+      - REDIS_HOST=${REDIS_HOST:-clubs-prod-redis}
     env_file:
       - .env
     networks:

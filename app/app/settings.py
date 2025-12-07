@@ -28,7 +28,9 @@ def environ_bool(key: str, default=0):
 
 
 def environ_list(key: str, default=""):
-    return [item.strip() for item in filter(None, os.environ.get(key, default).split(","))]
+    return [
+        item.strip() for item in filter(None, os.environ.get(key, default).split(","))
+    ]
 
 
 # Quick-start development settings - unsuitable for production
@@ -49,6 +51,7 @@ TESTING = sys.argv[1:2] == ["test"]
 ALLOWED_HOSTS = []
 ALLOWED_HOSTS.extend(environ_list("DJANGO_ALLOWED_HOSTS"))
 ALLOWED_HOSTS.extend([os.environ.get("DJANGO_BASE_URL")])
+ALLOWED_HOSTS.append(gethostbyname(gethostname()))  # Allow access via ip address
 
 BASE_URL = os.environ.get("DJANGO_BASE_URL", "")
 ALLOWED_HOSTS.extend([BASE_URL])
@@ -71,17 +74,6 @@ SCHOOL_EMAIL_DOMAIN = "ufl.edu"
 
 ASGI_APPLICATION = "app.asgi.application"
 
-# Channels
-CHANNELS_REDIS_URL = os.environ.get("CHANNELS_REDIS_URL", None)
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [CHANNELS_REDIS_URL],
-        },
-    },
-}
 
 # Application definition
 
@@ -250,7 +242,9 @@ SPECTACULAR_SETTINGS = {
         "ErrorCode429Enum": "drf_standardized_errors.openapi_serializers.ErrorCode429Enum.choices",
         "ErrorCode500Enum": "drf_standardized_errors.openapi_serializers.ErrorCode500Enum.choices",
     },
-    "POSTPROCESSING_HOOKS": ["drf_standardized_errors.openapi_hooks.postprocess_schema_enums"],
+    "POSTPROCESSING_HOOKS": [
+        "drf_standardized_errors.openapi_hooks.postprocess_schema_enums"
+    ],
 }
 DRF_STANDARDIZED_ERRORS = {"ENABLE_IN_DEBUG_FOR_UNHANDLED_EXCEPTIONS": True}
 
@@ -378,7 +372,9 @@ if S3_STORAGE_BACKEND:
 
 
 # Sentry
-sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0)
+sentry_sdk.init(
+    dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0
+)
 
 
 ######################
@@ -392,7 +388,6 @@ if CONSOLE_EMAIL_BACKEND:
 
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", None)
 
-# EMAIL_HOST = "smtp.sendgrid.net"
 EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "smtp.sendgrid.net")
 EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "apikey")
 EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", SENDGRID_API_KEY)
@@ -401,13 +396,38 @@ EMAIL_USE_TLS = environ_bool("DJANGO_EMAIL_USE_TLS", 1)
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "admin@example.com")
 
 #######################
+# == Cache Config === #
+#######################
+
+REDIS_HOST = os.environ.get("REDIS_HOST")
+DJANGO_CACHE_REDIS_DB = os.environ.get("DJANGO_CACHE_REDIS_DB", 0)
+
+DJANGO_REDIS_URL = f"redis://{REDIS_HOST}/{DJANGO_CACHE_REDIS_DB}"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": DJANGO_REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
+#######################
 # == Celery Config == #
 #######################
 DJANGO_ENABLE_CELERY = environ_bool("DJANGO_ENABLE_CELERY", 1)
 """When disabled, runs as a single server."""
 
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND")
+# What celery uses to communicate to workers
+CELERY_BROKER_REDIS_DB = os.environ.get("CELERY_BROKER_REDIS_DB", 1)
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}/{CELERY_BROKER_REDIS_DB}"
+
+# What celery uses to store results of tasks
+CELERY_RESULT_BACKEND_REDIS_DB = os.environ.get("CELERY_RESULT_BROKER_REDIS_DB", 1)
+CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}/{CELERY_RESULT_BACKEND_REDIS_DB}"
+
 CELERY_TASK_ACKS_LATE = bool(int(os.environ.get("CELERY_TASK_ACKS_LATE", "1")))
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = bool(
     int(os.environ.get("CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP", "1"))
@@ -428,26 +448,25 @@ if CELERY_BEAT_ENABLE_HEARTBEAT:
         "schedule": crontab(minute="*"),
     }
 
-DJANGO_REDIS_URL = os.environ.get("DJANGO_REDIS_URL", None)
+#########################
+# == Channels Config == #
+#########################
+CHANNELS_REDIS_DB = os.environ.get("CHANNELS_REDIS_DB", 2)
+CHANNELS_REDIS_URL = f"redis://{REDIS_HOST}/{CHANNELS_REDIS_DB}"
 
-
-CACHES = {
+CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": DJANGO_REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [CHANNELS_REDIS_URL],
         },
-    }
+    },
 }
 
 
 ###############################
 # == Environment Overrides == #
 ###############################
-
-if environ_bool("AWS_EXECUTION_ENV", 1):
-    ALLOWED_HOSTS.append(gethostbyname(gethostname()))
 
 if DEV:
     import socket
@@ -459,13 +478,39 @@ if DEV:
     # Insert near top, adjust pos as needed
     MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
     # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
-    CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0", "http://localhost", "http://127.0.0.1"])
+    CSRF_TRUSTED_ORIGINS.extend(
+        ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
+    )
     CORS_ORIGIN_ALLOW_ALL = True
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"  # Set allauth to use http instead of https
 
     INTERNAL_IPS = ["127.0.0.1", "10.0.2.2", "localhost"]
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
+
+
+if DEV and not TESTING:
+    # Ref: https://stackoverflow.com/a/64726422/10914922
+    def show_toolbar(*args, **kwargs):
+        return not TESTING and environ_bool("DJANGO_SHOW_TOOLBAR", 1)
+
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+        "IS_RUNNING_TESTS": False,
+    }
+
+
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
+    logging.disable(logging.NOTSET)
+
+    DJANGO_ENABLE_API_SESSION_AUTH = environ_bool(
+        "DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1
+    )
+
+
+if DEV or DEBUG:
+    POSTGRES_ECHO = environ_bool("POSTGRES_ECHO", 0)
 
     LOGGING = {
         "version": 1,
@@ -485,8 +530,6 @@ if DEV:
         },
     }
 
-    POSTGRES_ECHO = environ_bool("POSTGRES_ECHO", 0)
-
     if POSTGRES_ECHO:
         LOGGING["loggers"]["django.db.backends"] = {
             "handlers": [
@@ -495,24 +538,6 @@ if DEV:
             "level": "DEBUG",
             "propagate": False,
         }
-
-if DEV and not TESTING:
-
-    # Ref: https://stackoverflow.com/a/64726422/10914922
-    def show_toolbar(*args, **kwargs):
-        return not TESTING and environ_bool("DJANGO_SHOW_TOOLBAR", 1)
-
-    DEBUG_TOOLBAR_CONFIG = {
-        "SHOW_TOOLBAR_CALLBACK": show_toolbar,
-        "IS_RUNNING_TESTS": False,
-    }
-
-
-if DEBUG:
-    CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
-    logging.disable(logging.NOTSET)
-
-    DJANGO_ENABLE_API_SESSION_AUTH = environ_bool("DJANGO_ENABLE_DEV_API_SESSION_AUTH", 1)
 
 
 if TESTING:
