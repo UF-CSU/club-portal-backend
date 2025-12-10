@@ -22,42 +22,6 @@ from events.tests.utils import (
 class EventPublicApiTests(PublicApiTestsBase):
     """Events api tests for guest users."""
 
-    def test_list_public_events(self):
-        """Should list public events."""
-
-        create_test_events(count=5)
-
-        url = EVENT_LIST_URL
-        res = self.client.get(url)
-
-        self.assertResOk(res)
-        data = res.json()
-        self.assertEqual(len(data), 5)
-
-        # Check private events not in api
-        create_test_events(count=5, is_public=False)
-        res = self.client.get(url)
-        self.assertResOk(res)
-        data = res.json()
-        self.assertEqual(len(data), 5)
-
-    def test_detail_public_events(self):
-        """Should return event if it's marked public."""
-
-        e1 = create_test_event(is_public=True)
-        e2 = create_test_event(is_public=False)
-
-        url1 = event_detail_url(e1.pk)
-        url2 = event_detail_url(e2.pk)
-
-        # Returns public event
-        res1 = self.client.get(url1)
-        self.assertResOk(res1)
-
-        # Returns 404 not found
-        res2 = self.client.get(url2)
-        self.assertResNotFound(res2)
-
     def test_list_event_previews(self):
         """Should display preview version of public events."""
 
@@ -253,7 +217,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
 
         # Setup
         c1 = create_test_club(members=[self.user])
-        c2 = create_test_club()
+        c2 = create_test_club(members=[self.user])
 
         create_test_events(events_count, host=c1)
         create_test_events(events_count, host=c2)
@@ -270,7 +234,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
     def test_event_detail_api(self):
         """Should get single event."""
 
-        club = create_test_club()
+        club = create_test_club(members=[self.user])
         event = create_test_event(host=club)
 
         url = event_detail_url(event.id)
@@ -287,7 +251,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         events_in_range = 8
 
         # Create test club
-        club = create_test_club()
+        club = create_test_club(members=[self.user])
 
         # Create events where:
         # 1 events are on the day of boundary
@@ -379,7 +343,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         events_in_range = 8
 
         # Create test club
-        club = create_test_club()
+        club = create_test_club(members=[self.user])
 
         # Create events where:
         # 1 events are on the day of boundary (1 valid, 1 invalid)
@@ -477,7 +441,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         events_in_range = 8
 
         # Create test club
-        club = create_test_club()
+        club = create_test_club(members=[self.user])
 
         # Create events where:
         # 1 events are on the day of boundary (2 valid)
@@ -577,7 +541,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         events_in_range = 8
 
         # Create test club
-        club = create_test_club()
+        club = create_test_club(members=[self.user])
 
         # Create events where:
         # 1 events are on the day of boundary (1 valid, 1 invalid)

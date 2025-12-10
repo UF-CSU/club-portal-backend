@@ -39,6 +39,7 @@ VIEWER_ROLE_PERMISSIONS = [
     # Events
     "events.view_event",
     "events.view_private_event",
+    "events.view_event_details",
 ]
 """View internal club info & stats."""
 
@@ -56,6 +57,7 @@ EDITOR_ROLE_PERMISSIONS = [
     "events.add_event",
     "events.change_event",
     "events.view_recurringevent",
+    "events.view_event_analytics",
     # Analytics
     "analytics.view_link",
     "analytics.add_link",
@@ -99,7 +101,7 @@ ADMIN_ROLE_PERMISSIONS = [
 ]
 """All permissions for a club"""
 
-# Sort permissions lists to use for testing, assertions, etc
+# Sort s lists to use for testing, assertions, etc
 VIEWER_ROLE_PERMISSIONS.sort()
 EDITOR_ROLE_PERMISSIONS.sort()
 ADMIN_ROLE_PERMISSIONS.sort()
