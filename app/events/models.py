@@ -2,9 +2,11 @@
 Event models.
 """
 
-from datetime import date, time
+from datetime import date, time, timedelta
 from typing import ClassVar, Optional
 from zoneinfo import ZoneInfo
+
+from django.core.validators import MaxValueValidator
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel
@@ -20,6 +22,8 @@ from utils.dates import get_day_count
 from utils.formatting import format_timedelta
 from utils.models import ArrayChoiceField
 
+def getMaxRecurringTime():
+    return timezone.now().date()+timedelta(weeks=52)
 
 class DayType(models.IntegerChoices):
     MONDAY = 0, _("Monday")
@@ -168,7 +172,7 @@ class RecurringEvent(EventFields):
 
     start_date = models.DateField(help_text="Date of the first occurance of this event")
     # TODO: Allow no end date
-    end_date = models.DateField(help_text="Date of the last occurance of this event")
+    end_date = models.DateField(help_text="Date of the last occurance of this event",validators=[MaxValueValidator(limit_value=getMaxRecurringTime)])
     is_public = models.BooleanField(default=True, blank=True)
     prevent_sync_past_events = models.BooleanField(
         blank=True,
@@ -185,6 +189,8 @@ class RecurringEvent(EventFields):
     last_synced = models.DateTimeField(
         null=True, blank=True, editable=False, help_text="Last time events were synced"
     )
+
+    is_synced = models.BooleanField(default=False)
 
     # Relationships
     events: models.QuerySet["Event"]

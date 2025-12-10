@@ -23,3 +23,5 @@ def sync_recurring_event_task(recurring_event_id: int):
 
     instance = RecurringEvent.objects.get(id=recurring_event_id)
     RecurringEventService(instance).sync_events()
+    RecurringEvent.objects.filter(id=instance.id).update(is_synced=True)
+
