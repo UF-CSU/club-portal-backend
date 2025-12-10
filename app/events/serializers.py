@@ -198,6 +198,31 @@ class EventSerializer(EventPreviewSerializer):
         return event
 
 
+class EventAnalyticsSerializer(EventSerializer):
+    total_attended_users = serializers.SerializerMethodField()
+    total_poll_submissions = serializers.SerializerMethodField()
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+
+        if not request or not request.user.has_perm(
+            "events.view_event_analytics", is_global=False
+        ):
+            representation.pop("total_attended_users", None)
+            representation.pop("total_poll_submissions", None)
+
+        return representation
+
+    def get_total_attended_users(self, obj: Event):
+        """Counts the number of attendees on an event object"""
+        return obj.attendances.count()
+
+    def get_total_poll_submissions(self, obj: Event):
+        """Counts the number of poll submissions on an event object"""
+        return 0 if obj.submissions is None else obj.submissions.count()
+
+
 class EventCancellationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventCancellation

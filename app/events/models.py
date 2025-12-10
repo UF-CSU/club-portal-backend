@@ -270,6 +270,24 @@ class EventManager(ManagerBase["Event"]):
         day_value = DayType(day).to_query_weekday()
         return self.filter(start_at__week_day=day_value)
 
+    def filter_for_user(self, user: User):
+        """Get events for the clubs a user is a member."""
+
+        if user.is_superuser:
+            return self.all()
+        elif user.is_anonymous:
+            return self.none()
+
+        return self.filter(clubs__memberships__user=user)
+
+    def get_for_user(self, id: int, user: User):
+        """Get event for user, or throw 404."""
+
+        if user.is_superuser:
+            return self.get(id=id)
+
+        return self.get(id=id, clubs__memberships__user=user)
+
 
 class Event(EventFields):
     """
@@ -338,7 +356,7 @@ class Event(EventFields):
             value.save()
 
     @property
-    def submissions(self):
+    def submissions(self) -> None | models.QuerySet:
         if not self.poll:
             return None
         return self.poll.submissions.all()
@@ -444,7 +462,11 @@ class Event(EventFields):
             self.save()
 
     class Meta:
-        permissions = [("view_private_event", "Can view private event")]
+        permissions = [
+            ("view_private_event", "Can view private event"),
+            ("view_event_analytics", "Can view event analytics"),
+            ("view_event_details", "Can view event details"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 name="unique_event_by_name_and_time",
