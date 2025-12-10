@@ -216,7 +216,7 @@ class RecurringEventSerializer(ModelSerializerBase):
 
     def create(self, validated_data):
         obj = super().create(validated_data)
-        delay_task(sync_recurring_event_task, recurring_event_id=obj.id)
+        #delay_task(sync_recurring_event_task, recurring_event_id=obj.id)
 
         return obj
 

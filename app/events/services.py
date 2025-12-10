@@ -173,7 +173,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 self._sync_event(week_offset=i, start=start, end=end, day=day)
 
         rec_ev.last_synced = timezone.now()
-        rec_ev.save()
+        rec_ev.save(update_fields=['last_synced'])
 
         return rec_ev.events.all()
 
