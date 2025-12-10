@@ -22,4 +22,12 @@ def sync_recurring_event_task(recurring_event_id: int):
     """Sync all events for a recurring event."""
 
     instance = RecurringEvent.objects.get(id=recurring_event_id)
+
+    RecurringEvent.objects.filter(id=instance.id).update(is_synced=True)
+    instance.is_synced = True
     RecurringEventService(instance).sync_events()
+    
+    #Sync events to display is_synced
+    print("Saving Event")
+    
+    print("Done Saving")
