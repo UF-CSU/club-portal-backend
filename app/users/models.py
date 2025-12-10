@@ -146,7 +146,7 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
     )
 
     cached_email = models.EmailField(
-        max_length=64, unique=True, null=True, blank=True, editable=False
+        max_length=64, null=True, blank=True, editable=False
     )
 
     USERNAME_FIELD = "username"

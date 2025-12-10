@@ -1,12 +1,11 @@
 from unittest.mock import patch
 
 import pytz
+from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from django.utils import timezone
-
-from clubs.models import Club
-from clubs.tests.utils import create_test_club
 from lib.faker import fake
+
 from polls.models import (
     Poll,
     PollField,

@@ -1,6 +1,6 @@
 from core.abstracts.viewsets import (
-    CustomLimitOffsetPagination,
     FilterBackendBase,
+    ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewDetailsPermissions,
     ViewSetBase,
@@ -11,14 +11,19 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, filters, mixins, permissions, status
+from rest_framework import exceptions, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from users.models import User
+from utils.cache import check_cache, set_cache
 
+from clubs.cache import (
+    DETAIL_CLUB_PREVIEW_PREFIX,
+    LIST_CLUB_PREVIEW_PREFIX,
+)
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -90,17 +95,6 @@ class IsClubAdminFilter(FilterBackendBase):
     def filter_queryset(self, request, queryset, view):
         is_admin = request.query_params.get("is_admin", None)
 
-        is_admin_bool = False
-
-
-        if is_admin is None:
-            all_clubs = list(
-                request.user.club_memberships.values_list(
-                    "club__id", flat=True
-                )
-            )
-            queryset = queryset.filter(id__in=all_clubs)
-
         # When type conversion works and is_admin is a boolean, update the code
         if is_admin == "true":
             admin_clubs = list(
@@ -109,7 +103,7 @@ class IsClubAdminFilter(FilterBackendBase):
                 )
             )
             queryset = queryset.filter(id__in=admin_clubs)
-            
+
         elif is_admin == "false":
             member_clubs = list(
                 request.user.club_memberships.filter_is_not_admin().values_list(
@@ -172,7 +166,7 @@ class UserClubMembershipsViewSet(ModelViewSetBase):
         return super().check_object_permissions(request, obj)
 
 
-class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase):
+class ClubPreviewViewSet(ModelPreviewViewSetBase):
     """Access limited club data via the API."""
 
     queryset = (
@@ -192,24 +186,55 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
         .annotate(member_count=Count("memberships", distinct=True))
     )
     serializer_class = ClubPreviewSerializer
-    pagination_class = CustomLimitOffsetPagination
 
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["name", "alias"]
     filterset_fields = ["is_csu_partner", "majors__name", "tags"]
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
-    # Cache detail view for 2 hours (per Authorization header)
-    @method_decorator(cache_page(60 * 60 * 2))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    def retrieve(self, request: Request, *args, **kwargs):
+        club_id = self.kwargs.get("pk")
+        cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
-    # Cache list view for 2 hours (per Authorization header)
-    @method_decorator(cache_page(60 * 60 * 2, key_prefix="club-previews"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        if not cached_preview:
+            cached_preview = ClubPreviewSerializer(
+                Club.objects.find_by_id(club_id)
+            ).data
+            set_cache(cached_preview, DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
+
+        return Response({"results": cached_preview})
+
+    def list(self, request: Request, *args, **kwargs):
+        params = request.query_params.copy()
+        limit = params.pop("limit", None)
+        offset = params.pop("offset", None)
+        if params.get("is_csu_partner") is None and len(params) != 0:
+            return super().list(request, *args, **kwargs)
+
+        is_csu_partner = bool(request.query_params.get("is_csu_partner", False))
+        cached_previews = check_cache(
+            LIST_CLUB_PREVIEW_PREFIX,
+            is_csu_partner=is_csu_partner,
+            limit=limit,
+            offset=offset,
+        )
+
+        if not cached_previews:
+            cached_previews = ClubPreviewSerializer(
+                Club.objects.filter(is_csu_partner=is_csu_partner).distinct(), many=True
+            ).data
+            set_cache(
+                cached_previews,
+                LIST_CLUB_PREVIEW_PREFIX,
+                is_csu_partner=is_csu_partner,
+                limit=limit,
+                offset=offset,
+            )
+
+        page = self.paginate_queryset(cached_previews)
+        serializer = ClubPreviewSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
 
 class ClubTagsView(GenericAPIView):

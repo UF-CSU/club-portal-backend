@@ -9,6 +9,7 @@ from users.models import User
 
 SEND_EMAIL_VERIFICATION_URL = reverse("api-users:verification-list")
 CHECK_EMAIL_VERIFICATION_URL = reverse("api-users:verification-check")
+USER_CREATE_URL = reverse("api-users:public_user-list")
 
 
 def create_test_adminuser(**kwargs):

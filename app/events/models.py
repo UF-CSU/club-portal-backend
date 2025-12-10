@@ -79,6 +79,9 @@ class EventType(models.TextChoices):
 class EventTag(Tag):
     """Group together different types of events."""
 
+    # Foreign relationships
+    events: models.QuerySet["Event"]
+
 
 class EventFields(ClubScopedModel, ModelBase):
     """Common fields for club event models."""
@@ -245,12 +248,18 @@ class EventManager(ManagerBase["Event"]):
     ):
         """Create new event, and attendance link."""
 
+        tags = kwargs.pop("tags", None)
+
         event = super().create(name=name, start_at=start_at, end_at=end_at, **kwargs)
 
         if host:
             event.add_host(host, is_primary=True, commit=False)
+
         if secondary_hosts:
             event.add_hosts(*secondary_hosts, commit=False)
+
+        if tags:
+            event.tags.set(tags)
 
         event.save()
 
@@ -287,7 +296,7 @@ class Event(EventFields):
         related_name="events",
     )
 
-    tags = models.ManyToManyField(EventTag, blank=True)
+    tags = models.ManyToManyField(EventTag, blank=True, related_name="events")
 
     is_draft = models.BooleanField(default=False, db_index=True)
     is_public = models.BooleanField(default=True, db_index=True)

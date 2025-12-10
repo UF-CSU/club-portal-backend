@@ -2,7 +2,6 @@ import re
 from collections import OrderedDict
 from enum import Enum
 from io import BytesIO
-from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 import pandas as pd
@@ -68,7 +67,7 @@ class QueryCsvService:
         job.save()
 
         svc = cls(serializer_class=job.serializer_class, job=job)
-        success, failed = svc.upload_csv(job.file.read(), custom_field_maps=job.custom_fields)
+        success, failed = svc.upload_csv(job.file, custom_field_maps=job.custom_fields)
 
         # Set final job status
         if not isinstance(failed, list):
@@ -89,9 +88,12 @@ class QueryCsvService:
         job.save()
 
         # Create report
-        report_file_path = Path(
-            f"reports/{job.model_class.__name__}/",
-            f"{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.xlsx",
+        # report_file_path = Path(
+        #     f"reports/{job.model_class.__name__}/",
+        #     f"{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}.xlsx",
+        # )
+        report_name = (
+            f"{job.model_class.__name__}_{timezone.now().strftime('%d-%m-%Y_%H:%M:%S')}"
         )
         report_buffer = BytesIO()
 
@@ -102,7 +104,7 @@ class QueryCsvService:
             success_report.to_excel(writer, sheet_name="Successful", index=False)
             failed_report.to_excel(writer, sheet_name="Failed", index=False)
 
-        report_file = File(report_buffer, report_file_path.__str__())
+        report_file = File(report_buffer, report_name)
         job.report = report_file
         job.save()
 
@@ -193,8 +195,6 @@ class QueryCsvService:
             self._log_job_msg(
                 "Finished reading spreadsheet, processing field mappings..."
             )
-            
-
 
             # Strip leading/trailing spaces from column names
             df.columns = df.columns.str.strip()
@@ -264,7 +264,6 @@ class QueryCsvService:
                     df.rename(columns={column_name: str(field)}, inplace=True)
 
             self._log_job_msg("Cleaning csv data and standardizing fields...")
-
 
             # Normalize & clean fields before conversion to dict
             for field_name, field_type in self.serializer.get_flat_fields().items():

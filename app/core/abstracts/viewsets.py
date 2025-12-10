@@ -4,7 +4,7 @@ from app.settings import DJANGO_ENABLE_API_SESSION_AUTH
 from django.db import models
 from django.template import loader
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import authentication, filters, permissions
+from rest_framework import authentication, filters, mixins, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -39,7 +39,7 @@ class ViewSetBase(GenericViewSet):
     """
 
     request: Request
-    """The incomming request."""
+    """The incoming request."""
 
     kwargs: dict
     """
@@ -163,6 +163,17 @@ class CustomLimitOffsetPagination(LimitOffsetPagination):
         }
 
         return res_schema
+
+
+class ModelPreviewViewSetBase(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase
+):
+    """Base viewset for list/retrieve model."""
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    pagination_class = CustomLimitOffsetPagination
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
 
 
 class FilterBackendBase(filters.BaseFilterBackend):

@@ -44,10 +44,7 @@ class PollTemplateService(ServiceBase[PollTemplate]):
                     max_length=question_tpl.text_input.max_length,
                 )
             case PollInputType.CHOICE:
-                # ChoiceInput.object.create(
-                # questin=target_question,
-                # )
-                choice_input = ChoiceInput.objects.create(
+                ChoiceInput.objects.create(
                     question=target_question,
                 )
 
@@ -95,7 +92,6 @@ class PollTemplateService(ServiceBase[PollTemplate]):
 
         # Refresh to get accurate field count
         poll.refresh_from_db()
-
         return poll
 
 

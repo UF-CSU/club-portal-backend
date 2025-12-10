@@ -10,6 +10,7 @@ from celery import Celery
 from clubs.models import Club
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.core import exceptions
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -17,9 +18,10 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
-from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST
-from rest_framework.views import exception_handler
+from drf_standardized_errors.handler import exception_handler
+from rest_framework import exceptions as rest_framework_exceptions
+
+# from rest_framework.views import exception_handler
 from utils.admin import get_admin_context
 from utils.logging import print_error
 
@@ -45,17 +47,11 @@ async def health_check(request):
 
 def api_exception_handler(exc, context):
     """Custom exception handler for api."""
-    response = exception_handler(exc, context)
 
-    if response is not None:
-        response.data["status_code"] = response.status_code
-    else:
-        print_error()
-        response = Response(
-            {"status_code": 400, "detail": str(exc)}, status=HTTP_400_BAD_REQUEST
-        )
+    if isinstance(exc, exceptions.ValidationError):
+        exc = rest_framework_exceptions.ValidationError(detail=str(exc))
 
-    return response
+    return exception_handler(exc, context)
 
 
 @login_required

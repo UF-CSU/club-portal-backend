@@ -10,7 +10,7 @@ from users.models import User
 from users.tests.utils import create_test_user
 from utils.testing import create_test_uploadable_image
 
-from clubs.models import ClubApiKey, ClubFile, ClubRole, RoleType
+from clubs.models import ClubApiKey, ClubFile, ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import (
     CLUBS_JOIN_URL,
@@ -427,8 +427,7 @@ class ClubsApiPermsTests(PublicApiTestsBase):
 
         MY_CLUB_COUNT = 3
 
-
-        #clubs = create_test_clubs(CLUBS_COUNT)
+        # clubs = create_test_clubs(CLUBS_COUNT)
 
         ClubService(self.clubs[0]).add_member(self.user, roles=["President"])
         ClubService(self.clubs[1]).add_member(self.user, roles=["Member"])
@@ -442,7 +441,6 @@ class ClubsApiPermsTests(PublicApiTestsBase):
         data = res.json()
 
         self.assertEqual(len(data), MY_CLUB_COUNT)
-
 
     def test_is_admin_true(self):
         """Tests club response if is_admin is True"""

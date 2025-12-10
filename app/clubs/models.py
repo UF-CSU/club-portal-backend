@@ -51,6 +51,8 @@ class ClubFileOrigin(models.TextChoices):
 class ClubTag(Tag):
     """Group clubs together based on topics."""
 
+    clubs: models.QuerySet["Club"]
+
 
 def get_default_founding_year():
     """Initializes default founding year to current year."""
@@ -189,7 +191,7 @@ class Club(ClubScopedModel, UniqueModel):
     )
 
     # Relationships
-    tags = models.ManyToManyField(ClubTag, blank=True)
+    tags = models.ManyToManyField(ClubTag, blank=True, related_name="clubs")
     majors = models.ManyToManyField(
         Major, related_name="clubs", blank=True, help_text="Focused majors"
     )
@@ -527,7 +529,7 @@ class ClubMembershipManager(ManagerBase["ClubMembership"]):
         """Filter memberships that are admin memberships."""
 
         return self.filter(roles__role_type=RoleType.ADMIN)
-    
+
     def filter_is_not_admin(self):
         """Filter memberships that are not admin memberships."""
 
@@ -603,7 +605,6 @@ class ClubMembership(ClubScopedModel, ModelBase):
 
         # Fallback to DB query
         return self.user.team_memberships.filter(team__club_id=self.club_id)
-    
 
     @cached_property
     def is_admin(self) -> bool:

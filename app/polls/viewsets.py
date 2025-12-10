@@ -1,10 +1,16 @@
-from urllib import request
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, mixins, permissions
+from rest_framework.request import Request
+from rest_framework.response import Response
+from utils.cache import check_cache, set_cache
 
+from polls.cache import (
+    DETAIL_POLL_PREVIEW_PREFIX,
+    LIST_POLL_PREVIEW_PREFIX,
+)
 from polls.models import (
     ChoiceInputOption,
     Poll,
@@ -53,6 +59,27 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
     )
 
     permission_classes = [permissions.AllowAny]
+
+    def retrieve(self, request: Request, *args, **kwargs):
+        poll_id = self.kwargs.get("pk")
+        cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+
+        if not cached_preview:
+            cached_preview = PollPreviewSerializer(
+                Poll.objects.find_by_id(poll_id)
+            ).data
+            set_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+
+        return Response(cached_preview)
+
+    def list(self, request: Request, *args, **kwargs):
+        cached_previews = check_cache(LIST_POLL_PREVIEW_PREFIX)
+
+        if not cached_previews:
+            cached_previews = PollPreviewSerializer(Poll.objects.all(), many=True).data
+            set_cache(cached_previews, LIST_POLL_PREVIEW_PREFIX)
+
+        return Response(cached_previews)
 
 
 class PollViewset(ModelViewSetBase):

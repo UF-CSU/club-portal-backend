@@ -63,8 +63,8 @@ class EventAttendanceLinkSerializer(ModelSerializerBase):
         ]
 
 
-class EventSerializer(ModelSerializerBase):
-    """Represents a calendar event for a single or multiple clubs."""
+class EventPreviewSerializer(ModelSerializerBase):
+    """Shows minimal fields for public events."""
 
     status = serializers.CharField(read_only=True)
     duration = serializers.CharField(read_only=True)
@@ -77,6 +77,32 @@ class EventSerializer(ModelSerializerBase):
         help_text="Tag names",
         required=False,
     )
+
+    class Meta:
+        model = Event
+        fields = [
+            "id",
+            "name",
+            "start_at",
+            "end_at",
+            "created_at",
+            "updated_at",
+            "location",
+            "description",
+            "event_type",
+            "status",
+            "duration",
+            "is_all_day",
+            "hosts",
+            "tags",
+            "is_draft",
+            "is_public",
+        ]
+
+
+class EventSerializer(EventPreviewSerializer):
+    """Represents a calendar event for a single or multiple clubs."""
+
     attachments = ClubFileNestedSerializer(many=True, required=False)
     # poll = EventPollField(queryset=Poll.objects.all(), required=False, allow_null=True)
     attendance_links = EventAttendanceLinkSerializer(many=True, required=False)

@@ -55,3 +55,16 @@ def on_save_recurring_event(sender, instance: RecurringEvent, created=False, **k
     if(instance.is_synced):
         print("HI THREREER E")
         return
+
+# @receiver(post_save, sender=Event)
+# def on_save_event_cache(sender, instance: Event, **kwargs):
+#     """Sets the event cache when an event is saved"""
+#     hosts = instance.hosts.all()
+#     delete_repopulate_event_cache(hosts)
+
+
+# @receiver(post_delete, sender=Event)
+# def on_delete_event_cache(sender, instance: Event, **kwargs):
+#     """Clear an event cache key on delete"""
+#     hosts = instance.hosts.all()
+#     delete_repopulate_event_cache(hosts)

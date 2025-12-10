@@ -389,7 +389,7 @@ class PollTemplateSerializer(PollSerializer):
 
     def create(self, validated_data):
         # is_published = validated_data.pop("is_published")
-        event = validated_data.pop("event")
+        validated_data.pop("event")
 
         club = validated_data.pop("club", None)
         if club is not None:

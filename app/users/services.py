@@ -101,7 +101,7 @@ class UserService(ServiceBase[User]):
                     oldest_user.email = user.email
 
                 # Merge relationships
-                Token.objects.filter(user=user).update(user=oldest_user)
+                Token.objects.filter(user=user).delete()
                 VerifiedEmail.objects.filter(user=user).update(user=oldest_user)
                 PollSubmission.objects.filter(user=user).update(user=oldest_user)
                 SocialAccount.objects.filter(user=user).update(user=oldest_user)
@@ -183,7 +183,7 @@ class UserService(ServiceBase[User]):
         send_html_mail(
             "Finish account setup",
             to=[self.obj.email],
-            html_template="users/setup_account_email.html",
+            html_template="users/account-setup-link.html",
             html_context={"setup_url": url},
         )
 
