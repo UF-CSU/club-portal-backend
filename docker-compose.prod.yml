@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./app:/app/app
+      - ./backups:/var/backups
       - static-clubs-prod:/vol/web
     environment:
       - PORT=9000
@@ -128,8 +129,7 @@ services:
       - cluster
 
   postgres:
-    image: postgres:15-alpine
-    command: -c 'max_connections=1000'
+    image: postgres:17.7-alpine
     volumes:
       - postgres-clubs-prod:/var/lib/postgresql/data
     environment:
@@ -138,6 +138,9 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
       - cluster
+    configs:
+      - source: postgresql.auto.conf
+        target: /var/lib/postgresql/postgresql.auto.conf
 
   pgbouncer:
     image: edoburu/pgbouncer
@@ -158,11 +161,19 @@ volumes:
   redis-clubs-prod:
 
   postgres-clubs-prod:
-    name: "postgres-clubs-prod"
+    name: "postgres17-clubs-prod"
 
 configs:
+  # Postgres Config Settings
+  # Use .auto.conf instead of .conf so default conf is not altered
+  postgresql.auto.conf:
+    # Docs: https://www.postgresql.org/docs/15/runtime-config.html
+    content: |
+      max_connections = 1000
+
   # PGBouncer Config Settings
   pgbouncer.ini:
+    # Docs: https://www.pgbouncer.org/config.html
     content: |
       [databases]
       * = host=postgres port=5432 auth_user=${POSTGRES_USER} dbname=${POSTGRES_NAME}
@@ -177,8 +188,9 @@ configs:
       max_client_conn = 1000
       default_pool_size = 100
 
-      log_connections=0
-      log_disconnections=0
+      log_connections = 0
+      log_disconnections = 0
+      stats_period = 300
 
       admin_users = ${POSTGRES_USER}
   userlist.txt:

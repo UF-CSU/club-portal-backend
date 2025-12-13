@@ -2,7 +2,7 @@
 
 set -e
 
-db_uri="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_NAME"
+db_uri="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$BACKUPS_POSTGRES_HOST:$BACKUPS_POSTGRES_PORT/$POSTGRES_NAME"
 backup_dir="/var/backups"
 backup_file_name="$@"
 
