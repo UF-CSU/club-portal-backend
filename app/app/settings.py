@@ -399,7 +399,7 @@ DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "admin@example.
 # == Cache Config === #
 #######################
 
-REDIS_HOST = os.environ.get("REDIS_HOST")
+REDIS_HOST = os.environ.get("REDIS_HOST", 'redis')
 DJANGO_CACHE_REDIS_DB = os.environ.get("DJANGO_CACHE_REDIS_DB", 0)
 
 DJANGO_REDIS_URL = f"redis://{REDIS_HOST}/{DJANGO_CACHE_REDIS_DB}"

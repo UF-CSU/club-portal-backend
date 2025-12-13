@@ -59,6 +59,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     chown -R django-user:django-user /tmp && \
     chown -R django-user:django-user /docs && \
     chown -R django-user:django-user /app/.venv && \
+    chown -R django-user:django-user /scripts && \
     chown django-user:django-user /app && \
     chmod -R 755 /vol && \
     chmod -R +x /scripts

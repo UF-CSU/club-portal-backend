@@ -14,6 +14,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./docs:/docs
+      - ./backups:/var/backups
       - static-clubs-dev:/vol/web
     command: >
       sh -c "
