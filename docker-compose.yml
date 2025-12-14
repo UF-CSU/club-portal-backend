@@ -15,6 +15,7 @@ services:
       - ./app:/app/app
       - ./docs:/docs
       - ./backups:/var/backups
+      - ./scripts:/scripts
       - static-clubs-dev:/vol/web
     command: >
       sh -c "
