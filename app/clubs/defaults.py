@@ -101,7 +101,7 @@ ADMIN_ROLE_PERMISSIONS = [
 ]
 """All permissions for a club"""
 
-# Sort s lists to use for testing, assertions, etc
+# Sort permissions lists to use for testing, assertions, etc
 VIEWER_ROLE_PERMISSIONS.sort()
 EDITOR_ROLE_PERMISSIONS.sort()
 ADMIN_ROLE_PERMISSIONS.sort()

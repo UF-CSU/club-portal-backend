@@ -7,6 +7,7 @@ from django.utils import timezone
 from users.tests.utils import create_test_user
 
 from events.models import Event
+from events.serializers import EventSerializer
 from events.tests.utils import (
     EVENT_LIST_URL,
     EVENTPREVIEW_LIST_URL,
@@ -21,6 +22,38 @@ from events.tests.utils import (
 
 class EventPublicApiTests(PublicApiTestsBase):
     """Events api tests for guest users."""
+
+    def test_list_public_events(self):
+        """Should error on list public events."""
+
+        create_test_events(count=5)
+
+        url = EVENT_LIST_URL
+        res = self.client.get(url)
+
+        self.assertResUnauthorized(res)
+
+        # Check private events not in api
+        create_test_events(count=5, is_public=False)
+        res = self.client.get(url)
+        self.assertResUnauthorized(res)
+
+    def test_detail_public_events(self):
+        """Should error on detail public events"""
+
+        e1 = create_test_event(is_public=True)
+        e2 = create_test_event(is_public=False)
+
+        url1 = event_detail_url(e1.pk)
+        url2 = event_detail_url(e2.pk)
+
+        # Returns public event
+        res1 = self.client.get(url1)
+        self.assertResUnauthorized(res1)
+
+        # Returns 404 not found
+        res2 = self.client.get(url2)
+        self.assertResUnauthorized(res2)
 
     def test_list_event_previews(self):
         """Should display preview version of public events."""
@@ -217,7 +250,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
 
         # Setup
         c1 = create_test_club(members=[self.user])
-        c2 = create_test_club(members=[self.user])
+        c2 = create_test_club()
 
         create_test_events(events_count, host=c1)
         create_test_events(events_count, host=c2)
@@ -226,10 +259,11 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         res = self.client.get(url)
 
         self.assertResOk(res)
-        data = res.json()
+        data: list[EventSerializer] = res.json()
 
-        # Should return all events
-        self.assertEqual(len(data), events_count * 2)
+        # Should return all events for user's club
+        self.assertEqual(len(data), events_count)
+        self.assertEqual(data[0]["hosts"][0]["club_id"], c1.pk)
 
     def test_event_detail_api(self):
         """Should get single event."""

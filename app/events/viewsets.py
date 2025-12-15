@@ -224,14 +224,18 @@ class EventViewset(ModelViewSetBase):
             ),
         )
     )
+    serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [EventDateFilter, DjangoFilterBackend]
     filterset_fields = ["clubs"]
 
     def get_serializer_class(self):
-        if self.request.query_params.get("analytics", False):
+        with_analytics = self.request.query_params.get(
+            "analytics", "False"
+        ).capitalize()
+        if with_analytics == "True":
             return serializers.EventAnalyticsSerializer
-        return serializers.EventSerializer
+        return super().get_serializer_class()
 
     def get_queryset(self):
         return Event.objects.filter_for_user(self.request.user)
@@ -254,11 +258,6 @@ class EventViewset(ModelViewSetBase):
         return super().check_permissions(request)
 
     def check_object_permissions(self, request, obj):
-        # For GET method, just check if is authenticated
-        if self.action == "retrieve":
-            return super().check_object_permissions(request, obj)
-
-        # Otherwise, check for individual permissions
         obj_permission = ObjectViewPermissions()
         if not obj_permission.has_object_permission(request, self, obj):
             self.permission_denied(
@@ -266,6 +265,8 @@ class EventViewset(ModelViewSetBase):
                 message=getattr(obj_permission, "message", None),
                 code=getattr(obj_permission, "code", None),
             )
+
+        return super().check_object_permissions(request, obj)
 
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])
