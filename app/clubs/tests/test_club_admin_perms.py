@@ -305,7 +305,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         url = RECURRINGEVENT_LIST_URL
         res = self.client.post(url, payload)
-        #res  = sync_to_async(self.client.post)(url, payload)
+        # res  = sync_to_async(self.client.post)(url, payload)
         self.assertResCreated(res)
 
         rec_query = RecurringEvent.objects.filter(club=self.club)

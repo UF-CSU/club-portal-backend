@@ -56,6 +56,7 @@ def on_save_event(sender, instance: Event, created=False, **kwargs):
 #     hosts = instance.hosts.all()
 #     delete_repopulate_event_cache(hosts)
 
+
 @receiver(post_save, sender=RecurringEvent)
 def on_save_recurring_event(sender, instance: RecurringEvent, created=False, **kwargs):
     """Makes recurring events creation process async"""
@@ -64,5 +65,5 @@ def on_save_recurring_event(sender, instance: RecurringEvent, created=False, **k
         return
 
     if not instance.is_synced:
-        #transaction.on_commit(lambda:delay_task(sync_recurring_event_task, recurring_event_id=instance.id))
+        # transaction.on_commit(lambda:delay_task(sync_recurring_event_task, recurring_event_id=instance.id))
         delay_task(sync_recurring_event_task, recurring_event_id=instance.id)

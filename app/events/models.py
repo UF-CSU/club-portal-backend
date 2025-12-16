@@ -23,7 +23,8 @@ from utils.models import ArrayChoiceField
 
 
 def getMaxRecurringTime():
-    return timezone.now().date()+timedelta(weeks=52)
+    return timezone.now().date() + timedelta(weeks=52)
+
 
 class DayType(models.IntegerChoices):
     MONDAY = 0, _("Monday")
@@ -175,8 +176,10 @@ class RecurringEvent(EventFields):
 
     start_date = models.DateField(help_text="Date of the first occurance of this event")
     # TODO: Allow no end date
-    end_date = models.DateField(help_text="Date of the last occurance of this event",
-                                validators=[MaxValueValidator(limit_value=getMaxRecurringTime)])
+    end_date = models.DateField(
+        help_text="Date of the last occurance of this event",
+        validators=[MaxValueValidator(limit_value=getMaxRecurringTime)],
+    )
     is_public = models.BooleanField(default=True, blank=True)
     prevent_sync_past_events = models.BooleanField(
         blank=True,

@@ -240,15 +240,12 @@ class RecurringEventSerializer(ModelSerializerBase):
         fields = "__all__"
 
     def create(self, validated_data):
+        other_clubs = validated_data.pop("other_clubs", [])
+        attachments = validated_data.pop("attachments", [])
 
-        other_clubs = validated_data.pop('other_clubs', [])
-        attachments = validated_data.pop('attachments', [])
-
-        #obj = super().create(validated_data)
+        # obj = super().create(validated_data)
         obj = RecurringEvent.objects.create(
-            **validated_data,
-            other_clubs=other_clubs,
-            attachments=attachments
+            **validated_data, other_clubs=other_clubs, attachments=attachments
         )
 
         return obj
