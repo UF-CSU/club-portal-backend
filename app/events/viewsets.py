@@ -15,6 +15,7 @@ from rest_framework.pagination import BasePagination
 from rest_framework.request import Request
 from rest_framework.response import Response
 from utils.dates import parse_date
+from utils.views import Query, query_params
 
 from events.models import (
     Event,
@@ -224,17 +225,20 @@ class EventViewset(ModelViewSetBase):
         )
     )
     serializer_class = serializers.EventSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [EventDateFilter, DjangoFilterBackend]
     filterset_fields = ["clubs"]
 
+    def get_serializer_class(self):
+        with_analytics = self.request.query_params.get(
+            "analytics", "False"
+        ).capitalize()
+        if with_analytics == "True":
+            return serializers.EventAnalyticsSerializer
+        return super().get_serializer_class()
+
     def get_queryset(self):
-        qs = super().get_queryset()
-
-        if self.request.user.is_anonymous:
-            return qs.filter(Q(is_public=True) & Q(is_draft=False))
-
-        return qs
+        return Event.objects.filter_for_user(self.request.user)
 
     def filter_queryset(self, queryset):
         if self.action == "retrieve":
@@ -243,9 +247,6 @@ class EventViewset(ModelViewSetBase):
         return super().filter_queryset(queryset)
 
     def check_permissions(self, request):
-        if self.action == "list" or self.action == "retrieve":
-            return super().check_permissions(request)
-
         obj_permission = ObjectViewPermissions()
         if not obj_permission.has_permission(request, self):
             self.permission_denied(
@@ -254,12 +255,9 @@ class EventViewset(ModelViewSetBase):
                 code=getattr(obj_permission, "code", None),
             )
 
-    def check_object_permissions(self, request, obj):
-        # For GET method, just check if is authenticated
-        if self.action == "retrieve":
-            return super().check_object_permissions(request, obj)
+        return super().check_permissions(request)
 
-        # Otherwise, check for individual permissions
+    def check_object_permissions(self, request, obj):
         obj_permission = ObjectViewPermissions()
         if not obj_permission.has_object_permission(request, self, obj):
             self.permission_denied(
@@ -267,6 +265,8 @@ class EventViewset(ModelViewSetBase):
                 message=getattr(obj_permission, "message", None),
                 code=getattr(obj_permission, "code", None),
             )
+
+        return super().check_object_permissions(request, obj)
 
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])
@@ -298,43 +298,26 @@ class EventViewset(ModelViewSetBase):
 
         return super().perform_create(serializer)
 
-    # Cache detail view for 2 hours (per Authorization header)
-    # @method_decorator(cache_page(60 * 60 * 2))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def retrieve(self, request, *args, **kwargs):
-    #     return super().retrieve(request, *args, **kwargs)
+    @query_params(
+        analytics=Query(
+            required=False,
+            qtype=bool,
+            default=False,
+            description="A field for returning analytics",
+        )
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
-    # def list(self, request: Request, *args, **kwargs):
-    #     club_id_list = request.query_params.getlist("clubs", [])
-    #     more_than_one_club = len(club_id_list) > 1
-
-    #     if more_than_one_club:
-    #         events_set = set()
-    #         for id in club_id_list:
-    #             cached_events = check_event_cache(id, request.user.is_anonymous)
-    #             events_set.update(
-    #                 cached_events if cached_events else Event.objects.filter(host__id=id)
-    #             )
-
-    #         return Response(self.get_serializer(list(events_set), many=True).data)
-    #     else:
-    #         id = club_id_list[0] if len(club_id_list) == 1 else None
-    #         cached_events = check_event_cache(id, request.user.is_anonymous)
-    #         print("Cached Events: ", cached_events)
-    #         events = cached_events
-
-    #         if not events:
-    #             events = self.get_queryset()
-    #             print("Events: ", events)
-    #             set_event_cache(
-    #                 id,
-    #                 request.user.is_anonymous,
-    #                 events,
-    #             )
-
-    #         return Response(self.get_serializer(events, many=True).data)
-
-    def list(self, request, *args, **kwargs):
+    @query_params(
+        analytics=Query(
+            required=False,
+            qtype=bool,
+            default=False,
+            description="A field for returning analytics",
+        )
+    )
+    def list(self, request: Request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
 

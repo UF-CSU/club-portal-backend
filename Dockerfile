@@ -22,7 +22,9 @@ RUN python -m venv /py && \
     apk add --update --no-cache postgresql-client jpeg-dev && \
     # Oauth, health checks
     apk add --update --no-cache xmlsec-dev curl && \
-    # Base requirements
+    # CLI utilities
+    apk add --update --no-cache findutils && \
+    # Temp deps for pip only, deleted after pip install
     apk add --update --no-cache --virtual .tmp-build-deps \
     build-base gcc musl-dev zlib zlib-dev linux-headers \
     # Oauth, celery, etc
@@ -59,6 +61,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     chown -R django-user:django-user /tmp && \
     chown -R django-user:django-user /docs && \
     chown -R django-user:django-user /app/.venv && \
+    chown -R django-user:django-user /scripts && \
     chown django-user:django-user /app && \
     chmod -R 755 /vol && \
     chmod -R +x /scripts
