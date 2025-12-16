@@ -14,6 +14,8 @@ services:
     volumes:
       - ./app:/app/app
       - ./docs:/docs
+      - ./backups:/var/backups
+      - ./scripts:/scripts
       - static-clubs-dev:/vol/web
     command: >
       sh -c "
@@ -28,6 +30,7 @@ services:
       - PORT=8000
       - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8000}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000/admin/}
+      - REDIS_HOST=${REDIS_HOST:-redis}
     depends_on:
       - postgres
       - redis
