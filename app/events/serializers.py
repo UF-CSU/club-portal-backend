@@ -198,6 +198,33 @@ class EventSerializer(EventPreviewSerializer):
         return event
 
 
+class EventAnalyticsSerializer(EventSerializer):
+    analytics = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
+
+    def get_analytics(self, obj: Event):
+        """Returns desired analytics from an event object"""
+        request = self.context.get("request")
+        if not request or not request.user.has_perm(
+            "events.view_event_analytics", is_global=False
+        ):
+            return None
+        return {
+            "total_attended_users": obj.attendances.count(),
+            "total_poll_submissions": 0
+            if obj.submissions is None
+            else obj.submissions.count(),
+        }
+
+    def get_permissions(self, obj: Event):
+        """Returns permissions for an event an object"""
+        request = self.context.get("request")
+        can_view_analytics = request and request.user.has_perm(
+            "events.view_event_analytics", is_global=False
+        )
+        return {"can_view_analytics": can_view_analytics}
+
+
 class EventCancellationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventCancellation
