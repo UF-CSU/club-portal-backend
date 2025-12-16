@@ -6,12 +6,11 @@ from datetime import date, time, timedelta
 from typing import ClassVar, Optional
 from zoneinfo import ZoneInfo
 
-from django.core.validators import MaxValueValidator
-
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase, Tag
 from django.core import exceptions
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.timezone import datetime
@@ -21,6 +20,7 @@ from users.models import User
 from utils.dates import get_day_count
 from utils.formatting import format_timedelta
 from utils.models import ArrayChoiceField
+
 
 def getMaxRecurringTime():
     return timezone.now().date()+timedelta(weeks=52)
@@ -193,7 +193,7 @@ class RecurringEvent(EventFields):
     last_synced = models.DateTimeField(
         null=True, blank=True, editable=False, help_text="Last time events were synced"
     )
-    
+
     is_synced = models.BooleanField(default=False)
 
     # Relationships

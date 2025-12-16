@@ -2,7 +2,6 @@ from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
 from core.abstracts.serializers import ModelSerializerBase
 from django.core import exceptions
-from lib.celery import delay_task
 from polls.models import Poll
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from rest_framework import serializers
@@ -17,7 +16,6 @@ from events.models import (
     EventTag,
     RecurringEvent,
 )
-from events.tasks import sync_recurring_event_task
 
 
 class EventHostSerializer(ModelSerializerBase):
@@ -215,8 +213,16 @@ class RecurringEventSerializer(ModelSerializerBase):
         fields = "__all__"
 
     def create(self, validated_data):
-        obj = super().create(validated_data)
-        #delay_task(sync_recurring_event_task, recurring_event_id=obj.id)
+
+        other_clubs = validated_data.pop('other_clubs', [])
+        attachments = validated_data.pop('attachments', [])
+
+        #obj = super().create(validated_data)
+        obj = RecurringEvent.objects.create(
+            **validated_data,
+            other_clubs=other_clubs,
+            attachments=attachments
+        )
 
         return obj
 

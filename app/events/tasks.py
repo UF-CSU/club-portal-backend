@@ -20,8 +20,7 @@ def sync_event_attendance_links_task(event_ids=None):
 @shared_task
 def sync_recurring_event_task(recurring_event_id: int):
     """Sync all events for a recurring event."""
-    
+
     instance = RecurringEvent.objects.get(id=recurring_event_id)
     RecurringEventService(instance).sync_events()
     RecurringEvent.objects.filter(id=instance.id).update(is_synced=True)
-    
