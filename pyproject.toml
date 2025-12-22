@@ -60,7 +60,7 @@ dev = [
     "freezegun>=1.5.4,<1.6",
     # Django Extensions
     "django-browser-reload>=1.17.0,<1.18",
-    "django-debug-toolbar>=6.0.0,<6.1",
+    "django-debug-toolbar>=6.1.0,<6.2",
     "django-extensions>=3.2.3,<3.3",
     # Documentation
     "sphinx>=8.2.3,<8.3",

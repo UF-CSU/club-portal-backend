@@ -471,13 +471,16 @@ CHANNEL_LAYERS = {
 if DEV:
     import socket
 
+    ENABLE_DEBUG_TOOLBAR = environ_bool("DJANGO_ENABLE_DEBUG_TOOLBAR", 0)
     INSTALLED_APPS.append("debug_toolbar")
-    # INSTALLED_APPS.append("django_browser_reload")
-    INSTALLED_APPS.append("django_extensions")
 
     # Insert near top, adjust pos as needed
     MIDDLEWARE.insert(3, "debug_toolbar.middleware.DebugToolbarMiddleware")
+
+    INSTALLED_APPS.append("django_extensions")
+    # INSTALLED_APPS.append("django_browser_reload")
     # MIDDLEWARE.append("django_browser_reload.middleware.BrowserReloadMiddleware")
+
     CSRF_TRUSTED_ORIGINS.extend(
         ["http://0.0.0.0", "http://localhost", "http://127.0.0.1"]
     )
@@ -492,7 +495,7 @@ if DEV:
 if DEV and not TESTING:
     # Ref: https://stackoverflow.com/a/64726422/10914922
     def show_toolbar(*args, **kwargs):
-        return not TESTING and environ_bool("DJANGO_SHOW_TOOLBAR", 1)
+        return not TESTING and environ_bool("DJANGO_SHOW_DEBUG_TOOLBAR", 0)
 
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK": show_toolbar,
