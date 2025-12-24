@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from django.urls import reverse
@@ -12,9 +14,12 @@ from polls.models import (
     NumberInput,
     Poll,
     PollField,
+    PollInputType,
     PollMarkup,
     PollQuestion,
+    PollQuestionAnswer,
     PollStatusType,
+    PollSubmission,
     ScaleInput,
     TextInput,
     UploadInput,
@@ -22,6 +27,7 @@ from polls.models import (
 from polls.tests.utils import (
     POLLS_URL,
     create_test_poll,
+    pollanalytics_url,
     pollfield_detail_url,
     pollfield_list_url,
     polloption_detail_url,
@@ -50,6 +56,15 @@ class PollViewPublicTests(PublicApiTestsBase):
 
         poll = create_test_poll()
         url = reverse("polls:poll_submissions", args=[poll.id])
+
+        res = self.client.get(url)
+        self.assertResForbidden(res)
+
+    def test_guest_get_poll_analytics(self):
+        """Should deny guest from accessing poll analytics"""
+
+        poll = create_test_poll()
+        url = pollanalytics_url(poll.pk)
 
         res = self.client.get(url)
         self.assertResForbidden(res)
@@ -726,3 +741,81 @@ class PollViewAuthTests(PrivateApiTestsBase):
     #     self.assertEqual(poll.submissions.count(), 1)
     #     self.assertFalse(poll.submissions.first().is_valid)
     #     self.assertIsNotNone(poll.submissions.first().error)
+
+    def test_get_poll_analytics(self):
+        """Poll analytics view should correctly compile and return analytics for a
+        poll for an authenticated user part with editor permissions for a club"""
+
+        poll = create_test_poll()
+        url = pollanalytics_url(poll.pk)
+
+        res = self.client.get(url)
+        self.assertResForbidden(res)
+
+        c1 = create_test_club(admins=[self.user])
+        p1 = create_test_poll(club=c1)
+
+        user_token, _ = Token.objects.get_or_create(user=self.user)
+        url = reverse_query(
+            "polls:poll_analytics", args=[p1.id], query={"token": user_token.key}
+        )
+
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+
+        self.assertIn("submission_vs_time", data)
+        self.assertListEqual(data["submission_vs_time"], [])
+
+        today = datetime.now()
+        one_day = timedelta(days=1)
+        yesterday = today - one_day
+
+        ps1 = PollSubmission.objects.create(poll=p1, user=self.user)
+        PollSubmission.objects.update_one(ps1.pk, created_at=yesterday)
+        ps2 = PollSubmission.objects.create(poll=p1, user=self.user, created_at=today)
+        ps3 = PollSubmission.objects.create(poll=p1, user=self.user, created_at=today)
+
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+
+        self.assertIn("submission_vs_time", data)
+        self.assertLess(
+            data["submission_vs_time"][0]["submission_date"],
+            data["submission_vs_time"][1]["submission_date"],
+        )
+        self.assertEqual(
+            data["submission_vs_time"][0]["count"],
+            1,
+        )
+        self.assertEqual(
+            data["submission_vs_time"][1]["count"],
+            2,
+        )
+
+        pf1 = PollField.objects.create(poll=p1, order=0)
+        pq1 = PollQuestion.objects.create(
+            field=pf1, label="Q1", input_type=PollInputType.CHECKBOX
+        )
+        PollQuestionAnswer.objects.create(
+            question=pq1, submission=ps2, boolean_value=True
+        )
+        PollQuestionAnswer.objects.create(
+            question=pq1, submission=ps3, boolean_value=False
+        )
+
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+
+        self.assertIn("submission_vs_time", data)
+        self.assertIn("answer_analytics", data)
+        self.assertEqual(data["answer_analytics"][0]["order"], 0)
+        self.assertEqual(data["answer_analytics"][0]["question"]["label"], "Q1")
+        self.assertEqual(data["answer_analytics"][0]["count"], 2)
+        self.assertEqual(data["answer_analytics"][0]["trues"], 1)
+        self.assertEqual(data["answer_analytics"][0]["falses"], 1)

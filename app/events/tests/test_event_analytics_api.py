@@ -110,11 +110,6 @@ class EventAnalyticsPrivateApiTests(PrivateApiTestsBase):
         c3 = create_test_club(admins=[self.user])
         create_test_events(events_count, host=c3)
 
-        svc = ClubService(c3)
-        role = c3.roles.get(name="President")
-
-        svc.set_member_role(self.user, role)
-
         res = self.client.get(url + "?analytics=true")
 
         self.assertResOk(res)
