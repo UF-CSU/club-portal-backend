@@ -8,7 +8,8 @@ from core.abstracts.serializers import (
     ModelSerializerBase,
     UpdateListSerializer,
 )
-from django.db.models import Count, Q
+from django.contrib.postgres.expressions import ArraySubquery
+from django.db.models import Count, OuterRef, Q
 from django.db.models.functions import TruncDay
 from django.shortcuts import get_object_or_404
 from events.models import Event, EventType
@@ -273,9 +274,17 @@ class PollFieldAnalyticsSerializer(PollFieldSerializer):
     count = serializers.IntegerField(required=True)
     trues = serializers.IntegerField(required=True)
     falses = serializers.IntegerField(required=True)
+    selections = serializers.ListField(required=True)
+    selection_counts = serializers.ListField(required=True)
 
     class Meta(PollFieldSerializer.Meta):
-        fields = PollFieldSerializer.Meta.fields + ["count", "trues", "falses"]
+        fields = PollFieldSerializer.Meta.fields + [
+            "count",
+            "trues",
+            "falses",
+            "selections",
+            "selection_counts",
+        ]
 
 
 class PollLinkNestedSerializer(ModelSerializerBase):
@@ -419,9 +428,33 @@ class PollAnalyticsSerializer(PollSerializer):
                     "_question__answers",
                     filter=Q(_question__answers__boolean_value=True),
                 ),
+                selections=ArraySubquery(
+                    models.PollField.objects.filter(id=OuterRef("pk"))
+                    .values(
+                        "_question___choiceinput__options__value",
+                        "_question___choiceinput__options__order",
+                    )
+                    .order_by("_question___choiceinput__options__order")
+                    .values("_question___choiceinput__options__value")
+                ),
+                selection_counts=ArraySubquery(
+                    models.PollField.objects.filter(id=OuterRef("pk"))
+                    .values(
+                        "_question___choiceinput__options",
+                        "_question___choiceinput__options__order",
+                    )
+                    .annotate(
+                        count=Count("_question___choiceinput__options__selections")
+                    )
+                    .order_by("_question___choiceinput__options__order")
+                    .values(
+                        "count",
+                    )
+                ),
             )
             .order_by("order")
         )
+
         return PollFieldAnalyticsSerializer(answer_analytics, many=True).data
 
 

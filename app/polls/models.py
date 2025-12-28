@@ -759,7 +759,6 @@ class ChoiceInput(InputBase):
     )
 
     # Foreign relations
-    selections: models.QuerySet["PollQuestionAnswer"]
     options: models.QuerySet["ChoiceInputOption"]
 
     # Overrides
@@ -772,6 +771,8 @@ class ChoiceInputOption(ClubScopedModel, ModelBase):
     input = models.ForeignKey(
         ChoiceInput, on_delete=models.CASCADE, related_name="options"
     )
+
+    selections: models.QuerySet["PollQuestionAnswer"]
 
     order = models.IntegerField(blank=True)
     label = models.CharField(max_length=100)
