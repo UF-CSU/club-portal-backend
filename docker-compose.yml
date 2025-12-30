@@ -10,7 +10,7 @@ services:
       - dev
     restart: unless-stopped
     ports:
-      - "9000:8000"
+      - "9000:9000"
     volumes:
       - ./app:/app/app
       - ./docs:/docs
@@ -23,13 +23,13 @@ services:
              python manage.py migrate &&
              python manage.py collectstatic --no-input &&
              python manage.py init_superuser &&
-             python -m uvicorn app.asgi:application --reload --host 0.0.0.0 --port 8000 --lifespan off"
+             python -m uvicorn app.asgi:application --reload --host 0.0.0.0 --port 9000 --lifespan off"
     env_file:
       - .env
     environment:
-      - PORT=8000
-      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8000}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000/admin/}
+      - PORT=9000
+      - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:9000}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:9000/admin/}
       - REDIS_HOST=${REDIS_HOST:-redis}
     depends_on:
       - postgres
@@ -200,15 +200,15 @@ services:
     profiles:
       - dev
     ports:
-      - 8000:8080
+      - 8080:8080
     depends_on:
       app:
         condition: service_healthy
     volumes:
       - static-clubs-dev:/vol/web
     environment:
-      - SERVER_URI=app:8000
-      - SERVER_REPLICA_URI=app:8000
+      - SERVER_URI=app:9000
+      - SERVER_REPLICA_URI=app:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-'0.0.0.0:80'}
       - S3_STORAGE_BUCKET_NAME=''
       - ENV=DEV
