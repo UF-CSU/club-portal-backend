@@ -4,9 +4,7 @@
   "python.analysis.inlayHints.callArgumentNames": "off",
   // "flake8.args": ["--config=app/.flake8"],
   // "python.autoComplete.extraPaths": ["app"],
-  "python.analysis.extraPaths": [
-    "app"
-  ],
+  "python.analysis.extraPaths": ["app"],
   "python.analysis.packageIndexDepths": [
     {
       "name": "rest_framework",
@@ -42,6 +40,11 @@
       "name": "django_filters",
       "depth": 3,
       "includeAllSymbols": true
+    },
+    {
+      "name": "dateutil",
+      "depth": 3,
+      "includeAllSymbols": true
     }
   ],
   "[python]": {
@@ -55,18 +58,9 @@
     },
     "diffEditor.codeLens": false
   },
-  "isort.args": [
-    "--profile",
-    "black"
-  ],
+  "isort.args": ["--profile", "black"],
   "python.REPL.enableREPLSmartSend": false,
-  "python.testing.unittestArgs": [
-    "-v",
-    "-s",
-    "./app",
-    "-p",
-    "test_*.py"
-  ],
+  "python.testing.unittestArgs": ["-v", "-s", "./app", "-p", "test_*.py"],
   "python.testing.pytestEnabled": false,
   "python.testing.unittestEnabled": true,
   "makefile.configureOnOpen": false

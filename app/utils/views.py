@@ -17,6 +17,7 @@ class Query:
     default: Optional[Any] = attr.ib(default=None)
     description: Optional[str] = attr.ib(default=None)
     required: bool = attr.ib(default=False)
+    is_list: bool = attr.ib(default=False)
 
 
 def query_params(**kwargs: Query):
@@ -33,7 +34,7 @@ def query_params(**kwargs: Query):
             another_query=Query(qtype=int, default=0),
             third_query=Query()
         )
-        def get(self, *args, **kwargs):
+        def get(self, *args, query_one, another_query=None, third_query=None, **kwargs):
             pass
     """
 
@@ -46,6 +47,7 @@ def query_params(**kwargs: Query):
                     location=OpenApiParameter.QUERY,
                     description=value.description,
                     required=value.required,
+                    many=value.is_list,
                 )
                 for key, value in kwargs.items()
             ]
@@ -56,8 +58,21 @@ def query_params(**kwargs: Query):
             try:
                 request = f_args[1]
                 if request:
-                    for key in kwargs.keys():
-                        query_values[key] = request.GET.get(key, None)
+                    for key, value in kwargs.items():
+                        query_value = None
+                        if value.is_list:
+                            query_value = request.GET.getlist(key, None) or None
+
+                            if value.qtype == OpenApiTypes.INT:
+                                query_value = [int(item) for item in query_value]
+
+                        else:
+                            query_value = request.GET.get(key, None)
+
+                            if value.qtype == OpenApiTypes.INT:
+                                query_value = int(query_value)
+
+                        query_values[key] = query_value
             except Exception:
                 pass
 

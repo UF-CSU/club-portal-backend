@@ -5,6 +5,7 @@ from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from django.utils import timezone
 from users.tests.utils import create_test_user
+from utils.helpers import reverse_query
 
 from events.models import Event
 from events.serializers import EventSerializer
@@ -689,3 +690,91 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         self.assertEqual(Event.objects.count(), 1)
         event = Event.objects.first()
         self.assertIsNotNone(event.poll)
+
+    @freezegun.freeze_time("12/30/25 13:00:00")
+    def test_get_event_heatmap(self):
+        """Should return dict mapping each day to a count of events."""
+
+        # Test: Day with multiple events
+        c1 = create_test_club(members=[self.user])  # 3 events
+        # Test: Heatmap for multiple clubs
+        c2 = create_test_club(members=[self.user])  # 1 event
+        # Test: Exclude other club events
+        c3 = create_test_club()  # 2 events
+        # Test: Only include selected clubs
+        c4 = create_test_club(members=[self.user])  # 0 events
+
+        # 12/15 - 1 event (c1)
+        create_test_event(
+            host=c1, start_at="12/15/25 17:00:00", end_at="12/15/25 19:00:00"
+        )
+
+        # 12/17 - 2 events (c1)
+        create_test_event(
+            host=c1, start_at="12/17/25 09:00:00", end_at="12/17/25 11:00:00"
+        )
+        create_test_event(
+            host=c1, start_at="12/17/25 17:00:00", end_at="12/17/25 19:00:00"
+        )
+
+        # 12/18 - 1 event (c2)
+        create_test_event(
+            host=c2, start_at="12/18/25 17:00:00", end_at="12/18/25 19:00:00"
+        )
+
+        # 12/18 - 1 event (c3)
+        create_test_event(
+            host=c3, start_at="12/18/25 17:00:00", end_at="12/18/25 19:00:00"
+        )
+
+        # 12/19 - 1 event (c3)
+        create_test_event(
+            host=c3, start_at="12/19/25 17:00:00", end_at="12/19/25 19:00:00"
+        )
+
+        # Heatmap for all clubs
+        url = reverse_query("api-events:heatmap")
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertEqual(data["total_events"], 4)
+        self.assertEqual(data["start_date"], "2025-10-01")
+        self.assertEqual(data["end_date"], "2026-02-28")
+
+        h0 = data["heatmap"]
+
+        self.assertIn("2025-12-15", h0.keys())
+        self.assertIn("2025-12-17", h0.keys())
+        self.assertIn("2025-12-18", h0.keys())
+        self.assertIn("2025-12-19", h0.keys())
+
+        for date, count in h0.items():
+            if date == "2025-12-15":
+                self.assertEqual(count, 1)
+            elif date == "2025-12-17":
+                self.assertEqual(count, 2)
+            elif date == "2025-12-18":
+                self.assertEqual(count, 1)
+            else:
+                self.assertEqual(count, 0)
+
+        # Heatmap for clubs 1 and 2
+        url = reverse_query("api-events:heatmap", query={"clubs": [c1.pk, c2.pk]})
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertEqual(data["total_events"], 4)
+
+        # Heatmap for club 4
+        url = reverse_query("api-events:heatmap", query={"clubs": [c4.pk]})
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertEqual(data["total_events"], 0)
+
+        h4 = data["heatmap"]
+        for _, count in h4.items():
+            self.assertEqual(count, 0)

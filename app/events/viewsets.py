@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
@@ -6,13 +7,16 @@ from core.abstracts.viewsets import (
     ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewPermissions,
+    ViewSetBase,
 )
+from dateutil.relativedelta import relativedelta
 from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.pagination import BasePagination
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from utils.dates import parse_date
 from utils.views import Query, query_params
 
@@ -23,6 +27,7 @@ from events.models import (
     EventHost,
     EventTag,
 )
+from events.services import EventService
 
 from . import models, serializers
 
@@ -350,3 +355,44 @@ class EventCancellationViewSet(ModelViewSetBase):
             return Response(
                 {"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND
             )
+
+
+class EventHeatmapViewSet(APIView):
+    """Get count of events for each day in range."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = ViewSetBase.authentication_classes
+    serializer_class = serializers.EventHeatmapSerializer
+
+    @query_params(clubs=Query(qtype=int, is_list=True))
+    def get(self, request: Request, clubs: Optional[list[int]] = None):
+        # Parse club ids
+        if clubs is None:
+            clubs = list(
+                Club.objects.filter_for_user(request.user).values_list("id", flat=True)
+            )
+
+        # Get start/end dates
+        now = datetime.now()
+        start_date = (
+            datetime(year=now.year, month=now.month, day=1)
+            # Go 2 months back from beginning of month
+            - relativedelta(months=2)
+        ).date()
+        end_date = (
+            datetime(year=now.year, month=now.month, day=1)
+            # Go to end of this month
+            + relativedelta(months=1)
+            - timedelta(days=1)
+            # Go 2 months ahead of this month's end
+            + relativedelta(months=2)
+        ).date()
+
+        # Generate heatmap
+        heatmap = EventService.get_event_heatmap(
+            club_ids=clubs, start_date=start_date, end_date=end_date
+        )
+
+        serializer = self.serializer_class(heatmap)
+
+        return Response(data=serializer.data)

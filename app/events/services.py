@@ -3,11 +3,13 @@ import io
 from typing import Optional, TypedDict
 from zoneinfo import ZoneInfo
 
+import attrs
 import icalendar
 from app.settings import EVENT_ATTENDANCE_REDIRECT_URL
 from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
+from dateutil.relativedelta import relativedelta
 from django.db import connection, models
 from django.utils import timezone
 from utils.dates import get_day_count
@@ -16,11 +18,19 @@ from utils.db import namedtuplefetchall
 from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
 
 
-class EventHeatmap(TypedDict):
+class EventHeatmapDict(TypedDict):
     """Represents event count per date, result from db query."""
 
     day: datetime.date
     event_count: int
+
+
+@attrs.define
+class EventHeatmap:
+    total_events: int
+    start_date: datetime.date
+    end_date: datetime.date
+    heatmap: EventHeatmapDict
 
 
 class RecurringEventService(ServiceBase[RecurringEvent]):
@@ -334,8 +344,8 @@ class EventService(ServiceBase[Event]):
     def get_event_heatmap(
         cls,
         club_ids: list[int],
-        months=1,
         start_date: Optional[datetime.date] = None,
+        end_date: Optional[datetime.date] = None,
     ):
         """
         Get event count per day in duration.
@@ -343,15 +353,19 @@ class EventService(ServiceBase[Event]):
         """
 
         if start_date is None:
-            start_date_query = "CURRENT_DATE"
-        else:
-            start_date_query = f"'{start_date.strftime('%d/%m/%Y')}'::timestamp"
+            start_date = datetime.datetime.now().date()
+
+        if end_date is None:
+            end_date = start_date + relativedelta(months=1) - datetime.timedelta(days=1)
+
+        start_date_query = f"'{start_date.strftime('%m/%d/%Y')}'::timestamp"
+        end_date_query = f"'{end_date.strftime('%m/%d/%Y')}'::timestamp"
 
         query = (
-            "SELECT calendar::date AS day, COUNT(event.id) AS event_count "
+            "SELECT calendar::date AS day, COUNT(event.id) AS event_count, SUM(COUNT(event.id)) OVER (ORDER BY calendar::date) AS total_event_count "
             "FROM generate_series( "
             f"    date_trunc('month', {start_date_query}), "
-            f"    date_trunc('month', {start_date_query}) + interval '%s month' - interval '1 day', "
+            f"    date_trunc('month', {end_date_query}), "
             "    '1 day' "
             ") as calendar "
             "LEFT JOIN ( "
@@ -364,15 +378,22 @@ class EventService(ServiceBase[Event]):
         )
 
         with connection.cursor() as cursor:
-            cursor.execute(query, [months, *club_ids])
+            cursor.execute(query, [*club_ids])
             rows = namedtuplefetchall(cursor)
 
         heatmap: dict[datetime.date, int] = {}
+        total_events = 0
 
         for row in rows:
             heatmap[row.day] = row.event_count
+            total_events = row.total_event_count
 
-        return heatmap
+        return EventHeatmap(
+            total_events=total_events,
+            start_date=start_date,
+            end_date=end_date,
+            heatmap=heatmap,
+        )
 
 
 def make_event_public(event_id: int):
