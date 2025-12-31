@@ -4,6 +4,7 @@ Unit tests for Event business logic.
 
 import datetime
 
+import freezegun
 from clubs.models import ClubFile
 from clubs.tests.utils import create_test_club, create_test_clubfile, create_test_clubs
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
@@ -14,7 +15,7 @@ from lib.faker import fake
 from users.tests.utils import create_test_user
 
 from events.models import DayType, Event, EventAttendance, RecurringEvent
-from events.services import RecurringEventService
+from events.services import EventService, RecurringEventService
 from events.tests.utils import create_test_event
 
 
@@ -39,6 +40,43 @@ class EventServiceTests(PeriodicTaskTestsBase):
 
         event.refresh_from_db()
         self.assertTrue(event.is_public)
+
+    @freezegun.freeze_time("12/30/25 13:00:00")
+    def test_event_heatmap(self):
+        """Should list number of events per each day in month."""
+
+        c1 = create_test_club()  # 3 events
+        c2 = create_test_club()  # 0 events
+
+        # 12/15 - 1 event
+        create_test_event(
+            host=c1, start_at="12/15/25 17:00:00", end_at="12/15/25 19:00:00"
+        )
+
+        # 12/17 - 2 events
+        create_test_event(
+            host=c1, start_at="12/17/25 09:00:00", end_at="12/17/25 11:00:00"
+        )
+        create_test_event(
+            host=c1, start_at="12/17/25 17:00:00", end_at="12/17/25 19:00:00"
+        )
+
+        # Get event count per day for club 1
+        h1 = EventService.get_event_heatmap(club_ids=[c1.id])
+
+        for date, count in h1.items():
+            if date.day == 15:
+                self.assertEqual(count, 1)
+            elif date.day == 17:
+                self.assertEqual(count, 2)
+            else:
+                self.assertEqual(count, 0)
+
+        # Get event count per day for club 2
+        h2 = EventService.get_event_heatmap(club_ids=[c2.id])
+
+        for _, count in h2.items():
+            self.assertEqual(count, 0)
 
 
 class RecurringEventTests(TestsBase):
