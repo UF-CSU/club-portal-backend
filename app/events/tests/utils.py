@@ -25,11 +25,11 @@ def event_list_url(
     query_params = {}
 
     if start_at:
-        query_params["start_at"] = start_at.astimezone(UTC).strftime(
+        query_params["start_date"] = start_at.astimezone(UTC).strftime(
             "%Y-%m-%d %H:%M:%SZ"
         )
     if end_at:
-        query_params["end_at"] = end_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%SZ")
+        query_params["end_date"] = end_at.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%SZ")
 
     return reverse_query("api-events:event-list", query_params)
 

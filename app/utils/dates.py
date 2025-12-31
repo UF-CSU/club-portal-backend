@@ -49,10 +49,19 @@ def parse_datetime(target: str | datetime, tzinfo=None):
     return dateutil.parser.parse(target).replace(tzinfo=tzinfo)
 
 
-def parse_date(target: str | datetime | date, tzinfo=None):
-    """Parse a string to a python date."""
+def parse_date(target: str | datetime | date, tzinfo=None, fail_silently=True):
+    """
+    Parse a string to a python date.
+    Will return None if fail_silently is True and date is invalid.
+    """
 
-    if isinstance(target, date):
-        target = datetime(year=target.year, month=target.month, day=target.day)
+    try:
+        if isinstance(target, date):
+            target = datetime(year=target.year, month=target.month, day=target.day)
 
-    return parse_datetime(target, tzinfo=tzinfo).date()
+        return parse_datetime(target, tzinfo=tzinfo).date()
+    except dateutil.parser._parser.ParserError as e:
+        if not fail_silently:
+            raise e
+
+        return None

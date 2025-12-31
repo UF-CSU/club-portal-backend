@@ -9,7 +9,6 @@ from core.abstracts.viewsets import (
 )
 from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
 from rest_framework.pagination import BasePagination
 from rest_framework.request import Request
@@ -31,6 +30,8 @@ from . import models, serializers
 class CustomDatePagination(BasePagination):
     """Allow api pagination via start and end date."""
 
+    default_shift = timedelta(days=7)
+
     def get_date_range(self, request: Request):
         """Get start and end dates from url."""
         start_date = request.query_params.get("start_date", None)
@@ -45,33 +46,45 @@ class CustomDatePagination(BasePagination):
         else:
             start_date = parse_date(start_date)
 
-        start_date = timezone.datetime(
-            start_date.year, start_date.month, start_date.day, tzinfo=current_tz
-        )
+        if start_date:
+            start_date = timezone.datetime(
+                start_date.year, start_date.month, start_date.day, tzinfo=current_tz
+            )
 
         # Parse end date
         if end_date is None:
-            end_date = (now + timedelta(days=7)).date()
+            end_date = (now + self.default_shift).date()
         else:
             end_date = parse_date(end_date)
 
-        end_date = timezone.datetime(
-            end_date.year,
-            end_date.month,
-            end_date.day,
-            hour=23,
-            minute=59,
-            second=59,
-            tzinfo=current_tz,
-        )
+        if end_date:
+            end_date = timezone.datetime(
+                end_date.year,
+                end_date.month,
+                end_date.day,
+                hour=23,
+                minute=59,
+                second=59,
+                tzinfo=current_tz,
+            )
 
         return (start_date, end_date)
 
     def paginate_queryset(self, queryset: QuerySet[Event], request, view=None):
         self.start_date, self.end_date = self.get_date_range(request)
-        queryset = queryset.filter(
-            Q(start_at__gte=self.start_date) & Q(start_at__lte=self.end_date)
-        )
+
+        query = Q()
+        start_query = Q(end_at__gte=self.start_date)
+        end_query = Q(start_at__lte=self.end_date)
+
+        if self.start_date and self.end_date:
+            query = start_query & end_query
+        elif self.start_date:
+            query = start_query
+        elif self.end_date:
+            query = end_query
+
+        queryset = queryset.filter(query)
         self.count = queryset.count()
 
         return queryset
@@ -80,8 +93,10 @@ class CustomDatePagination(BasePagination):
         return Response(
             {
                 "count": self.count,
-                "start_date": self.start_date.date(),
-                "end_date": self.end_date.date(),
+                "start_date": self.start_date.date()
+                if self.start_date is not None
+                else None,
+                "end_date": self.end_date.date() if self.end_date is not None else None,
                 "results": data,
             }
         )
@@ -143,46 +158,6 @@ class EventClubFilter(FilterBackendBase):
     pass
 
 
-class EventDateFilter(FilterBackendBase):
-    """Get events ordered by date"""
-
-    filter_fields = [
-        {"name": "start_at", "schema_type": "datetime"},
-        {"name": "end_at", "schema_type": "datetime"},
-    ]
-
-    allowed_fields = {"start_at", "end_at"}
-
-    class Meta:
-        model = Event
-        fields = ["date_fields"]
-
-    def filter_queryset(self, request, queryset, view):
-        start_date = request.query_params.get("start_at")
-        end_date = request.query_params.get("end_at")
-
-        # Assuming we should only check if it is within day boundary
-        today = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        shift = timedelta(days=14)
-
-        if start_date is None and end_date is None:
-            return queryset.filter(
-                Q(start_at__lte=today + shift) & Q(end_at__gte=today - shift)
-            )
-
-        if start_date is not None:
-            queryset = queryset.filter(end_at__gte=start_date)
-        else:
-            queryset = queryset.filter(end_at__gte=today - shift)
-
-        if end_date is not None:
-            queryset = queryset.filter(start_at__lte=end_date)
-        else:
-            queryset = queryset.filter(start_at__lte=today + shift)
-
-        return queryset
-
-
 class EventViewset(ModelViewSetBase):
     """CRUD Api routes for Event models."""
 
@@ -226,8 +201,9 @@ class EventViewset(ModelViewSetBase):
     )
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [EventDateFilter, DjangoFilterBackend]
+    # filter_backends = [EventDateFilter, DjangoFilterBackend]
     filterset_fields = ["clubs"]
+    pagination_class = CustomDatePagination
 
     def get_serializer_class(self):
         with_analytics = self.request.query_params.get(
