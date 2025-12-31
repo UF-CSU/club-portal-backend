@@ -2,12 +2,11 @@ import io
 import re
 
 from django.core import exceptions
-from django.http import FileResponse, HttpRequest, HttpResponseNotAllowed, JsonResponse
+from django.http import FileResponse, HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from users.services import UserService
 
 from polls.models import Poll, PollSubmission
-from polls.serializers import PollAnalyticsSerializer
 from polls.services import PollService
 
 
@@ -78,25 +77,3 @@ def download_submissions(request: HttpRequest, poll_id: int):
         filename=filename + ".zip",
         content_type="application/x-zip-compressed",
     )
-
-
-def get_poll_analytics(request: HttpRequest, poll_id: int):
-    """Compiles specific analytics for a poll id"""
-    if request.method != "GET":
-        return HttpResponseNotAllowed(["GET"])
-
-    token = request.GET.get("token", None)
-
-    if not token:
-        raise exceptions.PermissionDenied("No token found")
-
-    user = UserService.get_from_token(token).obj
-    poll = get_object_or_404(Poll, id=poll_id)
-    if not user.has_perm("polls.view_poll_analytics", poll):
-        raise exceptions.PermissionDenied(
-            'User does not have "polls.view_poll_analytics" permissions'
-        )
-
-    data = PollAnalyticsSerializer(poll, many=False).data
-
-    return JsonResponse(data)

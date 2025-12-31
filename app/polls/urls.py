@@ -12,7 +12,4 @@ urlpatterns = [
         views.download_submissions,
         name="poll_submissions",
     ),
-    path(
-        "poll/<int:poll_id>/analytics/", views.get_poll_analytics, name="poll_analytics"
-    ),
 ]

@@ -50,7 +50,7 @@ def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
 
 
 def pollanalytics_url(poll_id: int):
-    return reverse("polls:poll_analytics", args=[poll_id])
+    return reverse("api-polls:pollanalytics", args=[poll_id])
 
 
 def create_test_poll(**kwargs):

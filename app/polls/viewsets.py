@@ -1,8 +1,10 @@
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.db import models, transaction
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, mixins, permissions
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 from utils.cache import check_cache, set_cache
@@ -22,6 +24,7 @@ from polls.models import (
 )
 from polls.serializers import (
     ChoiceInputOptionSerializer,
+    PollAnalyticsSerializer,
     PollFieldSerializer,
     PollPreviewSerializer,
     PollSerializer,
@@ -121,6 +124,26 @@ class PollViewset(ModelViewSetBase):
                 last_submission_at=models.Max("submissions__created_at"),
             )
         )
+
+
+class PollAnalyticsView(RetrieveAPIView):
+    """View various poll analytics for a specific poll"""
+
+    serializer_class = PollAnalyticsSerializer
+    queryset = Poll.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request: Request, *args, **kwargs):
+        poll_id = self.kwargs.get("poll_id")
+        poll = get_object_or_404(Poll, id=poll_id)
+        if not request.user.has_perm("polls.view_poll_analytics", poll):
+            return HttpResponseForbidden(
+                'User does not have "polls.view_poll_analytics" permissions'
+            )
+
+        serializer = self.get_serializer(poll, many=False)
+
+        return Response(serializer.data)
 
 
 class PollTemplateViewSet(ModelViewSetBase):
