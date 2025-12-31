@@ -294,6 +294,9 @@ class Poll(ClubScopedModel, ModelBase):
 
     class Meta:
         ordering = ["-open_at"]
+        permissions = [
+            ("view_poll_analytics", "Can view poll analytics"),
+        ]
         constraints = [
             models.CheckConstraint(
                 name="poll_close_date_must_have_start_date",
@@ -474,6 +477,8 @@ class PollQuestion(ClubScopedModel, ModelBase):
     field = models.OneToOneField(
         PollField, on_delete=models.CASCADE, related_name="_question"
     )
+
+    answers: models.QuerySet["PollQuestionAnswer"]
 
     input_type = models.CharField(
         choices=PollInputType.choices, default=PollInputType.TEXT
@@ -754,7 +759,6 @@ class ChoiceInput(InputBase):
     )
 
     # Foreign relations
-    selections: models.QuerySet["PollQuestionAnswer"]
     options: models.QuerySet["ChoiceInputOption"]
 
     # Overrides
@@ -767,6 +771,8 @@ class ChoiceInputOption(ClubScopedModel, ModelBase):
     input = models.ForeignKey(
         ChoiceInput, on_delete=models.CASCADE, related_name="options"
     )
+
+    selections: models.QuerySet["PollQuestionAnswer"]
 
     order = models.IntegerField(blank=True)
     label = models.CharField(max_length=100)

@@ -58,6 +58,8 @@ EDITOR_ROLE_PERMISSIONS = [
     "events.change_event",
     "events.view_recurringevent",
     "events.view_event_analytics",
+    # Polls
+    "polls.view_poll_analytics",
     # Analytics
     "analytics.view_link",
     "analytics.add_link",

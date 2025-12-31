@@ -28,4 +28,14 @@ router.register(
 
 app_name = "api-polls"
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = [
+    path(
+        "",
+        include(router.urls),
+    ),
+    path(
+        "poll/<int:poll_id>/analytics/",
+        viewsets.PollAnalyticsView.as_view(),
+        name="pollanalytics",
+    ),
+]
