@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from clubs.models import Club, ClubFile
@@ -364,8 +364,18 @@ class EventHeatmapViewSet(APIView):
     authentication_classes = ViewSetBase.authentication_classes
     serializer_class = serializers.EventHeatmapSerializer
 
-    @query_params(clubs=Query(qtype=int, is_list=True))
-    def get(self, request: Request, clubs: Optional[list[int]] = None):
+    @query_params(
+        clubs=Query(qtype=int, is_list=True),
+        start_date=Query(qtype=date),
+        end_date=Query(qtype=date),
+    )
+    def get(
+        self,
+        request: Request,
+        clubs: Optional[list[int]] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ):
         # Parse club ids
         if clubs is None:
             clubs = list(
@@ -374,19 +384,22 @@ class EventHeatmapViewSet(APIView):
 
         # Get start/end dates
         now = datetime.now()
-        start_date = (
-            datetime(year=now.year, month=now.month, day=1)
-            # Go 2 months back from beginning of month
-            - relativedelta(months=2)
-        ).date()
-        end_date = (
-            datetime(year=now.year, month=now.month, day=1)
-            # Go to end of this month
-            + relativedelta(months=1)
-            - timedelta(days=1)
-            # Go 2 months ahead of this month's end
-            + relativedelta(months=2)
-        ).date()
+        if start_date is None:
+            start_date = (
+                datetime(year=now.year, month=now.month, day=1)
+                # Go 2 months back from beginning of month
+                - relativedelta(months=2)
+            ).date()
+
+        if end_date is None:
+            end_date = (
+                datetime(year=now.year, month=now.month, day=1)
+                # Go to end of this month
+                + relativedelta(months=1)
+                - timedelta(days=1)
+                # Go 2 months ahead of this month's end
+                + relativedelta(months=2)
+            ).date()
 
         # Generate heatmap
         heatmap = EventService.get_event_heatmap(

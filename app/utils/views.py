@@ -1,23 +1,27 @@
 from collections.abc import Callable
 from typing import Any, Optional
 
-import attr
+import attrs
 from drf_spectacular.types import PYTHON_TYPE_MAPPING, OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
+from utils.dates import parse_date
+from utils.logging import print_error
 
-@attr.s
+
+@attrs.define
 class Query:
     """Settings for a single query param."""
 
-    qtype: type = attr.ib(
-        default=OpenApiTypes.STR,
-        converter=lambda t: PYTHON_TYPE_MAPPING.get(t, OpenApiTypes.STR),
-    )
-    default: Optional[Any] = attr.ib(default=None)
-    description: Optional[str] = attr.ib(default=None)
-    required: bool = attr.ib(default=False)
-    is_list: bool = attr.ib(default=False)
+    qtype: type = attrs.field(default=str)
+    default: Optional[Any] = attrs.field(default=None)
+    description: Optional[str] = attrs.field(default=None)
+    required: bool = attrs.field(default=False)
+    is_list: bool = attrs.field(default=False)
+
+    @property
+    def openapi_type(self):
+        return PYTHON_TYPE_MAPPING.get(self.qtype, OpenApiTypes.STR)
 
 
 def query_params(**kwargs: Query):
@@ -60,20 +64,32 @@ def query_params(**kwargs: Query):
                 if request:
                     for key, value in kwargs.items():
                         query_value = None
+
+                        def _parse_value(raw, value=value):
+                            if value.qtype is int:
+                                return int(raw)
+                            elif (
+                                value.qtype.__name__ == "date"
+                            ):  # Type equality doesn't work for some reason
+                                return parse_date(raw, fail_silently=False)
+                            else:
+                                return raw
+
                         if value.is_list:
                             query_value = request.GET.getlist(key, None) or None
-
-                            if value.qtype == OpenApiTypes.INT:
-                                query_value = [int(item) for item in query_value]
+                            query_value = (
+                                [_parse_value(item) for item in query_value]
+                                if query_value is not None
+                                else None
+                            )
 
                         else:
                             query_value = request.GET.get(key, None)
-
-                            if value.qtype == OpenApiTypes.INT:
-                                query_value = int(query_value)
+                            query_value = _parse_value(query_value)
 
                         query_values[key] = query_value
             except Exception:
+                print_error()
                 pass
 
             return callable(*f_args, **f_kwargs, **query_values)

@@ -778,3 +778,20 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         h4 = data["heatmap"]
         for _, count in h4.items():
             self.assertEqual(count, 0)
+
+        # Heatmap for all clubs, outside date range
+        url = reverse_query(
+            "api-events:heatmap",
+            query={"start_date": "2025-01-01", "end_date": "2025-01-31"},
+        )
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertEqual(data["start_date"], "2025-01-01")
+        self.assertEqual(data["end_date"], "2025-01-31")
+        self.assertEqual(data["total_events"], 0)
+
+        h0 = data["heatmap"]
+        for _, count in h4.items():
+            self.assertEqual(count, 0)
