@@ -1,6 +1,6 @@
 from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
-from core.abstracts.serializers import ModelSerializerBase
+from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 from django.core import exceptions
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -298,13 +298,14 @@ class RecurringEventSerializer(ModelSerializerBase):
         )
     ]
 )
-class EventHeatmapSerializer(serializers.Serializer):
+class EventHeatmapSerializer(SerializerBase):
     """Show event count for each day."""
 
     start_date = serializers.DateField()
     end_date = serializers.DateField()
     total_events = serializers.IntegerField()
-    heatmap = serializers.DictField()
+    heatmap = serializers.DictField(child=serializers.IntegerField())
+    # heatmap = serializers.DictField()
 
 
 #############################################################

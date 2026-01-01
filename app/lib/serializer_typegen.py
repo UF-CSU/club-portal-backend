@@ -47,6 +47,8 @@ DRF_FIELD_TO_TS_MAP = {
     serializers.FilePathField: "string",
     serializers.PrimaryKeyRelatedField: "number",
     serializers.ListField: "any",
+    serializers.DictField: "Record<string, %s>",
+    serializers.JSONField: "Record<string, %s>",
 }
 
 DJANGO_FIELD_TO_TS_MAP = {
@@ -177,10 +179,22 @@ class TypeGenerator:
         )
 
     def _get_prop_type(self, field, is_list=False, using=DRF_FIELD_TO_TS_MAP, **kwargs):
+        """Get TS type for field using specific mapping."""
+
+        original_field = field
+
         if not isinstance(field, type):
             field = type(field)
 
         field_type = using.get(field, None) or "any"
+        if "Record" in field_type:
+            sub_type = original_field.child
+            if not sub_type or sub_type.__class__.__name__ == "_UnvalidatedField":
+                sub_type = "any"
+            else:
+                sub_type = using.get(type(sub_type), None) or "any"
+
+            field_type = field_type % (sub_type)
 
         if is_list:
             field_type += "[]"

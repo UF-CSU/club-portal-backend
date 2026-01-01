@@ -360,7 +360,7 @@ class EventCancellationViewSet(ModelViewSetBase):
 class EventHeatmapViewSet(APIView):
     """Get count of events for each day in range."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]  # TODO: RBAC for event heatmap
     authentication_classes = ViewSetBase.authentication_classes
     serializer_class = serializers.EventHeatmapSerializer
 
