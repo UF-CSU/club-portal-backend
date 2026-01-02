@@ -73,6 +73,7 @@ DJANGO_ENABLE_API_SESSION_AUTH = False
 SCHOOL_EMAIL_DOMAIN = "ufl.edu"
 
 ASGI_APPLICATION = "app.asgi.application"
+ENABLE_REQUEST_CACHE = environ_bool("DJANGO_ENABLE_REQUEST_CACHE", 1)
 
 
 # Application definition
