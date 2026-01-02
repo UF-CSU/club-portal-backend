@@ -29,20 +29,18 @@ class EventHostSerializer(ModelSerializerBase):
     club_id = serializers.PrimaryKeyRelatedField(
         source="club", queryset=Club.objects.all()
     )
-    club_name = serializers.SlugRelatedField(
-        source="club", read_only=True, slug_field="name"
-    )
-    club_logo = serializers.ImageField(
-        source="club.logo", read_only=True, required=False, allow_null=True
-    )
+    club_name = serializers.CharField(read_only=True)
+    club_alias = serializers.CharField(read_only=True)
+    club_logo = serializers.ImageField(read_only=True, allow_null=True)
 
     class Meta:
         model = EventHost
-        fields = ["id", "club_id", "club_name", "club_logo", "is_primary"]
+        fields = ["id", "club_id", "club_name", "club_logo", "club_alias", "is_primary"]
         read_only_fields = [
             "id",
             "club_name",
             "club_logo",
+            "club_alias",
         ]
 
 
@@ -305,7 +303,6 @@ class EventHeatmapSerializer(SerializerBase):
     end_date = serializers.DateField()
     total_events = serializers.IntegerField()
     heatmap = serializers.DictField(child=serializers.IntegerField())
-    # heatmap = serializers.DictField()
 
 
 #############################################################

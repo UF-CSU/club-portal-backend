@@ -502,6 +502,10 @@ if DEV and not TESTING:
         "IS_RUNNING_TESTS": False,
     }
 
+    # DEBUG_TOOLBAR_PANELS = [
+    #     "debug_toolbar.panels.timer.TimerPanel",
+    # ]
+
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])

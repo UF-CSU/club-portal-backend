@@ -71,7 +71,7 @@ def query_params(**kwargs: Query):
                             elif (
                                 value.qtype.__name__ == "date"
                             ):  # Type equality doesn't work for some reason
-                                return parse_date(raw, fail_silently=False)
+                                return parse_date(raw, fail_silently=True)
                             else:
                                 return raw
 

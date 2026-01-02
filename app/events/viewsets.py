@@ -172,9 +172,7 @@ class EventViewset(ModelViewSetBase):
         .prefetch_related(
             Prefetch(
                 "hosts",
-                queryset=EventHost.objects.select_related(
-                    "club", "club__logo", "club__banner"
-                ).only(
+                queryset=EventHost.objects.select_related("club", "club__logo").only(
                     "id",
                     "event_id",
                     "club_id",
@@ -183,9 +181,6 @@ class EventViewset(ModelViewSetBase):
                     "club__name",
                     "club__alias",
                     "club__logo_id",
-                    "club__banner_id",
-                    "club__primary_color",
-                    "club__text_color",
                 ),
             ),
             Prefetch(
@@ -196,7 +191,9 @@ class EventViewset(ModelViewSetBase):
             ),
             Prefetch(
                 "attachments",
-                queryset=ClubFile.objects.only("id", "file", "display_name", "club_id"),
+                queryset=ClubFile.objects.only(
+                    "file",
+                ),
             ),
             Prefetch(
                 "attendance_links",
@@ -206,7 +203,6 @@ class EventViewset(ModelViewSetBase):
     )
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticated]
-    # filter_backends = [EventDateFilter, DjangoFilterBackend]
     filterset_fields = ["clubs"]
     pagination_class = CustomDatePagination
 
@@ -219,7 +215,7 @@ class EventViewset(ModelViewSetBase):
         return super().get_serializer_class()
 
     def get_queryset(self):
-        return Event.objects.filter_for_user(self.request.user)
+        return self.queryset.filter_for_user(self.request.user)
 
     def filter_queryset(self, queryset):
         if self.action == "retrieve":
