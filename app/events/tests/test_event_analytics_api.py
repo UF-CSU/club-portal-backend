@@ -67,7 +67,7 @@ class EventAnalyticsPrivateApiTests(PrivateApiTestsBase):
         res = self.client.get(url)
 
         self.assertResOk(res)
-        data = res.json()
+        data = res.json()['results']
 
         self.assertEqual(len(data), 0)
 
@@ -78,7 +78,7 @@ class EventAnalyticsPrivateApiTests(PrivateApiTestsBase):
         res = self.client.get(url)
 
         self.assertResOk(res)
-        data = res.json()
+        data = res.json()['results']
 
         self.assertEqual(len(data), 3)
 
@@ -86,7 +86,7 @@ class EventAnalyticsPrivateApiTests(PrivateApiTestsBase):
         res = self.client.get(url + "?analytics=true")
 
         self.assertResOk(res)
-        data = res.json()
+        data = res.json()['results']
 
         self.assertIn("analytics", data[0])
         self.assertIn("permissions", data[0])
@@ -98,7 +98,7 @@ class EventAnalyticsPrivateApiTests(PrivateApiTestsBase):
         res = self.client.get(url + "?analytics=false")
 
         self.assertResOk(res)
-        data = res.json()
+        data = res.json()['results']
 
         self.assertNotIn("analytics", data[0])
         self.assertEqual(len(data), 3)
@@ -118,7 +118,7 @@ class EventAnalyticsPrivateApiTests(PrivateApiTestsBase):
         res = self.client.get(url + "?analytics=true")
 
         self.assertResOk(res)
-        data = res.json()
+        data = res.json()['results']
 
         self.assertIn("total_attended_users", data[0]["analytics"])
         self.assertEqual(data[0]["analytics"]["total_attended_users"], 0)

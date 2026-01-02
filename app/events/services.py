@@ -353,7 +353,7 @@ class EventService(ServiceBase[Event]):
         """
 
         if start_date is None:
-            start_date = datetime.datetime.now().date()
+            start_date = datetime.datetime.now().replace(day=1).date()
 
         if end_date is None:
             end_date = start_date + relativedelta(months=1) - datetime.timedelta(days=1)
