@@ -165,6 +165,7 @@ class PublicApiTestsBase(TestsBase):
 
     def setUp(self):
         self.client = APIClientWrapper()
+        self.client.cookies.clear()
 
     def assertOk(self, reverse_url: str, reverse_kwargs=None):
         """The response for a reversed url should be 200 ok."""

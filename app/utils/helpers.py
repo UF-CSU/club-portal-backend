@@ -11,11 +11,19 @@ from django.utils.module_loading import import_string
 def reverse_query(viewname, query: Optional[dict] = None, **kwargs):
     """Wraps django's reverse function to add query params."""
     query = query if query else {}
+    query_attrs = []
+
+    for key, value in query.items():
+        if isinstance(value, list):
+            for item in value:
+                query_attrs.append(f"{key}={item}")
+        else:
+            query_attrs.append(f"{key}={value}")
 
     return (
         reverse(viewname, **kwargs)
         + ("?" if len(query.keys()) > 0 else "")
-        + "&".join([f"{key}={value}" for key, value in query.items()])
+        + "&".join(query_attrs)
     )
 
 

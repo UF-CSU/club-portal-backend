@@ -1,7 +1,11 @@
 from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
-from core.abstracts.serializers import ModelSerializerBase
+from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 from django.core import exceptions
+from drf_spectacular.utils import (
+    OpenApiExample,
+    extend_schema_serializer,
+)
 from polls.models import Poll
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from rest_framework import serializers
@@ -249,6 +253,59 @@ class RecurringEventSerializer(ModelSerializerBase):
         )
 
         return obj
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            name="February 2026 Heatmap Example",
+            response_only=True,
+            value={
+                "start_date": "2026-02-01",
+                "end_date": "2026-02-28",
+                "total_events": 20,
+                "heatmap": {
+                    "2026-02-01": 0,
+                    "2026-02-02": 2,
+                    "2026-02-03": 1,
+                    "2026-02-04": 0,
+                    "2026-02-05": 1,
+                    "2026-02-06": 0,
+                    "2026-02-07": 0,
+                    "2026-02-08": 0,
+                    "2026-02-09": 2,
+                    "2026-02-10": 1,
+                    "2026-02-11": 0,
+                    "2026-02-12": 1,
+                    "2026-02-13": 4,
+                    "2026-02-14": 0,
+                    "2026-02-15": 0,
+                    "2026-02-16": 2,
+                    "2026-02-17": 1,
+                    "2026-02-18": 0,
+                    "2026-02-19": 1,
+                    "2026-02-20": 0,
+                    "2026-02-21": 0,
+                    "2026-02-22": 0,
+                    "2026-02-23": 2,
+                    "2026-02-24": 1,
+                    "2026-02-25": 0,
+                    "2026-02-26": 1,
+                    "2026-02-27": 0,
+                    "2026-02-28": 0,
+                },
+            },
+        )
+    ]
+)
+class EventHeatmapSerializer(SerializerBase):
+    """Show event count for each day."""
+
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    total_events = serializers.IntegerField()
+    heatmap = serializers.DictField(child=serializers.IntegerField())
+    # heatmap = serializers.DictField()
 
 
 #############################################################

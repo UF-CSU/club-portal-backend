@@ -495,7 +495,7 @@ if DEV:
 if DEV and not TESTING:
     # Ref: https://stackoverflow.com/a/64726422/10914922
     def show_toolbar(*args, **kwargs):
-        return not TESTING and environ_bool("DJANGO_SHOW_DEBUG_TOOLBAR", 0)
+        return ENABLE_DEBUG_TOOLBAR and not TESTING
 
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK": show_toolbar,

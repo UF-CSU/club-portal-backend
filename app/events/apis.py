@@ -12,4 +12,7 @@ router.register(
 
 app_name = "api-events"
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = [
+    path("", include(router.urls)),
+    path("heatmap/", viewsets.EventHeatmapViewSet.as_view(), name="heatmap"),
+]
