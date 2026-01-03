@@ -8,12 +8,12 @@ router.register("clubs", viewsets.ClubViewSet, basename="club")
 router.register("club-previews", viewsets.ClubPreviewViewSet, basename="clubpreview")
 router.register(
     r"clubs/(?P<club_id>.+)/members",
-    viewsets.ClubMembershipViewSet,
+    viewsets.ClubMemberViewSet,
     basename="clubmember",
 )
 router.register(
     r"clubs/(?P<club_id>.+)/members/person",
-    viewsets.ClubMemberViewSet,
+    viewsets.ClubMembershipSingleViewSet,
     basename="clubmembership",
 )
 router.register(r"clubs/(?P<club_id>.+)/teams", viewsets.TeamViewSet, basename="team")

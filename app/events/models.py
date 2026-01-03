@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel
-from core.abstracts.models import ManagerBase, ModelBase, Tag
+from core.abstracts.models import ManagerBase, ModelBase, QuerySetBase, Tag
 from django.core import exceptions
 from django.core.validators import MaxValueValidator
 from django.db import models
@@ -238,7 +238,7 @@ class RecurringEvent(EventFields):
         }
 
 
-class EventManager(ManagerBase["Event"]):
+class EventQuerySet(QuerySetBase["Event"]):
     """Manage event queries."""
 
     def create(
@@ -401,7 +401,7 @@ class Event(EventFields):
         format_timedelta(self.duration)
 
     # Overrides
-    objects: ClassVar[EventManager] = EventManager()
+    objects: ClassVar[EventQuerySet] = EventQuerySet.as_manager()
 
     def __str__(self) -> str:
         if self.start_at:
@@ -502,6 +502,18 @@ class EventHost(ClubScopedModel, ModelBase):
     def clubs(self):
         # Allow all clubs on event to edit hosts
         return self.event.clubs
+
+    @property
+    def club_name(self):
+        return self.club.name
+
+    @property
+    def club_logo(self):
+        return self.club.logo.file
+
+    @property
+    def club_alias(self):
+        return self.club.alias
 
     class Meta:
         constraints = [

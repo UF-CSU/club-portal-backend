@@ -40,6 +40,7 @@ from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
     ClubFileSerializer,
+    ClubMemberSerializer,
     ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
     ClubPreviewSerializer,
@@ -152,13 +153,40 @@ class ClubViewSet(ModelViewSetBase):
 
 
 class UserClubMembershipsViewSet(ModelViewSetBase):
-    """API for managing a use's club memberships."""
+    """Manage club memberships that belong to the user."""
 
-    queryset = ClubMembership.objects.none()
+    queryset = ClubMembership.objects.select_related(
+        "user",
+    ).prefetch_related(
+        Prefetch(
+            "roles",
+            queryset=ClubRole.objects.all().order_by("order"),
+            to_attr="_prefetched_roles_cache",
+        ),
+        Prefetch(
+            "user__team_memberships",
+            queryset=TeamMembership.objects.select_related("team").prefetch_related(
+                Prefetch(
+                    "team__roles",
+                    queryset=TeamRole.objects.order_by("order"),
+                    to_attr="prefetched_roles",
+                ),
+            ),
+            to_attr="prefetched_team_memberships",
+        ),
+    )
     serializer_class = ClubMembershipSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+
+        context["club_id"] = self.kwargs.get("club_id")
+        return context
+
     def get_queryset(self):
-        return ClubMembership.objects.filter(user=self.request.user)
+        return self.queryset.filter(user=self.request.user)
 
     def check_object_permissions(self, request, obj):
         if request.user.id == obj.user.id:
@@ -250,17 +278,17 @@ class ClubTagsView(GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ClubMembershipViewSet(ClubNestedViewSetBase):
-    """CRUD Api routes for ClubMembership for a specific Club."""
+class ClubMemberViewSet(ClubNestedViewSetBase):
+    """Manage members in a club."""
 
-    serializer_class = ClubMembershipSerializer
+    serializer_class = ClubMemberSerializer
     queryset = ClubMembership.objects.select_related(
         "user", "user__profile"
     ).prefetch_related(
         "user__socials",
         Prefetch(
             "roles",
-            queryset=ClubRole.objects.all().order_by("order"),
+            queryset=ClubRole.objects.order_by("order"),
             to_attr="_prefetched_roles_cache",
         ),
         Prefetch(
@@ -278,6 +306,8 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
         context["club_id"] = self.kwargs.get("club_id")
         return context
 
@@ -314,13 +344,14 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
         return super().perform_destroy(instance)
 
 
-class ClubMemberViewSet(
+# TODO: Remove this in favor of ClubMembershipViewSet
+class ClubMembershipSingleViewSet(
     ViewSetBase,
     mixins.RetrieveModelMixin,
 ):
     """CRUD Api routes for ClubMembership for a specific Club given specific User."""
 
-    serializer_class = ClubMembershipSerializer
+    serializer_class = ClubMemberSerializer
     queryset = ClubMembership.objects.all()
 
     lookup_field = "user_id"

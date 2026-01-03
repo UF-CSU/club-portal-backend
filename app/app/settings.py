@@ -73,6 +73,7 @@ DJANGO_ENABLE_API_SESSION_AUTH = False
 SCHOOL_EMAIL_DOMAIN = "ufl.edu"
 
 ASGI_APPLICATION = "app.asgi.application"
+ENABLE_REQUEST_CACHE = environ_bool("DJANGO_ENABLE_REQUEST_CACHE", 1)
 
 
 # Application definition
@@ -502,6 +503,10 @@ if DEV and not TESTING:
         "IS_RUNNING_TESTS": False,
     }
 
+    # DEBUG_TOOLBAR_PANELS = [
+    #     "debug_toolbar.panels.timer.TimerPanel",
+    # ]
+
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS.extend(["http://0.0.0.0"])
@@ -547,6 +552,7 @@ if TESTING:
     # Ensure tasks execute immediately
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_ALWAYS_EAGER = True
+    ENABLE_REQUEST_CACHE = False
 
     S3_STORAGE_BACKEND = False
     AWS_STORAGE_BUCKET_NAME = ""
