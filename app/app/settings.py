@@ -552,6 +552,7 @@ if TESTING:
     # Ensure tasks execute immediately
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_ALWAYS_EAGER = True
+    ENABLE_REQUEST_CACHE = False
 
     S3_STORAGE_BACKEND = False
     AWS_STORAGE_BUCKET_NAME = ""
