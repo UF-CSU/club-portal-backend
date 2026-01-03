@@ -283,7 +283,7 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
 
     serializer_class = ClubMemberSerializer
     queryset = ClubMembership.objects.select_related(
-       "user", "user__profile"
+        "user", "user__profile"
     ).prefetch_related(
         "user__socials",
         Prefetch(
