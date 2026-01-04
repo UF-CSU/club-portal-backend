@@ -1,3 +1,4 @@
+from clubs.viewsets import ClubQueryFilter
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.db import models, transaction
 from django.http import HttpResponseForbidden
@@ -90,6 +91,7 @@ class PollViewset(ModelViewSetBase):
 
     serializer_class = PollSerializer
     queryset = Poll.objects.none()
+    filter_backends = [ClubQueryFilter]
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
