@@ -1,3 +1,4 @@
+from clubs.viewsets import ClubQueryFilter
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.db import models, transaction
 from django.http import HttpResponseForbidden
@@ -11,7 +12,6 @@ from utils.cache import check_cache, set_cache
 
 from polls.cache import (
     DETAIL_POLL_PREVIEW_PREFIX,
-    LIST_POLL_PREVIEW_PREFIX,
 )
 from polls.models import (
     ChoiceInputOption,
@@ -75,21 +75,13 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
 
         return Response(cached_preview)
 
-    def list(self, request: Request, *args, **kwargs):
-        cached_previews = check_cache(LIST_POLL_PREVIEW_PREFIX)
-
-        if not cached_previews:
-            cached_previews = PollPreviewSerializer(Poll.objects.all(), many=True).data
-            set_cache(cached_previews, LIST_POLL_PREVIEW_PREFIX)
-
-        return Response(cached_previews)
-
 
 class PollViewset(ModelViewSetBase):
     """Manage polls in api."""
 
     serializer_class = PollSerializer
     queryset = Poll.objects.none()
+    filter_backends = [ClubQueryFilter]
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)

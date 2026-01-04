@@ -16,7 +16,7 @@ from polls.models import (
 )
 
 POLLS_URL = reverse("api-polls:poll-list")
-POLL_PREVIEW_LIST_URL = reverse("api-polls:pollpreview-list")
+# POLL_PREVIEW_LIST_URL = reverse("api-polls:pollpreview-list")
 
 
 def polls_detail_url(id: int):

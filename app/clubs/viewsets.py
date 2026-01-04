@@ -88,6 +88,22 @@ class ClubNestedViewSetBase(ModelViewSetBase):
         serializer.save(club=self.club, **kwargs)
 
 
+class ClubQueryFilter(FilterBackendBase):
+    """Filter by club."""
+
+    filter_fields = [
+        {"name": "club", "schema_type": "number", "description": "Club ID"}
+    ]
+
+    def filter_queryset(self, request, queryset, view):
+        club_id = request.query_params.get("club", None)
+
+        if not club_id:
+            return queryset
+
+        return queryset.filter(club__id=club_id)
+
+
 class IsClubAdminFilter(FilterBackendBase):
     """Get clubs that a user is an admin of."""
 
