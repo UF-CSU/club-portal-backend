@@ -12,7 +12,6 @@ from utils.cache import check_cache, set_cache
 
 from polls.cache import (
     DETAIL_POLL_PREVIEW_PREFIX,
-    LIST_POLL_PREVIEW_PREFIX,
 )
 from polls.models import (
     ChoiceInputOption,
@@ -75,15 +74,6 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
             set_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
 
         return Response(cached_preview)
-
-    def list(self, request: Request, *args, **kwargs):
-        cached_previews = check_cache(LIST_POLL_PREVIEW_PREFIX)
-
-        if not cached_previews:
-            cached_previews = PollPreviewSerializer(Poll.objects.all(), many=True).data
-            set_cache(cached_previews, LIST_POLL_PREVIEW_PREFIX)
-
-        return Response(cached_previews)
 
 
 class PollViewset(ModelViewSetBase):
