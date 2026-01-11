@@ -23,7 +23,7 @@ def on_save_poll(sender, instance: Poll, created=False, **kwargs):
 
     service = PollService(instance)
 
-    if not instance.questions.filter(is_user_lookup=True).exists():
+    if not instance.user_lookup_question:
         service.create_question(
             "Email",
             input_type=PollInputType.EMAIL,

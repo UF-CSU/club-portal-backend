@@ -8,11 +8,7 @@ from rest_framework import exceptions, mixins, permissions
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
-from utils.cache import check_cache, set_cache
 
-from polls.cache import (
-    DETAIL_POLL_PREVIEW_PREFIX,
-)
 from polls.models import (
     ChoiceInputOption,
     Poll,
@@ -22,6 +18,7 @@ from polls.models import (
     PollSubmission,
     PollTemplate,
 )
+from polls.permissions import CanAccessClubPoll
 from polls.serializers import (
     ChoiceInputOptionSerializer,
     PollAnalyticsSerializer,
@@ -61,19 +58,21 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
         "_submission_link__qrcode",
     )
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [CanAccessClubPoll]
 
-    def retrieve(self, request: Request, *args, **kwargs):
-        poll_id = self.kwargs.get("pk")
-        cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
-        if not cached_preview:
-            cached_preview = PollPreviewSerializer(
-                Poll.objects.find_by_id(poll_id)
-            ).data
-            set_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+    # TODO: Refactor to use get_object
+    # def retrieve(self, request: Request, *args, **kwargs):
+    #     poll_id = self.kwargs.get("pk")
+    #     cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
 
-        return Response(cached_preview)
+    #     if not cached_preview:
+    #         cached_preview = PollPreviewSerializer(Poll.objects.get_by_id(poll_id)).data
+    #         set_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+
+    #     return Response(cached_preview)
 
 
 class PollViewset(ModelViewSetBase):
@@ -239,9 +238,17 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
     serializer_class = PollSubmissionSerializer
 
+    def initial(self, request, *args, **kwargs):
+        poll_id = self.kwargs.get("poll_id", None)
+        self.poll = get_object_or_404(Poll, id=poll_id)
+
+        super().initial(request, *args, **kwargs)
+
     def check_permissions(self, request):
+        # Ensure user has ability to view the poll they are submitting
         if self.action == "create":
-            return True
+            return CanAccessClubPoll().has_object_permission(request, self, self.poll)
+
         return super().check_permissions(request)
 
     def get_queryset(self):

@@ -16,7 +16,7 @@ from polls.models import (
     PollSubmission,
     PollUserFieldType,
 )
-from polls.tests.test_poll_views import pollsubmission_list_url
+from polls.tests.test_poll_api import pollsubmission_list_url
 from polls.tests.utils import create_test_pollquestion
 
 

@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from utils.permissions import get_perm_label
 
 
-class QuerySetBase[T](models.QuerySet):
+class CustomManagerMethods[T]:
     model: type[T]
 
     def create(self, **kwargs) -> T:
@@ -117,13 +117,21 @@ class QuerySetBase[T](models.QuerySet):
         return super().all()
 
 
-class _ManagerBase[T](models.Manager):
+class QuerySetBase[T](CustomManagerMethods[T], models.QuerySet):
+    """Extends default queryset to provide extra methods."""
+
+    pass
+
+
+class ManagerBase[T](
+    CustomManagerMethods[T], models.Manager.from_queryset(QuerySetBase[T])
+):
     """Extends django manager for improved db access."""
 
-    model: type[T]
+    pass
 
 
-ManagerBase = _ManagerBase.from_queryset(QuerySetBase)
+# ManagerBase = _ManagerBase[M].from_queryset(QuerySetBase)
 
 
 class ScopeType(models.TextChoices):

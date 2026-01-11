@@ -1,5 +1,6 @@
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import TestsBase
+from django.db import IntegrityError
 from lib.faker import fake
 from rest_framework import exceptions
 
@@ -8,6 +9,7 @@ from polls.models import (
     PollField,
     PollInputType,
     PollQuestion,
+    PollType,
     PollUserFieldType,
     TextInput,
 )
@@ -44,3 +46,31 @@ class PollModelTests(TestsBase):
 
         with self.assertRaises(exceptions.ValidationError):
             create_test_pollquestion(poll, link_user_field=PollUserFieldType.NAME)
+
+    def test_private_poll_no_club_raises_error(self):
+        """Should raise error when setting a poll without a club as private."""
+
+        poll = create_test_poll(poll_type=PollType.TEMPLATE, force_club_none=True)
+
+        with self.assertRaises(IntegrityError):
+            poll.is_private = True
+            poll.save()
+
+    def test_raise_error_on_invalid_required_role(self):
+        """Should raise error if required role is set to a club other than assigned club."""
+
+        c1 = create_test_club()
+        c2 = create_test_club()
+
+        p0 = create_test_poll()
+        p1 = create_test_poll(club=c1)
+
+        # Raise error when club not set
+        with self.assertRaises(exceptions.ValidationError):
+            p0.required_club_role = c1.roles.get(default=True)
+            p0.save()
+
+        # Raise error when setting other club's role
+        with self.assertRaises(exceptions.ValidationError):
+            p1.required_club_role = c2.roles.get(default=True)
+            p1.save()
