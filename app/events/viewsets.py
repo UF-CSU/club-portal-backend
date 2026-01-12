@@ -12,6 +12,7 @@ from core.abstracts.viewsets import (
 from dateutil.relativedelta import relativedelta
 from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
+from lib.celery import delay_task
 from rest_framework import permissions, status
 from rest_framework.pagination import BasePagination
 from rest_framework.request import Request
@@ -28,6 +29,7 @@ from events.models import (
     EventTag,
 )
 from events.services import EventService
+from events.tasks import sync_recurring_event_task
 
 from . import models, serializers
 
@@ -329,7 +331,16 @@ class RecurringEventViewSet(ModelViewSetBase):
                     "Need recurring event creation priviledge for primary host club.",
                 )
 
-        return super().perform_create(serializer)
+        super().perform_create(serializer)
+
+        # Schedule the recurring event for syncing
+        delay_task(sync_recurring_event_task, recurring_event_id=serializer.instance.id)
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+
+        # Schedule the recurring event for syncing
+        delay_task(sync_recurring_event_task, recurring_event_id=serializer.instance.id)
 
 
 class EventCancellationViewSet(ModelViewSetBase):

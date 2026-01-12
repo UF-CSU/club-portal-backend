@@ -27,6 +27,8 @@ def getMaxRecurringTime():
 
 
 class DayType(models.IntegerChoices):
+    """Indicate the day, with Monday as 0."""
+
     MONDAY = 0, _("Monday")
     TUESDAY = 1, _("Tuesday")
     WEDNESDAY = 2, _("Wednesday")

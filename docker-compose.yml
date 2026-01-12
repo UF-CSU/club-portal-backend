@@ -187,6 +187,7 @@ services:
     entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
     volumes:
       - pgadmin-clubs-dev:/var/lib/pgadmin
+      - ./_pg_scripts:/root/scripts
     configs:
       - source: servers.json
         target: /pgadmin4/servers.json
