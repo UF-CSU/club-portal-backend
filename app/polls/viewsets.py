@@ -18,7 +18,10 @@ from polls.models import (
     PollSubmission,
     PollTemplate,
 )
-from polls.permissions import CanAccessClubPoll
+from polls.permissions import (
+    CanSubmitPoll,
+    CanViewPoll,
+)
 from polls.serializers import (
     ChoiceInputOptionSerializer,
     PollAnalyticsSerializer,
@@ -58,7 +61,7 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
         "_submission_link__qrcode",
     )
 
-    permission_classes = [CanAccessClubPoll]
+    permission_classes = [CanViewPoll]
 
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -245,10 +248,12 @@ class PollSubmissionViewSet(ModelViewSetBase):
         super().initial(request, *args, **kwargs)
 
     def check_permissions(self, request):
-        # Ensure user has ability to view the poll they are submitting
         if self.action == "create":
-            return CanAccessClubPoll().has_object_permission(request, self, self.poll)
+            # If submitting poll, override permissions to use the separate permissions
+            # flow for submitting polls, which is determined by the poll object
+            return CanSubmitPoll().has_object_permission(request, self, self.poll)
 
+        # Default to normal CRUD permissions for PollSubmission objects
         return super().check_permissions(request)
 
     def get_queryset(self):
