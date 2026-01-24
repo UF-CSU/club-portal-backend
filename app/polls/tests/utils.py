@@ -54,9 +54,14 @@ def pollanalytics_url(poll_id: int):
 
 
 def create_test_poll(**kwargs):
-    """Create mock poll for testing."""
+    """
+    Create mock poll for testing.
 
-    club = kwargs.pop("club", create_test_club())
+    Set force_club_none=True to allow club to be None.
+    """
+
+    force_club_none = kwargs.pop("force_club_none", False)
+    club = kwargs.pop("club", create_test_club() if not force_club_none else None)
 
     payload = {
         "name": fake.title(),

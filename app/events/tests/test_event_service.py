@@ -138,10 +138,13 @@ class RecurringEventTests(TestsBase):
         club_files_count_before = ClubFile.objects.count()
         self.assertEqual(Event.objects.count(), 0)
 
-        # TODO: Figure out how to handle clubs with recurring events
+        # with CaptureQueriesContext(connection) as context:
         rec = RecurringEvent.objects.create(**payload)
+
         service = RecurringEventService(rec)
         service.sync_events()
+
+        # print("queries:", len(context.captured_queries))
 
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
         self.assertEqual(rec.expected_event_count, EXPECTED_EV_COUNT)

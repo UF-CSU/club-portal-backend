@@ -100,6 +100,7 @@ ADMIN_ROLE_PERMISSIONS = [
     "polls.add_choiceinputoption",
     "polls.change_choiceinputoption",
     "polls.delete_choiceinputoption",
+    "polls.view_private_poll",
 ]
 """All permissions for a club"""
 

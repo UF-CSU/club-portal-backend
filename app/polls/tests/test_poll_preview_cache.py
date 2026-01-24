@@ -1,19 +1,7 @@
 import logging
-from time import time
 
 from core.abstracts.tests import PublicApiTestsBase
 from django.core.cache import cache
-from events.tests.utils import create_test_event
-from utils.cache import check_cache
-
-from polls.cache import (
-    DETAIL_POLL_PREVIEW_PREFIX,
-)
-from polls.serializers import PollPreviewSerializer
-from polls.tests.utils import (
-    create_test_poll,
-    pollpreview_detail_url,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -27,38 +15,38 @@ class PollPreviewCacheTests(PublicApiTestsBase):
         cache.clear()
         return super().tearDown()
 
-    def test_detail_poll_preview_cache(self):
-        """Test for the poll preview cache detail endpoint"""
-        test_poll = create_test_poll()
-        test_poll_preview = PollPreviewSerializer(test_poll).data
-        cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk)
-        self.assertEqual(test_poll_preview, cached_preview)
+    # def test_detail_poll_preview_cache(self):
+    #     """Test for the poll preview cache detail endpoint"""
+    #     test_poll = create_test_poll()
+    #     test_poll_preview = PollPreviewSerializer(test_poll).data
+    #     cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk)
+    #     self.assertEqual(test_poll_preview, cached_preview)
 
-        cache.clear()
+    #     cache.clear()
 
-        url = pollpreview_detail_url(test_poll.pk)
+    #     url = pollpreview_detail_url(test_poll.pk)
 
-        start_no_cache = time()
-        res = self.client.get(url)
-        end_no_cache = time()
-        self.assertEqual(test_poll_preview, res.data)
+    #     start_no_cache = time()
+    #     res = self.client.get(url)
+    #     end_no_cache = time()
+    #     self.assertEqual(test_poll_preview, res.data)
 
-        cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk)
-        self.assertEqual(cached_preview, res.data)
+    #     cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk)
+    #     self.assertEqual(cached_preview, res.data)
 
-        start_cache = time()
-        res = self.client.get(url)
-        end_cache = time()
+    #     start_cache = time()
+    #     res = self.client.get(url)
+    #     end_cache = time()
 
-        logger.debug(
-            f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
-        )
+    #     logger.debug(
+    #         f"""Time No Cache: {end_no_cache - start_no_cache}\nTime Cached: {end_cache - start_cache}"""
+    #     )
 
-        test_poll.event = create_test_event()
-        res = self.client.get(url)
-        self.assertEqual(
-            res.data, check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk)
-        )
+    #     test_poll.event = create_test_event()
+    #     res = self.client.get(url)
+    #     self.assertEqual(
+    #         res.data, check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=test_poll.pk)
+    #     )
 
     # def test_list_poll_preview_cache(self):
     #     """Test for the poll preview cache list endpoint"""

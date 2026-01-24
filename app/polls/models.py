@@ -29,7 +29,7 @@ from datetime import datetime
 from typing import ClassVar, Optional
 
 from analytics.models import Link
-from clubs.models import Club, ClubFile, ClubScopedModel
+from clubs.models import Club, ClubFile, ClubRole, ClubScopedModel
 from core.abstracts.models import ManagerBase, ModelBase
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -195,10 +195,15 @@ class Poll(ClubScopedModel, ModelBase):
         related_name="+",
     )
 
-    # Hopefully this works
-    # poll_template = models.ForeignKey(
-    #    "polls.pollTemplate", null=True, blank=True, on_delete=models.SET_NULL
-    # )
+    is_private = models.BooleanField(
+        default=False, blank=True, help_text="Only club members can submit this poll."
+    )
+    allowed_club_roles = models.ManyToManyField(
+        ClubRole,
+        blank=True,
+        related_name="+",
+        help_text="If private, then only users with one of these club roles can submit a poll.",
+    )
 
     # Foreign Relationships
     fields: models.QuerySet["PollField"]
@@ -208,6 +213,15 @@ class Poll(ClubScopedModel, ModelBase):
     @property
     def questions(self):
         return PollQuestion.objects.filter(field__poll=self).all()
+
+    @property
+    def user_lookup_question(self) -> Optional["PollQuestion"]:
+        question = self.questions.filter(is_user_lookup=True)
+
+        if not question.exists():
+            return None
+
+        return question.first()
 
     @cached_property
     def submissions_count(self) -> int:
@@ -283,11 +297,24 @@ class Poll(ClubScopedModel, ModelBase):
         return super().save(*args, **kwargs)
 
     def clean(self):
+        # Check open/close dates
         if (
             self.open_at is not None and self.close_at is not None
         ) and self.open_at > self.close_at:
             raise exceptions.ValidationError(
                 "Open date cannot be greater than the close date"
+            )
+
+        if self.pk and self.allowed_club_roles.exclude(club__id=self.club_id).exists():
+            raise exceptions.ValidationError("Roles must belone to selected club")
+
+        if (
+            self.poll_type == PollType.TEMPLATE
+            and self.club_id is None
+            and self.is_private is True
+        ):
+            raise exceptions.ValidationError(
+                "Cannot have a private template without a club"
             )
 
         return super().clean()
@@ -296,6 +323,7 @@ class Poll(ClubScopedModel, ModelBase):
         ordering = ["-open_at"]
         permissions = [
             ("view_poll_analytics", "Can view poll analytics"),
+            ("view_private_poll", "Can view private polls"),
         ]
         constraints = [
             models.CheckConstraint(
