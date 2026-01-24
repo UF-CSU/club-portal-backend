@@ -308,6 +308,15 @@ class Poll(ClubScopedModel, ModelBase):
         if self.pk and self.allowed_club_roles.exclude(club__id=self.club_id).exists():
             raise exceptions.ValidationError("Roles must belone to selected club")
 
+        if (
+            self.poll_type == PollType.TEMPLATE
+            and self.club_id is None
+            and self.is_private is True
+        ):
+            raise exceptions.ValidationError(
+                "Cannot have a private template without a club"
+            )
+
         return super().clean()
 
     class Meta:

@@ -34,7 +34,7 @@ def on_save_poll(sender, instance: Poll, created=False, **kwargs):
     if instance.are_tasks_out_of_sync:
         service.sync_status_tasks()
 
-    if instance.submission_link is None:
+    if instance.submission_link is None and instance.club is not None:
         service.create_submission_link()
 
 
