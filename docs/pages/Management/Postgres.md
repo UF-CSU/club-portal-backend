@@ -50,13 +50,13 @@ docker compose -f docker-compose.prod.yml run --rm app sh -c "clear-old-backups.
 1. Daily backups (every 6 hours):
 
    ```text
-   0 0,12 * * * docker compose -f docker-compose.prod.yml run --rm sh -c "backup-db.sh" >> /etc/logs/crontab/backup-db.log 2>&1
+   0 0,12 * * * docker compose -f docker-compose.prod.yml run --rm app sh -c "backup-db.sh" >> /etc/logs/crontab/backup-db.log 2>&1
    ```
 
 2. Clear backups older than 14 days (midnight on sundays):
 
    ```text
-   0 0 * * 0 docker compose -f docker-compose.prod.yml run --rm sh -c "clear-old-backups.sh" >> /etc/logs/crontab/clear-old-backups.log 2>&1
+   0 0 * * 0 docker compose -f docker-compose.prod.yml run --rm app sh -c "clear-old-backups.sh" >> /etc/logs/crontab/clear-old-backups.log 2>&1
    ```
 
 ## Bumping Version

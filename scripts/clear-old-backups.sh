@@ -5,7 +5,7 @@ set -e
 OPTIND=1
 
 ttl_days=14
-backup_file_re=".*/AUTO_backup_.*_[0-9]{4}\-[0-9]{2}\-[0-9]{2}\_[0-9]{2}\-[0-9]{2}\-[0-9]{2}\.sql\.gz"
+backup_file_re=".*/auto_backup_.*_[0-9]{4}\-[0-9]{2}\-[0-9]{2}\_[0-9]{2}\-[0-9]{2}\-[0-9]{2}\.sql\.gz"
 backup_dir="/var/backups"
 
 files=$(find "$backup_dir" -type f -mtime "+$ttl_days" -regextype posix-extended -regex "$backup_file_re")
