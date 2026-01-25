@@ -6,7 +6,7 @@ To create a system backup (deleted after 14 days):
 
 ```sh
 docker compose -f docker-compose.prod.yml run --rm app sh -c "backup-db.sh"
-# Example file: ./backups/AUTO_backup_devdatabase_2025-12-13_21-10-01.sql.gz
+# Example file: ./backups/auto_backup_devdatabase_2025-12-13_21-10-01.sql.gz
 ```
 
 To create manual backup (never deleted):
@@ -19,8 +19,8 @@ docker compose -f docker-compose.prod.yml run --rm app sh -c "backup-db.sh test-
 To restore from backup (leave out the `.sql.gz` extension):
 
 ```sh
-docker compose -f docker-compose.prod.yml run --rm app sh -c "restore-db.sh AUTO_backup_<dbname>_<date>"
-# Example command: restore-db.sh AUTO_backup_devdatabase_2025-12-13_21-10-01
+docker compose -f docker-compose.prod.yml run --rm app sh -c "restore-db.sh auto_backup_<dbname>_<date>"
+# Example command: restore-db.sh auto_backup_devdatabase_2025-12-13_21-10-01
 ```
 
 To list all backups older than 14 days:
@@ -29,8 +29,8 @@ To list all backups older than 14 days:
 docker compose -f docker-compose.prod.yml run --rm app sh -c "clear-old-backups.sh -l"
 # Example output:
 # Found 2 backups older than 14 days:
-# /var/backups/AUTO_backup_devdatabase_2025-12-12_19-42-11.sql.gz
-# /var/backups/AUTO_backup_devdatabase_2025-12-13_19-42-11.sql.gz
+# /var/backups/auto_backup_devdatabase_2025-12-12_19-42-11.sql.gz
+# /var/backups/auto_backup_devdatabase_2025-12-13_19-42-11.sql.gz
 ```
 
 To delete all backups older than 14 days:
@@ -39,8 +39,8 @@ To delete all backups older than 14 days:
 docker compose -f docker-compose.prod.yml run --rm app sh -c "clear-old-backups.sh -l"
 # Example output:
 # Found 2 backups older than 14 days, deleting:
-# /var/backups/AUTO_backup_devdatabase_2025-12-12_19-42-11.sql.gz
-# /var/backups/AUTO_backup_devdatabase_2025-12-13_19-42-11.sql.gz
+# /var/backups/auto_backup_devdatabase_2025-12-12_19-42-11.sql.gz
+# /var/backups/auto_backup_devdatabase_2025-12-13_19-42-11.sql.gz
 #
 # Successfully deleted 2 backups
 ```
@@ -86,7 +86,7 @@ When bumping a new postgres version, we essentially have to create a new (empty)
 6. Restore backup created in step 1 (replace dbname and date with appropriate values, should match name of backup created in `backups/`)
 
    ```sh
-   docker compose -f docker-compose.prod.yml run app sh -c "restore-db.sh AUTO_backup_<dbname>_<date>"
+   docker compose -f docker-compose.prod.yml run app sh -c "restore-db.sh auto_backup_<dbname>_<date>"
    ```
 
 7. Start all containers
