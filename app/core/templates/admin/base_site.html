@@ -30,7 +30,7 @@
 <script>
   // Timezone settings
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone // e.g. "America/New_York"
-  document.cookie = 'user_timezone=' + timezone
+  document.cookie = `user_timezone=${timezone};path=/`
   console.log('timezone:', timezone)
 </script>
 {% endblock %} {% block nav-global %}

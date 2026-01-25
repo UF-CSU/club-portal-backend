@@ -8,6 +8,9 @@ from core.abstracts.serializers import (
     ModelSerializerBase,
     UpdateListSerializer,
 )
+from django.contrib.postgres.expressions import ArraySubquery
+from django.db.models import Count, OuterRef, Q
+from django.db.models.functions import TruncDay
 from django.shortcuts import get_object_or_404
 from events.models import Event, EventType
 from rest_framework import exceptions, serializers
@@ -200,7 +203,7 @@ class PollMarkupNestedSerializer(ModelSerializerBase):
 
 
 class PollFieldSerializer(ModelSerializerBase):
-    """Show poll fields  in polls."""
+    """Show poll fields in polls."""
 
     question = PollQuestionSerializer(required=False, allow_null=True)
     markup = PollMarkupNestedSerializer(required=False, allow_null=True)
@@ -263,6 +266,25 @@ class PollFieldSerializer(ModelSerializerBase):
                 serializer.create(markup_data)
 
         return field
+
+
+class PollFieldAnalyticsSerializer(PollFieldSerializer):
+    """Poll field serializer to include analytics"""
+
+    count = serializers.IntegerField(required=True)
+    trues = serializers.IntegerField(required=True)
+    falses = serializers.IntegerField(required=True)
+    selections = serializers.ListField(required=True)
+    selection_counts = serializers.ListField(required=True)
+
+    class Meta(PollFieldSerializer.Meta):
+        fields = PollFieldSerializer.Meta.fields + [
+            "count",
+            "trues",
+            "falses",
+            "selections",
+            "selection_counts",
+        ]
 
 
 class PollLinkNestedSerializer(ModelSerializerBase):
@@ -366,6 +388,74 @@ class PollSerializer(ModelSerializer):
                 validated_data["event"] = None
 
         return super().update(instance, validated_data)
+
+
+class PollAnalyticsSerializer(PollSerializer):
+    """Json definition for poll analytics"""
+
+    # Submission by day
+    submission_vs_time = serializers.SerializerMethodField()
+
+    # Analytics for each question
+    answer_analytics = serializers.SerializerMethodField()
+
+    def get_submission_vs_time(self, instance: models.Poll):
+        """Returns analytics for submissions by time submitted"""
+        submission_vs_time = (
+            models.PollSubmission.objects.filter(poll__id=instance.pk)
+            .annotate(submission_date=TruncDay("created_at"))
+            .values("submission_date")
+            .annotate(count=Count("id"))
+            .order_by("submission_date")
+        )
+        return list(submission_vs_time)
+
+    def get_answer_analytics(self, instance: models.Poll):
+        """Returns analytics for poll questions answers"""
+        answer_analytics = (
+            models.PollField.objects.filter(
+                poll=instance, field_type=models.PollFieldType.QUESTION
+            )
+            .annotate(
+                count=Count(
+                    "_question__answers",
+                ),
+                falses=Count(
+                    "_question__answers",
+                    filter=Q(_question__answers__boolean_value=False),
+                ),
+                trues=Count(
+                    "_question__answers",
+                    filter=Q(_question__answers__boolean_value=True),
+                ),
+                selections=ArraySubquery(
+                    models.PollField.objects.filter(id=OuterRef("pk"))
+                    .values(
+                        "_question___choiceinput__options__value",
+                        "_question___choiceinput__options__order",
+                    )
+                    .order_by("_question___choiceinput__options__order")
+                    .values("_question___choiceinput__options__value")
+                ),
+                selection_counts=ArraySubquery(
+                    models.PollField.objects.filter(id=OuterRef("pk"))
+                    .values(
+                        "_question___choiceinput__options",
+                        "_question___choiceinput__options__order",
+                    )
+                    .annotate(
+                        count=Count("_question___choiceinput__options__selections")
+                    )
+                    .order_by("_question___choiceinput__options__order")
+                    .values(
+                        "count",
+                    )
+                ),
+            )
+            .order_by("order")
+        )
+
+        return PollFieldAnalyticsSerializer(answer_analytics, many=True).data
 
 
 class PollTemplateSerializer(PollSerializer):

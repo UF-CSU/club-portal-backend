@@ -213,7 +213,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
     """Preview club info for unauthorized users"""
 
     logo = ClubFileNestedSerializer()
-    # banner = ClubFileNestedSerializer(required=False)
+    banner = ClubFileNestedSerializer(required=False)
     tags = ClubTagSerializer(many=True, read_only=True)
     socials = ClubSocialSerializer(many=True, read_only=True)
     majors = serializers.SlugRelatedField(many=True, slug_field="name", read_only=True)
@@ -222,6 +222,7 @@ class ClubPreviewSerializer(ModelSerializerBase):
         model = Club
         fields = [
             "id",
+            "banner",
             "gatorconnect_url",
             "gatorconnect_organization_url",
             "name",
@@ -312,7 +313,50 @@ class ClubMemberTeamNestedSerializer(ModelSerializerBase):
 
 
 class ClubMembershipSerializer(ModelSerializerBase):
-    """Connects a User to a Club, stores membership information for that user."""
+    """Display information for the current user's club memberships."""
+
+    user_id = serializers.PrimaryKeyRelatedField(source="user", read_only=True)
+    club_id = serializers.PrimaryKeyRelatedField(source="club", read_only=True)
+    team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
+    roles = serializers.SlugRelatedField(
+        slug_field="name",
+        many=True,
+        queryset=ClubRole.objects.none(),
+        required=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not hasattr(self, "context") or not self.context:
+            return
+        club_id = self.context.get("club_id")
+        skip_role_queryset = self.context.get("skip_role_queryset", False)
+
+        if club_id and not skip_role_queryset:
+            filtered_roles = ClubRole.objects.filter(club_id=club_id)
+            self.fields["roles"].queryset = filtered_roles
+            if hasattr(self.fields["roles"], "child_relation"):
+                self.fields["roles"].child_relation.queryset = filtered_roles
+
+    class Meta:
+        model = ClubMembership
+        fields = [
+            *ModelSerializerBase.default_fields,
+            "user_id",
+            "club_id",
+            "is_owner",
+            "is_admin",
+            "is_viewer",
+            "points",
+            "team_memberships",
+            "roles",
+            "is_pinned",
+            "order",
+        ]
+
+
+class ClubMemberSerializer(ModelSerializerBase):
+    """Show information about all members of a club."""
 
     user = ClubMemberUserNestedSerializer()
     club_id = serializers.PrimaryKeyRelatedField(source="club", read_only=True)
@@ -329,7 +373,9 @@ class ClubMembershipSerializer(ModelSerializerBase):
         if not hasattr(self, "context") or not self.context:
             return
         club_id = self.context.get("club_id")
-        if club_id:
+        skip_role_queryset = self.context.get("skip_role_queryset", False)
+
+        if club_id and not skip_role_queryset:
             filtered_roles = ClubRole.objects.filter(club_id=club_id)
             self.fields["roles"].queryset = filtered_roles
             if hasattr(self.fields["roles"], "child_relation"):
@@ -352,7 +398,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
         ]
 
 
-class ClubMembershipCreateSerializer(ClubMembershipSerializer):
+class ClubMembershipCreateSerializer(ClubMemberSerializer):
     """Connects a User to a Club, determines how memberships should be added."""
 
     send_email = serializers.BooleanField(
@@ -364,7 +410,7 @@ class ClubMembershipCreateSerializer(ClubMembershipSerializer):
         help_text="If the user has an existing account, they will redirect to this url.",
     )
 
-    class Meta(ClubMembershipSerializer.Meta):
+    class Meta(ClubMemberSerializer.Meta):
         fields = [
             *ModelSerializerBase.default_fields,
             "user",
@@ -469,7 +515,7 @@ class JoinClubsSerializer(SerializerBase):
 class ClubRosterSerializer(ModelSerializerBase):
     """Used to display a club's members."""
 
-    executives = ClubMembershipSerializer(many=True)
+    executives = ClubMemberSerializer(many=True)
     teams = TeamSerializer(many=True, source="roster_teams")
 
     class Meta:

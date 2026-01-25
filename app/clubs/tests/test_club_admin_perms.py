@@ -244,7 +244,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         url = event_detail_url(e3.id)
         payload["name"] = fake.title() + " 3"
         res = self.client.patch(url, payload)
-        self.assertResForbidden(res)
+        self.assertResNotFound(res)
 
         e3.refresh_from_db()
         self.assertNotEqual(e3.name, payload["name"])
@@ -281,7 +281,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         # E3: Is not host, cannot delete
         url = event_detail_url(e3.id)
         res = self.client.delete(url)
-        self.assertResForbidden(res)
+        self.assertResNotFound(res)
 
         self.assertTrue(Event.objects.filter(id=e3.pk).exists())
 
@@ -305,10 +305,12 @@ class ApiClubAdminTests(PrivateApiTestsBase):
 
         url = RECURRINGEVENT_LIST_URL
         res = self.client.post(url, payload)
+        # res  = sync_to_async(self.client.post)(url, payload)
         self.assertResCreated(res)
 
         rec_query = RecurringEvent.objects.filter(club=self.club)
         self.assertTrue(rec_query.exists())
+
         self.assertTrue(Event.objects.for_club(self.club).exists())
 
         rec_query.delete()

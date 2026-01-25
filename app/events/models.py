@@ -2,14 +2,15 @@
 Event models.
 """
 
-from datetime import date, time
+from datetime import date, time, timedelta
 from typing import ClassVar, Optional
 from zoneinfo import ZoneInfo
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel
-from core.abstracts.models import ManagerBase, ModelBase, Tag
+from core.abstracts.models import ManagerBase, ModelBase, QuerySetBase, Tag
 from django.core import exceptions
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.timezone import datetime
@@ -21,7 +22,13 @@ from utils.formatting import format_timedelta
 from utils.models import ArrayChoiceField
 
 
+def getMaxRecurringTime():
+    return timezone.now().date() + timedelta(weeks=52)
+
+
 class DayType(models.IntegerChoices):
+    """Indicate the day, with Monday as 0."""
+
     MONDAY = 0, _("Monday")
     TUESDAY = 1, _("Tuesday")
     WEDNESDAY = 2, _("Wednesday")
@@ -74,6 +81,9 @@ class EventType(models.TextChoices):
 
 class EventTag(Tag):
     """Group together different types of events."""
+
+    # Foreign relationships
+    events: models.QuerySet["Event"]
 
 
 class EventFields(ClubScopedModel, ModelBase):
@@ -168,7 +178,10 @@ class RecurringEvent(EventFields):
 
     start_date = models.DateField(help_text="Date of the first occurance of this event")
     # TODO: Allow no end date
-    end_date = models.DateField(help_text="Date of the last occurance of this event")
+    end_date = models.DateField(
+        help_text="Date of the last occurance of this event",
+        validators=[MaxValueValidator(limit_value=getMaxRecurringTime)],
+    )
     is_public = models.BooleanField(default=True, blank=True)
     prevent_sync_past_events = models.BooleanField(
         blank=True,
@@ -185,6 +198,8 @@ class RecurringEvent(EventFields):
     last_synced = models.DateTimeField(
         null=True, blank=True, editable=False, help_text="Last time events were synced"
     )
+
+    is_synced = models.BooleanField(default=False)
 
     # Relationships
     events: models.QuerySet["Event"]
@@ -225,7 +240,7 @@ class RecurringEvent(EventFields):
         }
 
 
-class EventManager(ManagerBase["Event"]):
+class EventQuerySet(QuerySetBase["Event"]):
     """Manage event queries."""
 
     def create(
@@ -239,12 +254,18 @@ class EventManager(ManagerBase["Event"]):
     ):
         """Create new event, and attendance link."""
 
+        tags = kwargs.pop("tags", None)
+
         event = super().create(name=name, start_at=start_at, end_at=end_at, **kwargs)
 
         if host:
             event.add_host(host, is_primary=True, commit=False)
+
         if secondary_hosts:
             event.add_hosts(*secondary_hosts, commit=False)
+
+        if tags:
+            event.tags.set(tags)
 
         event.save()
 
@@ -260,6 +281,24 @@ class EventManager(ManagerBase["Event"]):
 
         day_value = DayType(day).to_query_weekday()
         return self.filter(start_at__week_day=day_value)
+
+    def filter_for_user(self, user: User):
+        """Get events for the clubs a user is a member."""
+
+        if user.is_superuser:
+            return self.all()
+        elif user.is_anonymous:
+            return self.none()
+
+        return self.filter(clubs__memberships__user=user)
+
+    def get_for_user(self, id: int, user: User):
+        """Get event for user, or throw 404."""
+
+        if user.is_superuser:
+            return self.get(id=id)
+
+        return self.get(id=id, clubs__memberships__user=user)
 
 
 class Event(EventFields):
@@ -281,7 +320,7 @@ class Event(EventFields):
         related_name="events",
     )
 
-    tags = models.ManyToManyField(EventTag, blank=True)
+    tags = models.ManyToManyField(EventTag, blank=True, related_name="events")
 
     is_draft = models.BooleanField(default=False, db_index=True)
     is_public = models.BooleanField(default=True, db_index=True)
@@ -329,7 +368,7 @@ class Event(EventFields):
             value.save()
 
     @property
-    def submissions(self):
+    def submissions(self) -> None | models.QuerySet:
         if not self.poll:
             return None
         return self.poll.submissions.all()
@@ -364,7 +403,7 @@ class Event(EventFields):
         format_timedelta(self.duration)
 
     # Overrides
-    objects: ClassVar[EventManager] = EventManager()
+    objects: ClassVar[EventQuerySet] = EventQuerySet.as_manager()
 
     def __str__(self) -> str:
         if self.start_at:
@@ -435,7 +474,11 @@ class Event(EventFields):
             self.save()
 
     class Meta:
-        permissions = [("view_private_event", "Can view private event")]
+        permissions = [
+            ("view_private_event", "Can view private event"),
+            ("view_event_analytics", "Can view event analytics"),
+            ("view_event_details", "Can view event details"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 name="unique_event_by_name_and_time",
@@ -461,6 +504,18 @@ class EventHost(ClubScopedModel, ModelBase):
     def clubs(self):
         # Allow all clubs on event to edit hosts
         return self.event.clubs
+
+    @property
+    def club_name(self):
+        return self.club.name
+
+    @property
+    def club_logo(self):
+        return self.club.logo.file
+
+    @property
+    def club_alias(self):
+        return self.club.alias
 
     class Meta:
         constraints = [

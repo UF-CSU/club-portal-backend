@@ -1,6 +1,7 @@
 import random
 
 from clubs.tests.utils import create_test_club
+from django.urls import reverse
 from lib.faker import fake
 from users.tests.utils import create_test_user
 
@@ -14,11 +15,53 @@ from polls.models import (
     PollSubmission,
 )
 
+POLLS_URL = reverse("api-polls:poll-list")
+# POLL_PREVIEW_LIST_URL = reverse("api-polls:pollpreview-list")
+
+
+def polls_detail_url(id: int):
+    return reverse("api-polls:poll-detail", args=[id])
+
+
+def pollpreview_detail_url(id: int):
+    return reverse("api-polls:pollpreview-detail", args=[id])
+
+
+def pollsubmission_list_url(poll_id: int):
+    return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
+
+
+def pollfield_list_url(poll_id: int):
+    return reverse("api-polls:pollfield-list", args=[poll_id])
+
+
+def pollfield_detail_url(poll_id: int, pollfield_id: int):
+    return reverse("api-polls:pollfield-detail", args=[poll_id, pollfield_id])
+
+
+def polloption_list_url(poll_id: int, pollfield_id: int):
+    return reverse("api-polls:pollchoiceoption-list", args=[poll_id, pollfield_id])
+
+
+def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
+    return reverse(
+        "api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id]
+    )
+
+
+def pollanalytics_url(poll_id: int):
+    return reverse("api-polls:pollanalytics", args=[poll_id])
+
 
 def create_test_poll(**kwargs):
-    """Create mock poll for testing."""
+    """
+    Create mock poll for testing.
 
-    club = kwargs.pop("club", create_test_club())
+    Set force_club_none=True to allow club to be None.
+    """
+
+    force_club_none = kwargs.pop("force_club_none", False)
+    club = kwargs.pop("club", create_test_club() if not force_club_none else None)
 
     payload = {
         "name": fake.title(),

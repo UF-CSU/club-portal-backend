@@ -51,6 +51,8 @@ class ClubFileOrigin(models.TextChoices):
 class ClubTag(Tag):
     """Group clubs together based on topics."""
 
+    clubs: models.QuerySet["Club"]
+
 
 def get_default_founding_year():
     """Initializes default founding year to current year."""
@@ -189,7 +191,7 @@ class Club(ClubScopedModel, UniqueModel):
     )
 
     # Relationships
-    tags = models.ManyToManyField(ClubTag, blank=True)
+    tags = models.ManyToManyField(ClubTag, blank=True, related_name="clubs")
     majors = models.ManyToManyField(
         Major, related_name="clubs", blank=True, help_text="Focused majors"
     )

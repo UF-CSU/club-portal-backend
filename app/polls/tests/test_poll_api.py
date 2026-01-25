@@ -1,8 +1,10 @@
+from clubs.services import ClubService
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from django.urls import reverse
 from lib.faker import fake
 from rest_framework.authtoken.models import Token
+from users.tests.utils import create_test_user
 from utils.helpers import reverse_query
 
 from polls.models import (
@@ -19,39 +21,17 @@ from polls.models import (
     TextInput,
     UploadInput,
 )
-from polls.tests.utils import create_test_poll
-
-POLLS_URL = reverse("api-polls:poll-list")
-
-
-def polls_detail_url(id: int):
-    return reverse("api-polls:poll-detail", args=[id])
-
-
-def pollpreview_detail_url(id: int):
-    return reverse("api-polls:pollpreview-detail", args=[id])
-
-
-def pollsubmission_list_url(poll_id: int):
-    return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
-
-
-def pollfield_list_url(poll_id: int):
-    return reverse("api-polls:pollfield-list", args=[poll_id])
-
-
-def pollfield_detail_url(poll_id: int, pollfield_id: int):
-    return reverse("api-polls:pollfield-detail", args=[poll_id, pollfield_id])
-
-
-def polloption_list_url(poll_id: int, pollfield_id: int):
-    return reverse("api-polls:pollchoiceoption-list", args=[poll_id, pollfield_id])
-
-
-def polloption_detail_url(poll_id: int, pollfield_id: int, id: int):
-    return reverse(
-        "api-polls:pollchoiceoption-detail", args=[poll_id, pollfield_id, id]
-    )
+from polls.tests.utils import (
+    POLLS_URL,
+    create_test_poll,
+    pollfield_detail_url,
+    pollfield_list_url,
+    polloption_detail_url,
+    polloption_list_url,
+    pollpreview_detail_url,
+    polls_detail_url,
+    pollsubmission_list_url,
+)
 
 
 class PollViewPublicTests(PublicApiTestsBase):
@@ -62,10 +42,21 @@ class PollViewPublicTests(PublicApiTestsBase):
 
         poll = create_test_poll()
 
-        url = pollpreview_detail_url(poll.id)
+        url = pollpreview_detail_url(poll.pk)
         res = self.client.get(url)
 
         self.assertResOk(res)
+
+    def test_guest_unable_retrieve_private_poll(self):
+        """Unauthenticated users should be given 404 when trying to retrieve private poll."""
+
+        club = create_test_club()
+        poll = create_test_poll(club=club, is_private=True)
+
+        url = pollpreview_detail_url(poll.pk)
+        res = self.client.get(url)
+
+        self.assertResNotFound(res)
 
     def test_guest_download_submissions_denied(self):
         """Should deny guest from downloading submissions."""
@@ -698,6 +689,241 @@ class PollViewAuthTests(PrivateApiTestsBase):
             "blue",
         )
 
+    def test_submit_private_poll(self):
+        """Should allow member to only submit private poll for own club."""
+
+        poll = create_test_poll(
+            club=self.club, is_private=True, status=PollStatusType.OPEN
+        )
+
+        other_club = create_test_club()
+        other_poll = create_test_poll(
+            club=other_club, is_private=True, status=PollStatusType.OPEN
+        )
+
+        payload = {
+            "answers": [
+                {
+                    "question": poll.user_lookup_question.pk,
+                    "text_value": self.user.email,
+                }
+            ]
+        }
+
+        # Should be able to view poll from own club
+        url = pollpreview_detail_url(poll.pk)
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        # Should be able to submit poll from own club
+        url = pollsubmission_list_url(poll.pk)
+        res = self.client.post(url, data=payload, format="json")
+        self.assertEqual(res.status_code, 201, res.content)
+
+        poll.refresh_from_db()
+        self.assertEqual(poll.submissions_count, 1)
+
+        # Should not be able to view poll from other club
+        url = pollpreview_detail_url(other_poll.pk)
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 404)
+
+        # Should not be able to submit poll from other club
+        url = pollsubmission_list_url(other_poll.pk)
+        res = self.client.post(url, data=payload, format="json")
+        self.assertEqual(res.status_code, 404)
+
+        other_poll.refresh_from_db()
+        self.assertEqual(other_poll.submissions_count, 0)
+
+    def test_private_poll_submission_required_roles(self):
+        """
+        Should only allow poll submission by users with required roles.
+
+        The only roles that can see polls they cannot submit are roles with
+        the type of ADMIN. They will receive 400 if trying to submit a poll
+        not assigned to them, everyone else will receive a 404.
+
+        Admins should receive 400 instead of 403 since it not explicitly
+        a permissions issue (admins should have all available permissions),
+        but instead a usage/user error since they are not using the poll intended.
+        """
+
+        # Roles
+        president_role = self.club.roles.get(name="President")
+        vicepresident_role = self.club.roles.get(name="Vice-President")
+        officer_role = self.club.roles.get(name="Officer")
+        member_role = self.club.roles.get(name="Member")
+        follower_role = self.club.roles.get(name="Follower")
+
+        # Users
+        president_user = create_test_user()
+        vicepresident_user = create_test_user()
+        officer_user = create_test_user()
+        member_user = create_test_user()
+        follower_user = create_test_user()
+        guest_user = create_test_user()
+
+        # Assign users to club
+        svc = ClubService(self.club)
+        svc.add_member(president_user, roles=[president_role])
+        svc.add_member(vicepresident_user, roles=[vicepresident_role])
+        svc.add_member(officer_user, roles=[officer_role])
+        svc.add_member(member_user, roles=[member_role])
+        svc.add_member(follower_user, roles=[follower_role])
+
+        poll = create_test_poll(club=self.club, is_private=True, is_published=True)
+
+        def _view_poll(user, poll=poll, self=self):
+            self.client.force_authenticate(user)
+            url = pollpreview_detail_url(poll.pk)
+            return self.client.get(url)
+
+        def _submit_poll(user, poll=poll, self=self):
+            payload = {
+                "answers": [
+                    {"question": poll.user_lookup_question.pk, "text_value": user.email}
+                ]
+            }
+            url = pollsubmission_list_url(poll.pk)
+            return self.client.post(url, data=payload, format="json")
+
+        # Default role is None, allow everyone except guests
+        vres = _view_poll(guest_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(guest_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(follower_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(follower_user)
+        self.assertResCreated(sres)
+
+        vres = _view_poll(member_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(member_user)
+        self.assertResCreated(sres)
+
+        vres = _view_poll(officer_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(officer_user)
+        self.assertResCreated(sres)
+
+        vres = _view_poll(president_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(president_user)
+        self.assertResCreated(sres)
+
+        self.assertEqual(poll.submissions.count(), 4)
+        poll.submissions.all().delete()
+
+        # When set to member, only members can submit
+        poll.allowed_club_roles.set([member_role])
+        poll.save()
+
+        vres = _view_poll(guest_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(guest_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(follower_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(follower_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(member_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(member_user)
+        self.assertResCreated(sres)
+
+        vres = _view_poll(officer_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(officer_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(president_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(president_user)
+        self.assertResBadRequest(sres)
+
+        self.assertEqual(poll.submissions.count(), 1)
+        poll.submissions.all().delete()
+
+        # When set to vice-president, president shouldn't be able to submit
+        poll.allowed_club_roles.set([vicepresident_role])
+        poll.save()
+
+        vres = _view_poll(guest_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(guest_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(follower_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(follower_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(member_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(member_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(officer_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(officer_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(vicepresident_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(vicepresident_user)
+        self.assertResCreated(sres)
+
+        vres = _view_poll(president_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(president_user)
+        self.assertResBadRequest(sres)
+
+        self.assertEqual(poll.submissions.count(), 1)
+        poll.submissions.all().delete()
+
+        # Should handle multiple roles
+        poll.allowed_club_roles.set([member_role, president_role])
+        poll.save()
+
+        vres = _view_poll(guest_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(guest_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(follower_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(follower_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(member_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(member_user)
+        self.assertResCreated(sres)
+
+        vres = _view_poll(officer_user)
+        self.assertResNotFound(vres)
+        sres = _submit_poll(officer_user)
+        self.assertResNotFound(sres)
+
+        vres = _view_poll(vicepresident_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(vicepresident_user)
+        self.assertResBadRequest(sres)
+
+        vres = _view_poll(president_user)
+        self.assertResOk(vres)
+        sres = _submit_poll(president_user)
+        self.assertResCreated(sres)
+
+        self.assertEqual(poll.submissions.count(), 2)
+        poll.submissions.all().delete()
+
+    # TODO: Add poll validation tests (after implement poll validation)
     # def test_submission_poll_validation_errors(self):
     #     """Should validate poll submission and return errors for invalid data."""
 

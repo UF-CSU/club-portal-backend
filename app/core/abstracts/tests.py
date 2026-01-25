@@ -3,12 +3,14 @@ import json
 import os
 from typing import Literal, Optional
 
+import pytz
 from django import forms
 from django.core import mail
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
 from django_celery_beat.models import PeriodicTask
+from pytz import timezone
 from requests import Response
 from rest_framework import serializers, status
 from rest_framework.status import HTTP_200_OK
@@ -163,6 +165,7 @@ class PublicApiTestsBase(TestsBase):
 
     def setUp(self):
         self.client = APIClientWrapper()
+        self.client.cookies.clear()
 
     def assertOk(self, reverse_url: str, reverse_kwargs=None):
         """The response for a reversed url should be 200 ok."""
@@ -215,6 +218,17 @@ class PublicApiTestsBase(TestsBase):
     def assertResNotFound(self, response: HttpResponse, **kwargs):
         """Client response should be 404."""
         self.assertStatusCode(response, status.HTTP_404_NOT_FOUND, **kwargs)
+
+    # Other Utilities
+    def set_user_timezone(self, tz: pytz.BaseTzInfo | str):
+        """Set timezone for the authenticated user."""
+
+        if isinstance(tz, str):
+            tz = timezone(tz)
+
+        self.client.cookies["user_timezone"] = str(tz)
+
+        return tz
 
 
 class PrivateApiTestsBase(PublicApiTestsBase):

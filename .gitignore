@@ -20,6 +20,7 @@ __depricated
 _deprecated/
 generated/
 WARP.md
+backups/
 
 # C extensions
 *.so

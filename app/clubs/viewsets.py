@@ -1,6 +1,6 @@
 from core.abstracts.viewsets import (
-    CustomLimitOffsetPagination,
     FilterBackendBase,
+    ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewDetailsPermissions,
     ViewSetBase,
@@ -11,14 +11,19 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, filters, mixins, permissions, status
+from rest_framework import exceptions, mixins, permissions, status
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
+from rest_framework.request import Request
 from rest_framework.response import Response
 from users.models import User
+from utils.cache import check_cache, set_cache
 
+from clubs.cache import (
+    DETAIL_CLUB_PREVIEW_PREFIX,
+    LIST_CLUB_PREVIEW_PREFIX,
+)
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -35,6 +40,7 @@ from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
     ClubFileSerializer,
+    ClubMemberSerializer,
     ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
     ClubPreviewSerializer,
@@ -80,6 +86,22 @@ class ClubNestedViewSetBase(ModelViewSetBase):
 
     def perform_create(self, serializer, **kwargs):
         serializer.save(club=self.club, **kwargs)
+
+
+class ClubQueryFilter(FilterBackendBase):
+    """Filter by club."""
+
+    filter_fields = [
+        {"name": "club", "schema_type": "number", "description": "Club ID"}
+    ]
+
+    def filter_queryset(self, request, queryset, view):
+        club_id = request.query_params.get("club", None)
+
+        if not club_id:
+            return queryset
+
+        return queryset.filter(club__id=club_id)
 
 
 class IsClubAdminFilter(FilterBackendBase):
@@ -147,13 +169,40 @@ class ClubViewSet(ModelViewSetBase):
 
 
 class UserClubMembershipsViewSet(ModelViewSetBase):
-    """API for managing a use's club memberships."""
+    """Manage club memberships that belong to the user."""
 
-    queryset = ClubMembership.objects.none()
+    queryset = ClubMembership.objects.select_related(
+        "user",
+    ).prefetch_related(
+        Prefetch(
+            "roles",
+            queryset=ClubRole.objects.all().order_by("order"),
+            to_attr="_prefetched_roles_cache",
+        ),
+        Prefetch(
+            "user__team_memberships",
+            queryset=TeamMembership.objects.select_related("team").prefetch_related(
+                Prefetch(
+                    "team__roles",
+                    queryset=TeamRole.objects.order_by("order"),
+                    to_attr="prefetched_roles",
+                ),
+            ),
+            to_attr="prefetched_team_memberships",
+        ),
+    )
     serializer_class = ClubMembershipSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+
+        context["club_id"] = self.kwargs.get("club_id")
+        return context
+
     def get_queryset(self):
-        return ClubMembership.objects.filter(user=self.request.user)
+        return self.queryset.filter(user=self.request.user)
 
     def check_object_permissions(self, request, obj):
         if request.user.id == obj.user.id:
@@ -161,7 +210,7 @@ class UserClubMembershipsViewSet(ModelViewSetBase):
         return super().check_object_permissions(request, obj)
 
 
-class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase):
+class ClubPreviewViewSet(ModelPreviewViewSetBase):
     """Access limited club data via the API."""
 
     queryset = (
@@ -181,24 +230,55 @@ class ClubPreviewViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewS
         .annotate(member_count=Count("memberships", distinct=True))
     )
     serializer_class = ClubPreviewSerializer
-    pagination_class = CustomLimitOffsetPagination
 
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["name", "alias"]
     filterset_fields = ["is_csu_partner", "majors__name", "tags"]
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
-    # Cache detail view for 2 hours (per Authorization header)
-    @method_decorator(cache_page(60 * 60 * 2))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    def retrieve(self, request: Request, *args, **kwargs):
+        club_id = self.kwargs.get("pk")
+        cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
-    # Cache list view for 2 hours (per Authorization header)
-    @method_decorator(cache_page(60 * 60 * 2, key_prefix="club-previews"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        if not cached_preview:
+            cached_preview = ClubPreviewSerializer(
+                Club.objects.find_by_id(club_id)
+            ).data
+            set_cache(cached_preview, DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
+
+        return Response({"results": cached_preview})
+
+    def list(self, request: Request, *args, **kwargs):
+        params = request.query_params.copy()
+        limit = params.pop("limit", None)
+        offset = params.pop("offset", None)
+        if params.get("is_csu_partner") is None and len(params) != 0:
+            return super().list(request, *args, **kwargs)
+
+        is_csu_partner = bool(request.query_params.get("is_csu_partner", False))
+        cached_previews = check_cache(
+            LIST_CLUB_PREVIEW_PREFIX,
+            is_csu_partner=is_csu_partner,
+            limit=limit,
+            offset=offset,
+        )
+
+        if not cached_previews:
+            cached_previews = ClubPreviewSerializer(
+                Club.objects.filter(is_csu_partner=is_csu_partner).distinct(), many=True
+            ).data
+            set_cache(
+                cached_previews,
+                LIST_CLUB_PREVIEW_PREFIX,
+                is_csu_partner=is_csu_partner,
+                limit=limit,
+                offset=offset,
+            )
+
+        page = self.paginate_queryset(cached_previews)
+        serializer = ClubPreviewSerializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
 
 class ClubTagsView(GenericAPIView):
@@ -214,17 +294,17 @@ class ClubTagsView(GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class ClubMembershipViewSet(ClubNestedViewSetBase):
-    """CRUD Api routes for ClubMembership for a specific Club."""
+class ClubMemberViewSet(ClubNestedViewSetBase):
+    """Manage members in a club."""
 
-    serializer_class = ClubMembershipSerializer
+    serializer_class = ClubMemberSerializer
     queryset = ClubMembership.objects.select_related(
         "user", "user__profile"
     ).prefetch_related(
         "user__socials",
         Prefetch(
             "roles",
-            queryset=ClubRole.objects.all().order_by("order"),
+            queryset=ClubRole.objects.order_by("order"),
             to_attr="_prefetched_roles_cache",
         ),
         Prefetch(
@@ -242,6 +322,8 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
         context["club_id"] = self.kwargs.get("club_id")
         return context
 
@@ -278,13 +360,14 @@ class ClubMembershipViewSet(ClubNestedViewSetBase):
         return super().perform_destroy(instance)
 
 
-class ClubMemberViewSet(
+# TODO: Remove this in favor of ClubMembershipViewSet
+class ClubMembershipSingleViewSet(
     ViewSetBase,
     mixins.RetrieveModelMixin,
 ):
     """CRUD Api routes for ClubMembership for a specific Club given specific User."""
 
-    serializer_class = ClubMembershipSerializer
+    serializer_class = ClubMemberSerializer
     queryset = ClubMembership.objects.all()
 
     lookup_field = "user_id"

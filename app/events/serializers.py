@@ -1,8 +1,11 @@
 from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
-from core.abstracts.serializers import ModelSerializerBase
+from core.abstracts.serializers import ModelSerializerBase, SerializerBase
 from django.core import exceptions
-from lib.celery import delay_task
+from drf_spectacular.utils import (
+    OpenApiExample,
+    extend_schema_serializer,
+)
 from polls.models import Poll
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from rest_framework import serializers
@@ -17,7 +20,6 @@ from events.models import (
     EventTag,
     RecurringEvent,
 )
-from events.tasks import sync_recurring_event_task
 
 
 class EventHostSerializer(ModelSerializerBase):
@@ -27,20 +29,18 @@ class EventHostSerializer(ModelSerializerBase):
     club_id = serializers.PrimaryKeyRelatedField(
         source="club", queryset=Club.objects.all()
     )
-    club_name = serializers.SlugRelatedField(
-        source="club", read_only=True, slug_field="name"
-    )
-    club_logo = serializers.ImageField(
-        source="club.logo", read_only=True, required=False, allow_null=True
-    )
+    club_name = serializers.CharField(read_only=True)
+    club_alias = serializers.CharField(read_only=True)
+    club_logo = serializers.ImageField(read_only=True, allow_null=True)
 
     class Meta:
         model = EventHost
-        fields = ["id", "club_id", "club_name", "club_logo", "is_primary"]
+        fields = ["id", "club_id", "club_name", "club_logo", "club_alias", "is_primary"]
         read_only_fields = [
             "id",
             "club_name",
             "club_logo",
+            "club_alias",
         ]
 
 
@@ -63,8 +63,8 @@ class EventAttendanceLinkSerializer(ModelSerializerBase):
         ]
 
 
-class EventSerializer(ModelSerializerBase):
-    """Represents a calendar event for a single or multiple clubs."""
+class EventPreviewSerializer(ModelSerializerBase):
+    """Shows minimal fields for public events."""
 
     status = serializers.CharField(read_only=True)
     duration = serializers.CharField(read_only=True)
@@ -77,6 +77,32 @@ class EventSerializer(ModelSerializerBase):
         help_text="Tag names",
         required=False,
     )
+
+    class Meta:
+        model = Event
+        fields = [
+            "id",
+            "name",
+            "start_at",
+            "end_at",
+            "created_at",
+            "updated_at",
+            "location",
+            "description",
+            "event_type",
+            "status",
+            "duration",
+            "is_all_day",
+            "hosts",
+            "tags",
+            "is_draft",
+            "is_public",
+        ]
+
+
+class EventSerializer(EventPreviewSerializer):
+    """Represents a calendar event for a single or multiple clubs."""
+
     attachments = ClubFileNestedSerializer(many=True, required=False)
     # poll = EventPollField(queryset=Poll.objects.all(), required=False, allow_null=True)
     attendance_links = EventAttendanceLinkSerializer(many=True, required=False)
@@ -172,6 +198,33 @@ class EventSerializer(ModelSerializerBase):
         return event
 
 
+class EventAnalyticsSerializer(EventSerializer):
+    analytics = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
+
+    def get_analytics(self, obj: Event):
+        """Returns desired analytics from an event object"""
+        request = self.context.get("request")
+        if not request or not request.user.has_perm(
+            "events.view_event_analytics", is_global=False
+        ):
+            return None
+        return {
+            "total_attended_users": obj.attendances.count(),
+            "total_poll_submissions": 0
+            if obj.submissions is None
+            else obj.submissions.count(),
+        }
+
+    def get_permissions(self, obj: Event):
+        """Returns permissions for an event an object"""
+        request = self.context.get("request")
+        can_view_analytics = request and request.user.has_perm(
+            "events.view_event_analytics", is_global=False
+        )
+        return {"can_view_analytics": can_view_analytics}
+
+
 class EventCancellationSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventCancellation
@@ -189,10 +242,67 @@ class RecurringEventSerializer(ModelSerializerBase):
         fields = "__all__"
 
     def create(self, validated_data):
-        obj = super().create(validated_data)
-        delay_task(sync_recurring_event_task, recurring_event_id=obj.id)
+        other_clubs = validated_data.pop("other_clubs", [])
+        attachments = validated_data.pop("attachments", [])
+
+        # obj = super().create(validated_data)
+        obj = RecurringEvent.objects.create(
+            **validated_data, other_clubs=other_clubs, attachments=attachments
+        )
 
         return obj
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            name="February 2026 Heatmap Example",
+            response_only=True,
+            value={
+                "start_date": "2026-02-01",
+                "end_date": "2026-02-28",
+                "total_events": 20,
+                "heatmap": {
+                    "2026-02-01": 0,
+                    "2026-02-02": 2,
+                    "2026-02-03": 1,
+                    "2026-02-04": 0,
+                    "2026-02-05": 1,
+                    "2026-02-06": 0,
+                    "2026-02-07": 0,
+                    "2026-02-08": 0,
+                    "2026-02-09": 2,
+                    "2026-02-10": 1,
+                    "2026-02-11": 0,
+                    "2026-02-12": 1,
+                    "2026-02-13": 4,
+                    "2026-02-14": 0,
+                    "2026-02-15": 0,
+                    "2026-02-16": 2,
+                    "2026-02-17": 1,
+                    "2026-02-18": 0,
+                    "2026-02-19": 1,
+                    "2026-02-20": 0,
+                    "2026-02-21": 0,
+                    "2026-02-22": 0,
+                    "2026-02-23": 2,
+                    "2026-02-24": 1,
+                    "2026-02-25": 0,
+                    "2026-02-26": 1,
+                    "2026-02-27": 0,
+                    "2026-02-28": 0,
+                },
+            },
+        )
+    ]
+)
+class EventHeatmapSerializer(SerializerBase):
+    """Show event count for each day."""
+
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    total_events = serializers.IntegerField()
+    heatmap = serializers.DictField(child=serializers.IntegerField())
 
 
 #############################################################

@@ -5,10 +5,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./app:/app/app
+      - ./backups:/var/backups
       - static-clubs-prod:/vol/web
     environment:
       - PORT=9000
       - WORKER_COUNT=${WORKER_COUNT:-6}
+      - REDIS_HOST=${REDIS_HOST:-clubs-prod-redis}
     env_file:
       - .env
     networks:
@@ -126,62 +128,74 @@ services:
     networks:
       - cluster
 
-  # # USED FOR TESTING ONLY
-  # postgres:
-  #   image: postgres:15-alpine
-  #   command: -c 'max_connections=1000'
-  #   volumes:
-  #     - postgres-clubs-prod:/var/lib/postgresql/data
-  #   environment:
-  #     - POSTGRES_DB=devdatabase
-  #     - POSTGRES_USER=devuser
-  #     - POSTGRES_PASSWORD=devpass
-  #   networks:
-  #     - cluster
+  postgres:
+    image: postgres:17.7-alpine
+    volumes:
+      - postgres-clubs-prod:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_NAME}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - cluster
+    configs:
+      - source: postgresql.auto.conf
+        target: /var/lib/postgresql/postgresql.auto.conf
 
-  # pgbouncer:
-  #   image: edoburu/pgbouncer
-  #   container_name: pgbouncer
-  #   restart: always
-  #   depends_on:
-  #     - postgres
-  #   networks:
-  #     - cluster
-  #   configs:
-  #     - source: pgbouncer.ini
-  #       target: /etc/pgbouncer/pgbouncer.ini
-  #     - source: userlist.txt
-  #       target: /etc/pgbouncer/userlist.txt
+  pgbouncer:
+    image: edoburu/pgbouncer
+    container_name: pgbouncer
+    restart: always
+    depends_on:
+      - postgres
+    networks:
+      - cluster
+    configs:
+      - source: pgbouncer.ini
+        target: /etc/pgbouncer/pgbouncer.ini
+      - source: userlist.txt
+        target: /etc/pgbouncer/userlist.txt
 
 volumes:
   static-clubs-prod:
   redis-clubs-prod:
 
-  # # USED FOR TESTING ONLY
-  # postgres-clubs-prod:
+  postgres-clubs-prod:
+    name: "postgres17-clubs-prod"
 
-# # USED FOR TESTING ONLY
-# # Mimics production database pooling support
-# configs:
-#   pgbouncer.ini:
-#     content: |
-#       [databases]
-#       * = host=postgres port=5432 auth_user=devuser dbname=devdatabase
-#       devdatabase = host=postgres port=5432 auth_user=devuser
+configs:
+  # Postgres Config Settings
+  # Use .auto.conf instead of .conf so default conf is not altered
+  postgresql.auto.conf:
+    # Docs: https://www.postgresql.org/docs/15/runtime-config.html
+    content: |
+      max_connections = 1000
 
-#       [pgbouncer]
-#       listen_addr = *
-#       listen_port = 6432
-#       auth_type = plain
-#       auth_file = /etc/pgbouncer/userlist.txt
-#       pool_mode = transaction
-#       max_client_conn = 1000
-#       default_pool_size = 100
+  # PGBouncer Config Settings
+  pgbouncer.ini:
+    # Docs: https://www.pgbouncer.org/config.html
+    content: |
+      [databases]
+      * = host=postgres port=5432 auth_user=${POSTGRES_USER} dbname=${POSTGRES_NAME}
+      ${POSTGRES_NAME} = host=postgres port=5432 auth_user=${POSTGRES_USER}
 
-#       admin_users = devuser
-#   userlist.txt:
-#     content: |
-#       "devuser" "devpass"
+      [pgbouncer]
+      listen_addr = pgbouncer
+      listen_port = 6432
+      auth_type = plain
+      auth_file = /etc/pgbouncer/userlist.txt
+      pool_mode = transaction
+      max_client_conn = 1000
+      default_pool_size = 100
+
+      log_connections = 0
+      log_disconnections = 0
+      stats_period = 300
+
+      admin_users = ${POSTGRES_USER}
+  userlist.txt:
+    content: |
+      "${POSTGRES_USER}" "${POSTGRES_PASSWORD}"
 
 networks:
   cluster:

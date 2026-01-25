@@ -1,8 +1,13 @@
+from clubs.viewsets import ClubQueryFilter
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.db import models, transaction
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import exceptions, mixins, permissions
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from polls.models import (
     ChoiceInputOption,
@@ -13,8 +18,13 @@ from polls.models import (
     PollSubmission,
     PollTemplate,
 )
+from polls.permissions import (
+    CanSubmitPoll,
+    CanViewPoll,
+)
 from polls.serializers import (
     ChoiceInputOptionSerializer,
+    PollAnalyticsSerializer,
     PollFieldSerializer,
     PollPreviewSerializer,
     PollSerializer,
@@ -51,7 +61,21 @@ class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
         "_submission_link__qrcode",
     )
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [CanViewPoll]
+
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    # TODO: Refactor to use get_object
+    # def retrieve(self, request: Request, *args, **kwargs):
+    #     poll_id = self.kwargs.get("pk")
+    #     cached_preview = check_cache(DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+
+    #     if not cached_preview:
+    #         cached_preview = PollPreviewSerializer(Poll.objects.get_by_id(poll_id)).data
+    #         set_cache(cached_preview, DETAIL_POLL_PREVIEW_PREFIX, poll_id=poll_id)
+
+    #     return Response(cached_preview)
 
 
 class PollViewset(ModelViewSetBase):
@@ -59,6 +83,7 @@ class PollViewset(ModelViewSetBase):
 
     serializer_class = PollSerializer
     queryset = Poll.objects.none()
+    filter_backends = [ClubQueryFilter]
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
@@ -93,6 +118,26 @@ class PollViewset(ModelViewSetBase):
                 last_submission_at=models.Max("submissions__created_at"),
             )
         )
+
+
+class PollAnalyticsView(RetrieveAPIView):
+    """View various poll analytics for a specific poll"""
+
+    serializer_class = PollAnalyticsSerializer
+    queryset = Poll.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request: Request, *args, **kwargs):
+        poll_id = self.kwargs.get("poll_id")
+        poll = get_object_or_404(Poll, id=poll_id)
+        if not request.user.has_perm("polls.view_poll_analytics", poll):
+            return HttpResponseForbidden(
+                'User does not have "polls.view_poll_analytics" permissions'
+            )
+
+        serializer = self.get_serializer(poll, many=False)
+
+        return Response(serializer.data)
 
 
 class PollTemplateViewSet(ModelViewSetBase):
@@ -196,9 +241,19 @@ class PollSubmissionViewSet(ModelViewSetBase):
 
     serializer_class = PollSubmissionSerializer
 
+    def initial(self, request, *args, **kwargs):
+        poll_id = self.kwargs.get("poll_id", None)
+        self.poll = get_object_or_404(Poll, id=poll_id)
+
+        super().initial(request, *args, **kwargs)
+
     def check_permissions(self, request):
         if self.action == "create":
-            return True
+            # If submitting poll, override permissions to use the separate permissions
+            # flow for submitting polls, which is determined by the poll object
+            return CanSubmitPoll().has_object_permission(request, self, self.poll)
+
+        # Default to normal CRUD permissions for PollSubmission objects
         return super().check_permissions(request)
 
     def get_queryset(self):

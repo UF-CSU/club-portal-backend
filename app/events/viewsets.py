@@ -1,16 +1,25 @@
-from datetime import timedelta
+from datetime import date, datetime, timedelta
+from typing import Optional
 
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
     FilterBackendBase,
+    ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewPermissions,
+    ViewSetBase,
 )
-from django.db.models import Prefetch, Q
+from dateutil.relativedelta import relativedelta
+from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
+from lib.celery import delay_task
 from rest_framework import permissions, status
+from rest_framework.pagination import BasePagination
+from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from utils.dates import parse_date
+from utils.views import Query, query_params
 
 from events.models import (
     Event,
@@ -19,52 +28,141 @@ from events.models import (
     EventHost,
     EventTag,
 )
+from events.services import EventService
+from events.tasks import sync_recurring_event_task
 
 from . import models, serializers
+
+
+class CustomDatePagination(BasePagination):
+    """Allow api pagination via start and end date."""
+
+    default_shift = timedelta(days=7)
+
+    def get_date_range(self, request: Request):
+        """Get start and end dates from url."""
+        start_date = request.query_params.get("start_date", None)
+        end_date = request.query_params.get("end_date", None)
+
+        current_tz = timezone.get_current_timezone()
+        now = datetime.now().astimezone(current_tz)
+
+        # Parse start date
+        if start_date is None:
+            start_date = now.date()
+        else:
+            start_date = parse_date(start_date)
+
+        if start_date:
+            start_date = timezone.datetime(
+                start_date.year, start_date.month, start_date.day, tzinfo=current_tz
+            )
+
+        # Parse end date
+        if end_date is None:
+            end_date = (now + self.default_shift).date()
+        else:
+            end_date = parse_date(end_date)
+
+        if end_date:
+            end_date = timezone.datetime(
+                end_date.year,
+                end_date.month,
+                end_date.day,
+                hour=23,
+                minute=59,
+                second=59,
+                tzinfo=current_tz,
+            )
+
+        return (start_date, end_date)
+
+    def paginate_queryset(self, queryset: QuerySet[Event], request, view=None):
+        self.start_date, self.end_date = self.get_date_range(request)
+
+        query = Q()
+        start_query = Q(end_at__gte=self.start_date)
+        end_query = Q(start_at__lte=self.end_date)
+
+        if self.start_date and self.end_date:
+            query = start_query & end_query
+        elif self.start_date:
+            query = start_query
+        elif self.end_date:
+            query = end_query
+
+        queryset = queryset.filter(query)
+        self.count = queryset.count()
+
+        return queryset
+
+    def get_paginated_response(self, data):
+        return Response(
+            {
+                "count": self.count,
+                "start_date": self.start_date.date()
+                if self.start_date is not None
+                else None,
+                "end_date": self.end_date.date() if self.end_date is not None else None,
+                "results": data,
+            }
+        )
+
+    def get_paginated_response_schema(self, schema):
+        return {
+            "type": "object",
+            "required": ["count", "start_date", "end_date", "results"],
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 123,
+                },
+                "start_date": {
+                    "type": "date",
+                    "nullable": False,
+                    "example": datetime.now().replace(day=1).strftime("%Y-%m-%d"),
+                },
+                "end_date": {
+                    "type": "date",
+                    "nullable": False,
+                    "example": datetime.now().replace(day=25).strftime("%Y-%m-%d"),
+                },
+                "results": schema,
+            },
+        }
+
+    def get_schema_operation_parameters(self, view):
+        parameters = [
+            {
+                "name": "start_date",
+                "required": False,
+                "in": "query",
+                "description": "Will return events starting after midnight of this date.",
+                "schema": {"type": "date"},
+            },
+            {
+                "name": "end_date",
+                "required": False,
+                "in": "query",
+                "description": "Will return events starting at a time before midnight of this date.",
+                "schema": {"type": "date"},
+            },
+        ]
+        return parameters
+
+
+class EventPreviewViewSet(ModelPreviewViewSetBase):
+    """API For showing public event previews."""
+
+    queryset = Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
+    serializer_class = serializers.EventPreviewSerializer
+    pagination_class = CustomDatePagination
 
 
 class EventClubFilter(FilterBackendBase):
     """Get events filtered by club"""
 
-
-class EventDateFilter(FilterBackendBase):
-    """Get events ordered by date"""
-
-    filter_fields = [
-        {"name": "start_at", "schema_type": "datetime"},
-        {"name": "end_at", "schema_type": "datetime"},
-    ]
-
-    allowed_fields = {"start_at", "end_at"}
-
-    class Meta:
-        model = Event
-        fields = ["date_fields"]
-
-    def filter_queryset(self, request, queryset, view):
-        start_date = request.query_params.get("start_at")
-        end_date = request.query_params.get("end_at")
-
-        # Assuming we should only check if it is within day boundary
-        today = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        shift = timedelta(days=14)
-
-        if start_date is None and end_date is None:
-            return queryset.filter(
-                Q(start_at__lte=today + shift) & Q(end_at__gte=today - shift)
-            )
-
-        if start_date is not None:
-            queryset = queryset.filter(end_at__gte=start_date)
-        else:
-            queryset = queryset.filter(end_at__gte=today - shift)
-
-        if end_date is not None:
-            queryset = queryset.filter(start_at__lte=end_date)
-        else:
-            queryset = queryset.filter(start_at__lte=today + shift)
-
-        return queryset
+    pass
 
 
 class EventViewset(ModelViewSetBase):
@@ -76,9 +174,7 @@ class EventViewset(ModelViewSetBase):
         .prefetch_related(
             Prefetch(
                 "hosts",
-                queryset=EventHost.objects.select_related(
-                    "club", "club__logo", "club__banner"
-                ).only(
+                queryset=EventHost.objects.select_related("club", "club__logo").only(
                     "id",
                     "event_id",
                     "club_id",
@@ -87,9 +183,6 @@ class EventViewset(ModelViewSetBase):
                     "club__name",
                     "club__alias",
                     "club__logo_id",
-                    "club__banner_id",
-                    "club__primary_color",
-                    "club__text_color",
                 ),
             ),
             Prefetch(
@@ -100,7 +193,9 @@ class EventViewset(ModelViewSetBase):
             ),
             Prefetch(
                 "attachments",
-                queryset=ClubFile.objects.only("id", "file", "display_name", "club_id"),
+                queryset=ClubFile.objects.only(
+                    "file",
+                ),
             ),
             Prefetch(
                 "attendance_links",
@@ -109,17 +204,20 @@ class EventViewset(ModelViewSetBase):
         )
     )
     serializer_class = serializers.EventSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [EventDateFilter, DjangoFilterBackend]
+    permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ["clubs"]
+    pagination_class = CustomDatePagination
+
+    def get_serializer_class(self):
+        with_analytics = self.request.query_params.get(
+            "analytics", "False"
+        ).capitalize()
+        if with_analytics == "True":
+            return serializers.EventAnalyticsSerializer
+        return super().get_serializer_class()
 
     def get_queryset(self):
-        qs = super().get_queryset()
-
-        if self.request.user.is_anonymous:
-            return qs.filter(Q(is_public=True) & Q(is_draft=False))
-
-        return qs
+        return self.queryset.filter_for_user(self.request.user)
 
     def filter_queryset(self, queryset):
         if self.action == "retrieve":
@@ -128,9 +226,6 @@ class EventViewset(ModelViewSetBase):
         return super().filter_queryset(queryset)
 
     def check_permissions(self, request):
-        if self.action == "list" or self.action == "retrieve":
-            return super().check_permissions(request)
-
         obj_permission = ObjectViewPermissions()
         if not obj_permission.has_permission(request, self):
             self.permission_denied(
@@ -139,12 +234,9 @@ class EventViewset(ModelViewSetBase):
                 code=getattr(obj_permission, "code", None),
             )
 
-    def check_object_permissions(self, request, obj):
-        # For GET method, just check if is authenticated
-        if self.action == "retrieve":
-            return super().check_object_permissions(request, obj)
+        return super().check_permissions(request)
 
-        # Otherwise, check for individual permissions
+    def check_object_permissions(self, request, obj):
         obj_permission = ObjectViewPermissions()
         if not obj_permission.has_object_permission(request, self, obj):
             self.permission_denied(
@@ -152,6 +244,8 @@ class EventViewset(ModelViewSetBase):
                 message=getattr(obj_permission, "message", None),
                 code=getattr(obj_permission, "code", None),
             )
+
+        return super().check_object_permissions(request, obj)
 
     def perform_create(self, serializer):
         hosts = serializer.validated_data.get("hosts", [])
@@ -178,12 +272,31 @@ class EventViewset(ModelViewSetBase):
             elif not primary_club or not user_clubs.filter(id=primary_club.id).exists():
                 self.permission_denied(
                     self.request,
-                    "Need event creation priviledge for primary host club.",
+                    "Need event creation privilege for primary host club.",
                 )
 
         return super().perform_create(serializer)
 
-    def list(self, request, *args, **kwargs):
+    @query_params(
+        analytics=Query(
+            required=False,
+            qtype=bool,
+            default=False,
+            description="A field for returning analytics",
+        )
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @query_params(
+        analytics=Query(
+            required=False,
+            qtype=bool,
+            default=False,
+            description="A field for returning analytics",
+        )
+    )
+    def list(self, request: Request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
 
@@ -218,7 +331,16 @@ class RecurringEventViewSet(ModelViewSetBase):
                     "Need recurring event creation priviledge for primary host club.",
                 )
 
-        return super().perform_create(serializer)
+        super().perform_create(serializer)
+
+        # Schedule the recurring event for syncing
+        delay_task(sync_recurring_event_task, recurring_event_id=serializer.instance.id)
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+
+        # Schedule the recurring event for syncing
+        delay_task(sync_recurring_event_task, recurring_event_id=serializer.instance.id)
 
 
 class EventCancellationViewSet(ModelViewSetBase):
@@ -240,3 +362,57 @@ class EventCancellationViewSet(ModelViewSetBase):
             return Response(
                 {"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND
             )
+
+
+class EventHeatmapViewSet(APIView):
+    """Get count of events for each day in range."""
+
+    permission_classes = [permissions.IsAuthenticated]  # TODO: RBAC for event heatmap
+    authentication_classes = ViewSetBase.authentication_classes
+    serializer_class = serializers.EventHeatmapSerializer
+
+    @query_params(
+        clubs=Query(qtype=int, is_list=True),
+        start_date=Query(qtype=date),
+        end_date=Query(qtype=date),
+    )
+    def get(
+        self,
+        request: Request,
+        clubs: Optional[list[int]] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ):
+        # Parse club ids
+        if clubs is None:
+            clubs = list(
+                Club.objects.filter_for_user(request.user).values_list("id", flat=True)
+            )
+
+        # Get start/end dates
+        now = datetime.now()
+        if start_date is None:
+            start_date = (
+                datetime(year=now.year, month=now.month, day=1)
+                # Go 2 months back from beginning of month
+                - relativedelta(months=2)
+            ).date()
+
+        if end_date is None:
+            end_date = (
+                datetime(year=now.year, month=now.month, day=1)
+                # Go to end of this month
+                + relativedelta(months=1)
+                - timedelta(days=1)
+                # Go 2 months ahead of this month's end
+                + relativedelta(months=2)
+            ).date()
+
+        # Generate heatmap
+        heatmap = EventService.get_event_heatmap(
+            club_ids=clubs, start_date=start_date, end_date=end_date
+        )
+
+        serializer = self.serializer_class(heatmap)
+
+        return Response(data=serializer.data)

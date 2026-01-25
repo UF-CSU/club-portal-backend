@@ -381,7 +381,6 @@ prod = [
     { name = "boto3" },
     { name = "psycopg", extra = ["c", "pool"] },
     { name = "sentry-sdk" },
-    { name = "uwsgi" },
 ]
 
 [package.metadata]
@@ -427,7 +426,7 @@ dev = [
     { name = "black", specifier = ">=24.1.1,<25.2" },
     { name = "coverage", specifier = ">=7.4.1,<7.5" },
     { name = "django-browser-reload", specifier = ">=1.17.0,<1.18" },
-    { name = "django-debug-toolbar", specifier = ">=6.0.0,<6.1" },
+    { name = "django-debug-toolbar", specifier = ">=6.1.0,<6.2" },
     { name = "django-extensions", specifier = ">=3.2.3,<3.3" },
     { name = "faker", specifier = ">=33.0.0,<33.1.0" },
     { name = "freezegun", specifier = ">=1.5.4,<1.6" },
@@ -443,7 +442,6 @@ prod = [
     { name = "boto3", specifier = ">=1.40.42,<1.41" },
     { name = "psycopg", extras = ["c", "pool"], specifier = ">=3.2.6,<3.3" },
     { name = "sentry-sdk", specifier = ">=2.39.0,<2.40" },
-    { name = "uwsgi", specifier = "==2.0.28" },
 ]
 
 [[package]]
@@ -601,15 +599,15 @@ wheels = [
 
 [[package]]
 name = "django-debug-toolbar"
-version = "6.0.0"
+version = "6.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "sqlparse" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/d5/5fc90234532088aeec5faa48d5b09951cc7eab6626030ed427d3bd8cd9bc/django_debug_toolbar-6.0.0.tar.gz", hash = "sha256:6eb9fa6f4a5884bf04004700ffb5a44043f1fff38784447fc52c1633448c8c14", size = 305331, upload-time = "2025-07-25T13:11:48.68Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/50/acae2dd379164f6f4c6b6b36fd48a4d21b02095a03f4df7c30a8d1f1a62c/django_debug_toolbar-6.1.0.tar.gz", hash = "sha256:e962ec350c9be8bdba918138e975a9cdb193f60ec396af2bb71b769e8e165519", size = 309141, upload-time = "2025-10-30T19:50:39.458Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/b5/4724a8c18fcc5b09dca7b7a0e70c34208317bb110075ad12484d6588ae91/django_debug_toolbar-6.0.0-py3-none-any.whl", hash = "sha256:0cf2cac5c307b77d6e143c914e5c6592df53ffe34642d93929e5ef095ae56841", size = 266967, upload-time = "2025-07-25T13:11:47.265Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/72/685c978af45ad08257e2c69687a873eda6b6531c79b6e6091794c41c5ff6/django_debug_toolbar-6.1.0-py3-none-any.whl", hash = "sha256:e214dea4494087e7cebdcea84223819c5eb97f9de3110a3665ad673f0ba98413", size = 269069, upload-time = "2025-10-30T19:50:37.71Z" },
 ]
 
 [[package]]
@@ -1798,12 +1796,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/53/8369e5219a5855869bcee5f4d317f6da0e2c669aecf0ef7d371e3d084449/uvloop-0.22.1-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:bc5ef13bbc10b5335792360623cc378d52d7e62c2de64660616478c32cd0598e", size = 4119472, upload-time = "2025-10-16T22:16:41.694Z" },
     { url = "https://files.pythonhosted.org/packages/f8/ba/d69adbe699b768f6b29a5eec7b47dd610bd17a69de51b251126a801369ea/uvloop-0.22.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:1f38ec5e3f18c8a10ded09742f7fb8de0108796eb673f30ce7762ce1b8550cad", size = 4239051, upload-time = "2025-10-16T22:16:43.224Z" },
 ]
-
-[[package]]
-name = "uwsgi"
-version = "2.0.28"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/24/c2/d58480aadc9a1f420dd96fc43cf0dcd8cb5ededb95cab53743529c23b6cd/uwsgi-2.0.28.tar.gz", hash = "sha256:79ca1891ef2df14508ab0471ee8c0eb94bd2d51d03f32f90c4bbe557ab1e99d0", size = 816212, upload-time = "2024-10-26T10:06:16.107Z" }
 
 [[package]]
 name = "vine"

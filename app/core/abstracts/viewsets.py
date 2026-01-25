@@ -1,10 +1,13 @@
 from typing import Literal, Optional, TypedDict
 
-from app.settings import DJANGO_ENABLE_API_SESSION_AUTH
+from app.settings import DJANGO_ENABLE_API_SESSION_AUTH, ENABLE_REQUEST_CACHE
 from django.db import models
 from django.template import loader
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import authentication, filters, permissions
+from rest_framework import authentication, filters, mixins, permissions
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -39,7 +42,7 @@ class ViewSetBase(GenericViewSet):
     """
 
     request: Request
-    """The incomming request."""
+    """The incoming request."""
 
     kwargs: dict
     """
@@ -122,15 +125,17 @@ class ModelViewSetBase(ModelViewSet, ViewSetBase):
     # Enable permissions checking in API
     permission_classes = ViewSetBase.permission_classes + [ObjectViewPermissions]
 
-    # # Cache detail view for 2 minutes for each different Authorization header
-    # @method_decorator(cache_page(60 * 60 * 2))
-    # @method_decorator(vary_on_headers("Authorization"))
+    # Cache detail view for 5 seconds for each different Authorization header,
+    # Helps speed up duplicate requests and helps against DDoS
+    @method_decorator(cache_page(5 if ENABLE_REQUEST_CACHE else 0))
+    @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    # # Cache list view for 2 minutes for each different Authorization header
-    # @method_decorator(cache_page(60 * 60 * 2))
-    # @method_decorator(vary_on_headers("Authorization"))
+    # Cache list view for 5 seconds for each different Authorization header
+    # Helps speed up duplicate requests and helps against DDoSs
+    @method_decorator(cache_page(5 if ENABLE_REQUEST_CACHE else 0))
+    @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -163,6 +168,17 @@ class CustomLimitOffsetPagination(LimitOffsetPagination):
         }
 
         return res_schema
+
+
+class ModelPreviewViewSetBase(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, ViewSetBase
+):
+    """Base viewset for list/retrieve model."""
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    pagination_class = CustomLimitOffsetPagination
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
 
 
 class FilterBackendBase(filters.BaseFilterBackend):

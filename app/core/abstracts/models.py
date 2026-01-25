@@ -15,9 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from utils.permissions import get_perm_label
 
 
-class ManagerBase[T](models.Manager):
-    """Extends django manager for improved db access."""
-
+class CustomManagerMethods[T]:
     model: type[T]
 
     def create(self, **kwargs) -> T:
@@ -119,6 +117,23 @@ class ManagerBase[T](models.Manager):
         return super().all()
 
 
+class QuerySetBase[T](CustomManagerMethods[T], models.QuerySet):
+    """Extends default queryset to provide extra methods."""
+
+    pass
+
+
+class ManagerBase[T](
+    CustomManagerMethods[T], models.Manager.from_queryset(QuerySetBase[T])
+):
+    """Extends django manager for improved db access."""
+
+    pass
+
+
+# ManagerBase = _ManagerBase[M].from_queryset(QuerySetBase)
+
+
 class ScopeType(models.TextChoices):
     """Permission levels."""
 
@@ -141,7 +156,7 @@ class ModelBase(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
 
-    objects: ClassVar[ManagerBase[Self]] = ManagerBase[Self]()
+    objects: ClassVar[QuerySetBase[Self]] = QuerySetBase.as_manager()
 
     def __str__(self) -> str:
         if hasattr(self, "name"):

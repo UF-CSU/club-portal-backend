@@ -12,6 +12,13 @@ services:
     user: "1000:1000"
     env_file:
       - .env
+    command: >
+      sh -c "
+      python manage.py wait_for_db &&
+             python manage.py migrate &&
+             python manage.py collectstatic --no-input &&
+             python manage.py init_superuser &&
+             python -m uvicorn app.asgi:application --reload --host 0.0.0.0 --port 9000 --lifespan off"
     environment:
       - PORT=9000
       - CELERY_BROKER_URL=redis://clubs-network-redis:6379/0
@@ -21,6 +28,7 @@ services:
       - CSRF_TRUSTED_ORIGINS=http://localhost:3000
       - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:8080}
       - WORKER_COUNT=${WORKER_COUNT:-10}
+      - REDIS_HOST=${REDIS_HOST:-clubs-network-redis}
     depends_on:
       - postgres
     networks:

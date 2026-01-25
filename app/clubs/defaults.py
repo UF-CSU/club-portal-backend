@@ -39,6 +39,7 @@ VIEWER_ROLE_PERMISSIONS = [
     # Events
     "events.view_event",
     "events.view_private_event",
+    "events.view_event_details",
 ]
 """View internal club info & stats."""
 
@@ -56,6 +57,9 @@ EDITOR_ROLE_PERMISSIONS = [
     "events.add_event",
     "events.change_event",
     "events.view_recurringevent",
+    "events.view_event_analytics",
+    # Polls
+    "polls.view_poll_analytics",
     # Analytics
     "analytics.view_link",
     "analytics.add_link",
@@ -96,6 +100,7 @@ ADMIN_ROLE_PERMISSIONS = [
     "polls.add_choiceinputoption",
     "polls.change_choiceinputoption",
     "polls.delete_choiceinputoption",
+    "polls.view_private_poll",
 ]
 """All permissions for a club"""
 
