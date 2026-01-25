@@ -21,7 +21,7 @@ if [ "$#" -gt 0 ]; then
     fi
 else
     # User did not input a name, use auto generated name
-    backup_file_name="AUTO_backup_${POSTGRES_NAME}_$(date +%Y-%m-%d_%H-%M-%S)"
+    backup_file_name="auto_backup_${POSTGRES_NAME}_$(date +%Y-%m-%d_%H-%M-%S)"
 fi
 
 backup_file="${backup_dir}/${backup_file_name}.sql.gz"
