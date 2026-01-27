@@ -1,9 +1,48 @@
-{% extends 'admin/base_site.html' %} {% block content %}
-<div>Invite club admin works</div>
-
-<form method="post">
+{% extends 'admin/base_site.html' %} 
+{% load static %}
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static "admin/css/forms.css" %}">
+{% endblock %}
+{% block content %}
+<div class="container">
+  <h1>Invite Club Admin</h1>
+  <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Invite</button>
-</form>
+    
+    <div>
+        <p>
+            Invite new/existing user to a club.<br>
+            If user does not exist, the system will send them an account setup link in addition to the club invite email (if applicable).<br>
+            Submitting this form will:
+        </p>
+        <ol>
+            <li>Get or create user</li>
+            <li>Add user to specified club</li>
+            <li>Set user as owner, if "Is Owner" is True (replacing previous owner if necessary)</li>
+            <li>If user was created, send account setup email</li>
+            <li>Send club invite email, if "Send Invite" is True</li>
+        </ol>
+    </div>
+
+    <fieldset class="module aligned wide">
+      {% for field in form.visible_fields %}
+      <div class="form-row has-validation">
+        {{ field.errors }}
+        <div class="flex-container">
+          {{ field.label_tag }}
+          {{ field }}
+        </div>
+        <div class="help">
+            <p>{{ field.help_text }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </fieldset>
+    <div class="submit-row">
+        <input type="submit" value="Invite User" class="default">
+    </div>
+  </form>
+</div>
+
 {% endblock %}
