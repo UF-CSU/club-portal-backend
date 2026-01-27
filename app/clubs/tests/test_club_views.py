@@ -1,4 +1,8 @@
-from core.abstracts.tests import EmailTestsBase, PrivateApiTestsBase, PublicApiTestsBase
+from core.abstracts.tests import (
+    EmailTestsBase,
+    PrivateViewTestsBase,
+    PublicViewTestsBase,
+)
 from django.forms import forms
 from django.http import HttpResponse
 from django.urls import reverse
@@ -12,7 +16,7 @@ from clubs.tests.utils import create_test_club
 INVITE_CLUB_ADMIN_URL = reverse("core:invite_club_admin")
 
 
-class PublicClubViewTests(PublicApiTestsBase):
+class PublicClubViewTests(PublicViewTestsBase):
     """Unit tests with unauthenticated users for club views."""
 
     def test_only_staff_see_invite_form(self):
@@ -37,7 +41,7 @@ class PublicClubViewTests(PublicApiTestsBase):
         self.assertResOk(res)
 
 
-class PrivateClubViewTests(PrivateApiTestsBase, EmailTestsBase):
+class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
     """Unit tests with authenticated user for club views."""
 
     def _get_form_from_res(self, res: HttpResponse) -> forms.Form:

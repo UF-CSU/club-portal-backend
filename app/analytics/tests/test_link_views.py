@@ -1,5 +1,5 @@
 from clubs.tests.utils import create_test_club
-from core.abstracts.tests import ViewTestsBase
+from core.abstracts.tests import PublicViewTestsBase
 from lib.faker import fake
 
 from analytics.models import Link, QRCode
@@ -13,7 +13,7 @@ def create_test_link(club=None, **kwargs):
     return Link.objects.create(**payload)
 
 
-class LinkViewTests(ViewTestsBase):
+class LinkViewTests(PublicViewTestsBase):
     """Test link functionality."""
 
     def test_visit_link(self):
