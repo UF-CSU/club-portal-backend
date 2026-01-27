@@ -133,39 +133,55 @@ class TestsBase(TestCase):
                 )
 
 
-class APIClientWrapper(APIClient):
-    def get(self, path, data=None, follow=False, **extra) -> Response:
-        return super().get(path, data, follow, **extra)
+class PublicViewTestsBase(TestsBase):
+    """Abstract testing utilities for app views."""
 
-    def post(
-        self, path, data=None, format="json", content_type=None, follow=False, **extra
-    ) -> Response:
-        return super().post(path, data, format, content_type, follow, **extra)
-
-    def put(
-        self, path, data=None, format="json", content_type=None, follow=False, **extra
-    ) -> Response:
-        return super().put(path, data, format, content_type, follow, **extra)
-
-    def patch(
-        self, path, data=None, format="json", content_type=None, follow=False, **extra
-    ) -> Response:
-        return super().patch(path, data, format, content_type, follow, **extra)
-
-    def delete(
-        self, path, data=None, format=None, content_type=None, follow=False, **extra
-    ) -> Response:
-        return super().delete(path, data, format, content_type, follow, **extra)
-
-
-class PublicApiTestsBase(TestsBase):
-    """Abstract testing utilities for api testing."""
-
-    client: APIClientWrapper
+    client: APIClient
 
     def setUp(self):
-        self.client = APIClientWrapper()
+        self.client = APIClient()
         self.client.cookies.clear()
+
+    def assertRenders(
+        self,
+        url: Optional[str] = None,
+        reverse_url: Optional[str] = None,
+        *args,
+        **kwargs,
+    ):
+        """Reversible url should return 200."""
+        path = (
+            reverse(reverse_url, args=[*args], kwargs={**kwargs})
+            if reverse_url
+            else url
+        )
+        assert path is not None
+
+        res = self.client.get(path)
+        self.assertEqual(res.status_code, HTTP_200_OK)
+
+        return res
+
+    def assertHasForm(
+        self,
+        res: HttpResponse,
+        form_class: type[forms.Form],
+        initial_data: dict | None = None,
+    ) -> forms.Form:
+        """Response should have a form object."""
+
+        form: forms.Form | None = res.context.get("form", None)
+        self.assertIsInstance(form, form_class)
+        assert form is not None
+
+        if initial_data:
+            for key, value in initial_data.items():
+                if value:
+                    self.assertIn(key, form.initial.keys())
+
+                self.assertEqual(form.initial.get(key, None), value)
+
+        return form
 
     def assertOk(self, reverse_url: str, reverse_kwargs=None):
         """The response for a reversed url should be 200 ok."""
@@ -231,6 +247,60 @@ class PublicApiTestsBase(TestsBase):
         return tz
 
 
+class PrivateViewTestsBase(PublicViewTestsBase):
+    """Abstract testing utilities for app views that require auth."""
+
+    def create_authenticated_user(self):
+        """Create the user that is authenticated in the api."""
+        user = create_test_adminuser()
+        user.is_superuser = True
+        user.save()
+
+        return user
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_authenticated_user()
+
+        self.client = APIClient()
+        self.client.force_login(user=self.user)
+
+
+class APIClientWrapper(APIClient):
+    def get(self, path, data=None, follow=False, **extra) -> Response:
+        return super().get(path, data, follow, **extra)
+
+    def post(
+        self, path, data=None, format="json", content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().post(path, data, format, content_type, follow, **extra)
+
+    def put(
+        self, path, data=None, format="json", content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().put(path, data, format, content_type, follow, **extra)
+
+    def patch(
+        self, path, data=None, format="json", content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().patch(path, data, format, content_type, follow, **extra)
+
+    def delete(
+        self, path, data=None, format=None, content_type=None, follow=False, **extra
+    ) -> Response:
+        return super().delete(path, data, format, content_type, follow, **extra)
+
+
+class PublicApiTestsBase(PublicViewTestsBase):
+    """Abstract testing utilities for api testing."""
+
+    client: APIClientWrapper
+
+    def setUp(self):
+        self.client = APIClientWrapper()
+        self.client.cookies.clear()
+
+
 class PrivateApiTestsBase(PublicApiTestsBase):
     """
     Testing utilities for apis where authentication is required.
@@ -252,64 +322,6 @@ class PrivateApiTestsBase(PublicApiTestsBase):
         self.user = self.create_authenticated_user()
 
         self.client = APIClientWrapper()
-        self.client.force_authenticate(user=self.user)
-
-
-class ViewTestsBase(PublicApiTestsBase):
-    """Abstract testing utilities for app views."""
-
-    def assertRenders(
-        self,
-        url: Optional[str] = None,
-        reverse_url: Optional[str] = None,
-        *args,
-        **kwargs,
-    ):
-        """Reversible url should return 200."""
-        path = (
-            reverse(reverse_url, args=[*args], kwargs={**kwargs})
-            if reverse_url
-            else url
-        )
-        assert path is not None
-
-        res = self.client.get(path)
-        self.assertEqual(res.status_code, HTTP_200_OK)
-
-        return res
-
-    def assertHasForm(
-        self,
-        res: HttpResponse,
-        form_class: type[forms.Form],
-        initial_data: dict | None = None,
-    ) -> forms.Form:
-        """Response should have a form object."""
-
-        form: forms.Form | None = res.context.get("form", None)
-        self.assertIsInstance(form, form_class)
-        assert form is not None
-
-        if initial_data:
-            for key, value in initial_data.items():
-                if value:
-                    self.assertIn(key, form.initial.keys())
-
-                self.assertEqual(form.initial.get(key, None), value)
-
-        return form
-
-
-class AuthViewsTestsBase(ViewTestsBase):
-    """Abstract testing utilities for app views that require auth."""
-
-    def setUp(self):
-        super().setUp()
-        self.user = create_test_adminuser()
-        self.user.is_superuser = True
-        self.user.save()
-
-        self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
 
