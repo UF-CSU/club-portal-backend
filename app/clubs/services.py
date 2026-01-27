@@ -6,6 +6,7 @@ from django.urls import reverse
 from events.models import EventAttendance
 from lib.emails import send_html_mail
 from users.models import User
+from users.services import UserService
 from utils.helpers import get_full_url
 
 from clubs.models import Club, ClubMembership, ClubRole
@@ -71,7 +72,7 @@ class ClubService(ServiceBase[Club]):
 
         if send_email:
             send_html_mail(
-                subject=f"You have been added to as a member of {self.obj.name}",
+                subject=f"You have been added to the club {self.obj.name}",
                 to=[user.email],
                 html_template="clubs/email_invite_template.html",
                 html_context={"invite_url": url},
@@ -135,3 +136,25 @@ class ClubService(ServiceBase[Club]):
             },
             send_separately=True,
         )
+
+    def invite_user_to_club(
+        self, email: str, is_owner=False, send_email_invite=True
+    ) -> tuple[ClubMembership, bool]:
+        """Get/create user for email and add them to club."""
+
+        user = User.objects.find_by_email(email)
+        user_created = False
+
+        # If necessary, create new user and sent account setup link
+        if not user:
+            user = User.objects.create_user(email)
+            UserService(user).send_account_setup_link()
+            user_created = True
+
+        # Raise error if user is in club already
+        if self.obj.memberships.filter(user__id=user.id).exists():
+            raise exceptions.ValidationError("User is already member of club")
+
+        return self.add_member(
+            user, send_email=send_email_invite, is_owner=is_owner, fail_silently=False
+        ), user_created

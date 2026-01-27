@@ -31,6 +31,23 @@ class TeamMembershipForm(forms.ModelForm):
 class AdminInviteForm(forms.Form):
     """Invite Club Admin"""
 
-    email = forms.CharField(max_length=100)
-    club = forms.ModelChoiceField(queryset=Club.objects.all())
-    send_inv = forms.BooleanField(label="Send Invite", required=True)
+    email = forms.EmailField(
+        max_length=100,
+        help_text="Get or create user with this email",
+        required=True,
+    )
+    club = forms.ModelChoiceField(
+        queryset=Club.objects.all(), help_text="Assign user to this club", required=True
+    )
+    is_owner = forms.BooleanField(
+        label="Is Owner",
+        required=False,
+        initial=True,
+        help_text="Make this user the owner of the club",
+    )
+    send_invite = forms.BooleanField(
+        label="Send Invite",
+        required=False,
+        initial=False,
+        help_text="If true, will send club invitation email (separate from account setup email)",
+    )

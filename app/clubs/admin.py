@@ -77,6 +77,8 @@ class ClubAdmin(ModelAdminBase):
 
     csv_serializer_class = ClubCsvSerializer
 
+    object_tools = ({"label": "Invite Club Admin", "url": "core:invite_club_admin"},)
+
     inlines = (
         ClubSocialInlineAdmin,
         ClubPhotoInlineAdmin,

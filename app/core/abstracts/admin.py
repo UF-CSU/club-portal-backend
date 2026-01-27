@@ -1,7 +1,7 @@
 import json
 import logging
 from functools import update_wrapper
-from typing import Literal, Optional
+from typing import Literal, Optional, TypedDict
 
 from django.contrib import admin
 from django.db import models
@@ -97,6 +97,11 @@ class AdminBase:
         return mark_safe(style + response)
 
 
+class ObjectTool(TypedDict):
+    url: str
+    label: str
+
+
 class ModelAdminBase(AdminBase, admin.ModelAdmin):
     """Base class for all model admins."""
 
@@ -110,7 +115,7 @@ class ModelAdminBase(AdminBase, admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-    object_tools = ()
+    object_tools: tuple[ObjectTool] = ()
 
     formfield_overrides = {}
 

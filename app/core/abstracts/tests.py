@@ -138,17 +138,17 @@ class APIClientWrapper(APIClient):
         return super().get(path, data, follow, **extra)
 
     def post(
-        self, path, data=None, format="json", content_type=None, follow=False, **extra
+        self, path, data=None, format=None, content_type=None, follow=False, **extra
     ) -> Response:
         return super().post(path, data, format, content_type, follow, **extra)
 
     def put(
-        self, path, data=None, format="json", content_type=None, follow=False, **extra
+        self, path, data=None, format=None, content_type=None, follow=False, **extra
     ) -> Response:
         return super().put(path, data, format, content_type, follow, **extra)
 
     def patch(
-        self, path, data=None, format="json", content_type=None, follow=False, **extra
+        self, path, data=None, format=None, content_type=None, follow=False, **extra
     ) -> Response:
         return super().patch(path, data, format, content_type, follow, **extra)
 

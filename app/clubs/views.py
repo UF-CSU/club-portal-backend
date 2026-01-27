@@ -2,18 +2,18 @@
 Club views for API and rendering html pages.
 """
 
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.core import exceptions
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from users.models import User
-from users.services import UserService
 from utils.admin import get_admin_context
 
 # from asgiref import sync_to_async
 from clubs.forms import AdminInviteForm
-from clubs.models import Club, RoleType
+from clubs.models import Club
 from clubs.services import ClubService
 
 
@@ -51,37 +51,42 @@ def invite_club_admin_view(request):
     form = AdminInviteForm()
 
     if request.method == "POST":
-        form = AdminInviteForm(request.POST)
+        form = AdminInviteForm(data=request.POST)
         if form.is_valid():
-            data = request.POST
-
-            email = data["email"]
-            user = None
+            club = form.cleaned_data.get("club")
+            email = form.cleaned_data.get("email")
+            is_owner = form.cleaned_data.get("is_owner")
+            send_invite = form.cleaned_data.get("send_invite")
 
             try:
-                user = get_object_or_404(User, email=email)
-            except Exception:
-                user = User.objects.create_user(email)
+                member, created = ClubService(club).invite_user_to_club(
+                    email=email, is_owner=is_owner, send_email_invite=send_invite
+                )
 
-            club_id = data["club"]
-            club = Club.objects.get(pk=club_id)
+                # Reset form
+                form = AdminInviteForm()
 
-            # Get list of club roles, and pick an admin role
-            admin_roles = club.roles.filter(role_type=RoleType.ADMIN).exclude(
-                name__iexact="President"
-            )
-            assigned_role = [admin_roles.first()]
+                # Show success message to admin
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    "%s user %s successfully added to club %s as %s and %s"
+                    % (
+                        "New (account setup link sent)" if created else "Existing",
+                        member.user.email,
+                        member.club.name,
+                        "owner" if is_owner else "non-owner",
+                        "sent club email invite"
+                        if send_invite
+                        else "not sent club email invite",
+                    ),
+                )
 
-            send_inv = data["send_inv"]
-            # Email for account set up if needed
-            ClubService(club).add_member(user, assigned_role, send_email=send_inv)
-
-            # Email for account set up if needed
-            UserService(user).send_account_setup_link()
+            except exceptions.ValidationError as e:
+                form.add_error(field=None, error=e)
 
     else:
         form = AdminInviteForm()
 
     context["form"] = form
-
     return render(request, "admin/clubs/invite_club_admin.html", context=context)
