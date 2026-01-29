@@ -1,6 +1,7 @@
 from django import forms
 from users.models import User
 
+from clubs.defaults import INITIAL_CLUB_ROLES
 from clubs.models import Club, Team, TeamMembership
 
 
@@ -50,4 +51,10 @@ class AdminInviteForm(forms.Form):
         required=False,
         initial=False,
         help_text="If true, will send club invitation email (separate from account setup email)",
+    )
+    role = forms.ChoiceField(
+        label="Assign Role",
+        required=False,
+        choices=[(None, "---")] + [(role["name"], role["name"]) for role in INITIAL_CLUB_ROLES],
+        help_text="Default roles that all clubs start with, each club may add/remove from this list",
     )

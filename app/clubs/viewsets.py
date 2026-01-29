@@ -70,6 +70,10 @@ class ClubNestedViewSetBase(ModelViewSetBase):
     Represents objects that require a club id to query.
     """
 
+    # permission_classes = ModelViewSetBase.permission_classes + [
+    #     permissions.IsAuthenticated
+    # ]
+
     def check_permissions(self, request):
         # This runs before `get_queryset`, will short-circuit out if user
         # does not have a club membership
