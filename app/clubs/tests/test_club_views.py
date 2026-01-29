@@ -97,6 +97,9 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
         # Verify membership, invite sent
         self.assertTrue(club.memberships.filter(user__id=u2.id, is_owner=True).exists())
         self.assertEmailsSent(1)
+        self.assertTrue(
+            club.memberships.get(user__id=u2.id).roles.filter(name="Member").exists()
+        )
 
     def test_invite_club_admin_create_user(self):
         """Should create user if needed when inviting admin."""
@@ -243,4 +246,79 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
         # Verify user is member of club, but no emails sent
         self.assertTrue(u2.clubs.filter(id=club.id).exists())
         self.assertFalse(u2.club_memberships.get(club__id=club.id).is_admin)
+        self.assertEmailsSent(0)
+
+    def test_invite_admin_assign_role(self):
+        """Should invite club admin and assign them a role."""
+
+        # Target user/club
+        u2 = create_test_user()
+        club = create_test_club()
+
+        # Submit form
+        payload = {
+            "email": u2.email,
+            "club": club.id,
+            "is_owner": True,
+            "send_invite": True,
+            "role": "President",
+        }
+
+        res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
+        self.assertResOk(res)
+        self.assertFormIsValid(res)
+
+        # Verify membership, invite sent
+        self.assertTrue(club.memberships.filter(user__id=u2.id, is_owner=True).exists())
+        self.assertEmailsSent(1)
+        self.assertTrue(
+            club.memberships.get(user__id=u2.id).roles.filter(name="President").exists()
+        )
+
+    def test_invite_admin_role_not_exist(self):
+        """Should raise an error if role does not exist in club."""
+
+        # Target user/club
+        u2 = create_test_user()
+        club = create_test_club()
+        club.roles.filter(name="Officer").delete()
+
+        # Submit form
+        payload = {
+            "email": u2.email,
+            "club": club.id,
+            "is_owner": True,
+            "send_invite": True,
+            "role": "Officer",
+        }
+
+        res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
+        self.assertResOk(res)
+        self.assertFormHasErrors(res)
+
+        # Verify not member, not sent email
+        self.assertFalse(club.memberships.filter(user__id=u2.id).exists())
+        self.assertEmailsSent(0)
+
+    def test_invite_admin_atomic_on_error(self):
+        """If there's an error when inviting an admin, rollback all changes."""
+
+        self.assertIsNone(User.objects.find_by_email("user@example.com"))
+        club = create_test_club()
+        club.roles.filter(name="Officer").delete()
+
+        # Submit form
+        payload = {
+            "email": "user@example.com",
+            "club": club.id,
+            "is_owner": True,
+            "send_invite": False,
+            "role": "Officer",
+        }
+        res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
+        self.assertResOk(res)
+        self.assertFormHasErrors(res)
+
+        # Verify user created and added to club
+        self.assertFalse(User.objects.filter(email="user@example.com").exists())
         self.assertEmailsSent(0)

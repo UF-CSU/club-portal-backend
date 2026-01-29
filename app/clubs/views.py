@@ -13,7 +13,7 @@ from utils.admin import get_admin_context
 
 # from asgiref import sync_to_async
 from clubs.forms import AdminInviteForm
-from clubs.models import Club
+from clubs.models import Club, ClubRole
 from clubs.services import ClubService
 
 
@@ -57,10 +57,15 @@ def invite_club_admin_view(request):
             email = form.cleaned_data.get("email")
             is_owner = form.cleaned_data.get("is_owner")
             send_invite = form.cleaned_data.get("send_invite")
+            role = form.cleaned_data.get("role", "") or None
 
             try:
-                member, created = ClubService(club).invite_user_to_club(
-                    email=email, is_owner=is_owner, send_email_invite=send_invite
+                svc = ClubService(club)
+                member, created = svc.invite_user_to_club(
+                    email=email,
+                    is_owner=is_owner,
+                    send_email_invite=send_invite,
+                    role=role,
                 )
 
                 # Reset form
@@ -84,6 +89,18 @@ def invite_club_admin_view(request):
 
             except exceptions.ValidationError as e:
                 form.add_error(field=None, error=e)
+            except ClubRole.DoesNotExist:
+                form.add_error(
+                    field="role",
+                    error=exceptions.ValidationError(
+                        f"Role {role} does not exist for club {svc.obj.name}"
+                    ),
+                )
+            except Exception as e:
+                form.add_error(field=None, error="Internal Server Error")
+                messages.add_message(
+                    request, messages.ERROR, f"Received error when inviting user: {e}"
+                )
 
     else:
         form = AdminInviteForm()
