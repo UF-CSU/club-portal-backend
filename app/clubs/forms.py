@@ -55,6 +55,7 @@ class AdminInviteForm(forms.Form):
     role = forms.ChoiceField(
         label="Assign Role",
         required=False,
-        choices=[(None, "---")] + [(role["name"], role["name"]) for role in INITIAL_CLUB_ROLES],
+        choices=[(None, "---")]
+        + [(role["name"], role["name"]) for role in INITIAL_CLUB_ROLES],
         help_text="Default roles that all clubs start with, each club may add/remove from this list",
     )
