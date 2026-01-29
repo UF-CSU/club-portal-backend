@@ -96,10 +96,17 @@ class ClubModelTests(TestsBase):
     def test_member_is_admin(self):
         """Should properly display if a user is an admin or not."""
         club = create_test_club()
+        club2 = create_test_club()
 
         u0 = create_test_user()
         u1 = create_test_user()
         u2 = create_test_user()
+        u3 = create_test_user()
+
+        m_unassigned = ClubMembership.objects.create(
+            club=club2, user=u3,  is_owner=True
+        )
+        self.assertTrue(m_unassigned.is_admin)
 
         viewer_role = create_test_clubrole(club, role_type=RoleType.VIEWER)
         admin_role = create_test_clubrole(club, role_type=RoleType.ADMIN)
