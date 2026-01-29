@@ -119,7 +119,10 @@ class ClubManager(ManagerBase["Club"]):
 
         if user.is_superuser:
             return self.get(id=id)
-        elif user.is_useragent and user.useragent.apikey_type == "club":
+        elif (
+            getattr(user, "is_useragent", False)
+            and user.useragent.apikey_type == "club"
+        ):
             # TODO: Abstract this useragent club
             key_club = user.useragent.club_apikey.club
 
