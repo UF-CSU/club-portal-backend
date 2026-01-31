@@ -24,7 +24,6 @@ from utils.views import params_validator, parse_bool_param
 from clubs.cache import (
     DETAIL_CLUB_PREVIEW_PREFIX,
     LIST_CLUB_PREVIEW_PREFIX,
-    pagination_result_helper,
 )
 from clubs.models import (
     Club,
@@ -272,9 +271,6 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
         )
         if not result:
             result = super().list(request, *args, **kwargs).data
-
-            if "results" not in result:
-                result = pagination_result_helper(result)
 
             set_cache(
                 result,
