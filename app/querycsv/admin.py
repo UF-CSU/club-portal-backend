@@ -2,6 +2,7 @@ from core.abstracts.admin import ModelAdminBase
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
+from users.models import Ticket
 from utils.admin import other_info_fields
 from utils.formatting import plural_noun
 
@@ -105,6 +106,13 @@ class QueryCsvUploadJobAdmin(ModelAdminBase):
         )
 
         return
+    
+    def render_change_form(
+        self, request, context, add=None, change=None, form_url=None, obj=None
+    ):
+        ticket, _ = Ticket.objects.get_or_create(user=request.user)
+        context["ticket"] = ticket
+        return super().render_change_form(request, context, add, change, form_url, obj)
 
 
 admin.site.register(QueryCsvUploadJob, QueryCsvUploadJobAdmin)

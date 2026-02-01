@@ -12,7 +12,7 @@ try{
 
   const ticket = "{{ ticket }}"
 
-  const socket = new WebSocket(`ws://${window.location.host}/ws/querycsv/${job_id}/querycsv/`)
+  const socket = new WebSocket(`ws://${window.location.host}/ws/querycsv/${job_id}/querycsv/`, ['Authorization', ticket])
   socket.onmessage = function (e) {
     const payload = JSON.parse(e.data)
     jobSpan.innerHTML = payload.data
