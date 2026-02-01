@@ -157,6 +157,7 @@ class EventPreviewViewSet(ModelPreviewViewSetBase):
     queryset = Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
     serializer_class = serializers.EventPreviewSerializer
     pagination_class = CustomDatePagination
+    filterset_fields = ["clubs"]
 
 
 class EventClubFilter(FilterBackendBase):
