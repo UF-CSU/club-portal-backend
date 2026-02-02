@@ -34,7 +34,7 @@ urlpatterns = [
         include(router.urls),
     ),
     path(
-        "poll/<int:poll_id>/analytics/",
+        "polls/<int:poll_id>/analytics/",
         viewsets.PollAnalyticsView.as_view(),
         name="pollanalytics",
     ),
