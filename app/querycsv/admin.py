@@ -106,7 +106,7 @@ class QueryCsvUploadJobAdmin(ModelAdminBase):
         )
 
         return
-    
+
     def render_change_form(
         self, request, context, add=None, change=None, form_url=None, obj=None
     ):

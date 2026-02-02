@@ -103,9 +103,7 @@ class ClubModelTests(TestsBase):
         u2 = create_test_user()
         u3 = create_test_user()
 
-        m_unassigned = ClubMembership.objects.create(
-            club=club2, user=u3,  is_owner=True
-        )
+        m_unassigned = ClubMembership.objects.create(club=club2, user=u3, is_owner=True)
         self.assertTrue(m_unassigned.is_admin)
 
         viewer_role = create_test_clubrole(club, role_type=RoleType.VIEWER)

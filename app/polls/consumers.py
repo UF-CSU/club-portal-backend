@@ -1,11 +1,10 @@
 from asgiref.sync import sync_to_async
-from core.abstracts.consumers import ConsumerAllowAny, ConsumerBase
+from core.abstracts.consumers import ConsumerBase
 
 from .services import PollService
 
 
 class PollSubmissionConsumer(ConsumerBase):
-    
     async def connect(self):
         connected = await super().connect()
         if not connected:

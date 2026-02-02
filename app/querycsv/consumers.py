@@ -2,13 +2,12 @@ import json
 
 from asgiref.sync import sync_to_async
 from core.abstracts.admin import AdminBase
-from core.abstracts.consumers import ConsumerAllowAny, ConsumerBase
+from core.abstracts.consumers import ConsumerBase
 
 from querycsv.models import QueryCsvUploadJob
 
 
 class QueryCsvConsumer(ConsumerBase):
-
     async def _get_job_logs(self):
         job_id = self.scope["url_route"]["kwargs"]["job_id"]
         service = await QueryCsvUploadJob.objects.aget(id=job_id)
