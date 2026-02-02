@@ -5,6 +5,7 @@ from core.abstracts.serializers import (
     SerializerBase,
 )
 from core.models import Major
+from django.core.validators import MinValueValidator
 from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -521,6 +522,21 @@ class ClubRosterSerializer(ModelSerializerBase):
     class Meta:
         model = Club
         fields = ["executives", "teams"]
+
+
+class ClubPreviewListParamSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(
+        allow_null=True, required=False, default=None, validators=[MinValueValidator(1)]
+    )
+    offset = serializers.IntegerField(
+        allow_null=True, required=False, default=None, validators=[MinValueValidator(0)]
+    )
+    is_csu_partner = serializers.BooleanField(
+        allow_null=True, required=False, default=None, validators=[]
+    )
+
+    class Meta:
+        fields = "__all__"
 
 
 ##############################################################
