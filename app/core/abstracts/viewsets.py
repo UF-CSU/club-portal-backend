@@ -13,6 +13,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 
+from core.abstracts.serializers import RetrieveParamSerializer
+
 
 class ViewSetBase(GenericViewSet):
     """
@@ -70,6 +72,14 @@ class ViewSetBase(GenericViewSet):
 
         if DJANGO_ENABLE_API_SESSION_AUTH:
             self.authentication_classes += [authentication.SessionAuthentication]
+
+    def get_object(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        serializer = RetrieveParamSerializer(
+            data={"pk": self.kwargs.get(lookup_url_kwarg, None)}
+        )
+        serializer.is_valid(raise_exception=True)
+        return super().get_object()
 
 
 class ObjectViewPermissions(permissions.DjangoObjectPermissions):

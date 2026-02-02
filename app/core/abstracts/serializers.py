@@ -482,3 +482,10 @@ class PermissionRelatedField(serializers.RelatedField):
 
     def to_representation(self, obj: Permission):
         return get_perm_label(obj)
+
+
+class RetrieveParamSerializer(serializers.Serializer):
+    pk = serializers.IntegerField(validators=[validators.MinValueValidator(1)])
+
+    class Meta:
+        fields = "__all__"

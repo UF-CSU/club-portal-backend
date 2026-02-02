@@ -3,7 +3,6 @@ from collections.abc import Callable
 from typing import Any, Optional
 
 import attrs
-from django.db.migrations import serializer
 from drf_spectacular.types import PYTHON_TYPE_MAPPING, OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import exceptions, serializers
@@ -104,7 +103,7 @@ def query_params(**kwargs: Query):
 
 
 def params_validator(
-    validator_class: serializer.Serializer,
+    validator_class: serializers.Serializer,
     query_params: list[str] = None,
     path_params: list[str] = None,
 ):

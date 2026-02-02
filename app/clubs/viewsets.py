@@ -44,6 +44,7 @@ from clubs.serializers import (
     ClubMemberSerializer,
     ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
+    ClubPreviewListParamSerializer,
     ClubPreviewSerializer,
     ClubRosterSerializer,
     ClubSerializer,
@@ -53,7 +54,6 @@ from clubs.serializers import (
     TeamSerializer,
 )
 from clubs.services import ClubService
-from clubs.validators import ClubPreviewListValidator, ClubPreviewRetrieveValidator
 
 
 def get_user_club_or_404(club_id: int, user: User):
@@ -240,14 +240,13 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
-    @params_validator(ClubPreviewRetrieveValidator, path_params=["pk"])
     def retrieve(self, request: Request, *args, **kwargs):
         club_id = self.kwargs.get("pk")
         result = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
         if not result:
             try:
-                club = Club.objects.get_by_id(club_id)
+                club = super().retrieve(request, *args, **kwargs).data
             except Club.DoesNotExist as e:
                 raise exceptions.NotFound(f"No club found for id: {club_id}") from e
 
@@ -257,7 +256,8 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
         return Response(result)
 
     @params_validator(
-        ClubPreviewListValidator, query_params=["limit", "offset", "is_csu_partner"]
+        ClubPreviewListParamSerializer,
+        query_params=["limit", "offset", "is_csu_partner"],
     )
     def list(self, request: Request, *args, **kwargs):
         params = request.query_params.copy()
