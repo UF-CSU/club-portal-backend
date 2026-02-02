@@ -246,7 +246,11 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
         result = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
         if not result:
-            club = kwargs.get("instance")
+            try:
+                club = Club.objects.get_by_id(club_id)
+            except Club.DoesNotExist as e:
+                raise exceptions.NotFound(f"No club found for id: {club_id}") from e
+
             result = ClubPreviewSerializer(club).data
             set_cache(result, DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 

@@ -3,7 +3,6 @@ from collections.abc import Callable
 from typing import Any, Optional
 
 import attrs
-from core.abstracts.models import ModelBase
 from django.db.migrations import serializer
 from drf_spectacular.types import PYTHON_TYPE_MAPPING, OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -158,35 +157,7 @@ def params_validator(
                 print(e.args)
                 raise exceptions.ValidationError() from e
 
-            # Check if the object exists and throw 404 for retrieve type endpoints
-            instance: ModelBase = None
-            if path_params and "pk" in path_params:
-                id = params["pk"]
-                model: ModelBase = None
-                try:
-                    model = f_args[0].queryset.model
-
-                except AttributeError as e:
-                    logging.error(
-                        "params_validator decorated on method that does not have a queryset on its instance"
-                    )
-                    raise exceptions.APIException("Internal Server Error", 500) from e
-
-                try:
-                    if model is None:
-                        logging.error(
-                            "params_validator decorated on method that does not have a model on its instance"
-                        )
-                        raise exceptions.APIException("Internal Server Error", 500)
-
-                    instance = model.objects.get_by_id(id)
-
-                except model.DoesNotExist as e:
-                    raise exceptions.NotFound(
-                        f"{model._meta.model_name} not found with id: " + id, 404
-                    ) from e
-
-            return callable(*f_args, **f_kwargs, instance=instance)
+            return callable(*f_args, **f_kwargs)
 
         return wrapper
 
