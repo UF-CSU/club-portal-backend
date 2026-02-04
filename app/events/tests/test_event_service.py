@@ -5,7 +5,6 @@ Unit tests for Event business logic.
 import datetime
 
 import freezegun
-import pytz
 from clubs.models import ClubFile
 from clubs.tests.utils import create_test_club, create_test_clubfile, create_test_clubs
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
