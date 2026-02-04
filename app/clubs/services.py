@@ -1,5 +1,6 @@
 from typing import Optional
 
+from app.settings import CLUB_INVITE_REDIRECT_URL
 from core.abstracts.services import ServiceBase
 from django.core import exceptions
 from django.db import transaction
@@ -82,7 +83,7 @@ class ClubService(ServiceBase[Club]):
         member = ClubMembership.objects.create(
             club=self.obj, user=user, roles=roles, **kwargs
         )
-        url = club_redirect_url or get_full_url(reverse("clubs:home", args=[user.id]))
+        url = club_redirect_url or CLUB_INVITE_REDIRECT_URL % {"id": self.obj.id}
 
         if send_email:
             send_html_mail(
@@ -179,7 +180,9 @@ class ClubService(ServiceBase[Club]):
 
             # Raise error if user is in club already
             if self.obj.memberships.filter(user__id=user.id).exists():
-                raise exceptions.ValidationError("User is already member of club")
+                raise exceptions.ValidationError(
+                    f'User is already member of club "{self.obj.name}"'
+                )
 
             return self.add_member(
                 user,

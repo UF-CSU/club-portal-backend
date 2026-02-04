@@ -128,18 +128,16 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 recurring_event=rec_ev,
             )
 
-        # Update event with rest of fields
-        for key, value in rec_ev.get_event_update_kwargs().items():
-            setattr(event, key, value)
-
-        event.save()
-
         # Sync hosts
         if rec_ev.club:
             event.add_host(rec_ev.club, is_primary=True)
 
         if rec_ev.other_clubs.all().count() > 0:
             event.add_hosts(*rec_ev.other_clubs.all())
+
+        # Update event with rest of fields
+        for key, value in rec_ev.get_event_update_kwargs().items():
+            setattr(event, key, value)
 
         # Sync attachments
         # TODO: Should admins be allowed to set custom attachments for individual events?

@@ -471,3 +471,27 @@ class RecurringEventTests(TestsBase):
             self.assertEqual(event.description, desc2)
             self.assertEqual(event.start_at.time(), start2)
             self.assertEqual(event.end_at.time(), end2)
+
+    @freezegun.freeze_time("2/3/2026")
+    def test_recurring_events_with_poll(self):
+        """Should create events with a poll."""
+
+        # Create recurring event with attendance enabled
+        club = create_test_club()
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
+            start_date=datetime.datetime(year=2026, month=2, day=1).date(),
+            end_date=datetime.datetime(year=2026, month=2, day=28).date(),
+            event_start_time=datetime.time(hour=17),
+            event_end_time=datetime.time(hour=19),
+            enable_attendance=True,
+            club=club,
+        )
+
+        events = RecurringEventService(rec).sync_events()
+
+        # Verify events were created correctly
+        self.assertEqual(events.count(), 8)
+        self.assertEqual(events.filter(_poll__isnull=False).count(), 8)
+        self.assertEqual(events.filter(_poll__club__isnull=False).count(), 8)
