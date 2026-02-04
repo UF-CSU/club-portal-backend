@@ -25,6 +25,14 @@
             <li>Send club invite email, if "Send Invite" is True</li>
         </ol>
     </div>
+    
+    {% if form.non_field_errors %}
+    <div>
+      {% for error in form.non_field_errors %}
+      <p class="errornote">{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <fieldset class="module aligned wide">
       {% for field in form.visible_fields %}
@@ -40,6 +48,9 @@
       </div>
       {% endfor %}
     </fieldset>
+    
+    
+    
     <div class="submit-row">
         <input type="submit" value="Invite User" class="default">
     </div>
