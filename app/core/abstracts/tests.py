@@ -139,6 +139,7 @@ class PublicViewTestsBase(TestsBase):
     client: APIClient
 
     def setUp(self):
+        super().setUp()
         self.client = APIClient()
         self.client.cookies.clear()
 
@@ -328,10 +329,14 @@ class PrivateApiTestsBase(PublicApiTestsBase):
 class EmailTestsBase(TestsBase):
     """Testing utilities for sending emails."""
 
+    def setUp(self):
+        super().setUp()
+        self.outbox = mail.outbox
+
     def assertEmailsSent(self, count: int):
         """The email outbox length should equal given count."""
 
-        self.assertEqual(len(mail.outbox), count)
+        self.assertEqual(len(self.outbox), count)
 
     def assertInEmailBodies(self, substring: str):
         """The sent emails should include the substring in the email bodies."""
