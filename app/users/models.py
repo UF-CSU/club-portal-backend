@@ -16,7 +16,6 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
-from django.contrib.postgres.fields import ArrayField
 from django.core import exceptions
 from django.core.exceptions import PermissionDenied
 from django.core.validators import RegexValidator, validate_email
@@ -467,28 +466,10 @@ class EmailVerificationCode(ModelBase):
     expires_at = models.DateTimeField(
         default=generate_verification_expiry, editable=False
     )
-    uses = models.IntegerField(default=0, editable=False)
-    used_at = ArrayField(models.DateTimeField(), blank=True, null=True, editable=False)
 
     @property
     def is_expired(self):
-        return (
-            self.expires_at < timezone.now()
-            or self.uses >= settings.MAX_USER_INVITE_USES
-        )
-
-    def mark_used(self, commit=True):
-        """Mark a verification code as used."""
-
-        self.uses += 1
-
-        if not self.used_at:
-            self.used_at = []
-
-        self.used_at.append(timezone.now())
-
-        if commit:
-            self.save()
+        return self.expires_at < timezone.now()
 
 
 class VerifiedEmail(ModelBase):

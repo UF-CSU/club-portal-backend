@@ -263,14 +263,16 @@ class UserService(ServiceBase[User]):
         if existing_user and existing_user.id != user.id:
             user = UserService.merge_users(users=[user, existing_user])
 
-        # Verification was successful, mark email as verified
-        if not VerifiedEmail.objects.filter(email=email, user=user).exists():
-            VerifiedEmail.objects.create(email=email, user=user)
+        EmailVerificationCode.objects.filter(email=email).delete()
+        VerifiedEmail.objects.create(email=email, user=user)
+        # # Verification was successful, mark email as verified
+        # if not VerifiedEmail.objects.filter(email=email, user=user).exists():
+        #     VerifiedEmail.objects.create(email=email, user=user)
 
-        # Clean up other verification codes if the code is expired
-        verification.mark_used()
-        verification.refresh_from_db()
-        if verification.is_expired:
-            EmailVerificationCode.objects.filter(email=verification.email).delete()
+        # # Clean up other verification codes if the code is expired
+        # verification.mark_used()
+        # verification.refresh_from_db()
+        # if verification.is_expired:
+        #     EmailVerificationCode.objects.filter(email=verification.email).delete()
 
         return True

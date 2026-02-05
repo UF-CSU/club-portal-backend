@@ -336,7 +336,7 @@ class EmailTestsBase(TestsBase):
     def assertEmailsSent(self, count: int):
         """The email outbox length should equal given count."""
 
-        self.assertEqual(len(self.outbox), count)
+        self.assertEqual(len(mail.outbox), count)
 
     def assertInEmailBodies(self, substring: str):
         """The sent emails should include the substring in the email bodies."""
