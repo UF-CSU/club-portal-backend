@@ -58,6 +58,7 @@ dev = [
     "coverage>=7.4.1,<7.5",
     "faker>=33.0.0,<33.1.0",
     "freezegun>=1.5.4,<1.6",
+    "beautifulsoup4>=4.14.2",
     # Django Extensions
     "django-browser-reload>=1.17.0,<1.18",
     "django-debug-toolbar>=6.1.0,<6.2",

@@ -362,6 +362,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "autoflake" },
+    { name = "beautifulsoup4" },
     { name = "black" },
     { name = "coverage" },
     { name = "django-browser-reload" },
@@ -423,6 +424,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "autoflake", specifier = ">=2.3.1,<2.4" },
+    { name = "beautifulsoup4", specifier = ">=4.14.2" },
     { name = "black", specifier = ">=24.1.1,<25.2" },
     { name = "coverage", specifier = ">=7.4.1,<7.5" },
     { name = "django-browser-reload", specifier = ">=1.17.0,<1.18" },
