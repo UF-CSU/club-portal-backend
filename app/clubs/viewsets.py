@@ -19,6 +19,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from users.models import User
 from utils.cache import check_cache, set_cache
+from utils.views import params_validator, parse_bool_param
 
 from clubs.cache import (
     DETAIL_CLUB_PREVIEW_PREFIX,
@@ -43,6 +44,7 @@ from clubs.serializers import (
     ClubMemberSerializer,
     ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
+    ClubPreviewListParamSerializer,
     ClubPreviewSerializer,
     ClubRosterSerializer,
     ClubSerializer,
@@ -59,6 +61,7 @@ def get_user_club_or_404(club_id: int, user: User):
 
     try:
         return Club.objects.get_for_user(club_id, user)
+
     except Club.DoesNotExist as e:
         raise exceptions.NotFound(
             detail="Club with id %s does not exist for user." % club_id
@@ -69,6 +72,10 @@ class ClubNestedViewSetBase(ModelViewSetBase):
     """
     Represents objects that require a club id to query.
     """
+
+    # permission_classes = ModelViewSetBase.permission_classes + [
+    #     permissions.IsAuthenticated
+    # ]
 
     def check_permissions(self, request):
         # This runs before `get_queryset`, will short-circuit out if user
@@ -239,46 +246,49 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
 
     def retrieve(self, request: Request, *args, **kwargs):
         club_id = self.kwargs.get("pk")
-        cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
+        result = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
-        if not cached_preview:
-            cached_preview = ClubPreviewSerializer(
-                Club.objects.find_by_id(club_id)
-            ).data
-            set_cache(cached_preview, DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
+        if not result:
+            try:
+                club = super().retrieve(request, *args, **kwargs).data
+            except Club.DoesNotExist as e:
+                raise exceptions.NotFound(f"No club found for id: {club_id}") from e
 
-        return Response({"results": cached_preview})
+            result = ClubPreviewSerializer(club).data
+            set_cache(result, DETAIL_CLUB_PREVIEW_PREFIX, club_id=club_id)
 
+        return Response(result)
+
+    @params_validator(
+        ClubPreviewListParamSerializer,
+        query_params=["limit", "offset", "is_csu_partner"],
+    )
     def list(self, request: Request, *args, **kwargs):
         params = request.query_params.copy()
-        limit = params.pop("limit", None)
-        offset = params.pop("offset", None)
-        if params.get("is_csu_partner") is None and len(params) != 0:
-            return super().list(request, *args, **kwargs)
+        limit = params.get("limit", None)
+        offset = params.get("offset", None)
+        is_csu_partner = parse_bool_param(
+            params.get("is_csu_partner", None), "is_csu_partner"
+        )
 
-        is_csu_partner = bool(request.query_params.get("is_csu_partner", False))
-        cached_previews = check_cache(
+        result = check_cache(
             LIST_CLUB_PREVIEW_PREFIX,
             is_csu_partner=is_csu_partner,
             limit=limit,
             offset=offset,
         )
+        if not result:
+            result = super().list(request, *args, **kwargs).data
 
-        if not cached_previews:
-            cached_previews = ClubPreviewSerializer(
-                Club.objects.filter(is_csu_partner=is_csu_partner).distinct(), many=True
-            ).data
             set_cache(
-                cached_previews,
+                result,
                 LIST_CLUB_PREVIEW_PREFIX,
                 is_csu_partner=is_csu_partner,
                 limit=limit,
                 offset=offset,
             )
 
-        page = self.paginate_queryset(cached_previews)
-        serializer = ClubPreviewSerializer(page, many=True)
-        return self.get_paginated_response(serializer.data)
+        return Response(result)
 
 
 class ClubTagsView(GenericAPIView):

@@ -1,7 +1,9 @@
 from typing import Optional
 
+from app.settings import CLUB_INVITE_REDIRECT_URL
 from core.abstracts.services import ServiceBase
 from django.core import exceptions
+from django.db import transaction
 from django.urls import reverse
 from events.models import EventAttendance
 from lib.emails import send_html_mail
@@ -42,6 +44,19 @@ class ClubService(ServiceBase[Club]):
             return self.obj.logo.url
         return ""
 
+    def _parse_club_role(self, role: ClubRole | str) -> ClubRole:
+        """Validate role exists in club."""
+
+        if isinstance(role, str):
+            role = self.obj.roles.get(name=role)
+
+        if role.club.id != self.obj.id:
+            raise exceptions.BadRequest(
+                f"Role {role.name} ({role.pk}) is not a part of club {self.obj.name}"
+            )
+
+        return role
+
     def add_member(
         self,
         user: User,
@@ -68,7 +83,7 @@ class ClubService(ServiceBase[Club]):
         member = ClubMembership.objects.create(
             club=self.obj, user=user, roles=roles, **kwargs
         )
-        url = club_redirect_url or get_full_url(reverse("clubs:home", args=[user.id]))
+        url = club_redirect_url or CLUB_INVITE_REDIRECT_URL % {"id": self.obj.id}
 
         if send_email:
             send_html_mail(
@@ -83,8 +98,8 @@ class ClubService(ServiceBase[Club]):
     def set_member_role(self, user: User, role: ClubRole | str):
         """Replace a member's roles with given role."""
 
-        if isinstance(role, str):
-            role = self.obj.roles.get(name=role)
+        if role:
+            role = self._parse_club_role(role)
 
         member = self._get_user_membership(user)
         member.roles.clear()
@@ -93,8 +108,8 @@ class ClubService(ServiceBase[Club]):
     def add_member_role(self, user: User, role: ClubRole | str):
         """Add role to member's roles."""
 
-        if isinstance(role, str):
-            role = self.obj.roles.get(name=role)
+        if role:
+            role = self._parse_club_role(role)
 
         member = self._get_user_membership(user)
         member.add_roles(role)
@@ -102,12 +117,14 @@ class ClubService(ServiceBase[Club]):
 
     def increase_member_points(self, user: User, amount: int = 1):
         """Give the user more coins."""
+
         member = self._get_user_membership(user)
         member.points += amount
         member.save()
 
     def decrease_member_points(self, user: User, amount: int = 1):
         """Remove coins from the user."""
+
         member = self._get_user_membership(user)
         if member.points < amount:
             raise exceptions.BadRequest("Not enough coins to decrease.")
@@ -138,23 +155,39 @@ class ClubService(ServiceBase[Club]):
         )
 
     def invite_user_to_club(
-        self, email: str, is_owner=False, send_email_invite=True
+        self,
+        email: str,
+        is_owner=False,
+        send_email_invite=True,
+        role: Optional[ClubRole | str] = None,
     ) -> tuple[ClubMembership, bool]:
         """Get/create user for email and add them to club."""
 
-        user = User.objects.find_by_email(email)
-        user_created = False
+        with transaction.atomic():
+            # Parse role if necessary
+            if role is not None:
+                role = self._parse_club_role(role)
 
-        # If necessary, create new user and sent account setup link
-        if not user:
-            user = User.objects.create_user(email)
-            UserService(user).send_account_setup_link()
-            user_created = True
+            # Get or create new user
+            user = User.objects.find_by_email(email)
+            user_created = False
 
-        # Raise error if user is in club already
-        if self.obj.memberships.filter(user__id=user.id).exists():
-            raise exceptions.ValidationError("User is already member of club")
+            if not user:
+                # Send account setup link if being created
+                user = User.objects.create_user(email)
+                UserService(user).send_account_setup_link()
+                user_created = True
 
-        return self.add_member(
-            user, send_email=send_email_invite, is_owner=is_owner, fail_silently=False
-        ), user_created
+            # Raise error if user is in club already
+            if self.obj.memberships.filter(user__id=user.id).exists():
+                raise exceptions.ValidationError(
+                    f'User is already member of club "{self.obj.name}"'
+                )
+
+            return self.add_member(
+                user,
+                send_email=send_email_invite,
+                is_owner=is_owner,
+                fail_silently=False,
+                roles=[role] if role is not None else None,
+            ), user_created

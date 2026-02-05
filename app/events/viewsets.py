@@ -3,7 +3,6 @@ from typing import Optional
 
 from clubs.models import Club, ClubFile
 from core.abstracts.viewsets import (
-    FilterBackendBase,
     ModelPreviewViewSetBase,
     ModelViewSetBase,
     ObjectViewPermissions,
@@ -154,15 +153,32 @@ class CustomDatePagination(BasePagination):
 class EventPreviewViewSet(ModelPreviewViewSetBase):
     """API For showing public event previews."""
 
-    queryset = Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
+    queryset = Event.objects.filter(
+        Q(is_public=True) & Q(is_draft=False)
+    ).prefetch_related(
+        Prefetch(
+            "hosts",
+            queryset=EventHost.objects.select_related("club", "club__logo").only(
+                "id",
+                "event_id",
+                "club_id",
+                "is_primary",
+                "club__id",
+                "club__name",
+                "club__alias",
+                "club__logo_id",
+            ),
+        ),
+        Prefetch(
+            "tags",
+            queryset=EventTag.objects.order_by("order", "name").only(
+                "id", "name", "color", "order"
+            ),
+        ),
+    )
     serializer_class = serializers.EventPreviewSerializer
     pagination_class = CustomDatePagination
-
-
-class EventClubFilter(FilterBackendBase):
-    """Get events filtered by club"""
-
-    pass
+    filterset_fields = ["clubs"]
 
 
 class EventViewset(ModelViewSetBase):

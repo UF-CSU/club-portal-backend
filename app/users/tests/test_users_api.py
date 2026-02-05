@@ -9,6 +9,7 @@ from lib.faker import fake
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from app import settings
 from users.models import EmailVerificationCode
 from users.tests.utils import (
     CHECK_EMAIL_VERIFICATION_URL,
@@ -181,6 +182,21 @@ class PrivateUserApiTests(PrivateApiTestsBase, EmailTestsBase):
         res = self.client.post(CHECK_EMAIL_VERIFICATION_URL, payload)
         self.assertResCreated(res)
 
-        # Should reject duplicate request
+        # Should allow additional clicks up to the max
+        for i in range(2, settings.MAX_USER_INVITE_USES + 1):
+            res = self.client.post(CHECK_EMAIL_VERIFICATION_URL, payload)
+            self.assertResCreated(res)
+
+            if i != settings.MAX_USER_INVITE_USES:
+                vc.refresh_from_db()
+                self.assertEqual(vc.uses, i)
+            else:
+                self.assertFalse(
+                    EmailVerificationCode.objects.filter(
+                        email=payload["email"]
+                    ).exists()
+                )
+
+        # Should reject expired code
         res = self.client.post(CHECK_EMAIL_VERIFICATION_URL, payload)
         self.assertResBadRequest(res)

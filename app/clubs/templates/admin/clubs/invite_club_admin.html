@@ -20,10 +20,19 @@
             <li>Get or create user</li>
             <li>Add user to specified club</li>
             <li>Set user as owner, if "Is Owner" is True (replacing previous owner if necessary)</li>
+            <li>If a role was specified, attach that role to the user's membership</li>
             <li>If user was created, send account setup email</li>
             <li>Send club invite email, if "Send Invite" is True</li>
         </ol>
     </div>
+    
+    {% if form.non_field_errors %}
+    <div>
+      {% for error in form.non_field_errors %}
+      <p class="errornote">{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <fieldset class="module aligned wide">
       {% for field in form.visible_fields %}
@@ -39,6 +48,9 @@
       </div>
       {% endfor %}
     </fieldset>
+    
+    
+    
     <div class="submit-row">
         <input type="submit" value="Invite User" class="default">
     </div>

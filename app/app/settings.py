@@ -68,12 +68,20 @@ POLL_SUBMISSION_REDIRECT_URL = os.environ.get(
 )
 """Where should user go when submitting polls? Supports formatting variable `%(id)s`."""
 
+CLUB_INVITE_REDIRECT_URL = os.environ.get(
+    "CLUB_INVITE_REDIRECT_URL",
+    CLIENT_URL + "/private/dashboard/club-info?selected_club=%(id)s",
+)
+
 DJANGO_ENABLE_API_SESSION_AUTH = False
 
 SCHOOL_EMAIL_DOMAIN = "ufl.edu"
 
 ASGI_APPLICATION = "app.asgi.application"
 ENABLE_REQUEST_CACHE = environ_bool("DJANGO_ENABLE_REQUEST_CACHE", 1)
+
+MAX_USER_INVITE_USES = os.environ.get("DJANGO_MAX_USER_INVITE_USES", 3)
+"""When sending a user an invite, they can click the invite this many times before it expires."""
 
 
 # Application definition
