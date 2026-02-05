@@ -1,6 +1,7 @@
 """
 Views for the user API.
 """
+import uuid
 
 from allauth.headless.base.views import APIView
 from allauth.headless.socialaccount.forms import RedirectToProviderForm
@@ -20,6 +21,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import AuthenticationFailed, ParseError
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
+from rest_framework.views import APIView as DRFAPIView
 from utils.urls import prepare_url
 
 from users.models import Ticket, User
@@ -230,3 +232,41 @@ class ReturnFromOauthView(APIView):
 
         token, _ = Token.objects.get_or_create(user=user)
         return redirect(prepare_url(next_url, {"token": token.key}))
+
+
+class ExportUserCalendarView(DRFAPIView):
+    
+    authentication_classes = [
+        authentication.TokenAuthentication,
+        authentication.SessionAuthentication,
+    ]
+    permission_classes = [permissions.IsAuthenticated]
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        if not hasattr(user, 'calendar_token') or user.calendar_token is None:
+            # Generate calendar token
+            user.calendar_token = uuid.uuid4()
+            user.save(update_fields=['calendar_token'])
+
+        try:
+            http_url = request.build_absolute_uri(
+                reverse('events:eventcalendar_user', kwargs={'calendar_token': str(user.calendar_token)})
+            )
+        except Exception as e:
+            return Response({
+                'error': f'Failed to generate calendar URL: {str(e)}',
+                'calendar_token': str(user.calendar_token) if user.calendar_token else 'None'
+            }, status=500)
+            
+        webcal_url = http_url.replace('http://', 'webcal://').replace('https://', 'webcal://')
+        
+        return Response({
+            'webcal_url': webcal_url,
+            'http_url': http_url,
+            'calendar_token': str(user.calendar_token),
+            'refresh_interval': '15 minutes',
+            'automatic_updates': True,
+        })
