@@ -176,8 +176,14 @@ class EventSerializer(EventPreviewSerializer):
         poll = validated_data.pop("poll", None)
         attachment_data = validated_data.pop("attachments", [])
 
-        # Temporarily disable enable_attendance
-        enable_attendance = instance.enable_attendance
+        # Preserve enable_attendance value from validated_data if provided, otherwise keep original
+        enable_attendance_provided = "enable_attendance" in validated_data
+        new_enable_attendance = validated_data.get(
+            "enable_attendance", instance.enable_attendance
+        )
+
+        # Temporarily disable enable_attendance to avoid side effects during update
+        original_enable_attendance = instance.enable_attendance
         validated_data["enable_attendance"] = False
         event = super().update(instance, validated_data)
 
@@ -185,8 +191,13 @@ class EventSerializer(EventPreviewSerializer):
             event.poll = poll
         event.refresh_from_db()
 
-        # Re-enable enable_attendance
-        event.enable_attendance = enable_attendance
+        # Apply the intended enable_attendance value if it was provided in the request
+        if enable_attendance_provided:
+            event.enable_attendance = new_enable_attendance
+        # If not provided, maintain the original value
+        else:
+            event.enable_attendance = original_enable_attendance
+
         event.save()
 
         event.attachments.clear()
