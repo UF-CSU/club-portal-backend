@@ -375,6 +375,16 @@ class Poll(ClubScopedModel, ModelBase):
             poll=self, order=highest_order, field_type=field_type
         )
 
+    def delete(self, *args, **kwargs):
+        """Custom delete method to handle additional functionality when deleting a poll."""
+        # If this poll is associated with an event, set enable_attendance to False
+        if isinstance(self.event, Event):
+            self.event.enable_attendance = False
+            self.event.save(update_fields=["enable_attendance"])
+
+        # Call the parent delete method to perform the actual deletion
+        return super().delete(*args, **kwargs)
+
 
 class PollSubmissionLink(Link):
     """Manage links for poll submissions."""
