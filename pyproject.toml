@@ -21,7 +21,7 @@ dependencies = [
     "xlsxwriter>=3.2.9,<3.3",
     "pathlib>=1.0.1,<1.1",
     # OAuth
-    "django-allauth>=65.11.2,<65.12",
+    "django-allauth>=65.11.2,<65.14",
     "pyjwt>=2.10.1,<2.11",
     "requests-oauthlib>=2.0.0,<2.1",
     "python3-openid>=3.2.0,<3.3",
