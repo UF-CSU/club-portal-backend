@@ -40,10 +40,13 @@ def migrate_sync_club_roles(apps, schema_editor):
                 )
                 role_ids.append(new_role.id)
 
-    # Save ids to file to allow reversing
-    os.makedirs("./generated", mode=755, exist_ok=True)
-    with open("generated/clubs_0056_cache.json", mode="w+") as f:
-        json.dump({"role_ids": role_ids}, f)
+    try:
+        # Save ids to file to allow reversing
+        os.makedirs("./generated", mode=755, exist_ok=True)
+        with open("generated/clubs_0056_cache.json", mode="w+") as f:
+            json.dump({"role_ids": role_ids}, f)
+    except Exception as e:
+        print("Unable to cache saved roles to file:", e)
 
 
 def migrate_reverse_sync_club_roles(apps, schema_editor):
