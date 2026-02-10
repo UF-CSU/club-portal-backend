@@ -1,12 +1,9 @@
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+from lib.celery import delay_task
 from utils.images import create_default_icon
 from utils.permissions import parse_permissions
 
-from clubs.cache import (
-    delete_repopulate_preview_detail_cache,
-    delete_repopulate_preview_list_cache,
-)
 from clubs.defaults import (
     ADMIN_ROLE_PERMISSIONS,
     INITIAL_CLUB_ROLES,
@@ -14,6 +11,7 @@ from clubs.defaults import (
     VIEWER_ROLE_PERMISSIONS,
 )
 from clubs.models import Club, ClubFile, ClubRole, ClubTag, RoleType, Team, TeamRole
+from clubs.tasks import regenerate_club_preview_cache_task
 
 
 @receiver(post_save, sender=Club)
@@ -116,8 +114,14 @@ def on_save_club_role(sender, instance: ClubRole, created=False, **kwargs):
 @receiver([post_save, post_delete])
 def refresh_preview_cache(sender, instance: Club | ClubTag, created=False, **kwargs):
     """Refreshes the club preview cache when clubs are changed"""
-    if sender == Club or sender == ClubTag:
-        delete_repopulate_preview_list_cache()
-        delete_repopulate_preview_detail_cache(
-            [instance] if sender == Club else instance.clubs.all()
+
+    if sender == Club:
+        delay_task(
+            regenerate_club_preview_cache_task,
+            club_ids=[instance.id],
+        )
+    elif sender == ClubTag:
+        delay_task(
+            regenerate_club_preview_cache_task,
+            club_ids=list(instance.clubs.all().values_list("id", flat=True)),
         )

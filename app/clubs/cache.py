@@ -1,3 +1,4 @@
+from django.db import models
 from utils.cache import clear_cache, set_cache
 
 from clubs.models import Club
@@ -58,11 +59,11 @@ def pagination_result_helper(data: list) -> dict:
     }
 
 
-def delete_repopulate_preview_detail_cache(clubs: list[Club]):
+def delete_repopulate_preview_detail_cache(clubs: models.QuerySet[Club]):
     """Delete modified club keys from previews cache"""
-    for club in clubs:
+    for club in clubs.all():
         set_cache(
-            ClubPreviewSerializer(Club.objects.find_by_id(club.pk)).data,
+            ClubPreviewSerializer(club).data,
             DETAIL_CLUB_PREVIEW_PREFIX,
             club_id=club.pk,
         )
