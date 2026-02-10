@@ -21,7 +21,7 @@ dependencies = [
     "xlsxwriter>=3.2.9,<3.3",
     "pathlib>=1.0.1,<1.1",
     # OAuth
-    "django-allauth>=65.11.2,<65.12",
+    "django-allauth>=65.11.2,<65.14",
     "pyjwt>=2.10.1,<2.11",
     "requests-oauthlib>=2.0.0,<2.1",
     "python3-openid>=3.2.0,<3.3",
@@ -58,6 +58,7 @@ dev = [
     "coverage>=7.4.1,<7.5",
     "faker>=33.0.0,<33.1.0",
     "freezegun>=1.5.4,<1.6",
+    "beautifulsoup4>=4.14.2",
     # Django Extensions
     "django-browser-reload>=1.17.0,<1.18",
     "django-debug-toolbar>=6.1.0,<6.2",
