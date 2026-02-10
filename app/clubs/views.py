@@ -56,7 +56,8 @@ def invite_club_admin_view(request):
             club = form.cleaned_data.get("club")
             email = form.cleaned_data.get("email")
             is_owner = form.cleaned_data.get("is_owner")
-            send_invite = form.cleaned_data.get("send_invite")
+            send_club_invite = form.cleaned_data.get("send_club_invite")
+            force_send_account_link = form.cleaned_data.get("force_send_account_link")
             role = form.cleaned_data.get("role", "") or None
 
             try:
@@ -64,7 +65,8 @@ def invite_club_admin_view(request):
                 member, created = svc.invite_user_to_club(
                     email=email,
                     is_owner=is_owner,
-                    send_email_invite=send_invite,
+                    send_email_invite=send_club_invite,
+                    force_send_account_link=force_send_account_link,
                     role=role,
                 )
 
@@ -82,7 +84,7 @@ def invite_club_admin_view(request):
                         member.club.name,
                         "owner" if is_owner else "non-owner",
                         "sent club email invite"
-                        if send_invite
+                        if send_club_invite
                         else "not sent club email invite",
                     ),
                 )

@@ -159,6 +159,7 @@ class ClubService(ServiceBase[Club]):
         email: str,
         is_owner=False,
         send_email_invite=True,
+        force_send_account_link=False,
         role: Optional[ClubRole | str] = None,
     ) -> tuple[ClubMembership, bool]:
         """Get/create user for email and add them to club."""
@@ -177,6 +178,9 @@ class ClubService(ServiceBase[Club]):
                 user = User.objects.create_user(email)
                 UserService(user).send_account_setup_link()
                 user_created = True
+
+            if user and force_send_account_link:
+                UserService(user).send_account_setup_link()
 
             # Raise error if user is in club already
             if self.obj.memberships.filter(user__id=user.id).exists():
