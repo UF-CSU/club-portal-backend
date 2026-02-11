@@ -179,7 +179,7 @@ class ClubService(ServiceBase[Club]):
                 UserService(user).send_account_setup_link()
                 user_created = True
 
-            if user and force_send_account_link:
+            if user_created or force_send_account_link:
                 UserService(user).send_account_setup_link()
 
             # Raise error if user is in club already
