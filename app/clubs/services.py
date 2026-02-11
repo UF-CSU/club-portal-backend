@@ -176,7 +176,6 @@ class ClubService(ServiceBase[Club]):
             if not user:
                 # Send account setup link if being created
                 user = User.objects.create_user(email)
-                UserService(user).send_account_setup_link()
                 user_created = True
 
             if user_created or force_send_account_link:
