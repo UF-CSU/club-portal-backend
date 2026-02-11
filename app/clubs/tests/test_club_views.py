@@ -87,7 +87,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": u2.email,
             "club": club.id,
             "is_owner": True,
-            "send_invite": True,
+            "send_club_invite": True,
         }
 
         res: HttpResponse = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
@@ -112,7 +112,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": "user@example.com",
             "club": club.id,
             "is_owner": True,
-            "send_invite": True,
+            "send_club_invite": True,
         }
         res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
         self.assertResOk(res)
@@ -136,7 +136,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": "user@example.com",
             "club": club.id,
             "is_owner": True,
-            "send_invite": False,
+            "send_club_invite": False,
         }
         res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
         self.assertResOk(res)
@@ -160,7 +160,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": u2.email,
             "club": club.id,
             "is_owner": False,
-            "send_invite": True,
+            "send_club_invite": True,
         }
         res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
         self.assertResOk(res)
@@ -186,7 +186,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": u2.email,
             "club": club.id,
             "is_owner": True,
-            "send_invite": True,
+            "send_club_invite": True,
         }
 
         res: HttpResponse = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
@@ -214,7 +214,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": u2.email,
             "club": club.id,
             "is_owner": True,
-            "send_invite": False,
+            "send_club_invite": False,
         }
         res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
         self.assertResOk(res)
@@ -237,7 +237,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": u2.email,
             "club": club.id,
             "is_owner": True,
-            "send_invite": True,
+            "send_club_invite": True,
         }
         res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
         self.assertResOk(res)
@@ -260,7 +260,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": u2.email,
             "club": club.id,
             "is_owner": True,
-            "send_invite": True,
+            "send_club_invite": True,
             "role": "President",
         }
 
@@ -288,7 +288,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": u2.email,
             "club": club.id,
             "is_owner": True,
-            "send_invite": True,
+            "send_club_invite": True,
             "role": "Officer",
         }
 
@@ -312,7 +312,7 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
             "email": "user@example.com",
             "club": club.id,
             "is_owner": True,
-            "send_invite": False,
+            "send_club_invite": False,
             "role": "Officer",
         }
         res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
