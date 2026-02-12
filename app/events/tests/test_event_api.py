@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import freezegun
 from clubs.tests.utils import create_test_club
@@ -7,11 +8,12 @@ from django.utils import timezone
 from users.tests.utils import create_test_user
 from utils.helpers import reverse_query
 
-from events.models import Event
+from events.models import Event, RecurringEvent
 from events.serializers import EventSerializer
 from events.tests.utils import (
     EVENT_LIST_URL,
     EVENTPREVIEW_LIST_URL,
+    RECURRINGEVENT_LIST_URL,
     create_test_event,
     create_test_events,
     create_test_eventtag,
@@ -226,6 +228,26 @@ class EventPublicApiTests(PublicApiTestsBase):
 
         for event in events:
             self.assertIn(event["id"], november_events)
+
+    def test_event_previews_only_show_public_events(self):
+        """Should not return draft or private events in event preview api."""
+
+        club = create_test_club()
+        public_ev = create_test_event(host=club)
+        draft_ev = create_test_event(host=club, is_draft=True)
+        private_ev = create_test_event(host=club, is_public=False)
+
+        url = EVENTPREVIEW_LIST_URL
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Check response data
+        data = res.json()["results"]
+        self.assertEqual(len(data), 1)
+        ids = [obj["id"] for obj in data]
+        self.assertIn(public_ev.pk, ids)
+        self.assertNotIn(draft_ev.pk, ids)
+        self.assertNotIn(private_ev.pk, ids)
 
 
 class EventPublicTzApiTests(PublicApiTestsBase):
@@ -795,3 +817,63 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         h0 = data["heatmap"]
         for _, count in h4.items():
             self.assertEqual(count, 0)
+
+    def test_auth_event_previews_only_show_public_events(self):
+        """Should not return draft or private events in event preview api even if authenticated."""
+
+        club = create_test_club(admins=[self.user])
+        public_ev = create_test_event(host=club)
+        draft_ev = create_test_event(host=club, is_draft=True)
+        private_ev = create_test_event(host=club, is_public=False)
+
+        url = EVENTPREVIEW_LIST_URL + f"?clubs={club.pk}"
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Check response data
+        data = res.json()["results"]
+        self.assertEqual(len(data), 1)
+        ids = [obj["id"] for obj in data]
+        self.assertIn(public_ev.pk, ids)
+        self.assertNotIn(draft_ev.pk, ids)
+        self.assertNotIn(private_ev.pk, ids)
+
+    @freezegun.freeze_time("2/1/26 13:00:00")
+    def test_create_recurring_event_daylight_timezones(self):
+        """Should create a recurring event and handle differences between standard and daylight time."""
+
+        club = create_test_club(admins=[self.user])
+
+        payload = {
+            "start_date": "2026-03-01",
+            "end_date": "2026-04-30",
+            "event_start_time": "23:00:00Z",  # 18:00:00 EST
+            "event_end_time": "01:00:00Z",  # 20:00:00 EST
+            "name": "Test Recurring Event",
+            "club": club.id,
+            "enable_attendance": False,
+            "timezone": "America/New_York",
+            "event_type": "gbm",
+            "days": [0, 2],
+        }
+
+        url = RECURRINGEVENT_LIST_URL
+        res = self.client.post(url, payload)
+        self.assertResCreated(res)
+
+        # Verify events created with correct times
+        daylight_time_start = datetime(
+            year=2026, month=3, day=8, hour=2, tzinfo=ZoneInfo("America/New_York")
+        )
+        rec_ev = RecurringEvent.objects.get(id=res.json()["id"])
+        self.assertNotEqual(rec_ev.events.count(), 0)
+
+        for event in rec_ev.events.all():
+            self.assertEqual(
+                event.start_at.astimezone(ZoneInfo("America/New_York")).hour, 18
+            )
+
+            if event.start_at < daylight_time_start:
+                self.assertEqual(event.start_at.astimezone(ZoneInfo("UTC")).hour, 23)
+            else:
+                self.assertEqual(event.start_at.astimezone(ZoneInfo("UTC")).hour, 22)

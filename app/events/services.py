@@ -45,7 +45,19 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         end: datetime.date,
         day: DayType,
     ):
-        """Sync individual event for a recurring event."""
+        """
+        Sync individual event for a recurring event.
+
+        **General strategy:**
+        1. Get initial start/end datetimes.
+        2. Convert those inital datetimes to the user's timezone,
+        they expects these times to remain consistent regardless of standard/daylight time changes.
+        3. Take naive version of the user's times, create new date object with the timezone
+        set to the user's timezone.
+        4. Convert the new datetime objects to UTC, allowing python to figure out
+        the appropriate offset. A timezone like `America/New_York` will automatically
+        adjust the UTC offset depending on whether daylight savings is in effect.
+        """
         rec_ev = self.obj
 
         # Calculate event date using timedelta from index
@@ -54,25 +66,42 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             + datetime.timedelta(days=day)
             + datetime.timedelta(weeks=week_offset)
         )
-        # print("event date:", event_date)
 
         if event_date < start or event_date > end:
             # Skip if date outside of range
             return
 
-        # Start/end times
-        start_time = rec_ev.event_start_time
-        end_time = rec_ev.event_end_time
+        # Calculate Start/End datetimes
+        # -----------------------------
 
-        # Start/end dates, accounting for multiple days
+        # Calculate start datetime
+        first_start_datetime = datetime.datetime.combine(
+            rec_ev.start_date, rec_ev.event_start_time, tzinfo=datetime.UTC
+        ).astimezone(rec_ev.tzinfo)
+
         event_start = datetime.datetime.combine(
-            event_date, start_time, tzinfo=datetime.UTC
-        )
+            event_date,
+            first_start_datetime.time(),
+            tzinfo=first_start_datetime.tzinfo,
+        ).astimezone(ZoneInfo("UTC"))
 
+        # End time is before start time, increment the day by one to simulate overflow
         if rec_ev.event_start_time > rec_ev.event_end_time:
             event_date += datetime.timedelta(days=1)
 
-        event_end = datetime.datetime.combine(event_date, end_time, tzinfo=datetime.UTC)
+        # Calculate end datetime
+        first_end_datetime = datetime.datetime.combine(
+            rec_ev.end_date, rec_ev.event_end_time, tzinfo=datetime.UTC
+        ).astimezone(rec_ev.tzinfo)
+
+        event_end = datetime.datetime.combine(
+            event_date,
+            first_end_datetime.time(),
+            tzinfo=first_end_datetime.tzinfo,
+        ).astimezone(ZoneInfo("UTC"))
+
+        # Handle creating/updating events
+        # -----------------------------
 
         # Find existing event
         query_date_start = timezone.datetime(
@@ -96,8 +125,6 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             models.Q(start_at__date__gte=query_date_start)
             & models.Q(start_at__date__lte=query_date_end)
         )
-        # print("event query:", event_query)
-        # event_query = rec_ev.events.filter(models.Q(start_at__week_day=day.to_query_weekday()) & models.Q(start_at))
 
         if (
             event_query.exists()
@@ -127,6 +154,9 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
                 end_at=event_end,
                 recurring_event=rec_ev,
             )
+
+        # Sync other event info
+        # -----------------------------
 
         # Sync hosts
         if rec_ev.club:

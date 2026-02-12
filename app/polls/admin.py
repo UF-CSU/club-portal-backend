@@ -61,7 +61,8 @@ class PollAdmin(ModelAdminBase):
     list_display = (
         "__str__",
         "id",
-        "field_count",
+        # "field_count",
+        "status",
         "club",
         "event",
         "view_poll",
