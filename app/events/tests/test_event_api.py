@@ -873,6 +873,9 @@ class EventPrivateApiTests(PrivateApiTestsBase):
                 event.start_at.astimezone(ZoneInfo("America/New_York")).hour, 18
             )
 
+            self.assertEqual(event.duration, timedelta(hours=2))
+            self.assertEqual(event.end_at.day, event.start_at.day + 1)
+
             if event.start_at < daylight_time_start:
                 self.assertEqual(event.start_at.astimezone(ZoneInfo("UTC")).hour, 23)
             else:

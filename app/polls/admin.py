@@ -61,12 +61,12 @@ class PollAdmin(ModelAdminBase):
     list_display = (
         "__str__",
         "id",
-        # "field_count",
         "status",
-        "club",
-        "event",
-        "view_poll",
-        "submissions_count",
+        "club__alias",
+        "event_id",
+        "fields",
+        # "view_poll",
+        "submissions",
         "last_submission_at",
     )
 
@@ -81,8 +81,11 @@ class PollAdmin(ModelAdminBase):
     )
     actions = ("sync_submission_links",)
 
-    def field_count(self, obj):
+    def fields(self, obj):
         return obj.fields.count()
+
+    def submissions(self, obj):
+        return obj.submissions_count
 
     def view_poll(self, obj):
         if obj.id is None:

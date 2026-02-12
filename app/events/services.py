@@ -74,11 +74,16 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # Calculate Start/End datetimes
         # -----------------------------
 
-        # Calculate start datetime
+        # Calculate initial start/end datetimes
         first_start_datetime = datetime.datetime.combine(
             rec_ev.start_date, rec_ev.event_start_time, tzinfo=datetime.UTC
         ).astimezone(rec_ev.tzinfo)
 
+        first_end_datetime = datetime.datetime.combine(
+            rec_ev.start_date, rec_ev.event_end_time, tzinfo=datetime.UTC
+        ).astimezone(rec_ev.tzinfo)
+
+        # Calcualte start_at for target event
         event_start = datetime.datetime.combine(
             event_date,
             first_start_datetime.time(),
@@ -86,14 +91,10 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         ).astimezone(ZoneInfo("UTC"))
 
         # End time is before start time, increment the day by one to simulate overflow
-        if rec_ev.event_start_time > rec_ev.event_end_time:
+        if first_start_datetime.time() > first_end_datetime.time():
             event_date += datetime.timedelta(days=1)
 
-        # Calculate end datetime
-        first_end_datetime = datetime.datetime.combine(
-            rec_ev.end_date, rec_ev.event_end_time, tzinfo=datetime.UTC
-        ).astimezone(rec_ev.tzinfo)
-
+        # Calculate end_at for target event
         event_end = datetime.datetime.combine(
             event_date,
             first_end_datetime.time(),
