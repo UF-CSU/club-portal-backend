@@ -322,3 +322,51 @@ class PrivateClubViewTests(PrivateViewTestsBase, EmailTestsBase):
         # Verify user created and added to club
         self.assertFalse(User.objects.filter(email="user@example.com").exists())
         self.assertEmailsSent(0)
+
+    def test_invite_club_admin_force_send(self):
+        """Force sends account setup if account is made already"""
+
+        u2 = create_test_user()
+        club = create_test_club()
+
+        # Submit Form
+        payload = {
+            "email": u2.email,
+            "club": club.id,
+            "is_owner": True,
+            "send_club_invite": True,
+            "force_send_account_link": True,
+            "role": "Officer",
+        }
+
+        res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
+        self.assertResOk(res)
+        self.assertFormIsValid(res)
+
+        self.assertTrue(club.memberships.filter(user__id=u2.id, is_owner=True).exists())
+        self.assertEmailsSent(2)
+
+    def test_invite_club_admin_create_user_forced(self):
+        """Should create user if needed when inviting admin."""
+
+        self.assertIsNone(User.objects.find_by_email("user@example.com"))
+        club = create_test_club()
+
+        # Submit form
+        payload = {
+            "email": "user@example.com",
+            "club": club.id,
+            "is_owner": True,
+            "send_club_invite": True,
+            "force_send_account_link": True,
+        }
+        res = self.client.post(INVITE_CLUB_ADMIN_URL, data=payload)
+        self.assertResOk(res)
+        self.assertFormIsValid(res)
+
+        # Verify user created and added to club
+        user = User.objects.find_by_email("user@example.com")
+        self.assertIsNotNone(user)
+        self.assertTrue(user.clubs.filter(id=club.id).exists())
+        self.assertTrue(user.club_memberships.get(club__id=club.id).is_admin)
+        self.assertEmailsSent(2)  # User account setup, club invite email
