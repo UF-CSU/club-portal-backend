@@ -19,7 +19,7 @@ from django_celery_beat.models import PeriodicTask
 from users.models import User
 from utils.dates import get_day_count
 from utils.formatting import format_timedelta
-from utils.models import ArrayChoiceField
+from utils.models import ArrayChoiceField, validate_timezone_string
 
 
 def getMaxRecurringTime():
@@ -188,6 +188,12 @@ class RecurringEvent(EventFields):
         default=False,
         help_text="When syncing events, should past events be prevented from updating?",
     )
+    timezone = models.CharField(
+        max_length=32,
+        default="America/New_York",
+        validators=[validate_timezone_string],
+        help_text="Timezone of the events, used to determine UTC offsets regardless of standard/daylight time",
+    )
 
     # TODO: add skip_dates field
 
@@ -224,6 +230,11 @@ class RecurringEvent(EventFields):
             models.Q(id=self.club.id)
             | models.Q(id__id=list(self.other_clubs.all().values_list("id", flat=True)))
         )
+
+    @property
+    def tzinfo(self):
+        """ZoneInfo version of `RecurringEvent.timezone`."""
+        return ZoneInfo(self.timezone)
 
     # Overrides
     objects: ClassVar[RecurringEventManager] = RecurringEventManager()

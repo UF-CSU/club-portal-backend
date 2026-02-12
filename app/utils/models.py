@@ -1,6 +1,7 @@
 import os
 import uuid
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django import forms
 from django.contrib.postgres.fields import ArrayField
@@ -137,3 +138,19 @@ def save_file_to_model(model: models.Model, filepath, field="file"):
         file = File(f, name=path.name)
         setattr(model, field, file)
         model.save()
+
+
+def validate_timezone_string(target: str):
+    """
+    Validate that a string is a proper timezone.
+
+    Example:
+        America/New_York => true
+        UTC => true
+        Invalid/Invalid => false
+    """
+    try:
+        ZoneInfo(target)
+        return True
+    except (ZoneInfoNotFoundError, TypeError):
+        return False
