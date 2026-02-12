@@ -390,21 +390,21 @@ class EventService(ServiceBase[Event]):
         start_date_query = f"'{start_date.strftime('%m/%d/%Y')}'::timestamp"
         end_date_query = f"'{end_date.strftime('%m/%d/%Y')}'::timestamp"
 
-        query = (
-            "SELECT calendar::date AS day, COUNT(event.id) AS event_count, SUM(COUNT(event.id)) OVER (ORDER BY calendar::date) AS total_event_count "
-            "FROM generate_series( "
-            f"    date_trunc('month', {start_date_query}), "
-            f"    date_trunc('month', {end_date_query}) + interval '1 month' - interval '1 day', "
-            "    '1 day' "
-            ") as calendar "
-            "LEFT JOIN ( "
-            "    SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id "
-            "    FROM public.events_event AS event "
-            "    LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id "
-            f") AS event ON date_trunc('day', start_at) = calendar AND club_id IN ({','.join(['%s' for _ in club_ids])}) "
-            "GROUP BY day "
-            "ORDER BY day"
-        )
+        query = f"""
+            SELECT calendar::date AS day, COUNT(event.id) AS event_count, SUM(COUNT(event.id)) OVER (ORDER BY calendar::date) AS total_event_count
+            FROM generate_series(
+                date_trunc('month', {start_date_query}),
+                date_trunc('month', {end_date_query}) + interval '1 month' - interval '1 day',
+                '1 day'
+            ) as calendar
+            LEFT JOIN (
+                SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id
+                FROM public.events_event AS event
+                LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id
+            ) AS event ON date_trunc('day', start_at) = calendar AND club_id IN ({",".join(["%s" for _ in club_ids])})
+            GROUP BY day
+            ORDER BY day
+            """
 
         with connection.cursor() as cursor:
             cursor.execute(query, [*club_ids])
