@@ -133,6 +133,7 @@ class RecurringEventTests(TestsBase):
             "club": primary_club,
             "other_clubs": create_test_clubs(3),
             "attachments": files,
+            "timezone": "UTC",
         }
 
         club_files_count_before = ClubFile.objects.count()
@@ -199,6 +200,7 @@ class RecurringEventTests(TestsBase):
             days=[DayType.MONDAY],
             start_date=timezone.datetime(2025, 3, 16),
             end_date=timezone.datetime(2025, 3, 18),
+            timezone="UTC",
         )
         RecurringEventService(rec).sync_events()
 
@@ -223,6 +225,7 @@ class RecurringEventTests(TestsBase):
             days=[DayType.MONDAY, DayType.WEDNESDAY],
             start_date=timezone.datetime(2025, 3, 16),
             end_date=timezone.datetime(2025, 4, 16),
+            timezone="UTC",
         )
         service = RecurringEventService(rec)
         service.sync_events()
@@ -269,6 +272,7 @@ class RecurringEventTests(TestsBase):
             days=[DayType.MONDAY, DayType.WEDNESDAY],
             start_date=timezone.datetime(2025, 7, 20),
             end_date=timezone.datetime(2025, 8, 2),
+            timezone="UTC",
         )
         service = RecurringEventService(rec)
         service.sync_events()
@@ -325,6 +329,7 @@ class RecurringEventTests(TestsBase):
             end_date=timezone.datetime(2025, 8, 2),
             event_start_time=datetime.time(hour=23, minute=0, second=0),
             event_end_time=datetime.time(hour=1, minute=0, second=0),
+            timezone="UTC",
         )
         service = RecurringEventService(rec)
         service.sync_events()
@@ -359,6 +364,7 @@ class RecurringEventTests(TestsBase):
             end_date=timezone.datetime(2025, 8, 2),
             event_start_time=datetime.time(hour=18, minute=0, second=0),
             event_end_time=datetime.time(hour=19, minute=0, second=0),
+            timezone="UTC",
         )
         service = RecurringEventService(rec)
         service.sync_events()
@@ -411,6 +417,7 @@ class RecurringEventTests(TestsBase):
             event_start_time=start1,
             event_end_time=end1,
             prevent_sync_past_events=True,
+            timezone="UTC",
         )
         service = RecurringEventService(rec)
         service.sync_events()
@@ -487,6 +494,7 @@ class RecurringEventTests(TestsBase):
             event_end_time=datetime.time(hour=19),
             enable_attendance=True,
             club=club,
+            timezone="UTC",
         )
 
         events = RecurringEventService(rec).sync_events()

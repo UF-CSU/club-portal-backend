@@ -61,11 +61,12 @@ class PollAdmin(ModelAdminBase):
     list_display = (
         "__str__",
         "id",
+        "status",
+        "club__alias",
+        "event_id",
         "field_count",
-        "club",
-        "event",
-        "view_poll",
-        "submissions_count",
+        # "view_poll",
+        "submissions",
         "last_submission_at",
     )
 
@@ -82,6 +83,9 @@ class PollAdmin(ModelAdminBase):
 
     def field_count(self, obj):
         return obj.fields.count()
+
+    def submissions(self, obj):
+        return obj.submissions_count
 
     def view_poll(self, obj):
         if obj.id is None:
@@ -110,6 +114,8 @@ class PollAdmin(ModelAdminBase):
 
 class PollTemplateAdmin(PollAdmin):
     """Manage poll templates in admin"""
+
+    pass
 
 
 class TextInputInlineAdmin(admin.TabularInline):
