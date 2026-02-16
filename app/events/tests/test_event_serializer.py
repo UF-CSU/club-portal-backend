@@ -33,12 +33,12 @@ class EventSerializerUpdateTests(TestsBase):
         data = {"enable_attendance": False}
         serializer = EventSerializer(event, data=data, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
-        updated_event = serializer.save()
+        serializer.save()
 
         # Refresh from DB to ensure changes are persisted
-        updated_event.refresh_from_db()
-        self.assertFalse(updated_event.enable_attendance)
-        self.assertIsNotNone(updated_event.poll)  # Poll should remain
+        event.refresh_from_db()
+        self.assertFalse(event.enable_attendance)
+        self.assertIsNotNone(event.poll)  # Poll should remain
 
     def test_manual_enable_attendance_preserved(self):
         """Should preserve manual enable of attendance when updating other fields."""
@@ -61,12 +61,12 @@ class EventSerializerUpdateTests(TestsBase):
         data = {"enable_attendance": True}
         serializer = EventSerializer(event, data=data, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
-        updated_event = serializer.save()
+        serializer.save()
 
         # Refresh from DB to ensure changes are persisted
-        updated_event.refresh_from_db()
-        self.assertTrue(updated_event.enable_attendance)
-        self.assertIsNotNone(updated_event.poll)  # Poll should be created
+        event.refresh_from_db()
+        self.assertTrue(event.enable_attendance)
+        self.assertIsNotNone(event.poll)  # Poll should be created
 
     def test_update_other_fields_preserves_attendance_setting(self):
         """Should preserve attendance setting when updating other fields."""
@@ -89,13 +89,13 @@ class EventSerializerUpdateTests(TestsBase):
         data = {"name": "Updated event name"}
         serializer = EventSerializer(event, data=data, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
-        updated_event = serializer.save()
+        serializer.save()
 
         # Refresh from DB to ensure changes are persisted
-        updated_event.refresh_from_db()
-        self.assertTrue(updated_event.enable_attendance)  # Should remain enabled
-        self.assertEqual(updated_event.name, "Updated event name")
-        self.assertIsNotNone(updated_event.poll)  # Poll should remain
+        event.refresh_from_db()
+        self.assertTrue(event.enable_attendance)  # Should remain enabled
+        self.assertEqual(event.name, "Updated event name")
+        self.assertIsNotNone(event.poll)  # Poll should remain
 
     def test_update_attendance_and_other_fields_together(self):
         """Should properly handle updating attendance and other fields together."""
@@ -118,13 +118,13 @@ class EventSerializerUpdateTests(TestsBase):
         data = {"name": "Updated event name", "enable_attendance": False}
         serializer = EventSerializer(event, data=data, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
-        updated_event = serializer.save()
+        serializer.save()
 
         # Refresh from DB to ensure changes are persisted
-        updated_event.refresh_from_db()
-        self.assertFalse(updated_event.enable_attendance)  # Should be disabled
-        self.assertEqual(updated_event.name, "Updated event name")
-        self.assertIsNotNone(updated_event.poll)  # Poll should remain
+        event.refresh_from_db()
+        self.assertFalse(event.enable_attendance)  # Should be disabled
+        self.assertEqual(event.name, "Updated event name")
+        self.assertIsNotNone(event.poll)  # Poll should remain
 
     def test_update_with_poll_change_preserves_attendance(self):
         """Should preserve attendance setting when changing associated poll."""
@@ -152,9 +152,9 @@ class EventSerializerUpdateTests(TestsBase):
         data = {"poll": poll2.pk}
         serializer = EventSerializer(event, data=data, partial=True)
         self.assertTrue(serializer.is_valid(), serializer.errors)
-        updated_event = serializer.save()
+        serializer.save()
 
         # Refresh from DB to ensure changes are persisted
-        updated_event.refresh_from_db()
-        self.assertTrue(updated_event.enable_attendance)  # Should remain enabled
-        self.assertEqual(updated_event.poll, poll2)  # Poll should be updated
+        event.refresh_from_db()
+        self.assertTrue(event.enable_attendance)  # Should remain enabled
+        self.assertEqual(event.poll, poll2)  # Poll should be updated
