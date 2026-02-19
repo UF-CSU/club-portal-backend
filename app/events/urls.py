@@ -24,6 +24,11 @@ urlpatterns = [
         name="eventcalendar_club",
     ),
     path(
+        "events/download/user/<str:calendar_token>/",
+        views.download_user_calendar,
+        name="eventcalendar_user",
+    ),
+    path(
         "events/<int:event_id>/cancel/",
         views.cancel_event,
         name="cancel_event",

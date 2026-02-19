@@ -6,6 +6,7 @@ import binascii
 import os
 import random
 import string
+import uuid
 from typing import ClassVar, Optional
 
 from core.abstracts.models import ManagerBase, ModelBase, SocialProfileBase, UniqueModel
@@ -137,6 +138,8 @@ class User(AbstractBaseUser, PermissionsMixin, UniqueModel):
 
     date_joined = models.DateTimeField(auto_now_add=True, editable=False, blank=True)
     date_modified = models.DateTimeField(auto_now=True, editable=False, blank=True)
+
+    calendar_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     clubs = models.ManyToManyField(
         "clubs.Club", through="clubs.ClubMembership", blank=True
