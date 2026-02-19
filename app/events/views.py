@@ -39,26 +39,23 @@ def download_user_calendar(request: HttpRequest, calendar_token: str):
         user = User.objects.get(calendar_token=calendar_token)
     except User.DoesNotExist:
         return HttpResponse("Invalid calendar token", status=404)
-    
+
     file = EventService.get_user_calendar(user)
-    
-    user_name = user.name if hasattr(user, 'name') and user.name else user.username
+
+    user_name = user.name if hasattr(user, "name") and user.name else user.username
     filename = re.sub(r"\s+", "_", f"{user_name}_calendar")
-    
-    
-    response = HttpResponse(file.read(), content_type='text/calendar; charset=utf-8')
-    response['Content-Disposition'] = f'inline; filename="{filename}.ics"'
-    
-    
-    response['Cache-Control'] = 'public, max-age=900'  
-    response['ETag'] = f'"{user.calendar_token}-{user.date_modified.timestamp()}"'
-    response['Last-Modified'] = user.date_modified.strftime('%a, %d %b %Y %H:%M:%S GMT')
-    
-    
-    response['X-WR-CALNAME'] = f"{user_name}'s Events"
-    response['X-WR-CALDESC'] = f"Events from clubs that {user_name} is a member of"
-    response['X-Robots-Tag'] = 'noindex'  
-    
+
+    response = HttpResponse(file.read(), content_type="text/calendar; charset=utf-8")
+    response["Content-Disposition"] = f'inline; filename="{filename}.ics"'
+
+    response["Cache-Control"] = "public, max-age=900"
+    response["ETag"] = f'"{user.calendar_token}-{user.date_modified.timestamp()}"'
+    response["Last-Modified"] = user.date_modified.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    response["X-WR-CALNAME"] = f"{user_name}'s Events"
+    response["X-WR-CALDESC"] = f"Events from clubs that {user_name} is a member of"
+    response["X-Robots-Tag"] = "noindex"
+
     return response
 
 

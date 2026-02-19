@@ -1,6 +1,7 @@
 """
 Views for the user API.
 """
+
 import uuid
 
 from allauth.headless.base.views import APIView
@@ -235,7 +236,6 @@ class ReturnFromOauthView(APIView):
 
 
 class ExportUserCalendarView(DRFAPIView):
-    
     authentication_classes = [
         authentication.TokenAuthentication,
         authentication.SessionAuthentication,
@@ -246,27 +246,39 @@ class ExportUserCalendarView(DRFAPIView):
     def get(self, request, *args, **kwargs):
         user = request.user
 
-        if not hasattr(user, 'calendar_token') or user.calendar_token is None:
+        if not hasattr(user, "calendar_token") or user.calendar_token is None:
             # Generate calendar token
             user.calendar_token = uuid.uuid4()
-            user.save(update_fields=['calendar_token'])
+            user.save(update_fields=["calendar_token"])
 
         try:
             http_url = request.build_absolute_uri(
-                reverse('events:eventcalendar_user', kwargs={'calendar_token': str(user.calendar_token)})
+                reverse(
+                    "events:eventcalendar_user",
+                    kwargs={"calendar_token": str(user.calendar_token)},
+                )
             )
         except Exception as e:
-            return Response({
-                'error': f'Failed to generate calendar URL: {str(e)}',
-                'calendar_token': str(user.calendar_token) if user.calendar_token else 'None'
-            }, status=500)
-            
-        webcal_url = http_url.replace('http://', 'webcal://').replace('https://', 'webcal://')
-        
-        return Response({
-            'webcal_url': webcal_url,
-            'http_url': http_url,
-            'calendar_token': str(user.calendar_token),
-            'refresh_interval': '15 minutes',
-            'automatic_updates': True,
-        })
+            return Response(
+                {
+                    "error": f"Failed to generate calendar URL: {str(e)}",
+                    "calendar_token": str(user.calendar_token)
+                    if user.calendar_token
+                    else "None",
+                },
+                status=500,
+            )
+
+        webcal_url = http_url.replace("http://", "webcal://").replace(
+            "https://", "webcal://"
+        )
+
+        return Response(
+            {
+                "webcal_url": webcal_url,
+                "http_url": http_url,
+                "calendar_token": str(user.calendar_token),
+                "refresh_interval": "15 minutes",
+                "automatic_updates": True,
+            }
+        )
