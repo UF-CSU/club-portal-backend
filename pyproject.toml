@@ -13,7 +13,7 @@ dependencies = [
     "drf-spectacular>=0.28.0,<0.29",
     "drf-standardized-errors>=0.15.0,<0.16",
     "requests>=2.31.0,<2.33",
-    "pillow>=11.3.0,<11.4",
+    "pillow>=11.3.0,<12.2",
     "typing-extensions>=4.15.0,<4.16",
     "attr>=0.3.2,<0.4",
     # CSV Files
