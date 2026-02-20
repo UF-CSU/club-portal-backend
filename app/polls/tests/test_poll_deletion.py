@@ -5,6 +5,7 @@ from core.abstracts.tests import TestsBase
 from django.utils import timezone
 from events.models import Event
 
+from polls.models import Poll
 from polls.tests.utils import create_test_poll
 
 
@@ -28,6 +29,7 @@ class PollDeletionTests(TestsBase):
 
         # Associate the poll with the event
         event.poll = poll
+        event.save()
 
         # Verify initial state
         event.refresh_from_db()
@@ -68,7 +70,9 @@ class PollDeletionTests(TestsBase):
 
         # Associate polls with events
         event1.poll = poll1
+        event1.save()
         event2.poll = poll2
+        event2.save()
 
         # Verify initial state
         event1.refresh_from_db()
@@ -133,6 +137,7 @@ class PollDeletionTests(TestsBase):
 
         # Associate the poll with the event
         event.poll = poll
+        event.save()
 
         # Verify initial state
         event.refresh_from_db()
@@ -144,7 +149,6 @@ class PollDeletionTests(TestsBase):
         poll.delete()
 
         # Verify the poll is actually deleted
-        from polls.models import Poll
 
         with self.assertRaises(Poll.DoesNotExist):
             Poll.objects.get(pk=poll_pk)
