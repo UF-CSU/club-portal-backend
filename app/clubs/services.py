@@ -90,7 +90,11 @@ class ClubService(ServiceBase[Club]):
                 subject=f"You have been added to the club {self.obj.name}",
                 to=[user.email],
                 html_template="clubs/email_invite_template.html",
-                html_context={"invite_url": url},
+                html_context={
+                    "club_name": self.obj.name,
+                    "invite_url": url,
+                    "logo_url": self.logo_url,
+                },
             )
 
         return member
