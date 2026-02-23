@@ -210,16 +210,16 @@ class UserService(ServiceBase[User]):
 
         if self.obj.verified_emails.filter(email=email).exists():
             raise BadRequest(f"Email {email} is already verified for user.")
-        # elif VerifiedEmail.objects.filter(email=email).exclude(user=self.obj).exists():
-        #     raise BadRequest(f"Email {email} is already verified by another user.")
-        # elif (
-        #     User.objects.filter(
-        #         models.Q(email=email) | models.Q(profile__school_email=email)
-        #     )
-        #     .exclude(id=self.obj.id)
-        #     .exists()
-        # ):
-        #     raise BadRequest(f"Email {email} is already taken.")
+        elif VerifiedEmail.objects.filter(email=email).exclude(user=self.obj).exists():
+            raise BadRequest(f"Email {email} is already verified by another user.")
+        elif (
+            User.objects.filter(
+                models.Q(email=email) | models.Q(profile__school_email=email)
+            )
+            .exclude(id=self.obj.id)
+            .exists()
+        ):
+            raise BadRequest(f"Email {email} is already taken.")
 
         # Delete existing codes
         EmailVerificationCode.objects.filter(email=email).delete()
