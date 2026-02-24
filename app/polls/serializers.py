@@ -256,7 +256,7 @@ class PollFieldSerializer(ModelSerializerBase):
 
         # Handle markup updates
         if markup_data is not None:
-            markup_data["field"] = field.id
+            markup_data["field"] = field
             try:
                 existing_markup = field.markup
                 serializer = PollMarkupNestedSerializer()
