@@ -5,6 +5,7 @@ import freezegun
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from django.utils import timezone
+from polls.tests.utils import polls_detail_url
 from users.tests.utils import create_test_user
 from utils.helpers import reverse_query
 
@@ -712,6 +713,23 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         self.assertEqual(Event.objects.count(), 1)
         event = Event.objects.first()
         self.assertIsNotNone(event.poll)
+
+    def test_delete_event_poll_disables_attendance(self):
+        """Should disable event attendance when poll is deleted."""
+
+        club = create_test_club(admins=[self.user])
+        event: Event = create_test_event(host=club, enable_attendance=True)
+        poll = event.poll
+
+        self.assertTrue(event.enable_attendance)
+
+        url = polls_detail_url(poll.pk)
+        res = self.client.delete(url)
+        self.assertEqual(res.status_code, 204, res.content)
+
+        # Refresh event from database
+        event.refresh_from_db()
+        self.assertFalse(event.enable_attendance)
 
     @freezegun.freeze_time("12/30/25 13:00:00")
     def test_get_event_heatmap(self):
