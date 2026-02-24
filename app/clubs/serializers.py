@@ -513,6 +513,14 @@ class JoinClubsSerializer(SerializerBase):
     )
 
 
+class FollowClubsSerializer(SerializerBase):
+    """Allow authenticated user to follow multiple clubs as a follower."""
+
+    clubs = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(queryset=Club.objects.all())
+    )
+
+
 class ClubRosterSerializer(ModelSerializerBase):
     """Used to display a club's members."""
 
