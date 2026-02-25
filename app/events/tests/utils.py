@@ -7,6 +7,8 @@ from core.abstracts.models import Color
 from django.urls import reverse
 from django.utils import timezone
 from lib.faker import fake
+from polls.tests.utils import create_test_pollsubmission
+from users.models import User
 from utils.dates import parse_datetime
 from utils.helpers import reverse_query
 
@@ -114,3 +116,11 @@ def create_test_events(count=5, **kwargs):
 
     event_ids = [create_test_event(**kwargs).id for _ in range(count)]
     return Event.objects.filter(id__in=event_ids).all()
+
+
+def create_test_attendance(event: Event, user: User, **kwargs):
+    """Mark user has having attended an event by submitting a poll on their behalf."""
+
+    assert event.poll is not None, f"Event {event.id} does not have an associated poll"
+
+    create_test_pollsubmission(event.poll, user=user, **kwargs)

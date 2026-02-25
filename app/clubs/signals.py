@@ -1,3 +1,4 @@
+from app.settings import ENABLE_AUTO_CREATE_CLUB_LOGO
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from lib.celery import delay_task
@@ -18,7 +19,7 @@ from clubs.tasks import regenerate_club_preview_cache_task
 def on_save_club(sender, instance: Club, created=False, **kwargs):
     """Automations to run when a club is created."""
 
-    if instance.logo is None:
+    if instance.logo is None and ENABLE_AUTO_CREATE_CLUB_LOGO:
         initials = instance.alias or instance.name[0]
         logo = create_default_icon(
             initials, image_path="clubs/images/generated/", fileprefix=instance.pk
