@@ -176,7 +176,7 @@ class ClubSerializer(ModelSerializerBase):
             "default_role",
             "roles",
             "instagram_followers",
-            "logo_url"
+            "logo_url",
             # "user_membership",
         ]
 
@@ -188,7 +188,6 @@ class ClubSerializer(ModelSerializerBase):
             file = ClubFile.objects.create(club=club, file=logo)
             club.logo_url = file
             club.save()
-
 
     def update(self, instance, validated_data):
         logo_data = validated_data.pop("logo", None)
