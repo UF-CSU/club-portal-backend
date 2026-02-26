@@ -145,6 +145,7 @@ class ClubSerializer(ModelSerializerBase):
         many=True,
     )
     roles = ClubRoleSerializer(many=True, required=False)
+    logo_url = ImageUrlField()
     # roles = serializers.SlugRelatedField(
     #     many=True, slug_field="name", queryset=ClubRole.objects.all()
     # )
@@ -174,6 +175,8 @@ class ClubSerializer(ModelSerializerBase):
             "text_color",
             "default_role",
             "roles",
+            "instagram_followers",
+            "logo_url"
             # "user_membership",
         ]
 
@@ -183,6 +186,7 @@ class ClubSerializer(ModelSerializerBase):
         socials_data = validated_data.pop("socials", [])
         tags_data = validated_data.pop("tags", [])
         photos_data = validated_data.pop("photos", [])
+        logo_url_data = validated_data.pop("logo_url", None)
 
         club = super().update(instance, validated_data)
 
@@ -190,6 +194,9 @@ class ClubSerializer(ModelSerializerBase):
             club.logo_id = logo_data["id"]
         if banner_data:
             club.banner_id = banner_data["id"]
+        if logo_url_data:
+            file = ClubFile.objects.create(club=club, file=logo_url_data)
+            club.logo_url = file
         club.save()
 
         club.socials.all().delete()
