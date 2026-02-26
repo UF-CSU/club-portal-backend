@@ -180,6 +180,16 @@ class ClubSerializer(ModelSerializerBase):
             # "user_membership",
         ]
 
+    def create(self, validated_data):
+        logo = validated_data.pop("logo_url", None)
+        club = super().create(validated_data)
+
+        if logo:
+            file = ClubFile.objects.create(club=club, file=logo)
+            club.logo_url = file
+            club.save()
+
+
     def update(self, instance, validated_data):
         logo_data = validated_data.pop("logo", None)
         banner_data = validated_data.pop("banner", None)
