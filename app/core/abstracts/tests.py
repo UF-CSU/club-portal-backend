@@ -132,6 +132,20 @@ class TestsBase(TestCase):
                     msg=f"Seconds do not match, {date1.second} != {date2.second}",
                 )
 
+    def assertNumsEqual(
+        self, num1: str | int | float, num2: str | int | float, exact=False
+    ):
+        """Convert the input numbers to floats, then check their equality."""
+
+        if exact:
+            num1 = float(num1)
+            num2 = float(num2)
+        else:
+            num1 = round(float(num1), 2)
+            num2 = round(float(num2), 2)
+
+        return self.assertEqual(num1, num2)
+
 
 class PublicViewTestsBase(TestsBase):
     """Abstract testing utilities for app views."""

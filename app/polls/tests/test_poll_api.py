@@ -33,6 +33,8 @@ from polls.tests.utils import (
     pollsubmission_list_url,
 )
 
+# TODO: Edgecase: Should prevent poll.club != poll.event.primary_club
+
 
 class PollViewPublicTests(PublicApiTestsBase):
     """Test poll public apis."""
