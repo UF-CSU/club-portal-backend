@@ -532,7 +532,7 @@ class PollQuestion(ClubScopedModel, ModelBase):
     )
 
     # TODO: Add is_editable so we can disable editing of certain profile fields like major/minor
-    # is_editable = models.BooleaField(default=True, blank=True, editable=False)
+    # is_editable = models.BooleanField(default=True, blank=True, editable=False)
 
     @property
     def input(self):
