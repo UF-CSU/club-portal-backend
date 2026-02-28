@@ -6,11 +6,9 @@ from clubs.models import Club
 from core.abstracts.serializers import (
     ModelSerializer,
     ModelSerializerBase,
+    SerializerBase,
     UpdateListSerializer,
 )
-from django.contrib.postgres.expressions import ArraySubquery
-from django.db.models import Count, OuterRef, Q
-from django.db.models.functions import TruncDay
 from django.shortcuts import get_object_or_404
 from events.models import Event, EventType
 from rest_framework import exceptions, serializers
@@ -390,72 +388,157 @@ class PollSerializer(ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class PollAnalyticsSubmissionsHeatmapSerializer(SerializerBase):
+    interval_minutes = serializers.IntegerField(read_only=True)
+    intervals = serializers.DictField(child=serializers.IntegerField(), read_only=True)
+
+
+class PollAnalyticsSubmissionSerializer(SerializerBase):
+    user = serializers.IntegerField(read_only=True)
+    text_value = serializers.CharField(read_only=True)
+    options_value = serializers.ListField(read_only=True)
+    number_value = serializers.FloatField(read_only=True)
+    boolean_value = serializers.BooleanField(read_only=True)
+    other_option_value = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
+class TextInputAnalyticsSerializer(SerializerBase):
+    average_words = serializers.IntegerField(read_only=True)
+    max_words = serializers.IntegerField(read_only=True)
+    min_words = serializers.IntegerField(read_only=True)
+
+
+class EmailInputAnalyticsSerializer(SerializerBase):
+    email_domains = serializers.ListField(child=serializers.CharField(), read_only=True)
+
+
+class OptionCountAnalyticsSerializer(SerializerBase):
+    id = serializers.IntegerField(read_only=True)
+    label = serializers.CharField(read_only=True)
+    total_submissions = serializers.IntegerField(read_only=True)
+
+
+class OptionInputAnalyticsSerializer(SerializerBase):
+    options_submissions_count = serializers.ListField(
+        child=OptionCountAnalyticsSerializer(), read_only=True
+    )
+
+
+class ScaleInputAnalyticsSerializer(SerializerBase):
+    min_value = serializers.IntegerField(read_only=True)
+    max_value = serializers.IntegerField(read_only=True)
+    mean = serializers.IntegerField(read_only=True)
+    median = serializers.IntegerField(read_only=True)
+
+
+class FileTypeAnalyticsSerializer(SerializerBase):
+    file_type = serializers.CharField(read_only=True)
+    count = serializers.IntegerField(read_only=True)
+
+
+class UploadInputAnalyticsSerializer(SerializerBase):
+    file_types = serializers.ListField(
+        child=FileTypeAnalyticsSerializer(), read_only=True
+    )
+
+
+class NumberInputAnalyticsSerializer(SerializerBase):
+    min_value = serializers.IntegerField(read_only=True)
+    max_value = serializers.IntegerField(read_only=True)
+    mean = serializers.IntegerField(read_only=True)
+    median = serializers.IntegerField(read_only=True)
+
+
+class AreaCodeAnalyticsSerializer(SerializerBase):
+    area_code = serializers.CharField(read_only=True)
+    count = serializers.IntegerField(read_only=True)
+
+
+class PhoneInputAnalyticsSerializer(SerializerBase):
+    area_codes = serializers.ListField(
+        child=AreaCodeAnalyticsSerializer(), read_only=True
+    )
+
+
+class DateAnalyticsSerializer(SerializerBase):
+    date = serializers.DateField(read_only=True)
+    count = serializers.IntegerField(read_only=True)
+
+
+class DateInputAnalyticsSerializer(SerializerBase):
+    dates = serializers.ListField(child=DateAnalyticsSerializer(), read_only=True)
+
+
+class TimeAnalyticsSerializer(SerializerBase):
+    time = serializers.TimeField(read_only=True)
+    count = serializers.IntegerField(read_only=True)
+
+
+class TimeInputAnalyticsSerializer(SerializerBase):
+    times = serializers.ListField(child=TimeAnalyticsSerializer(), read_only=True)
+
+
+class UrlInputAnalyticsSerializer(SerializerBase):
+    total_unique_domains = serializers.IntegerField(read_only=True)
+
+
+class CheckboxInputAnalyticsSerializer(SerializerBase):
+    total_true = serializers.IntegerField(read_only=True)
+
+
+class PollInputAnalyticsSerializer(SerializerBase):
+    text_input = TextInputAnalyticsSerializer()
+    option_input = OptionInputAnalyticsSerializer()
+    scale_input = ScaleInputAnalyticsSerializer()
+    upload_input = UploadInputAnalyticsSerializer()
+    number_input = NumberInputAnalyticsSerializer()
+    email_input = EmailInputAnalyticsSerializer()
+    phone_input = PhoneInputAnalyticsSerializer()
+    date_input = DateInputAnalyticsSerializer()
+    time_input = TimeInputAnalyticsSerializer()
+    url_input = UrlInputAnalyticsSerializer()
+    checkbox_input = CheckboxInputAnalyticsSerializer()
+
+
+class PollAnalyticsQuestionSerializer(SerializerBase):
+    id = serializers.IntegerField(read_only=True)
+    input_type = serializers.CharField(read_only=True)
+    total_submissions = serializers.IntegerField(read_only=True)
+    submissions = PollAnalyticsSubmissionSerializer(many=True)
+    analytics = PollInputAnalyticsSerializer()
+
+
 class PollAnalyticsSerializer(PollSerializer):
     """Json definition for poll analytics"""
 
-    # Submission by day
-    submission_vs_time = serializers.SerializerMethodField()
+    id = serializers.IntegerField(read_only=True)
+    open_at = serializers.DateTimeField(read_only=True)
+    close_at = serializers.DateTimeField(read_only=True)
+    total_submissions = serializers.IntegerField(read_only=True)
+    open_duration_seconds = serializers.IntegerField(read_only=True)
+    total_users = serializers.IntegerField(read_only=True)
+    total_guest_users = serializers.IntegerField(read_only=True)
+    total_recurring_users = serializers.IntegerField(read_only=True)
+    total_submissions_change_from_average = serializers.FloatField(read_only=True)
+    submissions_heatmap = PollAnalyticsSubmissionsHeatmapSerializer()
+    questions = PollAnalyticsQuestionSerializer(many=True)
 
-    # Analytics for each question
-    answer_analytics = serializers.SerializerMethodField()
-
-    def get_submission_vs_time(self, instance: models.Poll):
-        """Returns analytics for submissions by time submitted"""
-        submission_vs_time = (
-            models.PollSubmission.objects.filter(poll__id=instance.pk)
-            .annotate(submission_date=TruncDay("created_at"))
-            .values("submission_date")
-            .annotate(count=Count("id"))
-            .order_by("submission_date")
-        )
-        return list(submission_vs_time)
-
-    def get_answer_analytics(self, instance: models.Poll):
-        """Returns analytics for poll questions answers"""
-        answer_analytics = (
-            models.PollField.objects.filter(
-                poll=instance, field_type=models.PollFieldType.QUESTION
-            )
-            .annotate(
-                count=Count(
-                    "_question__answers",
-                ),
-                falses=Count(
-                    "_question__answers",
-                    filter=Q(_question__answers__boolean_value=False),
-                ),
-                trues=Count(
-                    "_question__answers",
-                    filter=Q(_question__answers__boolean_value=True),
-                ),
-                selections=ArraySubquery(
-                    models.PollField.objects.filter(id=OuterRef("pk"))
-                    .values(
-                        "_question___choiceinput__options__value",
-                        "_question___choiceinput__options__order",
-                    )
-                    .order_by("_question___choiceinput__options__order")
-                    .values("_question___choiceinput__options__value")
-                ),
-                selection_counts=ArraySubquery(
-                    models.PollField.objects.filter(id=OuterRef("pk"))
-                    .values(
-                        "_question___choiceinput__options",
-                        "_question___choiceinput__options__order",
-                    )
-                    .annotate(
-                        count=Count("_question___choiceinput__options__selections")
-                    )
-                    .order_by("_question___choiceinput__options__order")
-                    .values(
-                        "count",
-                    )
-                ),
-            )
-            .order_by("order")
-        )
-
-        return PollFieldAnalyticsSerializer(answer_analytics, many=True).data
+    class Meta:
+        model = models.Poll
+        fields = [
+            "id",
+            "open_at",
+            "close_at",
+            "total_submissions",
+            "open_duration_seconds",
+            "total_users",
+            "total_submissions_change_from_average",
+            "total_guest_users",
+            "total_recurring_users",
+            "submissions_heatmap",
+            "questions",
+        ]
 
 
 class PollTemplateSerializer(PollSerializer):

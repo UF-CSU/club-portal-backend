@@ -1,6 +1,7 @@
 from clubs.viewsets import ClubQueryFilter
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.db import models, transaction
+from django.forms import model_to_dict
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
@@ -31,7 +32,7 @@ from polls.serializers import (
     PollSubmissionSerializer,
     PollTemplateSerializer,
 )
-from polls.services import PollService
+from polls.services import PollAnalyticsService, PollService
 
 
 class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
@@ -135,7 +136,21 @@ class PollAnalyticsView(RetrieveAPIView):
                 'User does not have "polls.view_poll_analytics" permissions'
             )
 
-        serializer = self.get_serializer(poll, many=False)
+        service = PollAnalyticsService(poll)
+
+        analyticsData = {
+            "total_submissions": service.get_total_submissions(),
+            "open_duration_seconds": service.get_open_duration_seconds(),
+            "total_users": service.get_total_users(),
+            "total_guest_users": service.get_total_guest_users(),
+            "total_recurring_users": service.get_total_recurring_users(),
+            "submissions_heatmap": service.get_submissions_heatmap(5, 3),
+            "total_submissions_change_from_average": service.get_total_submissions_change_from_average(),
+            "questions": service.get_questions(),
+        }
+
+        pollData = model_to_dict(poll)
+        serializer = self.get_serializer(analyticsData | pollData)
 
         return Response(serializer.data)
 
