@@ -117,6 +117,8 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
         start_date: date,
         end_date: date,
         club: Optional[Club] = None,
+        event_start_time: Optional[time] = None,
+        event_end_time: Optional[time] = None,
         **kwargs,
     ):
         attachments = kwargs.pop("attachments", [])
@@ -127,6 +129,8 @@ class RecurringEventManager(ManagerBase["RecurringEvent"]):
             days=days,
             start_date=start_date,
             end_date=end_date,
+            event_start_time=event_start_time,
+            event_end_time=event_end_time,
             club=club,
             **kwargs,
         )

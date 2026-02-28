@@ -3,7 +3,7 @@ import pytz
 from app.settings import POLL_SUBMISSION_REDIRECT_URL
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from events.models import EventAttendance
 from utils.logging import print_error
@@ -301,13 +301,14 @@ class PollService(ServiceBase[Poll]):
     def create_submission_link(self):
         """Create link where users can fill out poll."""
 
-        if self.obj.submission_link is not None:
-            return
+        with transaction.atomic():
+            if self.obj.submission_link is not None:
+                return
 
-        url = POLL_SUBMISSION_REDIRECT_URL % {"id": self.obj.id}
-        return PollSubmissionLink.objects.create(
-            target_url=url, poll=self.obj, club=self.obj.club, create_qrcode=True
-        )
+            url = POLL_SUBMISSION_REDIRECT_URL % {"id": self.obj.id}
+            return PollSubmissionLink.objects.create(
+                target_url=url, poll=self.obj, club=self.obj.club, create_qrcode=True
+            )
 
     def sync_submission_link(self):
         """Remove and recreate submission links."""

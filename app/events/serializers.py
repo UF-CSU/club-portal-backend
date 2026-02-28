@@ -1,6 +1,10 @@
 from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
-from core.abstracts.serializers import ModelSerializerBase, SerializerBase
+from core.abstracts.serializers import (
+    ModelSerializerBase,
+    RoundedDecimalField,
+    SerializerBase,
+)
 from django.core import exceptions
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -209,31 +213,70 @@ class EventSerializer(EventPreviewSerializer):
         return event
 
 
-class EventAnalyticsSerializer(EventSerializer):
-    analytics = serializers.SerializerMethodField()
-    permissions = serializers.SerializerMethodField()
+class PreviousEventAnalyticsNestedSerializer(SerializerBase):
+    """Metrics of current event compared to previous event."""
 
-    def get_analytics(self, obj: Event):
-        """Returns desired analytics from an event object"""
-        request = self.context.get("request")
-        if not request or not request.user.has_perm(
-            "events.view_event_analytics", is_global=False
-        ):
-            return None
-        return {
-            "total_attended_users": obj.attendances.count(),
-            "total_poll_submissions": 0
-            if obj.submissions is None
-            else obj.submissions.count(),
-        }
+    id = serializers.IntegerField(source="prev_id")
+    users_total = serializers.IntegerField(source="prev_users_total")
+    users_diff = RoundedDecimalField(source="prev_users_diff")
+    members_total = serializers.IntegerField(source="prev_members_total")
+    members_diff = RoundedDecimalField(source="prev_members_diff")
+    returning_total = serializers.IntegerField(source="prev_returning_total")
+    returning_diff = RoundedDecimalField(source="prev_returning_diff")
 
-    def get_permissions(self, obj: Event):
-        """Returns permissions for an event an object"""
-        request = self.context.get("request")
-        can_view_analytics = request and request.user.has_perm(
-            "events.view_event_analytics", is_global=False
-        )
-        return {"can_view_analytics": can_view_analytics}
+
+class EventTypeAnalyticsNestedSerializer(SerializerBase):
+    """Metrics of current event compared to all events for the primary club in the same event type."""
+
+    events_count = serializers.IntegerField(source="evtype_events_count")
+    users_avg = RoundedDecimalField(source="evtype_users_avg")
+    users_diff = RoundedDecimalField(source="evtype_users_diff")
+    members_avg = RoundedDecimalField(source="evtype_members_avg")
+    members_diff = RoundedDecimalField(source="evtype_members_diff")
+    returning_avg = RoundedDecimalField(source="evtype_returning_avg")
+    returning_diff = RoundedDecimalField(source="evtype_returning_diff")
+
+
+class RecurringEventAnalyticsNestedSerializer(SerializerBase):
+    """Metrics of current event compared to all events for the primary club in the same event type."""
+
+    id = serializers.IntegerField(source="rec_id")
+    events_count = serializers.IntegerField(source="rec_events_count")
+    users_avg = RoundedDecimalField(source="rec_users_avg")
+    users_diff = RoundedDecimalField(source="rec_users_diff")
+    members_avg = RoundedDecimalField(source="rec_members_avg")
+    members_diff = RoundedDecimalField(source="rec_members_diff")
+    returning_avg = RoundedDecimalField(source="rec_returning_avg")
+    returning_diff = RoundedDecimalField(source="rec_returning_diff")
+
+
+class EventAnalyticsSerializer(SerializerBase):
+    """Information about event attendance, etc."""
+
+    users_total = serializers.IntegerField(
+        source="event_users_total",
+        help_text="Number of distinct users who submitted the poll for the event",
+    )
+    members_total = serializers.IntegerField(
+        source="event_members_total",
+        help_text="Number of users who were members of the primary host",
+    )
+    returning_total = serializers.IntegerField(
+        source="event_returning_total",
+        help_text="Number of users who have submitted a poll for the primary club before",
+    )
+
+    previous_event = PreviousEventAnalyticsNestedSerializer(source="*")
+    event_type = EventTypeAnalyticsNestedSerializer(source="*")
+    recurring_event = RecurringEventAnalyticsNestedSerializer(source="*")
+
+
+class EventDetailSerializer(EventSerializer):
+    """Show extended information about an event."""
+
+    analytics = EventAnalyticsSerializer(
+        source="_analytics", required=False, read_only=True
+    )
 
 
 class EventCancellationSerializer(serializers.ModelSerializer):
