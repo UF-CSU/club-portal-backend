@@ -145,7 +145,7 @@ class ClubSerializer(ModelSerializerBase):
         many=True,
     )
     roles = ClubRoleSerializer(many=True, required=False)
-    logo_url = ImageUrlField()
+    logo_url = ImageUrlField(required=False)
     # roles = serializers.SlugRelatedField(
     #     many=True, slug_field="name", queryset=ClubRole.objects.all()
     # )
