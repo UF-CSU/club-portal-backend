@@ -9,6 +9,7 @@ from unittest.mock import patch
 from core.mock.models import BusterTag
 from core.mock.serializers import BusterTagNestedSerializer
 from django.contrib.postgres.aggregates import StringAgg
+from django.core import mail
 from django.core.files import File
 from django.db import models
 from lib.faker import fake
@@ -16,6 +17,7 @@ from utils.testing import set_mock_return_image
 
 from querycsv.models import CsvUploadStatus, FieldMappingType, QueryCsvUploadJob
 from querycsv.services import QueryCsvService
+from querycsv.tasks import process_csv_job_task
 from querycsv.tests.utils import (
     CsvDataM2MTestsBase,
     CsvDataM2OTestsBase,
@@ -373,6 +375,22 @@ class UploadCsvJobTests(UploadCsvTestsBase):
         # Validate database
         self.assertObjectsExist(pre_queryset=objects_before)
         self.assertObjectsHaveFields(expected_objects=objects_before)
+
+    def test_process_job_task_sends_email_with_report_attachment(self):
+        """Task should send report attachment as bytes, not a file object."""
+
+        _, file = self.initialize_csv_data()
+
+        job = QueryCsvUploadJob.objects.create(
+            serializer_class=self.serializer_class,
+            file=file,
+            notify_email="admin@example.com",
+        )
+
+        process_csv_job_task(job_id=job.pk)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox[0].attachments), 1)
 
     def test_failed_job(self):
         """Should correctly handle a failed job."""

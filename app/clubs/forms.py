@@ -46,11 +46,17 @@ class AdminInviteForm(forms.Form):
         initial=True,
         help_text="Make this user the owner of the club",
     )
-    send_invite = forms.BooleanField(
-        label="Send Invite",
+    send_club_invite = forms.BooleanField(
+        label="Send Club Invite",
         required=False,
         initial=False,
         help_text="If true, will send club invitation email (separate from account setup email)",
+    )
+    force_send_account_link = forms.BooleanField(
+        label="Send Account Setup Link",
+        required=False,
+        initial=False,
+        help_text="If true, will send the account setup link, regardless if they have an account made",
     )
     role = forms.ChoiceField(
         label="Assign Role",

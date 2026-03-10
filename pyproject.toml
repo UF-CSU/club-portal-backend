@@ -13,7 +13,7 @@ dependencies = [
     "drf-spectacular>=0.28.0,<0.29",
     "drf-standardized-errors>=0.15.0,<0.16",
     "requests>=2.31.0,<2.33",
-    "pillow>=11.3.0,<11.4",
+    "pillow>=11.3.0,<12.2",
     "typing-extensions>=4.15.0,<4.16",
     "attr>=0.3.2,<0.4",
     # CSV Files
@@ -21,7 +21,7 @@ dependencies = [
     "xlsxwriter>=3.2.9,<3.3",
     "pathlib>=1.0.1,<1.1",
     # OAuth
-    "django-allauth>=65.11.2,<65.12",
+    "django-allauth>=65.11.2,<65.14",
     "pyjwt>=2.10.1,<2.11",
     "requests-oauthlib>=2.0.0,<2.1",
     "python3-openid>=3.2.0,<3.3",

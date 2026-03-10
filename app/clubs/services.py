@@ -90,7 +90,11 @@ class ClubService(ServiceBase[Club]):
                 subject=f"You have been added to the club {self.obj.name}",
                 to=[user.email],
                 html_template="clubs/email_invite_template.html",
-                html_context={"invite_url": url},
+                html_context={
+                    "club_name": self.obj.name,
+                    "invite_url": url,
+                    "logo_url": self.logo_url,
+                },
             )
 
         return member
@@ -159,6 +163,7 @@ class ClubService(ServiceBase[Club]):
         email: str,
         is_owner=False,
         send_email_invite=True,
+        force_send_account_link=False,
         role: Optional[ClubRole | str] = None,
     ) -> tuple[ClubMembership, bool]:
         """Get/create user for email and add them to club."""
@@ -175,8 +180,10 @@ class ClubService(ServiceBase[Club]):
             if not user:
                 # Send account setup link if being created
                 user = User.objects.create_user(email)
-                UserService(user).send_account_setup_link()
                 user_created = True
+
+            if user_created or force_send_account_link:
+                UserService(user).send_account_setup_link()
 
             # Raise error if user is in club already
             if self.obj.memberships.filter(user__id=user.id).exists():

@@ -50,11 +50,15 @@ def process_csv_job_task(job_id: int):
             "text/html",
         )
         try:
-            mail.attach(
-                job.report.name,
-                job.report.open(mode="rb"),
-                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
+            job.report.open(mode="rb")
+            try:
+                mail.attach(
+                    job.report.name,
+                    job.report.read(),
+                    mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+            finally:
+                job.report.close()
         except Exception:
             print_error()
         mail.send()
