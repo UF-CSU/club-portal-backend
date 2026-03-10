@@ -21,7 +21,11 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
 from app.settings import DEV, S3_STORAGE_BACKEND
 
@@ -31,6 +35,11 @@ apipatterns = [
         "docs/",
         SpectacularSwaggerView.as_view(url_name="api-schema"),
         name="api-docs",
+    ),
+    path(
+        "redoc/",
+        SpectacularRedocView.as_view(url_name="api-schema"),
+        name="redoc",
     ),
     path("user/", include("users.apis")),
     path("club/", include("clubs.apis")),
