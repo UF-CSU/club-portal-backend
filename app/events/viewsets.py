@@ -225,12 +225,24 @@ class EventViewset(ModelViewSetBase):
     pagination_class = CustomDatePagination
 
     def get_serializer_class(self):
-        with_analytics = self.request.query_params.get(
-            "analytics", "False"
-        ).capitalize()
-        if with_analytics == "True":
-            return serializers.EventAnalyticsSerializer
+        if self.action == "retrieve":
+            return serializers.EventDetailSerializer
+
         return super().get_serializer_class()
+
+    def get_serializer(self, instance=None, *args, **kwargs):
+        if not instance:
+            return super().get_serializer(*args, **kwargs)
+
+        if self.action == "retrieve" and self.request.user.has_perm(
+            "events.view_event_analytics", instance
+        ):
+            analytics = EventService(instance).get_event_analytics()
+            instance._analytics = analytics
+        else:
+            instance._analytics = None
+
+        return super().get_serializer(*args, instance=instance, **kwargs)
 
     def get_queryset(self):
         return self.queryset.filter_for_user(self.request.user)

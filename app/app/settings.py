@@ -58,6 +58,12 @@ ALLOWED_HOSTS.extend([BASE_URL])
 CLIENT_URL = os.environ.get("CLIENT_URL", "http://localhost:5173")
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
 
+SCHOOL_EMAIL_DOMAIN = "ufl.edu"
+
+ASGI_APPLICATION = "app.asgi.application"
+
+# Static Urls
+
 EVENT_ATTENDANCE_REDIRECT_URL = os.environ.get(
     "EVENT_ATTENDANCE_REDIRECT_URL", CLIENT_URL + "/events/%(id)s"
 )
@@ -73,12 +79,10 @@ CLUB_INVITE_REDIRECT_URL = os.environ.get(
     CLIENT_URL + "/private/dashboard/club-info?selected_club=%(id)s",
 )
 
+# Feature flags
 DJANGO_ENABLE_API_SESSION_AUTH = False
-
-SCHOOL_EMAIL_DOMAIN = "ufl.edu"
-
-ASGI_APPLICATION = "app.asgi.application"
 ENABLE_REQUEST_CACHE = environ_bool("DJANGO_ENABLE_REQUEST_CACHE", 1)
+ENABLE_AUTO_CREATE_CLUB_LOGO = True
 
 
 # Application definition

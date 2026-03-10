@@ -489,3 +489,31 @@ class RetrieveParamSerializer(serializers.Serializer):
 
     class Meta:
         fields = "__all__"
+
+
+class RoundedDecimalField(serializers.DecimalField):
+    """Decimal field rounded to 2 decimals by default."""
+
+    def __init__(
+        self,
+        max_digits=5,
+        decimal_places=2,
+        coerce_to_string=None,
+        max_value=None,
+        min_value=None,
+        localize=False,
+        rounding=None,
+        normalize_output=False,
+        **kwargs,
+    ):
+        super().__init__(
+            max_digits,
+            decimal_places,
+            coerce_to_string,
+            max_value,
+            min_value,
+            localize,
+            rounding,
+            normalize_output,
+            **kwargs,
+        )

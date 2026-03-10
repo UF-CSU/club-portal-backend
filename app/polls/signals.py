@@ -35,7 +35,10 @@ def on_save_poll(sender, instance: Poll, created=False, **kwargs):
         service.sync_status_tasks()
 
     if instance.submission_link is None and instance.club is not None:
-        service.create_submission_link()
+        try:
+            service.create_submission_link()
+        except Exception:
+            pass
 
 
 @receiver(post_save, sender=PollSubmission)

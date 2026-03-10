@@ -104,7 +104,7 @@ class UserAdmin(BaseUserAdmin, ModelAdminBase):
     csv_serializer_class = UserCsvSerializer
 
     list_display = ("username", "email", "name", "is_staff")
-    search_fields = ("username", "email")
+    search_fields = ("username", "email", "profile__school_email")
     select_related_fields = ("profile",)
     prefetch_related_fields = (
         "club_memberships",
