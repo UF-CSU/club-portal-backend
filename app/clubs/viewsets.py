@@ -496,8 +496,10 @@ class FollowClubsViewSet(GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         clubs = serializer.validated_data.get("clubs")
+        club_ids = []
 
         for club in clubs:
+            club_ids.append(club.id)
             already_member = ClubMembership.objects.filter(
                 club=club, user=request.user
             ).exists()
@@ -509,7 +511,10 @@ class FollowClubsViewSet(GenericAPIView):
 
             ClubService(club).add_member(request.user, roles=roles)
 
-        return Response(serializer.data)
+        followed_clubs = Club.objects.filter(id__in=club_ids).annotate(
+            member_count=Count("memberships", distinct=True)
+        )
+        return Response(ClubPreviewSerializer(followed_clubs, many=True).data)
 
 
 class ClubFilesViewSet(ClubNestedViewSetBase):
