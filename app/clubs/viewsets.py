@@ -33,6 +33,7 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
+    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -49,6 +50,7 @@ from clubs.serializers import (
     ClubRosterSerializer,
     ClubSerializer,
     ClubTagSerializer,
+    FollowClubsSerializer,
     InviteClubMemberSerializer,
     JoinClubsSerializer,
     TeamSerializer,
@@ -478,6 +480,41 @@ class JoinClubsViewSet(GenericAPIView):
             ClubService(club).add_member(request.user)
 
         return Response(serializer.data)
+
+
+class FollowClubsViewSet(GenericAPIView):
+    """Allow authenticated user to follow multiple clubs with the Follower role."""
+
+    serializer_class = FollowClubsSerializer
+    authentication_classes = ViewSetBase.authentication_classes
+    permission_classes = []
+
+    def post(self, request):
+        """Submit request to follow clubs."""
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        clubs = serializer.validated_data.get("clubs")
+        club_ids = []
+
+        for club in clubs:
+            club_ids.append(club.id)
+            already_member = ClubMembership.objects.filter(
+                club=club, user=request.user
+            ).exists()
+            if already_member:
+                continue
+
+            follower_role = club.roles.filter(role_type=RoleType.FOLLOWER).first()
+            roles = [follower_role] if follower_role else None
+
+            ClubService(club).add_member(request.user, roles=roles)
+
+        followed_clubs = Club.objects.filter(id__in=club_ids).annotate(
+            member_count=Count("memberships", distinct=True)
+        )
+        return Response(ClubPreviewSerializer(followed_clubs, many=True).data)
 
 
 class ClubFilesViewSet(ClubNestedViewSetBase):
