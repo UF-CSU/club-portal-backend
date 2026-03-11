@@ -50,8 +50,8 @@ from clubs.serializers import (
     ClubRosterSerializer,
     ClubSerializer,
     ClubTagSerializer,
-    InviteClubMemberSerializer,
     FollowClubsSerializer,
+    InviteClubMemberSerializer,
     JoinClubsSerializer,
     TeamSerializer,
 )
