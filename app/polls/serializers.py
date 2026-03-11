@@ -352,7 +352,6 @@ class PollSerializer(ModelSerializer):
     status = serializers.ChoiceField(
         choices=models.PollStatusType.choices, read_only=True
     )
-    poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     submissions_download_url = serializers.URLField(read_only=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)
@@ -541,38 +540,39 @@ class PollAnalyticsSerializer(PollSerializer):
         ]
 
 
-class PollTemplateSerializer(PollSerializer):
-    """Json definition for poll templates"""
+class PollTemplateSerializer(ModelSerializer):
+    """JSON definition for poll templates"""
 
-    template_name = serializers.CharField()
     event_type = serializers.ChoiceField(
         choices=EventType.choices, allow_blank=True, required=True
     )
     club = PollClubNestedSerializer(required=False, allow_null=True)
-
-    # Hiding Fields
-    submissions_download_url = None
-    event = None
-    is_published = None
+    fields = PollFieldSerializer(many=True, read_only=True)
 
     class Meta:
         model = models.PollTemplate
-        exclude = ["open_task", "close_task"]
+        fields = "__all__"
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def create(self, validated_data):
-        # is_published = validated_data.pop("is_published")
-        validated_data.pop("event")
-
         club = validated_data.pop("club", None)
-        if club is not None:
+
+        if club:
             validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
-        else:
-            validated_data["club"] = club
 
-        poll_name = validated_data.pop("name")
+        return super().create(validated_data)
 
-        return models.PollTemplate.objects.create(poll_name=poll_name, **validated_data)
+    def update(self, instance, validated_data):
+        has_club = "club" in validated_data
+        club = validated_data.pop("club", None)
+
+        if has_club:
+            if club:
+                validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
+            else:
+                validated_data["club"] = None
+
+        return super().update(instance, validated_data)
 
 
 class PollPreviewSerializer(ModelSerializer):
@@ -583,7 +583,6 @@ class PollPreviewSerializer(ModelSerializer):
         choices=models.PollStatusType.choices, read_only=True
     )
     is_published = serializers.BooleanField(required=False)
-    poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)
     link = PollLinkNestedSerializer(

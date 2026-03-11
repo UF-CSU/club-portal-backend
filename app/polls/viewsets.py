@@ -1,3 +1,4 @@
+from clubs.models import Club
 from clubs.viewsets import ClubQueryFilter
 from core.abstracts.viewsets import ModelViewSetBase, ViewSetBase
 from django.db import models, transaction
@@ -5,8 +6,9 @@ from django.forms import model_to_dict
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, mixins, permissions
-from rest_framework.generics import RetrieveAPIView
+from events.models import Event
+from rest_framework import exceptions, mixins, permissions, status
+from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -26,13 +28,14 @@ from polls.permissions import (
 from polls.serializers import (
     ChoiceInputOptionSerializer,
     PollAnalyticsSerializer,
+    PollClubNestedSerializer,
     PollFieldSerializer,
     PollPreviewSerializer,
     PollSerializer,
     PollSubmissionSerializer,
     PollTemplateSerializer,
 )
-from polls.services import PollAnalyticsService, PollService
+from polls.services import PollAnalyticsService, PollService, PollTemplateService
 
 
 class PollPreviewViewSet(mixins.RetrieveModelMixin, ViewSetBase):
@@ -158,8 +161,9 @@ class PollAnalyticsView(RetrieveAPIView):
 class PollTemplateViewSet(ModelViewSetBase):
     """Manage poll templates in api"""
 
-    queryset = PollTemplate.objects.all()
     serializer_class = PollTemplateSerializer
+    queryset = PollTemplate.objects.none()
+    filter_backends = [ClubQueryFilter]
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
@@ -186,14 +190,36 @@ class PollTemplateViewSet(ModelViewSetBase):
                         "_question___checkboxinput",
                     ).order_by("order", "id"),
                 ),
-                "_submission_link__qrcode",
-                "submissions",
-            )
-            .annotate(
-                submissions_count=models.Count("submissions", distinct=True),
-                last_submission_at=models.Max("submissions__created_at"),
             )
         )
+
+
+class PollTemplateCreatePollView(CreateAPIView):
+    """Create poll from poll template"""
+
+    class PollTemplateCreatePollSerializer(PollSerializer):
+        # Club can be inferred from poll template, so make it optional
+        club = PollClubNestedSerializer(required=False, allow_null=True)
+
+    serializer_class = PollTemplateCreatePollSerializer
+    queryset = PollTemplate.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request: Request, *args, **kwargs):
+        polltemplate_id = self.kwargs.get("polltemplate_id")
+        polltemplate = get_object_or_404(PollTemplate, id=polltemplate_id)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        if "club" in data:
+            data["club"] = get_object_or_404(Club, id=data["club"].get("id"))
+        if "event" in data:
+            data["event"] = get_object_or_404(Event, id=data["event"].get("id"))
+
+        poll = PollTemplateService(polltemplate).create_poll(**data)
+        return Response(PollSerializer(poll).data, status=status.HTTP_201_CREATED)
 
 
 class PollFieldViewSet(ModelViewSetBase):

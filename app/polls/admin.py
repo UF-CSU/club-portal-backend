@@ -3,7 +3,7 @@ Club Polls Admin.
 """
 
 from core.abstracts.admin import ModelAdminBase, StackedInlineBase
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from utils.formatting import plural_noun_display
@@ -23,7 +23,7 @@ from polls.models import (
     TextInput,
     UploadInput,
 )
-from polls.services import PollService
+from polls.services import PollService, PollTemplateService
 
 
 class PollFieldInlineAdmin(StackedInlineBase):
@@ -55,34 +55,47 @@ class PollSubmissionLinkInlineAdmin(StackedInlineBase):
     extra = 0
 
 
-class PollAdmin(ModelAdminBase):
-    """Manage poll objects in admin."""
+class PollBaseAdmin(ModelAdminBase):
+    """Common functionality for managing poll objects in admin."""
 
     list_display = (
         "__str__",
         "id",
-        "status",
         "club__alias",
-        "event_id",
+        "field_count"
+    )
+
+    inlines = (
+        PollFieldInlineAdmin,
+    )
+
+    readonly_fields = (
         "field_count",
+    )
+
+    def field_count(self, obj):
+        return obj.fields.count()
+
+
+class PollAdmin(PollBaseAdmin):
+    """Manage poll objects in admin."""
+
+    list_display = PollBaseAdmin.list_display + (
+        "status",
+        "event_id",
         # "view_poll",
         "submissions",
         "last_submission_at",
     )
 
-    inlines = (
+    inlines = PollBaseAdmin.inlines + (
         PollSubmissionLinkInlineAdmin,
-        PollFieldInlineAdmin,
     )
-    readonly_fields = (
-        "field_count",
+    readonly_fields = PollBaseAdmin.readonly_fields + (
         "view_poll",
         "submissions_download_link",
     )
     actions = ("sync_submission_links",)
-
-    def field_count(self, obj):
-        return obj.fields.count()
 
     def submissions(self, obj):
         return obj.submissions_count
@@ -112,10 +125,34 @@ class PollAdmin(ModelAdminBase):
         return
 
 
-class PollTemplateAdmin(PollAdmin):
+class PollTemplateAdmin(PollBaseAdmin):
     """Manage poll templates in admin"""
 
-    pass
+    list_display = PollBaseAdmin.list_display + (
+        "event_type",
+    )
+    actions = ("create_poll",)
+
+    @admin.action(description="Create poll from selected poll template")
+    def create_poll(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(
+                request,
+                f"Please select a single poll template to create a poll from.",
+                level=messages.ERROR
+            )
+            return
+
+        polltemplate = queryset.first()
+        created_poll = PollTemplateService(polltemplate).create_poll()
+
+        created_poll_url = reverse('polls:poll', kwargs={'poll_id': created_poll.id})
+        message = mark_safe(f"Created <a href='{created_poll_url}' target='_blank'>Poll</a> from template.")
+
+        self.message_user(
+            request,
+            message
+        )
 
 
 class TextInputInlineAdmin(admin.TabularInline):
