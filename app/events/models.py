@@ -206,7 +206,7 @@ class RecurringEvent(EventFields):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="+"
+        related_name="+",
     )
 
     last_synced = models.DateTimeField(

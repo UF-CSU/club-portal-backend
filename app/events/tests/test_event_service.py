@@ -527,7 +527,7 @@ class RecurringEventTests(TestsBase):
             event_end_time=datetime.time(hour=19),
             club=club,
             timezone="UTC",
-            template=template
+            template=template,
         )
 
         events = RecurringEventService(rec).sync_events()
@@ -557,7 +557,7 @@ class RecurringEventTests(TestsBase):
             event_end_time=datetime.time(hour=19),
             club=club,
             timezone="UTC",
-            template=template
+            template=template,
         )
 
         events = RecurringEventService(rec).sync_events()

@@ -164,7 +164,9 @@ class PollService(ServiceBase[Poll]):
         """Create new question, with associated field and input for poll."""
 
         poll = self.obj
-        field = kwargs.pop("field", None) or PollField.objects.create(poll=poll, field_type="question")
+        field = kwargs.pop("field", None) or PollField.objects.create(
+            poll=poll, field_type="question"
+        )
         payload = {
             "field": field,
             "label": label,
@@ -261,11 +263,18 @@ class PollTemplateService(ServiceBase[PollTemplate]):
 
     model = PollTemplate
 
-    def _clone_field(self, template_field: PollField, target_poll: Poll, target_poll_service: PollService):
+    def _clone_field(
+        self,
+        template_field: PollField,
+        target_poll: Poll,
+        target_poll_service: PollService,
+    ):
         """Clone field to poll."""
 
         cloned_field = PollField.objects.create(
-            poll=target_poll, order=template_field.order, field_type=template_field.field_type
+            poll=target_poll,
+            order=template_field.order,
+            field_type=template_field.field_type,
         )
 
         # Clone question
@@ -279,9 +288,8 @@ class PollTemplateService(ServiceBase[PollTemplate]):
                 image=question.image,
                 is_required=question.is_required,
                 is_user_lookup=question.is_user_lookup,
-                link_user_field=question.link_user_field
+                link_user_field=question.link_user_field,
             )
-
 
     def create_poll(self, **kwargs) -> Poll:
         """Create a new poll from this one if it is a template."""

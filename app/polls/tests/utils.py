@@ -35,7 +35,10 @@ def polltemplate_list_url(club_id: int | None = None):
 
 
 def polltemplate_create_poll_url(polltemplate_id: int):
-    return reverse("api-polls:polltemplate_create_poll", kwargs={"polltemplate_id": polltemplate_id})
+    return reverse(
+        "api-polls:polltemplate_create_poll",
+        kwargs={"polltemplate_id": polltemplate_id},
+    )
 
 
 def pollsubmission_list_url(poll_id: int):

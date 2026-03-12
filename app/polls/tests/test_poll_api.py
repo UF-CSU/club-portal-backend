@@ -1068,7 +1068,9 @@ class PollTemplateViewAuthTests(PrivateApiTestsBase):
         # Should now be able to see template2
         data = res.json()
         self.assertLength(data, 2, data)
-        self.assertListEqual([d["id"] for d in data], [template1.id, template2.id], True)
+        self.assertListEqual(
+            [d["id"] for d in data], [template1.id, template2.id], True
+        )
 
         # Test filtering
         url = polltemplate_list_url(club1.id)
@@ -1130,10 +1132,7 @@ class PollTemplateViewAuthTests(PrivateApiTestsBase):
         Poll.objects.all().delete()
 
         # Payload
-        payload = {
-            "name": fake.title(),
-            "description": fake.sentence()
-        }
+        payload = {"name": fake.title(), "description": fake.sentence()}
         res = self.client.post(url, data=payload, format="json")
         self.assertEqual(res.status_code, 201, res.content)
 

@@ -185,7 +185,11 @@ class PollBase(ModelBase):
         return question.first()
 
     def clean(self):
-        if self.pk and self.club_id and self.allowed_club_roles.exclude(club__id=self.club_id).exists():
+        if (
+            self.pk
+            and self.club_id
+            and self.allowed_club_roles.exclude(club__id=self.club_id).exists()
+        ):
             raise exceptions.ValidationError("Roles must belong to selected club")
 
         return super().clean()
@@ -199,7 +203,7 @@ class PollTemplate(PollBase):
         on_delete=models.CASCADE,
         parent_link=True,
         primary_key=True,
-        db_column="id"
+        db_column="id",
     )
 
     event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
@@ -213,7 +217,7 @@ class Poll(ClubScopedModel, PollBase):
         on_delete=models.CASCADE,
         parent_link=True,
         primary_key=True,
-        db_column="id"
+        db_column="id",
     )
 
     event = models.OneToOneField(
@@ -226,7 +230,7 @@ class Poll(ClubScopedModel, PollBase):
         blank=True,
         editable=False,
         on_delete=models.SET_NULL,
-        related_name="+"
+        related_name="+",
     )
 
     status = models.CharField(
@@ -331,9 +335,7 @@ class Poll(ClubScopedModel, PollBase):
     def clean(self):
         # Ensure a club is provided
         if self.club is None:
-            raise exceptions.ValidationError(
-                "Poll must belong to a club"
-            )
+            raise exceptions.ValidationError("Poll must belong to a club")
 
         # Check open/close dates
         if (

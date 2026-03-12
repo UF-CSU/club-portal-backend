@@ -58,20 +58,11 @@ class PollSubmissionLinkInlineAdmin(StackedInlineBase):
 class PollBaseAdmin(ModelAdminBase):
     """Common functionality for managing poll objects in admin."""
 
-    list_display = (
-        "__str__",
-        "id",
-        "club__alias",
-        "field_count"
-    )
+    list_display = ("__str__", "id", "club__alias", "field_count")
 
-    inlines = (
-        PollFieldInlineAdmin,
-    )
+    inlines = (PollFieldInlineAdmin,)
 
-    readonly_fields = (
-        "field_count",
-    )
+    readonly_fields = ("field_count",)
 
     def field_count(self, obj):
         return obj.fields.count()
@@ -88,9 +79,7 @@ class PollAdmin(PollBaseAdmin):
         "last_submission_at",
     )
 
-    inlines = PollBaseAdmin.inlines + (
-        PollSubmissionLinkInlineAdmin,
-    )
+    inlines = PollBaseAdmin.inlines + (PollSubmissionLinkInlineAdmin,)
     readonly_fields = PollBaseAdmin.readonly_fields + (
         "view_poll",
         "template",
@@ -134,9 +123,7 @@ class PollAdmin(PollBaseAdmin):
 class PollTemplateAdmin(PollBaseAdmin):
     """Manage poll templates in admin"""
 
-    list_display = PollBaseAdmin.list_display + (
-        "event_type",
-    )
+    list_display = PollBaseAdmin.list_display + ("event_type",)
     actions = ("create_poll",)
 
     @admin.action(description="Create poll from selected poll template")
@@ -144,20 +131,19 @@ class PollTemplateAdmin(PollBaseAdmin):
         if queryset.count() != 1:
             self.message_user(
                 request,
-                f"Please select a single poll template to create a poll from.",
-                level=messages.ERROR
+                "Please select a single poll template to create a poll from.",
+                level=messages.ERROR,
             )
             return
 
         polltemplate = queryset.first()
         created_poll = PollTemplateService(polltemplate).create_poll()
 
-        message = mark_safe(f"Created {self.as_model_link(created_poll)} from template.")
-
-        self.message_user(
-            request,
-            message
+        message = mark_safe(
+            f"Created {self.as_model_link(created_poll)} from template."
         )
+
+        self.message_user(request, message)
 
 
 class TextInputInlineAdmin(admin.TabularInline):

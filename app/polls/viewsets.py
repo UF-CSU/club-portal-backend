@@ -169,7 +169,9 @@ class PollTemplateViewSet(ModelViewSetBase):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
 
         return (
-            self.queryset.filter(models.Q(club__isnull=True) | models.Q(club__id__in=user_clubs))
+            self.queryset.filter(
+                models.Q(club__isnull=True) | models.Q(club__id__in=user_clubs)
+            )
             .select_related("club")
             .prefetch_related(
                 models.Prefetch(

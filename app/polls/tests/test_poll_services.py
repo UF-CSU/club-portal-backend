@@ -4,9 +4,9 @@ import pytz
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from django.utils import timezone
+from lib.faker import fake
 from rest_framework import exceptions
 
-from lib.faker import fake
 from polls.models import (
     Poll,
     PollField,
@@ -269,10 +269,7 @@ class PollTemplateServiceTests(TestsBase):
         )
 
         # Create poll
-        overrides = {
-            "name": fake.title(),
-            "description": fake.sentence()
-        }
+        overrides = {"name": fake.title(), "description": fake.sentence()}
         poll = PollTemplateService(template).create_poll(**overrides)
         self.assertIsNotNone(poll)
 

@@ -219,13 +219,10 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             # Create new poll ONLY if event does not already have a poll
             # Rationale: What if one specific event in a series wants a custom poll
             if event.poll is None:
-                payload = {
-                    "event": event
-                }
+                payload = {"event": event}
                 if rec_ev.club:
                     payload["club"] = rec_ev.club
                 PollTemplateService(rec_ev.template).create_poll(**payload)
-
 
         # Sync attachments
         # TODO: Should admins be allowed to set custom attachments for individual events?
