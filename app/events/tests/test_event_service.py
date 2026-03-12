@@ -12,6 +12,8 @@ from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 from freezegun import freeze_time
 from lib.faker import fake
+from polls.models import PollTemplate
+from polls.tests.utils import create_test_poll
 from users.tests.utils import create_test_user
 
 from events.models import DayType, Event, EventAttendance, RecurringEvent
@@ -503,3 +505,74 @@ class RecurringEventTests(TestsBase):
         self.assertEqual(events.count(), 8)
         self.assertEqual(events.filter(_poll__isnull=False).count(), 8)
         self.assertEqual(events.filter(_poll__club__isnull=False).count(), 8)
+
+    @freezegun.freeze_time("2/3/2026")
+    def test_recurring_events_with_template(self):
+        """Should create events with polls made from a template."""
+
+        # Create recurring event with template
+        club = create_test_club()
+
+        template = PollTemplate.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+        )
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
+            start_date=datetime.datetime(year=2026, month=2, day=1).date(),
+            end_date=datetime.datetime(year=2026, month=2, day=28).date(),
+            event_start_time=datetime.time(hour=17),
+            event_end_time=datetime.time(hour=19),
+            club=club,
+            timezone="UTC",
+            template=template
+        )
+
+        events = RecurringEventService(rec).sync_events()
+
+        # Verify events were created correctly
+        self.assertEqual(events.count(), 8)
+        self.assertEqual(events.filter(_poll__template=template).count(), 8)
+
+    @freezegun.freeze_time("2/3/2026")
+    def test_recurring_events_with_template_event_has_custom_poll(self):
+        """Should not override events with custom polls when having a recurring event with template."""
+
+        # Create recurring event with template
+        club = create_test_club()
+
+        template = PollTemplate.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+        )
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
+            start_date=datetime.datetime(year=2026, month=2, day=1).date(),
+            end_date=datetime.datetime(year=2026, month=2, day=28).date(),
+            event_start_time=datetime.time(hour=17),
+            event_end_time=datetime.time(hour=19),
+            club=club,
+            timezone="UTC",
+            template=template
+        )
+
+        events = RecurringEventService(rec).sync_events()
+        self.assertEqual(events.filter(name=rec.name).count(), 8)
+        self.assertEqual(events.filter(_poll__template=template).count(), 8)
+
+        # Change poll for first event
+        poll = create_test_poll()
+        events.first().poll = poll
+
+        # Resync events
+        rec.name = fake.title()
+        rec.save()
+        events = RecurringEventService(rec).sync_events()
+
+        # Verify event with custom poll was not overridden
+        self.assertEqual(events.filter(name=rec.name).count(), 8)
+        self.assertEqual(events.filter(_poll__template=template).count(), 7)

@@ -201,6 +201,14 @@ class RecurringEvent(EventFields):
         Club, blank=True, help_text="These clubs host the events as secondary hosts."
     )
 
+    template = models.ForeignKey(
+        "polls.PollTemplate",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+"
+    )
+
     last_synced = models.DateTimeField(
         null=True, blank=True, editable=False, help_text="Last time events were synced"
     )
