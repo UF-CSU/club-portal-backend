@@ -170,7 +170,7 @@ class EventAnalyticsApiCalculationTests(EventAnalyticsTestsBase):
 
     @factory.django.mute_signals(post_save)
     def import_cached_data(self):
-        call_command("loaddata", "fixtures/event-analytics-test-data.json.gz")
+        call_command("loaddata", "fixtures/test/event-analytics-test-data.json.gz")
 
     @override_settings(ENABLE_AUTO_CREATE_CLUB_LOGO=False)
     def setUp(self):
@@ -672,7 +672,7 @@ class EventAnalyticsApiCalculationTests(EventAnalyticsTestsBase):
                 "auth.permission",
                 "--exclude",
                 "contenttypes",
-                output="fixtures/event-analytics-test-data.json.gz",
+                output="fixtures/test/event-analytics-test-data.json.gz",
             )
 
     @freezegun.freeze_time("02/21/2026 13:00:00")

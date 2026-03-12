@@ -10,12 +10,9 @@ from utils.db import dictfetchall
 from utils.logging import print_error
 
 from polls.models import (
-    ChoiceInput,
     Poll,
     PollField,
-    PollFieldType,
     PollInputType,
-    PollMarkup,
     PollQuestion,
     PollQuestionAnswer,
     PollStatusType,
@@ -23,80 +20,11 @@ from polls.models import (
     PollSubmissionLink,
     PollTemplate,
     PollUserFieldType,
-    TextInput,
 )
 from polls.serializers import (
     PollAnalyticsSubmissionsHeatmapSerializer,
     PollSubmissionSerializer,
 )
-
-
-class PollTemplateService(ServiceBase[PollTemplate]):
-    """Business logic for polls."""
-
-    model = PollTemplate
-
-    def _clone_input(self, question_tpl: PollQuestion, target_question: PollQuestion):
-        """Clone question to poll."""
-
-        match question_tpl.input_type:
-            case PollInputType.TEXT:
-                TextInput.objects.create(
-                    question=target_question,
-                    text_type=question_tpl.text_input.text_type,
-                    min_length=question_tpl.text_input.min_length,
-                    max_length=question_tpl.text_input.max_length,
-                )
-            case PollInputType.CHOICE:
-                ChoiceInput.objects.create(
-                    question=target_question,
-                )
-
-    def _clone_field(self, field_tpl: PollField, target_poll: Poll):
-        """Clone field to poll."""
-
-        # field = target_poll.add_field(field_type=field_tpl.field_type)
-        # print(field)
-        # Create new field directly instead of using add_field
-        field = PollField.objects.create(
-            poll=target_poll,
-            field_type=field_tpl.field_type,
-        )
-
-        match field.field_type:
-            case PollFieldType.QUESTION:
-                q_tpl = field_tpl.question
-                question = PollQuestion.objects.create(
-                    field=field,
-                    label=q_tpl.label,
-                    input_type=q_tpl.input_type,
-                    create_input=False,
-                    description=q_tpl.description,
-                )
-                self._clone_input(q_tpl, question)
-            case PollFieldType.MARKUP:
-                PollMarkup.objects.create(field=field, content=field_tpl.markup.content)
-
-        return field
-
-    def create_poll(self, **kwargs) -> Poll:
-        """Create a new poll from this one if it is a template."""
-
-        # Create the poll without any auto-created fields
-        poll = Poll.objects.create(
-            name=self.obj.name, description=self.obj.description, **kwargs
-        )
-
-        # Get template fields ordered by their order field
-        template_fields = self.obj.fields.all().order_by("order")
-
-        # Clone each field
-        for field_tpl in template_fields:
-            self._clone_field(field_tpl, poll)
-
-        # Refresh to get accurate field count
-        poll.refresh_from_db()
-        return poll
 
 
 class PollService(ServiceBase[Poll]):
@@ -236,9 +164,8 @@ class PollService(ServiceBase[Poll]):
         """Create new question, with associated field and input for poll."""
 
         poll = self.obj
-        field = kwargs.pop(
-            "field",
-            PollField.objects.create(poll, field_type="question"),
+        field = kwargs.pop("field", None) or PollField.objects.create(
+            poll=poll, field_type="question"
         )
         payload = {
             "field": field,
@@ -331,6 +258,67 @@ def set_poll_status(poll_id: int, status: PollStatusType):
     poll.save()
 
 
+class PollTemplateService(ServiceBase[PollTemplate]):
+    """Business logic for poll templates."""
+
+    model = PollTemplate
+
+    def _clone_field(
+        self,
+        template_field: PollField,
+        target_poll: Poll,
+        target_poll_service: PollService,
+    ):
+        """Clone field to poll."""
+
+        cloned_field = PollField.objects.create(
+            poll=target_poll,
+            order=template_field.order,
+            field_type=template_field.field_type,
+        )
+
+        # Clone question
+        question = template_field.question
+        if question is not None:
+            target_poll_service.create_question(
+                question.label,
+                question.input_type,
+                field=cloned_field,
+                description=question.description,
+                image=question.image,
+                is_required=question.is_required,
+                is_user_lookup=question.is_user_lookup,
+                link_user_field=question.link_user_field,
+            )
+
+    def create_poll(self, **kwargs) -> Poll:
+        """Create a new poll from this one if it is a template."""
+
+        # Create the poll
+        data = {
+            "name": self.obj.name,
+            "description": self.obj.description,
+            "club": self.obj.club,
+            "is_private": self.obj.is_private,
+            **kwargs,
+        }
+        poll = Poll.objects.create(**data, template=self.obj)
+
+        # Set allowed club roles
+        poll.allowed_club_roles.set(self.obj.allowed_club_roles.all())
+
+        poll_service = PollService(poll)
+
+        # Clone each field
+        template_fields = self.obj.fields.all().order_by("order")
+        for template_field in template_fields:
+            self._clone_field(template_field, poll, poll_service)
+
+        # Refresh to get accurate field count
+        poll.refresh_from_db()
+        return poll
+
+
 class PollAnalyticsService(ServiceBase[Poll]):
     """Business logic for poll analytics"""
 
@@ -356,8 +344,8 @@ class PollAnalyticsService(ServiceBase[Poll]):
                 WHERE public.polls_pollsubmission.poll_id = {self.obj.pk}
                 AND user_id NOT IN (
                     SELECT DISTINCT user_id FROM public.clubs_clubmembership
-                    JOIN public.polls_poll ON public.polls_poll.club_id = public.clubs_clubmembership.club_id
-                    WHERE public.polls_poll.id = {self.obj.pk}
+                    JOIN public.polls_pollbase ON public.polls_pollbase.club_id = public.clubs_clubmembership.club_id
+                    WHERE public.polls_pollbase.id = {self.obj.pk}
                 );
                 """
         with connection.cursor() as cursor:
@@ -372,7 +360,7 @@ class PollAnalyticsService(ServiceBase[Poll]):
                 FROM (
                     SELECT ps.user_id
                     FROM public.polls_pollsubmission ps
-                    JOIN public.polls_poll p ON p.id = ps.poll_id
+                    JOIN public.polls_pollbase p ON p.id = ps.poll_id
                     WHERE p.club_id = {self.obj.club.pk}
                     GROUP BY ps.user_id
                     HAVING COUNT(*) > 1
@@ -399,7 +387,7 @@ class PollAnalyticsService(ServiceBase[Poll]):
                             SELECT AVG(c) FROM (
                             SELECT COUNT(*) AS c
                             FROM public.polls_pollsubmission ps
-                            JOIN public.polls_poll p
+                            JOIN public.polls_pollbase p
                                 ON p.id = ps.poll_id
                             WHERE p.club_id = {self.obj.club.pk}
                                 AND p.id <> {self.obj.pk}
@@ -429,9 +417,10 @@ class PollAnalyticsService(ServiceBase[Poll]):
         interval_limit = f"'{hours} hours'"
         query = f"""
                 WITH ts AS (
-                    SELECT created_at AS init, close_at AS closed
-                    FROM public.polls_poll
-                    WHERE id = {self.obj.pk}
+                    SELECT pb.created_at AS init, p.close_at AS closed
+                    FROM public.polls_pollbase pb
+                    JOIN public.polls_poll p ON p.id = pb.id
+                    WHERE pb.id = {self.obj.pk}
                 )
                 SELECT json_object_agg(
                     start_interval, submission_count

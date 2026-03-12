@@ -38,4 +38,9 @@ urlpatterns = [
         viewsets.PollAnalyticsView.as_view(),
         name="pollanalytics",
     ),
+    path(
+        "polltemplates/<int:polltemplate_id>/poll/",
+        viewsets.PollTemplateCreatePollView.as_view(),
+        name="polltemplate_create_poll",
+    ),
 ]
