@@ -16,7 +16,6 @@ from polls.models import (
 )
 
 POLLS_URL = reverse("api-polls:poll-list")
-POLLTEMPLATES_URL = reverse("api-polls:polltemplate-list")
 # POLL_PREVIEW_LIST_URL = reverse("api-polls:pollpreview-list")
 
 
@@ -26,6 +25,13 @@ def polls_detail_url(id: int):
 
 def pollpreview_detail_url(id: int):
     return reverse("api-polls:pollpreview-detail", args=[id])
+
+
+def polltemplate_list_url(club_id: int | None = None):
+    if club_id is None:
+        return reverse("api-polls:polltemplate-list")
+    else:
+        return reverse("api-polls:polltemplate-list", query={"club": club_id})
 
 
 def polltemplate_create_poll_url(polltemplate_id: int):

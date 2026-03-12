@@ -411,7 +411,7 @@ class PollAnalyticsService(ServiceBase[Poll]):
                 WITH ts AS (
                     SELECT pb.created_at AS init, p.close_at AS closed
                     FROM public.polls_pollbase pb
-                    JOIN public.polls_poll p ON p.pollbase_ptr_id = pb.id
+                    JOIN public.polls_poll p ON p.id = pb.id
                     WHERE pb.id = {self.obj.pk}
                 )
                 SELECT json_object_agg(

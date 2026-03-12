@@ -25,7 +25,6 @@ from polls.models import (
 )
 from polls.tests.utils import (
     POLLS_URL,
-    POLLTEMPLATES_URL,
     create_test_poll,
     pollfield_detail_url,
     pollfield_list_url,
@@ -35,6 +34,7 @@ from polls.tests.utils import (
     polls_detail_url,
     pollsubmission_list_url,
     polltemplate_create_poll_url,
+    polltemplate_list_url,
 )
 
 # TODO: Edgecase: Should prevent poll.club != poll.event.primary_club
@@ -1050,7 +1050,7 @@ class PollTemplateViewAuthTests(PrivateApiTestsBase):
             is_private=True,
         )
 
-        url = POLLTEMPLATES_URL
+        url = polltemplate_list_url()
         res = self.client.get(url)
         self.assertResOk(res)
 
@@ -1069,6 +1069,16 @@ class PollTemplateViewAuthTests(PrivateApiTestsBase):
         data = res.json()
         self.assertLength(data, 2, data)
         self.assertListEqual([d["id"] for d in data], [template1.id, template2.id], True)
+
+        # Test filtering
+        url = polltemplate_list_url(club1.id)
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Should only see template2
+        data = res.json()
+        self.assertLength(data, 1, data)
+        self.assertEqual(data[0]["id"], template2.id)
 
     def test_create_poll_from_template(self):
         """Create poll from poll template"""

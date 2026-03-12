@@ -162,13 +162,14 @@ class PollTemplateViewSet(ModelViewSetBase):
     """Manage poll templates in api"""
 
     serializer_class = PollTemplateSerializer
-    queryset = PollTemplate.objects.none()
+    queryset = PollTemplate.objects.all()
+    filter_backends = [ClubQueryFilter]
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
 
         return (
-            PollTemplate.objects.filter(models.Q(club__isnull=True) | models.Q(club__id__in=user_clubs))
+            self.queryset.filter(models.Q(club__isnull=True) | models.Q(club__id__in=user_clubs))
             .select_related("club")
             .prefetch_related(
                 models.Prefetch(

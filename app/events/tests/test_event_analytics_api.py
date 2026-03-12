@@ -166,7 +166,7 @@ class EventBasicAnalyticsApiTests(EventAnalyticsTestsBase):
 class EventAnalyticsApiCalculationTests(EventAnalyticsTestsBase):
     """Unit tests for Event Analytics API."""
 
-    LOAD_CACHED_DATA = False
+    LOAD_CACHED_DATA = True
 
     @factory.django.mute_signals(post_save)
     def import_cached_data(self):

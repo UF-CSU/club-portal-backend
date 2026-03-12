@@ -194,6 +194,14 @@ class PollBase(ModelBase):
 class Poll(ClubScopedModel, PollBase):
     """Custom form."""
 
+    pollbase_ptr = models.OneToOneField(
+        PollBase,
+        on_delete=models.CASCADE,
+        parent_link=True,
+        primary_key=True,
+        db_column="id"
+    )
+
     event = models.OneToOneField(
         Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
     )
@@ -371,6 +379,14 @@ class PollSubmissionLink(Link):
 
 class PollTemplate(PollBase):
     """Extension of polls that allow the creation of new polls."""
+
+    pollbase_ptr = models.OneToOneField(
+        PollBase,
+        on_delete=models.CASCADE,
+        parent_link=True,
+        primary_key=True,
+        db_column="id"
+    )
 
     event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
 
