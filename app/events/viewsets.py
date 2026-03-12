@@ -225,17 +225,39 @@ class EventViewset(ModelViewSetBase):
     pagination_class = CustomDatePagination
 
     def get_serializer_class(self):
-        with_analytics = self.request.query_params.get(
-            "analytics", "False"
-        ).capitalize()
-        if with_analytics == "True":
-            return serializers.EventAnalyticsSerializer
+        if self.action == "retrieve":
+            return serializers.EventDetailSerializer
+
         return super().get_serializer_class()
 
-    def get_queryset(self):
-        return self.queryset.filter_for_user(self.request.user)
+    def get_serializer(self, instance=None, *args, **kwargs):
+        if not instance:
+            return super().get_serializer(*args, **kwargs)
+
+        if self.action == "retrieve" and self.request.user.has_perm(
+            "events.view_event_analytics", instance
+        ):
+            analytics = EventService(instance).get_event_analytics()
+            instance._analytics = analytics
+        else:
+            instance._analytics = None
+
+        return super().get_serializer(*args, instance=instance, **kwargs)
+
+    # def get_queryset(self):
+    #     return self.queryset.filter_for_user(self.request.user)
 
     def filter_queryset(self, queryset):
+        include_public = self.kwargs.get("include_public", False)
+        print("Including public:", include_public)
+
+        queryset = queryset.filter_for_user(self.request.user)
+
+        if include_public:
+            queryset = queryset | self.queryset.filter(
+                Q(is_public=True) & Q(is_draft=False)
+            )
+
         if self.action == "retrieve":
             return queryset
 
@@ -293,26 +315,27 @@ class EventViewset(ModelViewSetBase):
 
         return super().perform_create(serializer)
 
-    @query_params(
-        analytics=Query(
-            required=False,
-            qtype=bool,
-            default=False,
-            description="A field for returning analytics",
-        )
-    )
+    # @query_params(
+    #     analytics=Query(
+    #         required=False,
+    #         qtype=bool,
+    #         default=False,
+    #         description="A field for returning analytics",
+    #     )
+    # )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
     @query_params(
-        analytics=Query(
+        include_public=Query(
             required=False,
             qtype=bool,
             default=False,
-            description="A field for returning analytics",
+            description="If true, will include public events from all clubs",
         )
     )
     def list(self, request: Request, *args, **kwargs):
+        self.kwargs = kwargs
         return super().list(request, *args, **kwargs)
 
 
@@ -391,6 +414,11 @@ class EventHeatmapViewSet(APIView):
         clubs=Query(qtype=int, is_list=True),
         start_date=Query(qtype=date),
         end_date=Query(qtype=date),
+        include_public=Query(
+            qtype=bool,
+            default=False,
+            description="If true, will include public events from all clubs",
+        ),
     )
     def get(
         self,
@@ -398,6 +426,7 @@ class EventHeatmapViewSet(APIView):
         clubs: Optional[list[int]] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        include_public: Optional[bool] = False,
     ):
         # Parse club ids
         if clubs is None:
@@ -426,7 +455,10 @@ class EventHeatmapViewSet(APIView):
 
         # Generate heatmap
         heatmap = EventService.get_event_heatmap(
-            club_ids=clubs, start_date=start_date, end_date=end_date
+            club_ids=clubs,
+            start_date=start_date,
+            end_date=end_date,
+            include_public=include_public,
         )
 
         serializer = self.serializer_class(heatmap)

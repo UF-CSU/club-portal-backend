@@ -5,8 +5,9 @@ should function.
 
 from clubs.serializers import (
     ClubFileSerializer,
+    ClubMemberCreateSerializer,
     ClubMemberSerializer,
-    ClubMembershipCreateSerializer,
+    ClubMembershipSerializer,
     ClubPhotoSerializer,
     ClubPreviewSerializer,
     ClubSerializer,
@@ -48,11 +49,13 @@ from users.serializers import SocialProviderSerializer, UserSerializer
 SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     # Club types
     ClubSerializer,
-    (
-        ClubMemberSerializer,
-        ClubMembershipCreateSerializer,
-        ClubMemberSerializer,
-    ),
+    # (
+    #     ClubMemberSerializer,
+    #     ClubMembershipCreateSerializer,
+    #     ClubMemberSerializer,
+    # ),
+    (ClubMemberSerializer, ClubMemberCreateSerializer, ClubMemberSerializer),
+    ClubMembershipSerializer,
     ClubFileSerializer,
     ClubPhotoSerializer,
     TeamSerializer,

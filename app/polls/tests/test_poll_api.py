@@ -33,6 +33,8 @@ from polls.tests.utils import (
     pollsubmission_list_url,
 )
 
+# TODO: Edgecase: Should prevent poll.club != poll.event.primary_club
+
 
 class PollViewPublicTests(PublicApiTestsBase):
     """Test poll public apis."""
@@ -433,6 +435,47 @@ class PollViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(poll.fields.first().question.label, "Updated question again?")
         self.assertEqual(poll.fields.last().field_type, "question")
         self.assertEqual(poll.fields.last().question.label, "Second question?")
+
+    def test_update_poll_markup_field(self):
+        """Should be able to update poll markup field via PATCH request."""
+
+        poll = create_test_poll(club=self.club)
+
+        # Create a markup field
+        markup_payload = {
+            "order": 0,
+            "field_type": "markup",
+            "markup": {
+                "content": "# Initial Content",
+            },
+        }
+
+        url = pollfield_list_url(poll.pk)
+        res = self.client.post(url, data=markup_payload, format="json")
+        self.assertResCreated(res)
+
+        field = poll.fields.first()
+        self.assertIsNotNone(field)
+        self.assertEqual(field.markup.content, "# Initial Content")
+
+        # Update the markup field via PATCH
+        update_url = pollfield_detail_url(poll.pk, field.pk)
+        update_payload = {
+            "order": 4,
+            "markup": {
+                "content": "## Markdown Content\n\nEnter your markdown content here...updated",
+            },
+        }
+
+        update_res = self.client.patch(update_url, data=update_payload, format="json")
+        self.assertResOk(update_res)
+
+        field.refresh_from_db()
+        self.assertEqual(field.order, 4)
+        self.assertEqual(
+            field.markup.content,
+            "## Markdown Content\n\nEnter your markdown content here...updated",
+        )
 
     def test_update_choice_options(self):
         """Should be able to update the options for a choice field."""

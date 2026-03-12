@@ -10,15 +10,13 @@ from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from dateutil.relativedelta import relativedelta
-from django.contrib.auth import get_user_model
 from django.db import connection, models
 from django.utils import timezone
+from users.models import User
 from utils.dates import get_day_count
-from utils.db import namedtuplefetchall
+from utils.db import dictfetchone, namedtuplefetchall
 
 from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
-
-User = get_user_model()
 
 
 class EventHeatmapDict(TypedDict):
@@ -34,6 +32,46 @@ class EventHeatmap:
     start_date: datetime.date
     end_date: datetime.date
     heatmap: EventHeatmapDict
+
+
+@attrs.define
+class EventAnalytics:
+    """Fields available for measuring event analytics."""
+
+    # Event analytics
+    event_id: int
+    event_users_total: int = 0
+    event_members_total: int = 0
+    event_returning_total: int = 0
+
+    # Previous event
+    prev_id: Optional[int] = None
+    prev_users_total: int = 0
+    prev_users_diff: float = 0
+    prev_members_total: int = 0
+    prev_members_diff: float = 0
+    prev_returning_total: int = 0
+    prev_returning_diff: float = 0
+
+    # Event type
+    evtype: Optional[str] = None
+    evtype_events_count: int = 0
+    evtype_users_avg: float = 0
+    evtype_users_diff: float = 0
+    evtype_members_avg: float = 0
+    evtype_members_diff: float = 0
+    evtype_returning_avg: float = 0
+    evtype_returning_diff: float = 0
+
+    # Recurring event
+    rec_id: Optional[int] = None
+    rec_events_count: int = 0
+    rec_users_avg: float = 0
+    rec_users_diff: float = 0
+    rec_members_avg: float = 0
+    rec_members_diff: float = 0
+    rec_returning_avg: float = 0
+    rec_returning_diff: float = 0
 
 
 class RecurringEventService(ServiceBase[RecurringEvent]):
@@ -454,6 +492,7 @@ class EventService(ServiceBase[Event]):
         club_ids: list[int],
         start_date: Optional[datetime.date] = None,
         end_date: Optional[datetime.date] = None,
+        include_public: Optional[bool] = False,
     ):
         """
         Get event count per day in duration.
@@ -477,10 +516,15 @@ class EventService(ServiceBase[Event]):
                 '1 day'
             ) as calendar
             LEFT JOIN (
-                SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id
+                SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id, event.is_public AS is_public, event.is_draft AS is_draft
                 FROM public.events_event AS event
                 LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id
-            ) AS event ON date_trunc('day', start_at) = calendar AND club_id IN ({",".join(["%s" for _ in club_ids])})
+            ) AS event ON date_trunc('day', start_at) = calendar
+                AND (
+                    club_id IN ({",".join(["%s" for _ in club_ids])})
+                    OR
+                    ({"is_public IS TRUE AND is_draft IS FALSE" if include_public else "FALSE"})
+                )
             GROUP BY day
             ORDER BY day
             """
@@ -502,6 +546,15 @@ class EventService(ServiceBase[Event]):
             end_date=end_date,
             heatmap=heatmap,
         )
+
+    def get_event_analytics(self):
+        """Compute analytics for the selected event."""
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM get_event_analytics(%s)", [self.obj.id])
+            row = dictfetchone(cursor)
+
+        return EventAnalytics(**row) if row else None
 
 
 def make_event_public(event_id: int):

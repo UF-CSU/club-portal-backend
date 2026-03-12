@@ -782,7 +782,7 @@ class TypeGenerator:
             print("Type checking mode only, skipping writing files.")
             return
 
-        os.makedirs(dirpath, exist_ok=True)
+        os.makedirs(dirpath, mode=755, exist_ok=True)
 
         types_filepath = dirpath + self.types_file_name
 

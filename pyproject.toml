@@ -21,7 +21,7 @@ dependencies = [
     "xlsxwriter>=3.2.9,<3.3",
     "pathlib>=1.0.1,<1.1",
     # OAuth
-    "django-allauth>=65.11.2,<65.14",
+    "django-allauth>=65.11.2,<65.15",
     "pyjwt>=2.10.1,<2.11",
     "requests-oauthlib>=2.0.0,<2.1",
     "python3-openid>=3.2.0,<3.3",
@@ -51,7 +51,7 @@ dependencies = [
 dev = [
     # Linting & Formatting
     "autoflake>=2.3.1,<2.4",
-    "black>=24.1.1,<25.2",
+    "black>=24.1.1,<26.4",
     "isort>=5.13.2,<5.14",
     "ruff>=0.13.3,<0.14",
     # Testing
@@ -69,6 +69,7 @@ dev = [
     "sphinx-book-theme>=1.1.4,<1.2",
     "sphinx-rtd-theme>=3.0.2,<3.1",
     "myst-parser>=4.0.1,<4.1",
+    "factory-boy>=3.3.3",
 ]
 prod = [
     # AWS S3

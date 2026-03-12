@@ -1,6 +1,10 @@
 from clubs.models import Club
 from clubs.serializers import ClubFileNestedSerializer
-from core.abstracts.serializers import ModelSerializerBase, SerializerBase
+from core.abstracts.serializers import (
+    ModelSerializerBase,
+    RoundedDecimalField,
+    SerializerBase,
+)
 from django.core import exceptions
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -209,31 +213,133 @@ class EventSerializer(EventPreviewSerializer):
         return event
 
 
-class EventAnalyticsSerializer(EventSerializer):
-    analytics = serializers.SerializerMethodField()
-    permissions = serializers.SerializerMethodField()
+class PreviousEventAnalyticsNestedSerializer(SerializerBase):
+    """Metrics of current event compared to previous event (for recurring events only)."""
 
-    def get_analytics(self, obj: Event):
-        """Returns desired analytics from an event object"""
-        request = self.context.get("request")
-        if not request or not request.user.has_perm(
-            "events.view_event_analytics", is_global=False
-        ):
-            return None
-        return {
-            "total_attended_users": obj.attendances.count(),
-            "total_poll_submissions": 0
-            if obj.submissions is None
-            else obj.submissions.count(),
-        }
+    id = serializers.IntegerField(source="prev_id", help_text="Previous event ID")
+    users_total = serializers.IntegerField(
+        source="prev_users_total",
+        help_text="Total distinct users that attended the previous event",
+    )
+    users_diff = RoundedDecimalField(
+        source="prev_users_diff",
+        help_text="Difference between number of users who attended the selected event and the previous event",
+    )
+    members_total = serializers.IntegerField(
+        source="prev_members_total",
+        help_text="Number of users who attended the previous event who were also members of the club",
+    )
+    members_diff = RoundedDecimalField(
+        source="prev_members_diff",
+        help_text="Difference between the members who attended the selected event and the previous event",
+    )
+    returning_total = serializers.IntegerField(
+        source="prev_returning_total",
+        help_text="Number of users who attended the previous event that also attended an earlier event",
+    )
+    returning_diff = RoundedDecimalField(
+        source="prev_returning_diff",
+        help_text="Difference between the returning users for the selected event and the previous event",
+    )
 
-    def get_permissions(self, obj: Event):
-        """Returns permissions for an event an object"""
-        request = self.context.get("request")
-        can_view_analytics = request and request.user.has_perm(
-            "events.view_event_analytics", is_global=False
-        )
-        return {"can_view_analytics": can_view_analytics}
+
+class EventTypeAnalyticsNestedSerializer(SerializerBase):
+    """Metrics of current event compared to all events for the primary club in the same event type."""
+
+    events_count = serializers.IntegerField(
+        source="evtype_events_count",
+        help_text="Number of previous events for the primary club that had this event type",
+    )
+    users_avg = RoundedDecimalField(
+        source="evtype_users_avg",
+        help_text="Average number of users who attended the previous events with the same event type",
+    )
+    users_diff = RoundedDecimalField(
+        source="evtype_users_diff",
+        help_text="Difference between number of users who attended selected event and the average for the event type",
+    )
+    members_avg = RoundedDecimalField(
+        source="evtype_members_avg",
+        help_text="Average number of users who attended the previous events with the same event type that were also members of the primary club",
+    )
+    members_diff = RoundedDecimalField(
+        source="evtype_members_diff",
+        help_text="Difference between the total members for the selected event and the average number of members for the event type",
+    )
+    returning_avg = RoundedDecimalField(
+        source="evtype_returning_avg",
+        help_text="Average number of users for each event in the event type that had attended an event prior for the primary club",
+    )
+    returning_diff = RoundedDecimalField(
+        source="evtype_returning_diff",
+        help_text="Difference between the returning users for the selected event and the average returning users for the event type",
+    )
+
+
+class RecurringEventAnalyticsNestedSerializer(SerializerBase):
+    """Metrics of current event compared to all events for the primary club in the same event type."""
+
+    id = serializers.IntegerField(
+        source="rec_id",
+        help_text="ID of the recurring event attached to the selected event",
+    )
+    events_count = serializers.IntegerField(
+        source="rec_events_count",
+        help_text="Number of events attached to this recurring event that occur before the selected event",
+    )
+    users_avg = RoundedDecimalField(
+        source="rec_users_avg",
+        help_text="Average number of users who attended previous events under this recurring event",
+    )
+    users_diff = RoundedDecimalField(
+        source="rec_users_diff",
+        help_text="Difference between the number of users who attended the selected event and the average users for previous events for the same recurring event",
+    )
+    members_avg = RoundedDecimalField(
+        source="rec_members_avg",
+        help_text="Average number of users who attended previous events for the recurring event that were also members of the primary club",
+    )
+    members_diff = RoundedDecimalField(
+        source="rec_members_diff",
+        help_text="Difference between the members who attended the selected event and the average members who attended previous events for this recurring event",
+    )
+    returning_avg = RoundedDecimalField(
+        source="rec_returning_avg",
+        help_text="Average number of users who attended previous events under this recurring event and also attended prior events for the primary club",
+    )
+    returning_diff = RoundedDecimalField(
+        source="rec_returning_diff",
+        help_text="Difference between the returning users for the selected event, and the average for all prior events in the recurring event series",
+    )
+
+
+class EventAnalyticsSerializer(SerializerBase):
+    """Information about event attendance, etc."""
+
+    users_total = serializers.IntegerField(
+        source="event_users_total",
+        help_text="Number of distinct users who submitted the poll for the event",
+    )
+    members_total = serializers.IntegerField(
+        source="event_members_total",
+        help_text="Number of users who were members of the primary host",
+    )
+    returning_total = serializers.IntegerField(
+        source="event_returning_total",
+        help_text="Number of users who have submitted a poll for the primary club before",
+    )
+
+    previous_event = PreviousEventAnalyticsNestedSerializer(source="*")
+    event_type = EventTypeAnalyticsNestedSerializer(source="*")
+    recurring_event = RecurringEventAnalyticsNestedSerializer(source="*")
+
+
+class EventDetailSerializer(EventSerializer):
+    """Show extended information about an event."""
+
+    analytics = EventAnalyticsSerializer(
+        source="_analytics", required=False, allow_null=True, read_only=True
+    )
 
 
 class EventCancellationSerializer(serializers.ModelSerializer):
