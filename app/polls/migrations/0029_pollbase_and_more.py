@@ -175,11 +175,4 @@ class Migration(migrations.Migration):
                 to="polls.pollbase",
             ),
         ),
-        migrations.AddConstraint(
-            model_name="pollbase",
-            constraint=models.CheckConstraint(
-                condition=models.Q(("is_private", True), ("club__isnull", True), _negated=True),
-                name="private_poll_must_have_club",
-            ),
-        ),
     ]

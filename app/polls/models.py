@@ -190,29 +190,6 @@ class PollBase(ModelBase):
 
         return super().clean()
 
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                name="private_poll_must_have_club",
-                check=(
-                    ~(models.Q(is_private=True) & models.Q(club__isnull=True))
-                ),
-            )
-        ]
-
-    def add_field(self, field_type: PollFieldType):
-        """Add new question, markup, or page break to a poll."""
-
-        highest_order = self.fields.order_by("-order")
-        if highest_order.exists():
-            highest_order = highest_order.first().order
-        else:
-            highest_order = 1
-
-        return PollField.objects.create(
-            poll=self, order=highest_order, field_type=field_type
-        )
-
 
 class Poll(ClubScopedModel, PollBase):
     """Custom form."""

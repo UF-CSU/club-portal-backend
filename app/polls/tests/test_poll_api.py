@@ -14,15 +14,18 @@ from polls.models import (
     NumberInput,
     Poll,
     PollField,
+    PollInputType,
     PollMarkup,
     PollQuestion,
     PollStatusType,
+    PollTemplate,
     ScaleInput,
     TextInput,
     UploadInput,
 )
 from polls.tests.utils import (
     POLLS_URL,
+    POLLTEMPLATES_URL,
     create_test_poll,
     pollfield_detail_url,
     pollfield_list_url,
@@ -31,6 +34,7 @@ from polls.tests.utils import (
     pollpreview_detail_url,
     polls_detail_url,
     pollsubmission_list_url,
+    polltemplate_create_poll_url,
 )
 
 # TODO: Edgecase: Should prevent poll.club != poll.event.primary_club
@@ -1017,3 +1021,118 @@ class PollViewAuthTests(PrivateApiTestsBase):
     #     self.assertEqual(poll.submissions.count(), 1)
     #     self.assertFalse(poll.submissions.first().is_valid)
     #     self.assertIsNotNone(poll.submissions.first().error)
+
+
+class PollTemplateViewAuthTests(PrivateApiTestsBase):
+    """Test managing poll templates via REST api and views."""
+
+    def test_get_polltemplates(self):
+        """Should only return poll templates based on user's clubs"""
+
+        # Create templates
+        template1 = PollTemplate.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+        club1 = create_test_club()
+        template2 = PollTemplate.objects.create(
+            club=club1,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+        club2 = create_test_club()
+        PollTemplate.objects.create(
+            club=club2,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+
+        url = POLLTEMPLATES_URL
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # User with no clubs should only have access to templates without clubs
+        data = res.json()
+        self.assertLength(data, 1, data)
+        self.assertEqual(data[0]["id"], template1.id)
+
+        # Add user to club
+        ClubService(club1).add_member(self.user)
+
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Should now be able to see template2
+        data = res.json()
+        self.assertLength(data, 2, data)
+        self.assertListEqual([d["id"] for d in data], [template1.id, template2.id], True)
+
+    def test_create_poll_from_template(self):
+        """Create poll from poll template"""
+
+        # Create template
+        club = create_test_club()
+        template = PollTemplate.objects.create(
+            club=club,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+
+        # Setup fields
+        f1 = PollField.objects.create(poll=template, order=2)
+        f2 = PollField.objects.create(poll=template, order=3)
+
+        expected_q1 = PollQuestion.objects.create(
+            field=f1,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+        expected_q2 = PollQuestion.objects.create(
+            field=f2,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+
+        # Empty payload
+        url = polltemplate_create_poll_url(template.pk)
+        res = self.client.post(url, data={}, format="json")
+        self.assertEqual(res.status_code, 201, res.content)
+
+        self.assertEqual(Poll.objects.count(), 1)
+        poll = Poll.objects.first()
+
+        self.assertEqual(poll.club, template.club)
+        self.assertEqual(poll.name, template.name)
+        self.assertEqual(poll.description, template.description)
+        self.assertEqual(poll.is_private, template.is_private)
+
+        self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
+        self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)
+
+        # Cleanup
+        Poll.objects.all().delete()
+
+        # Payload
+        payload = {
+            "name": fake.title(),
+            "description": fake.sentence()
+        }
+        res = self.client.post(url, data=payload, format="json")
+        self.assertEqual(res.status_code, 201, res.content)
+
+        self.assertEqual(Poll.objects.count(), 1)
+        poll = Poll.objects.first()
+
+        self.assertEqual(poll.club, template.club)
+        self.assertEqual(poll.name, payload["name"])
+        self.assertEqual(poll.description, payload["description"])
+        self.assertEqual(poll.is_private, template.is_private)
+
+        self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
+        self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)

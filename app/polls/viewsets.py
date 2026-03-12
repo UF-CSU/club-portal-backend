@@ -7,7 +7,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from events.models import Event
-from rest_framework import exceptions, mixins, permissions, status
+from rest_framework import exceptions, mixins, permissions, serializers, status
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -163,14 +163,13 @@ class PollTemplateViewSet(ModelViewSetBase):
 
     serializer_class = PollTemplateSerializer
     queryset = PollTemplate.objects.none()
-    filter_backends = [ClubQueryFilter]
 
     def get_queryset(self):
         user_clubs = self.request.user.clubs.all().values_list("id", flat=True)
 
         return (
-            PollTemplate.objects.filter(club__id__in=user_clubs)
-            .select_related("club", "event")
+            PollTemplate.objects.filter(models.Q(club__isnull=True) | models.Q(club__id__in=user_clubs))
+            .select_related("club")
             .prefetch_related(
                 models.Prefetch(
                     "fields",
@@ -198,7 +197,8 @@ class PollTemplateCreatePollView(CreateAPIView):
     """Create poll from poll template"""
 
     class PollTemplateCreatePollSerializer(PollSerializer):
-        # Club can be inferred from poll template, so make it optional
+        # Name and club can be inferred from poll template, so make it optional
+        name = serializers.CharField(required=False)
         club = PollClubNestedSerializer(required=False, allow_null=True)
 
     serializer_class = PollTemplateCreatePollSerializer
