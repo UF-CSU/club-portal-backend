@@ -42,8 +42,8 @@ from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
     ClubFileSerializer,
+    ClubMemberCreateSerializer,
     ClubMemberSerializer,
-    ClubMembershipCreateSerializer,
     ClubMembershipSerializer,
     ClubPreviewListParamSerializer,
     ClubPreviewSerializer,
@@ -341,7 +341,7 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
 
     def get_serializer_class(self):
         if self.action == "create":
-            return ClubMembershipCreateSerializer
+            return ClubMemberCreateSerializer
 
         return super().get_serializer_class()
 

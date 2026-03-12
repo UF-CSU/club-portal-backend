@@ -399,7 +399,7 @@ class ClubMemberSerializer(ModelSerializerBase):
         ]
 
 
-class ClubMembershipCreateSerializer(ClubMemberSerializer):
+class ClubMemberCreateSerializer(ClubMemberSerializer):
     """Connects a User to a Club, determines how memberships should be added."""
 
     send_email = serializers.BooleanField(
@@ -569,7 +569,7 @@ class UserNestedCsvSerializer(CsvModelSerializer, ClubUserNestedSerializer):
         fields = ["id", "email", "username", "name"]
 
 
-class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipCreateSerializer):
+class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMemberCreateSerializer):
     """Serialize club memberships for a csv."""
 
     user = UserNestedCsvSerializer(required=True)
