@@ -1117,6 +1117,7 @@ class PollTemplateViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(Poll.objects.count(), 1)
         poll = Poll.objects.first()
 
+        self.assertEqual(poll.template, template)
         self.assertEqual(poll.club, template.club)
         self.assertEqual(poll.name, template.name)
         self.assertEqual(poll.description, template.description)
@@ -1139,6 +1140,7 @@ class PollTemplateViewAuthTests(PrivateApiTestsBase):
         self.assertEqual(Poll.objects.count(), 1)
         poll = Poll.objects.first()
 
+        self.assertEqual(poll.template, template)
         self.assertEqual(poll.club, template.club)
         self.assertEqual(poll.name, payload["name"])
         self.assertEqual(poll.description, payload["description"])

@@ -93,6 +93,7 @@ class PollAdmin(PollBaseAdmin):
     )
     readonly_fields = PollBaseAdmin.readonly_fields + (
         "view_poll",
+        "template",
         "submissions_download_link",
     )
     actions = ("sync_submission_links",)
@@ -106,6 +107,11 @@ class PollAdmin(PollBaseAdmin):
         return mark_safe(
             f"<a href=\"{reverse('polls:poll', kwargs={'poll_id': obj.id})}\" target='_blank'>View Poll</a>"
         )
+
+    def template(self, obj):
+        if obj.template is None:
+            return "None"
+        return self.as_model_link(obj.template)
 
     def submissions_download_link(self, obj):
         if obj.id is None:
@@ -146,8 +152,7 @@ class PollTemplateAdmin(PollBaseAdmin):
         polltemplate = queryset.first()
         created_poll = PollTemplateService(polltemplate).create_poll()
 
-        created_poll_url = reverse('polls:poll', kwargs={'poll_id': created_poll.id})
-        message = mark_safe(f"Created <a href='{created_poll_url}' target='_blank'>Poll</a> from template.")
+        message = mark_safe(f"Created {self.as_model_link(created_poll)} from template.")
 
         self.message_user(
             request,

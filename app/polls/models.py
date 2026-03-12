@@ -191,6 +191,20 @@ class PollBase(ModelBase):
         return super().clean()
 
 
+class PollTemplate(PollBase):
+    """Extension of polls that allow the creation of new polls."""
+
+    pollbase_ptr = models.OneToOneField(
+        PollBase,
+        on_delete=models.CASCADE,
+        parent_link=True,
+        primary_key=True,
+        db_column="id"
+    )
+
+    event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
+
+
 class Poll(ClubScopedModel, PollBase):
     """Custom form."""
 
@@ -204,6 +218,15 @@ class Poll(ClubScopedModel, PollBase):
 
     event = models.OneToOneField(
         Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
+    )
+
+    template = models.ForeignKey(
+        PollTemplate,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="+"
     )
 
     status = models.CharField(
@@ -375,20 +398,6 @@ class PollSubmissionLink(Link):
     poll = models.OneToOneField(
         Poll, on_delete=models.CASCADE, related_name="_submission_link"
     )
-
-
-class PollTemplate(PollBase):
-    """Extension of polls that allow the creation of new polls."""
-
-    pollbase_ptr = models.OneToOneField(
-        PollBase,
-        on_delete=models.CASCADE,
-        parent_link=True,
-        primary_key=True,
-        db_column="id"
-    )
-
-    event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
 
 
 class PollFieldManager(ManagerBase["PollField"]):

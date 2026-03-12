@@ -230,6 +230,7 @@ class PollTemplateServiceTests(TestsBase):
         poll = PollTemplateService(template).create_poll()
         self.assertIsNotNone(poll)
 
+        self.assertEqual(poll.template, template)
         self.assertEqual(poll.club, template.club)
         self.assertEqual(poll.name, template.name)
         self.assertEqual(poll.description, template.description)
@@ -275,6 +276,7 @@ class PollTemplateServiceTests(TestsBase):
         poll = PollTemplateService(template).create_poll(**overrides)
         self.assertIsNotNone(poll)
 
+        self.assertEqual(poll.template, template)
         self.assertEqual(poll.club, template.club)
         self.assertEqual(poll.name, overrides["name"])
         self.assertEqual(poll.description, overrides["description"])
@@ -317,6 +319,7 @@ class PollTemplateServiceTests(TestsBase):
         poll = PollTemplateService(template).create_poll(club=club)
         self.assertIsNotNone(poll)
 
+        self.assertEqual(poll.template, template)
         self.assertEqual(poll.club, club)
         self.assertEqual(poll.name, template.name)
         self.assertEqual(poll.description, template.description)

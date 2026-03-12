@@ -164,7 +164,7 @@ class PollService(ServiceBase[Poll]):
         """Create new question, with associated field and input for poll."""
 
         poll = self.obj
-        field = kwargs.pop("field", None) or PollField.objects.create(poll, field_type="question")
+        field = kwargs.pop("field", None) or PollField.objects.create(poll=poll, field_type="question")
         payload = {
             "field": field,
             "label": label,
@@ -294,7 +294,7 @@ class PollTemplateService(ServiceBase[PollTemplate]):
             "is_private": self.obj.is_private,
             **kwargs,
         }
-        poll = Poll.objects.create(**data)
+        poll = Poll.objects.create(**data, template=self.obj)
 
         # Set allowed club roles
         poll.allowed_club_roles.set(self.obj.allowed_club_roles.all())
