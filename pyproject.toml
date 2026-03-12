@@ -51,7 +51,7 @@ dependencies = [
 dev = [
     # Linting & Formatting
     "autoflake>=2.3.1,<2.4",
-    "black>=24.1.1,<25.2",
+    "black>=24.1.1,<26.4",
     "isort>=5.13.2,<5.14",
     "ruff>=0.13.3,<0.14",
     # Testing
