@@ -249,7 +249,6 @@ class EventViewset(ModelViewSetBase):
 
     def filter_queryset(self, queryset):
         include_public = self.kwargs.get("include_public", False)
-        print("Including public:", include_public)
 
         queryset = queryset.filter_for_user(self.request.user)
 
