@@ -101,6 +101,8 @@ class EventPreviewSerializer(ModelSerializerBase):
             "tags",
             "is_draft",
             "is_public",
+            "primary_color",
+            "text_color",
         ]
 
 
@@ -116,7 +118,14 @@ class EventSerializer(EventPreviewSerializer):
 
     class Meta:
         model = Event
-        exclude = ["clubs", "make_public_task"]
+        fields = EventPreviewSerializer.Meta.fields + [
+            "recurring_event",
+            "attachments",
+            "attendance_links",
+            "enable_attendance",
+            "poll",
+            "make_public_at",
+        ]
 
     def validate(self, attrs):
         # Ensure that there are not only secondary hosts
@@ -340,6 +349,10 @@ class EventDetailSerializer(EventSerializer):
     analytics = EventAnalyticsSerializer(
         source="_analytics", required=False, allow_null=True, read_only=True
     )
+
+    class Meta:
+        model = Event
+        fields = EventSerializer.Meta.fields + ["analytics"]
 
 
 class EventCancellationSerializer(serializers.ModelSerializer):

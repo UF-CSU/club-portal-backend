@@ -17,6 +17,7 @@ from clubs.serializers import (
     TeamSerializer,
 )
 from events.serializers import (
+    EventDetailSerializer,
     EventHeatmapSerializer,
     EventHostSerializer,
     EventPreviewSerializer,
@@ -102,6 +103,7 @@ SERIALIZERS_READONLY: list[InputSerializerType] = [
     ClubPhotoSerializer,
     EventHeatmapSerializer,
     EventPreviewSerializer,
+    EventDetailSerializer,
 ]
 """
 List of serializers to create base interface for only.

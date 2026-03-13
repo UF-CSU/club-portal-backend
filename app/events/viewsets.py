@@ -153,28 +153,30 @@ class CustomDatePagination(BasePagination):
 class EventPreviewViewSet(ModelPreviewViewSetBase):
     """API For showing public event previews."""
 
-    queryset = Event.objects.filter(
-        Q(is_public=True) & Q(is_draft=False)
-    ).prefetch_related(
-        Prefetch(
-            "hosts",
-            queryset=EventHost.objects.select_related("club", "club__logo").only(
-                "id",
-                "event_id",
-                "club_id",
-                "is_primary",
-                "club__id",
-                "club__name",
-                "club__alias",
-                "club__logo_id",
+    queryset = (
+        Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
+        .prefetch_related(
+            Prefetch(
+                "hosts",
+                queryset=EventHost.objects.select_related("club", "club__logo").only(
+                    "id",
+                    "event_id",
+                    "club_id",
+                    "is_primary",
+                    "club__id",
+                    "club__name",
+                    "club__alias",
+                    "club__logo_id",
+                ),
             ),
-        ),
-        Prefetch(
-            "tags",
-            queryset=EventTag.objects.order_by("order", "name").only(
-                "id", "name", "color", "order"
+            Prefetch(
+                "tags",
+                queryset=EventTag.objects.order_by("order", "name").only(
+                    "id", "name", "color", "order"
+                ),
             ),
-        ),
+        )
+        .distinct("id")
     )
     serializer_class = serializers.EventPreviewSerializer
     pagination_class = CustomDatePagination
@@ -218,7 +220,7 @@ class EventViewset(ModelViewSetBase):
                 queryset=EventAttendanceLink.objects.select_related("link_ptr"),
             ),
         )
-    )
+    ).distinct("id")
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ["clubs"]
@@ -249,7 +251,6 @@ class EventViewset(ModelViewSetBase):
 
     def filter_queryset(self, queryset):
         include_public = self.kwargs.get("include_public", False)
-        print("Including public:", include_public)
 
         queryset = queryset.filter_for_user(self.request.user)
 

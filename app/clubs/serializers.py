@@ -314,11 +314,7 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
 class ClubMemberTeamNestedSerializer(ModelSerializerBase):
     """Display a user's team memberships with the club memberships api."""
 
-    roles = serializers.SlugRelatedField(
-        slug_field="name",
-        many=True,
-        queryset=TeamRole.objects.all(),  # TODO: Restrict roles to team only
-    )
+    roles = serializers.SlugRelatedField(slug_field="name", many=True, read_only=True)
 
     class Meta:
         model = TeamMembership
@@ -334,26 +330,15 @@ class ClubMembershipSerializer(ModelSerializerBase):
 
     user_id = serializers.PrimaryKeyRelatedField(source="user", read_only=True)
     club_id = serializers.PrimaryKeyRelatedField(source="club", read_only=True)
-    team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
+    team_memberships = ClubMemberTeamNestedSerializer(
+        many=True, required=False, read_only=True
+    )
     roles = serializers.SlugRelatedField(
         slug_field="name",
         many=True,
-        queryset=ClubRole.objects.none(),
         required=False,
+        read_only=True,
     )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not hasattr(self, "context") or not self.context:
-            return
-        club_id = self.context.get("club_id")
-        skip_role_queryset = self.context.get("skip_role_queryset", False)
-
-        if club_id and not skip_role_queryset:
-            filtered_roles = ClubRole.objects.filter(club_id=club_id)
-            self.fields["roles"].queryset = filtered_roles
-            if hasattr(self.fields["roles"], "child_relation"):
-                self.fields["roles"].child_relation.queryset = filtered_roles
 
     class Meta:
         model = ClubMembership
@@ -370,6 +355,10 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "is_pinned",
             "order",
         ]
+        extra_kwargs = {
+            "is_owner": {"read_only": True},
+            "points": {"read_only": True},
+        }
 
 
 class ClubMemberSerializer(ModelSerializerBase):

@@ -15,6 +15,7 @@ from clubs.tests.utils import (
     club_list_url_member,
     club_members_detail_url,
     club_members_list_url,
+    club_memberships_detail_url,
     create_test_club,
     create_test_clubs,
 )
@@ -232,6 +233,7 @@ class SingleClubApiPermsTests(PublicApiTestsBase):
                 "email": self.user.email,
             },
             "roles": ["President"],
+            "is_owner": True,
         }
 
         res = self.client.post(url, data=payload)
@@ -252,6 +254,7 @@ class SingleClubApiPermsTests(PublicApiTestsBase):
                 "email": self.user.email,
             },
             "roles": ["President"],
+            "is_owner": True,
         }
 
         res = self.client.post(url, data=payload)
@@ -260,6 +263,7 @@ class SingleClubApiPermsTests(PublicApiTestsBase):
         # Ensure their role didn't change
         mem.refresh_from_db()
         self.assertFalse(mem.roles.filter(name="President").exists())
+        self.assertFalse(mem.is_owner)
 
     def test_change_own_role_editor(self):
         """Should not be able to change own role within club unless admin."""
@@ -274,6 +278,7 @@ class SingleClubApiPermsTests(PublicApiTestsBase):
                 "email": self.user.email,
             },
             "roles": ["President"],
+            "is_owner": True,
         }
 
         res = self.client.post(url, data=payload)
@@ -282,3 +287,40 @@ class SingleClubApiPermsTests(PublicApiTestsBase):
         # Ensure their role didn't change
         mem.refresh_from_db()
         self.assertFalse(mem.roles.filter(name="President").exists())
+        self.assertFalse(mem.is_owner)
+
+    def test_update_membership_with_role(self):
+        """Should not be able to update own membership and change the role."""
+
+        # User is a member of the club
+        mem = ClubService(self.club).add_member(self.user, roles=["Member"])
+
+        # Then they try to set their own role
+        url = club_memberships_detail_url(mem.pk)
+        payload = {
+            "roles": ["President"],
+        }
+
+        res = self.client.patch(url, data=payload)
+        self.assertResOk(res)
+
+        # Ensure their role didn't change
+        mem.refresh_from_db()
+        self.assertFalse(mem.roles.filter(name="President").exists())
+
+    def test_update_membership_is_owner(self):
+        """Should not be able to update own membership and set self as owner."""
+
+        # User is a member of the club
+        mem = ClubService(self.club).add_member(self.user, roles=["Member"])
+
+        # Then they try to set their own role
+        url = club_memberships_detail_url(mem.pk)
+        payload = {"is_owner": True}
+
+        res = self.client.patch(url, data=payload)
+        self.assertResOk(res)
+
+        # Ensure their role didn't change
+        mem.refresh_from_db()
+        self.assertFalse(mem.is_owner)

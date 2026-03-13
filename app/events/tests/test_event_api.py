@@ -5,6 +5,7 @@ import freezegun
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
 from django.utils import timezone
+from lib.faker import fake
 from polls.tests.utils import polls_detail_url
 from users.tests.utils import create_test_user
 from utils.helpers import reverse_query
@@ -305,6 +306,32 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         url = event_detail_url(event.id)
         res = self.client.get(url)
         self.assertResOk(res)
+
+    def test_get_event_multiple_hosts(self):
+        """Should be able to retrieve an event with multiple hosts."""
+
+        # Create 1 event with 2 hosts
+        c1 = create_test_club(
+            members=[self.user],
+            primary_color=fake.color(color_format="hex"),
+            text_color=fake.color(color_format="hex"),
+        )
+        c2 = create_test_club(
+            members=[self.user],
+            primary_color=fake.color(color_format="hex"),
+            text_color=fake.color(color_format="hex"),
+        )
+
+        event = create_test_event(host=c1, secondary_hosts=[c2])
+
+        # The colors in the event response should be same as primary club
+        url = event_detail_url(event.pk)
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertEqual(data["primary_color"], c1.primary_color, data)
+        self.assertEqual(data["text_color"], c1.text_color, data)
 
     # TODO: Change shift from 14 days to 7
     # def test_get_default_filtering(self):
