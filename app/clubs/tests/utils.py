@@ -27,6 +27,10 @@ def club_members_detail_url(club_id: int, member_id: int):
     return reverse("api-clubs:clubmember-detail", args=[club_id, member_id])
 
 
+def club_memberships_detail_url(membership_id: int):
+    return reverse("api-clubs:user_clubmembership-detail", args=[membership_id])
+
+
 def club_detail_url(club_id: int):
     return reverse("api-clubs:club-detail", args=[club_id])
 
@@ -38,6 +42,7 @@ def club_apikey_list_url(club_id: int):
 CLUBS_LIST_URL = reverse("api-clubs:club-list")
 CLUBS_JOIN_URL = reverse("api-clubs:join")
 CLUBS_PREVIEW_LIST_URL = reverse("api-clubs:clubpreview-list")
+CLUB_MEMBERSHIPS_LIST_URL = reverse("api-clubs:user_clubmembership-list")
 
 
 def club_list_url_member(is_admin: bool = None):

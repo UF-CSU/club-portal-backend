@@ -175,7 +175,13 @@ class ClubViewSet(ModelViewSetBase):
         return Response(serializer.data)
 
 
-class UserClubMembershipsViewSet(ModelViewSetBase):
+class UserClubMembershipsViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    ViewSetBase,
+):
     """Manage club memberships that belong to the user."""
 
     queryset = ClubMembership.objects.select_related(
