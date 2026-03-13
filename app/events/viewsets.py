@@ -175,7 +175,7 @@ class EventPreviewViewSet(ModelPreviewViewSetBase):
                 "id", "name", "color", "order"
             ),
         ),
-    )
+    ).distinct("id")
     serializer_class = serializers.EventPreviewSerializer
     pagination_class = CustomDatePagination
     filterset_fields = ["clubs"]
@@ -218,7 +218,7 @@ class EventViewset(ModelViewSetBase):
                 queryset=EventAttendanceLink.objects.select_related("link_ptr"),
             ),
         )
-    )
+    ).distinct("id")
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ["clubs"]
