@@ -5,8 +5,9 @@ should function.
 
 from clubs.serializers import (
     ClubFileSerializer,
+    ClubMemberCreateSerializer,
     ClubMemberSerializer,
-    ClubMembershipCreateSerializer,
+    ClubMembershipSerializer,
     ClubPhotoSerializer,
     ClubPreviewSerializer,
     ClubSerializer,
@@ -16,6 +17,7 @@ from clubs.serializers import (
     TeamSerializer,
 )
 from events.serializers import (
+    EventDetailSerializer,
     EventHeatmapSerializer,
     EventHostSerializer,
     EventPreviewSerializer,
@@ -48,11 +50,13 @@ from users.serializers import SocialProviderSerializer, UserSerializer
 SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     # Club types
     ClubSerializer,
-    (
-        ClubMemberSerializer,
-        ClubMembershipCreateSerializer,
-        ClubMemberSerializer,
-    ),
+    # (
+    #     ClubMemberSerializer,
+    #     ClubMembershipCreateSerializer,
+    #     ClubMemberSerializer,
+    # ),
+    (ClubMemberSerializer, ClubMemberCreateSerializer, ClubMemberSerializer),
+    ClubMembershipSerializer,
     ClubFileSerializer,
     ClubPhotoSerializer,
     TeamSerializer,
@@ -99,6 +103,7 @@ SERIALIZERS_READONLY: list[InputSerializerType] = [
     ClubPhotoSerializer,
     EventHeatmapSerializer,
     EventPreviewSerializer,
+    EventDetailSerializer,
 ]
 """
 List of serializers to create base interface for only.

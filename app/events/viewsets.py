@@ -153,28 +153,30 @@ class CustomDatePagination(BasePagination):
 class EventPreviewViewSet(ModelPreviewViewSetBase):
     """API For showing public event previews."""
 
-    queryset = Event.objects.filter(
-        Q(is_public=True) & Q(is_draft=False)
-    ).prefetch_related(
-        Prefetch(
-            "hosts",
-            queryset=EventHost.objects.select_related("club", "club__logo").only(
-                "id",
-                "event_id",
-                "club_id",
-                "is_primary",
-                "club__id",
-                "club__name",
-                "club__alias",
-                "club__logo_id",
+    queryset = (
+        Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
+        .prefetch_related(
+            Prefetch(
+                "hosts",
+                queryset=EventHost.objects.select_related("club", "club__logo").only(
+                    "id",
+                    "event_id",
+                    "club_id",
+                    "is_primary",
+                    "club__id",
+                    "club__name",
+                    "club__alias",
+                    "club__logo_id",
+                ),
             ),
-        ),
-        Prefetch(
-            "tags",
-            queryset=EventTag.objects.order_by("order", "name").only(
-                "id", "name", "color", "order"
+            Prefetch(
+                "tags",
+                queryset=EventTag.objects.order_by("order", "name").only(
+                    "id", "name", "color", "order"
+                ),
             ),
-        ),
+        )
+        .distinct("id")
     )
     serializer_class = serializers.EventPreviewSerializer
     pagination_class = CustomDatePagination
@@ -218,7 +220,7 @@ class EventViewset(ModelViewSetBase):
                 queryset=EventAttendanceLink.objects.select_related("link_ptr"),
             ),
         )
-    )
+    ).distinct("id")
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ["clubs"]
@@ -244,10 +246,19 @@ class EventViewset(ModelViewSetBase):
 
         return super().get_serializer(*args, instance=instance, **kwargs)
 
-    def get_queryset(self):
-        return self.queryset.filter_for_user(self.request.user)
+    # def get_queryset(self):
+    #     return self.queryset.filter_for_user(self.request.user)
 
     def filter_queryset(self, queryset):
+        include_public = self.kwargs.get("include_public", False)
+
+        queryset = queryset.filter_for_user(self.request.user)
+
+        if include_public:
+            queryset = queryset | self.queryset.filter(
+                Q(is_public=True) & Q(is_draft=False)
+            )
+
         if self.action == "retrieve":
             return queryset
 
@@ -305,26 +316,27 @@ class EventViewset(ModelViewSetBase):
 
         return super().perform_create(serializer)
 
-    @query_params(
-        analytics=Query(
-            required=False,
-            qtype=bool,
-            default=False,
-            description="A field for returning analytics",
-        )
-    )
+    # @query_params(
+    #     analytics=Query(
+    #         required=False,
+    #         qtype=bool,
+    #         default=False,
+    #         description="A field for returning analytics",
+    #     )
+    # )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
     @query_params(
-        analytics=Query(
+        include_public=Query(
             required=False,
             qtype=bool,
             default=False,
-            description="A field for returning analytics",
+            description="If true, will include public events from all clubs",
         )
     )
     def list(self, request: Request, *args, **kwargs):
+        self.kwargs = kwargs
         return super().list(request, *args, **kwargs)
 
 
@@ -403,6 +415,11 @@ class EventHeatmapViewSet(APIView):
         clubs=Query(qtype=int, is_list=True),
         start_date=Query(qtype=date),
         end_date=Query(qtype=date),
+        include_public=Query(
+            qtype=bool,
+            default=False,
+            description="If true, will include public events from all clubs",
+        ),
     )
     def get(
         self,
@@ -410,6 +427,7 @@ class EventHeatmapViewSet(APIView):
         clubs: Optional[list[int]] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        include_public: Optional[bool] = False,
     ):
         # Parse club ids
         if clubs is None:
@@ -438,7 +456,10 @@ class EventHeatmapViewSet(APIView):
 
         # Generate heatmap
         heatmap = EventService.get_event_heatmap(
-            club_ids=clubs, start_date=start_date, end_date=end_date
+            club_ids=clubs,
+            start_date=start_date,
+            end_date=end_date,
+            include_public=include_public,
         )
 
         serializer = self.serializer_class(heatmap)

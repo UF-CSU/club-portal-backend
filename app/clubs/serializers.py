@@ -145,6 +145,7 @@ class ClubSerializer(ModelSerializerBase):
         many=True,
     )
     roles = ClubRoleSerializer(many=True, required=False)
+    logo_url = ImageUrlField(required=False, write_only=True)
     # roles = serializers.SlugRelatedField(
     #     many=True, slug_field="name", queryset=ClubRole.objects.all()
     # )
@@ -174,8 +175,19 @@ class ClubSerializer(ModelSerializerBase):
             "text_color",
             "default_role",
             "roles",
+            "instagram_followers",
+            "logo_url",
             # "user_membership",
         ]
+
+    def create(self, validated_data):
+        logo = validated_data.pop("logo_url", None)
+        club = super().create(validated_data)
+
+        if logo:
+            file = ClubFile.objects.create(club=club, file=logo)
+            club.logo_url = file
+            club.save()
 
     def update(self, instance, validated_data):
         logo_data = validated_data.pop("logo", None)
@@ -183,6 +195,7 @@ class ClubSerializer(ModelSerializerBase):
         socials_data = validated_data.pop("socials", [])
         tags_data = validated_data.pop("tags", [])
         photos_data = validated_data.pop("photos", [])
+        logo_url_data = validated_data.pop("logo_url", None)
 
         club = super().update(instance, validated_data)
 
@@ -190,6 +203,9 @@ class ClubSerializer(ModelSerializerBase):
             club.logo_id = logo_data["id"]
         if banner_data:
             club.banner_id = banner_data["id"]
+        if logo_url_data:
+            file = ClubFile.objects.create(club=club, file=logo_url_data)
+            club.logo_url = file
         club.save()
 
         club.socials.all().delete()
@@ -298,11 +314,7 @@ class ClubMemberUserNestedSerializer(ModelSerializerBase):
 class ClubMemberTeamNestedSerializer(ModelSerializerBase):
     """Display a user's team memberships with the club memberships api."""
 
-    roles = serializers.SlugRelatedField(
-        slug_field="name",
-        many=True,
-        queryset=TeamRole.objects.all(),  # TODO: Restrict roles to team only
-    )
+    roles = serializers.SlugRelatedField(slug_field="name", many=True, read_only=True)
 
     class Meta:
         model = TeamMembership
@@ -318,26 +330,15 @@ class ClubMembershipSerializer(ModelSerializerBase):
 
     user_id = serializers.PrimaryKeyRelatedField(source="user", read_only=True)
     club_id = serializers.PrimaryKeyRelatedField(source="club", read_only=True)
-    team_memberships = ClubMemberTeamNestedSerializer(many=True, required=False)
+    team_memberships = ClubMemberTeamNestedSerializer(
+        many=True, required=False, read_only=True
+    )
     roles = serializers.SlugRelatedField(
         slug_field="name",
         many=True,
-        queryset=ClubRole.objects.none(),
         required=False,
+        read_only=True,
     )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not hasattr(self, "context") or not self.context:
-            return
-        club_id = self.context.get("club_id")
-        skip_role_queryset = self.context.get("skip_role_queryset", False)
-
-        if club_id and not skip_role_queryset:
-            filtered_roles = ClubRole.objects.filter(club_id=club_id)
-            self.fields["roles"].queryset = filtered_roles
-            if hasattr(self.fields["roles"], "child_relation"):
-                self.fields["roles"].child_relation.queryset = filtered_roles
 
     class Meta:
         model = ClubMembership
@@ -354,6 +355,10 @@ class ClubMembershipSerializer(ModelSerializerBase):
             "is_pinned",
             "order",
         ]
+        extra_kwargs = {
+            "is_owner": {"read_only": True},
+            "points": {"read_only": True},
+        }
 
 
 class ClubMemberSerializer(ModelSerializerBase):
@@ -399,7 +404,7 @@ class ClubMemberSerializer(ModelSerializerBase):
         ]
 
 
-class ClubMembershipCreateSerializer(ClubMemberSerializer):
+class ClubMemberCreateSerializer(ClubMemberSerializer):
     """Connects a User to a Club, determines how memberships should be added."""
 
     send_email = serializers.BooleanField(
@@ -513,6 +518,14 @@ class JoinClubsSerializer(SerializerBase):
     )
 
 
+class FollowClubsSerializer(SerializerBase):
+    """Allow authenticated user to follow multiple clubs as a follower."""
+
+    clubs = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(queryset=Club.objects.all())
+    )
+
+
 class ClubRosterSerializer(ModelSerializerBase):
     """Used to display a club's members."""
 
@@ -561,7 +574,7 @@ class UserNestedCsvSerializer(CsvModelSerializer, ClubUserNestedSerializer):
         fields = ["id", "email", "username", "name"]
 
 
-class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMembershipCreateSerializer):
+class ClubMembershipCsvSerializer(CsvModelSerializer, ClubMemberCreateSerializer):
     """Serialize club memberships for a csv."""
 
     user = UserNestedCsvSerializer(required=True)

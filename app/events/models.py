@@ -369,6 +369,24 @@ class Event(EventFields):
         return host.first().club
 
     @property
+    def primary_color(self) -> Optional[str]:
+        """Primary color from the primary host."""
+
+        if self.primary_club:
+            return self.primary_club.primary_color
+
+        return None
+
+    @property
+    def text_color(self) -> Optional[str]:
+        """Text color from the primary host."""
+
+        if self.primary_club:
+            return self.primary_club.text_color
+
+        return None
+
+    @property
     def poll(self):
         if not hasattr(self, "_poll"):
             return None

@@ -10,16 +10,14 @@ from clubs.models import Club
 from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from dateutil.relativedelta import relativedelta
-from django.contrib.auth import get_user_model
 from django.db import connection, models
 from django.utils import timezone
 from polls.services import PollTemplateService
+from users.models import User
 from utils.dates import get_day_count
 from utils.db import dictfetchone, namedtuplefetchall
 
 from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
-
-User = get_user_model()
 
 
 class EventHeatmapDict(TypedDict):
@@ -505,6 +503,7 @@ class EventService(ServiceBase[Event]):
         club_ids: list[int],
         start_date: Optional[datetime.date] = None,
         end_date: Optional[datetime.date] = None,
+        include_public: Optional[bool] = False,
     ):
         """
         Get event count per day in duration.
@@ -528,10 +527,15 @@ class EventService(ServiceBase[Event]):
                 '1 day'
             ) as calendar
             LEFT JOIN (
-                SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id
+                SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id, event.is_public AS is_public, event.is_draft AS is_draft
                 FROM public.events_event AS event
                 LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id
-            ) AS event ON date_trunc('day', start_at) = calendar AND club_id IN ({",".join(["%s" for _ in club_ids])})
+            ) AS event ON date_trunc('day', start_at) = calendar
+                AND (
+                    club_id IN ({",".join(["%s" for _ in club_ids])})
+                    OR
+                    ({"is_public IS TRUE AND is_draft IS FALSE" if include_public else "FALSE"})
+                )
             GROUP BY day
             ORDER BY day
             """

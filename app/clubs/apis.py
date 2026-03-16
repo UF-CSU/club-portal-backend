@@ -34,6 +34,7 @@ app_name = "api-clubs"
 
 urlpatterns = [
     path("clubs/join/", viewsets.JoinClubsViewSet.as_view(), name="join"),
+    path("clubs/follow/", viewsets.FollowClubsViewSet.as_view(), name="follow"),
     path("", include(router.urls)),
     path(
         "clubs/<int:id>/invite/", viewsets.InviteClubMemberView.as_view(), name="invite"
