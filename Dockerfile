@@ -23,7 +23,7 @@ RUN python -m venv /py && \
     # Oauth, health checks
     apk add --update --no-cache xmlsec-dev curl && \
     # CLI utilities
-    apk add --update --no-cache findutils && \
+    apk add --update --no-cache findutils aws-cli && \
     # Temp deps for pip only, deleted after pip install
     apk add --update --no-cache --virtual .tmp-build-deps \
     build-base gcc musl-dev zlib zlib-dev linux-headers \
