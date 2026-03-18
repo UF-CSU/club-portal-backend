@@ -45,6 +45,32 @@ docker compose -f docker-compose.prod.yml run --rm app sh -c "clear-old-backups.
 # Successfully deleted 2 backups
 ```
 
+### Backups with S3
+
+List backups in AWS bucket:
+
+```sh
+aws s3api list-objects --bucket club-portal-prod-backups
+```
+
+Simply list backup names in the bucket:
+
+```sh
+aws s3api list-objects --bucket club-portal-prod-backups --query 'Contents[].Key' --output text
+```
+
+Download backup from S3:
+
+```sh
+aws s3 cp s3://club-portal-prod-backups/s3-test-backup.sql.gz ./backups/s3-test-backup.sql.gz
+```
+
+Restore from downloaded backup:
+
+```sh
+docker compose -f docker-compose.prod.yml run --rm app sh -c "restore-db.sh s3-test-backup"
+```
+
 ## Cron Jobs
 
 1. Daily backups (every 6 hours):
