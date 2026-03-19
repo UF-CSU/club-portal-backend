@@ -11,7 +11,7 @@ WITH values AS (
             SELECT AVG(c) FROM (
             SELECT COUNT(*) AS c
             FROM public.polls_pollsubmission ps
-            JOIN public.polls_poll p
+            JOIN public.polls_pollbase p
                 ON p.id = ps.poll_id
             WHERE p.club_id = {{ club_id }}
                 AND p.id <> {{ poll_id }}

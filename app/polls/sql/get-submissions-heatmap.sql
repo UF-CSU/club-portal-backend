@@ -1,7 +1,8 @@
 WITH ts AS (
-    SELECT created_at AS init, close_at AS closed
-    FROM public.polls_poll
-    WHERE id = {{ poll_id }}
+    SELECT pb.created_at AS init, p.close_at AS closed
+    FROM public.polls_pollbase pb
+    JOIN public.polls_poll p ON p.id = pb.id
+    WHERE pb.id = {{ poll_id }}
 )
 SELECT json_object_agg(
     start_interval, submission_count

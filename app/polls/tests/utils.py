@@ -27,6 +27,20 @@ def pollpreview_detail_url(id: int):
     return reverse("api-polls:pollpreview-detail", args=[id])
 
 
+def polltemplate_list_url(club_id: int | None = None):
+    if club_id is None:
+        return reverse("api-polls:polltemplate-list")
+    else:
+        return reverse("api-polls:polltemplate-list", query={"club": club_id})
+
+
+def polltemplate_create_poll_url(polltemplate_id: int):
+    return reverse(
+        "api-polls:polltemplate_create_poll",
+        kwargs={"polltemplate_id": polltemplate_id},
+    )
+
+
 def pollsubmission_list_url(poll_id: int):
     return reverse("api-polls:pollsubmission-list", kwargs={"poll_id": poll_id})
 

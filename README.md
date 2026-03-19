@@ -63,7 +63,7 @@ task dev
 
 This will build the docker containers and spin up the dev servers.
 
-You can add mock data (located in `app/fixtures/`) with this command:
+You can add mock data (located in `app/fixtures/dev/`) with this command:
 
 ```sh
 task loaddata
@@ -119,7 +119,7 @@ docker-compose --profile dev up
 To load mock data:
 
 ```sh
-docker-compose run --rm app sh -c "python manage.py loaddata fixtures/*"
+docker-compose run --rm app sh -c "python manage.py loaddata fixtures/dev/*"
 ```
 
 To make migration files and apply them to the database:
