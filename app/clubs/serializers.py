@@ -133,11 +133,12 @@ class ClubRoleSerializer(ModelSerializerBase):
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
-    logo = ClubFileNestedSerializer()
+    id = serializers.IntegerField(required=False, min_value=1)
+    logo = ClubFileNestedSerializer(required=False)
     banner = ClubFileNestedSerializer(required=False, allow_null=True)
-    photos = ClubPhotoSerializer(many=True)
-    socials = ClubSocialSerializer(many=True)
-    tags = ClubTagSerializer(many=True)
+    photos = ClubPhotoSerializer(required=False, many=True)
+    socials = ClubSocialSerializer(required=False, many=True)
+    tags = ClubTagSerializer(required=False, many=True)
     majors = serializers.SlugRelatedField(
         slug_field="name",
         queryset=Major.objects.all(),
@@ -189,7 +190,10 @@ class ClubSerializer(ModelSerializerBase):
             club.logo_url = file
             club.save()
 
+        return club
+
     def update(self, instance, validated_data):
+        validated_data.pop("id", None)  # Ignore attempting to update an id
         logo_data = validated_data.pop("logo", None)
         banner_data = validated_data.pop("banner", None)
         socials_data = validated_data.pop("socials", [])
