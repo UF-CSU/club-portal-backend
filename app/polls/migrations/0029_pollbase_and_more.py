@@ -19,9 +19,10 @@ def create_pollbases(apps, schema_editor):
             name=poll.name,
             description=poll.description,
             is_private=poll.is_private,
-            club_id=poll.club_id,
+            club = poll.club
         )
-        poll.id = base.id
+        base.allowed_club_roles.set(poll.allowed_club_roles.all())
+        poll.pollbase_ptr = base
         poll.save(update_fields=["pollbase_ptr"])
 
 
@@ -42,7 +43,8 @@ def reverse_create_pollbases(apps, schema_editor):
         poll.name = base.name
         poll.description = base.description
         poll.is_private = base.is_private
-        poll.club_id = base.club_id
+        poll.allowed_club_roles.set(base.allowed_club_roles.all())
+        poll.club = base.club
 
         poll.save(update_fields=[
             "created_at",
@@ -50,7 +52,7 @@ def reverse_create_pollbases(apps, schema_editor):
             "name",
             "description",
             "is_private",
-            "club_id",
+            "club",
         ])
 
 
@@ -88,11 +90,61 @@ class Migration(migrations.Migration):
                 "abstract": False,
             },
         ),
+        migrations.AddField(
+            model_name="pollbase",
+            name="club",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="%(class)s",
+                to="clubs.club",
+            ),
+        ),
+        migrations.AddField(
+            model_name="pollbase",
+            name="allowed_club_roles",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="If private, then only users with one of these club roles can submit a poll.",
+                related_name="+",
+                to="clubs.clubrole",
+            ),
+        ),
+        migrations.AddField(
+            model_name="poll",
+            name="pollbase_ptr",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE,
+                parent_link=True,
+                serialize=False,
+                to="polls.pollbase",
+                null=True
+            ),
+            preserve_default=False,
+        ),
+        migrations.RunPython(create_pollbases, reverse_create_pollbases),
+        migrations.RemoveField(
+            model_name="poll",
+            name="id",
+        ),
+        migrations.AlterField(
+            model_name="poll",
+            name="pollbase_ptr",
+            field=models.OneToOneField(
+                db_column="id",
+                on_delete=django.db.models.deletion.CASCADE,
+                parent_link=True,
+                primary_key=True,
+                serialize=False,
+                to="polls.pollbase",
+                null=False,
+            ),
+        ),
         migrations.RemoveConstraint(
             model_name="poll",
             name="only_poll_templates_allow_null_club",
         ),
-        migrations.RunPython(create_pollbases, reverse_create_pollbases),
         migrations.RemoveField(
             model_name="poll",
             name="allowed_club_roles",
@@ -108,10 +160,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name="poll",
             name="description",
-        ),
-        migrations.RemoveField(
-            model_name="poll",
-            name="id",
         ),
         migrations.RemoveField(
             model_name="poll",
@@ -163,40 +211,6 @@ class Migration(migrations.Migration):
                 "abstract": False,
             },
             bases=("polls.pollbase",),
-        ),
-        migrations.AddField(
-            model_name="pollbase",
-            name="allowed_club_roles",
-            field=models.ManyToManyField(
-                blank=True,
-                help_text="If private, then only users with one of these club roles can submit a poll.",
-                related_name="+",
-                to="clubs.clubrole",
-            ),
-        ),
-        migrations.AddField(
-            model_name="pollbase",
-            name="club",
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="%(class)s",
-                to="clubs.club",
-            ),
-        ),
-        migrations.AddField(
-            model_name="poll",
-            name="pollbase_ptr",
-            field=models.OneToOneField(
-                db_column="id",
-                on_delete=django.db.models.deletion.CASCADE,
-                parent_link=True,
-                primary_key=True,
-                serialize=False,
-                to="polls.pollbase",
-            ),
-            preserve_default=False,
         ),
         migrations.AlterField(
             model_name="pollfield",
