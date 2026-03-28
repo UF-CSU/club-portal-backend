@@ -133,7 +133,7 @@ class ClubRoleSerializer(ModelSerializerBase):
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
-    id = serializers.IntegerField(required=False, min_value=1)
+    gatorconnect_organization_id = serializers.IntegerField(required=False, min_value=1)
     logo = ClubFileNestedSerializer(required=False)
     banner = ClubFileNestedSerializer(required=False, allow_null=True)
     photos = ClubPhotoSerializer(required=False, many=True)
@@ -178,6 +178,7 @@ class ClubSerializer(ModelSerializerBase):
             "roles",
             "instagram_followers",
             "logo_url",
+            "gatorconnect_organization_id",
             # "user_membership",
         ]
 
@@ -193,7 +194,6 @@ class ClubSerializer(ModelSerializerBase):
         return club
 
     def update(self, instance, validated_data):
-        validated_data.pop("id", None)  # Ignore attempting to update an id
         logo_data = validated_data.pop("logo", None)
         banner_data = validated_data.pop("banner", None)
         socials_data = validated_data.pop("socials", [])
