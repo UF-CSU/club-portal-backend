@@ -36,9 +36,10 @@ BEGIN
 	RETURN QUERY
 	WITH 
 	ev AS (
-		SELECT ev.*, poll.id AS poll_id, poll.club_id AS poll_club_id
+		SELECT ev.*, poll.id AS poll_id, pollbase.club_id AS poll_club_id
 		FROM public.events_event AS ev
 		JOIN public.polls_poll AS poll ON poll.event_id = ev.id
+		JOIN public.polls_pollbase AS pollbase ON pollbase.id = poll.id
 		WHERE ev.id = $1
 	), 
 	club_user_ids AS (
@@ -49,7 +50,7 @@ BEGIN
 	),
 	club_other_subs AS (
 		SELECT other_sub.id AS id, 
-			other_poll.club_id AS club_id, 
+			other_pollbase.club_id AS club_id, 
 			other_poll.id AS poll_id, 
 			other_sub.user_id AS user_id, 
 			other_event.id AS event_id,
@@ -59,19 +60,21 @@ BEGIN
 		FROM public.polls_pollsubmission AS other_sub
 		CROSS JOIN ev
 		JOIN public.polls_poll AS other_poll ON other_poll.id = other_sub.poll_id
+		JOIN public.polls_pollbase AS other_pollbase ON other_pollbase.id = other_poll.id
 		JOIN public.events_event AS other_event ON other_event.id = other_poll.event_id
-		WHERE other_poll.club_id = ev.poll_club_id
+		WHERE other_pollbase.club_id = ev.poll_club_id
 			AND other_event.start_at < ev.start_at -- Submission to poll that took place before previous poll
 			AND other_sub.poll_id != ev.poll_id -- Submission poll was not the current poll
 	),
 	prev_ev AS (
-		SELECT ev2.*, prev_poll.id AS poll_id, prev_poll.club_id AS poll_club_id
+		SELECT ev2.*, prev_poll.id AS poll_id, prev_pollbase.club_id AS poll_club_id
 		FROM ev
 		JOIN public.events_event AS ev2 ON ev2.recurring_event_id = ev.recurring_event_id
 		JOIN public.polls_poll AS prev_poll ON prev_poll.event_id = ev2.id
+		JOIN public.polls_pollbase AS prev_pollbase ON prev_pollbase.id = prev_poll.id
 		WHERE ev2.id != ev.id
 			AND ev2.start_at < ev.start_at
-		GROUP BY ev2.id, prev_poll.id
+		GROUP BY ev2.id, prev_poll.id, prev_pollbase.id
 		ORDER BY ev2.start_at DESC
 		LIMIT 1
 	),
@@ -89,7 +92,8 @@ BEGIN
 		FROM ev
 		JOIN public.events_event AS evtype_ev ON evtype_ev.event_type = ev.event_type 
 		JOIN public.polls_poll AS evtype_poll ON evtype_poll.event_id = evtype_ev.id
-		WHERE evtype_poll.club_id = ev.poll_club_id 
+		JOIN public.polls_pollbase AS evtype_pollbase ON evtype_pollbase.id = evtype_poll.id
+		WHERE evtype_pollbase.club_id = ev.poll_club_id 
 			AND evtype_ev.id != ev.id
 			AND evtype_ev.start_at < ev.start_at
 		GROUP BY evtype_ev.id

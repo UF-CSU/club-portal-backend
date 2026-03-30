@@ -12,6 +12,7 @@ from core.abstracts.services import ServiceBase
 from dateutil.relativedelta import relativedelta
 from django.db import connection, models
 from django.utils import timezone
+from polls.services import PollTemplateService
 from users.models import User
 from utils.dates import get_day_count
 from utils.db import dictfetchone, namedtuplefetchall
@@ -210,6 +211,16 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         # Update event with rest of fields
         for key, value in rec_ev.get_event_update_kwargs().items():
             setattr(event, key, value)
+
+        # Create polls if recurring event has an attached template
+        if rec_ev.template is not None:
+            # Create new poll ONLY if event does not already have a poll
+            # Rationale: What if one specific event in a series wants a custom poll
+            if event.poll is None:
+                payload = {"event": event}
+                if rec_ev.club:
+                    payload["club"] = rec_ev.club
+                PollTemplateService(rec_ev.template).create_poll(**payload)
 
         # Sync attachments
         # TODO: Should admins be allowed to set custom attachments for individual events?

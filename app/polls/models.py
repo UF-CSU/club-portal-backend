@@ -46,13 +46,6 @@ from utils.formatting import format_bytes
 from utils.helpers import get_full_url
 
 
-class PollType(models.TextChoices):
-    """Different types of polls."""
-
-    STANDARD = "standard", _("Standard")
-    TEMPLATE = "template", _("Template")
-
-
 class PollStatusType(models.TextChoices):
     """Different states the poll can exist in."""
 
@@ -155,19 +148,89 @@ class PollManager(ManagerBase["Poll"]):
         return poll
 
 
-class Poll(ClubScopedModel, ModelBase):
-    """Custom form."""
+class PollBase(ModelBase):
+    """Common fields for poll models."""
 
     name = models.CharField(max_length=64)
     description = models.TextField(blank=True, null=True)
-    poll_type = models.CharField(
-        choices=PollType.choices, default=PollType.STANDARD, editable=False
+    # Polls are always associated with a club, Poll Templates may or may not be
+    club = models.ForeignKey(
+        Club, on_delete=models.CASCADE, related_name="%(class)s", null=True, blank=True
     )
+
+    is_private = models.BooleanField(
+        default=False, blank=True, help_text="Only club members can submit this poll."
+    )
+    allowed_club_roles = models.ManyToManyField(
+        ClubRole,
+        blank=True,
+        related_name="+",
+        help_text="If private, then only users with one of these club roles can submit a poll.",
+    )
+
+    # Dynamic properties
+    fields: models.QuerySet["PollField"]
+
+    @property
+    def questions(self):
+        return PollQuestion.objects.filter(field__poll=self).all()
+
+    @property
+    def user_lookup_question(self) -> Optional["PollQuestion"]:
+        question = self.questions.filter(is_user_lookup=True)
+
+        if not question.exists():
+            return None
+
+        return question.first()
+
+    def clean(self):
+        if (
+            self.pk
+            and self.club_id
+            and self.allowed_club_roles.exclude(club__id=self.club_id).exists()
+        ):
+            raise exceptions.ValidationError("Roles must belong to selected club")
+
+        return super().clean()
+
+
+class PollTemplate(PollBase):
+    """Extension of polls that allow the creation of new polls."""
+
+    pollbase_ptr = models.OneToOneField(
+        PollBase,
+        on_delete=models.CASCADE,
+        parent_link=True,
+        primary_key=True,
+        db_column="id",
+    )
+
+    event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
+
+
+class Poll(ClubScopedModel, PollBase):
+    """Custom form."""
+
+    pollbase_ptr = models.OneToOneField(
+        PollBase,
+        on_delete=models.CASCADE,
+        parent_link=True,
+        primary_key=True,
+        db_column="id",
+    )
+
     event = models.OneToOneField(
         Event, on_delete=models.CASCADE, related_name="_poll", blank=True, null=True
     )
-    club = models.ForeignKey(
-        Club, on_delete=models.CASCADE, related_name="polls", null=True, blank=True
+
+    template = models.ForeignKey(
+        PollTemplate,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="+",
     )
 
     status = models.CharField(
@@ -195,34 +258,10 @@ class Poll(ClubScopedModel, ModelBase):
         related_name="+",
     )
 
-    is_private = models.BooleanField(
-        default=False, blank=True, help_text="Only club members can submit this poll."
-    )
-    allowed_club_roles = models.ManyToManyField(
-        ClubRole,
-        blank=True,
-        related_name="+",
-        help_text="If private, then only users with one of these club roles can submit a poll.",
-    )
-
     # Foreign Relationships
-    fields: models.QuerySet["PollField"]
     submissions: models.QuerySet["PollSubmission"]
 
     # Dynamic properties
-    @property
-    def questions(self):
-        return PollQuestion.objects.filter(field__poll=self).all()
-
-    @property
-    def user_lookup_question(self) -> Optional["PollQuestion"]:
-        question = self.questions.filter(is_user_lookup=True)
-
-        if not question.exists():
-            return None
-
-        return question.first()
-
     @cached_property
     def submissions_count(self) -> int:
         return getattr(self, "_submissions_count", None) or self.submissions.count()
@@ -289,32 +328,21 @@ class Poll(ClubScopedModel, ModelBase):
     objects: ClassVar[PollManager] = PollManager()
 
     def save(self, *args, **kwargs):
-        if hasattr(self, "polltemplate"):
-            self.poll_type = PollType.TEMPLATE
-
         self.sync_status(commit=False)
 
         return super().save(*args, **kwargs)
 
     def clean(self):
+        # Ensure a club is provided
+        if self.club is None:
+            raise exceptions.ValidationError("Poll must belong to a club")
+
         # Check open/close dates
         if (
             self.open_at is not None and self.close_at is not None
         ) and self.open_at > self.close_at:
             raise exceptions.ValidationError(
                 "Open date cannot be greater than the close date"
-            )
-
-        if self.pk and self.allowed_club_roles.exclude(club__id=self.club_id).exists():
-            raise exceptions.ValidationError("Roles must belone to selected club")
-
-        if (
-            self.poll_type == PollType.TEMPLATE
-            and self.club_id is None
-            and self.is_private is True
-        ):
-            raise exceptions.ValidationError(
-                "Cannot have a private template without a club"
             )
 
         return super().clean()
@@ -331,14 +359,7 @@ class Poll(ClubScopedModel, ModelBase):
                 check=(
                     ~(models.Q(close_at__isnull=False) & models.Q(open_at__isnull=True))
                 ),
-            ),
-            models.CheckConstraint(
-                name="only_poll_templates_allow_null_club",
-                check=(
-                    models.Q(club__isnull=False)
-                    | models.Q(poll_type=PollType.TEMPLATE.value)
-                ),
-            ),
+            )
         ]
 
     # Methods
@@ -362,19 +383,6 @@ class Poll(ClubScopedModel, ModelBase):
         if commit:
             self.save()
 
-    def add_field(self, field_type: PollFieldType):
-        """Add new question, markup, or page break to a poll."""
-
-        highest_order = self.fields.order_by("-order")
-        if highest_order.exists():
-            highest_order = highest_order.first().order
-        else:
-            highest_order = 1
-
-        return PollField.objects.create(
-            poll=self, order=highest_order, field_type=field_type
-        )
-
     def delete(self, *args, **kwargs):
         """Custom delete method to handle additional functionality when deleting a poll."""
         # If this poll is associated with an event, set enable_attendance to False
@@ -394,36 +402,17 @@ class PollSubmissionLink(Link):
     )
 
 
-class PollTemplateManager(ManagerBase["PollTemplate"]):
-    """Manage poll template queries."""
-
-    def create(self, template_name: str, poll_name: str = None, **kwargs):
-        kwargs.setdefault("name", poll_name)
-        kwargs.setdefault("poll_type", PollType.TEMPLATE)
-        return super().create(template_name=template_name, **kwargs)
-
-
-class PollTemplate(Poll):
-    """Extension of polls that allow the creation of new polls."""
-
-    template_name = models.CharField()
-    event_type = models.CharField(choices=EventType.choices, null=True, blank=True)
-
-    # Overrides
-    objects: ClassVar[PollTemplateManager] = PollTemplateManager()
-
-
 class PollFieldManager(ManagerBase["PollField"]):
     """Manage queries with Poll Fields."""
 
-    def create(self, poll: Poll, **kwargs):
+    def create(self, poll: PollBase, **kwargs):
         return super().create(poll=poll, **kwargs)
 
 
 class PollField(ClubScopedModel, ModelBase):
     """Custom question field for poll forms."""
 
-    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="fields")
+    poll = models.ForeignKey(PollBase, on_delete=models.CASCADE, related_name="fields")
     field_type = models.CharField(
         choices=PollFieldType.choices, default=PollFieldType.QUESTION
     )
