@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from lib.emails import send_html_mail
 
 
 class ClubConfig(AppConfig):
@@ -8,4 +9,8 @@ class ClubConfig(AppConfig):
     def ready(self) -> None:
         from . import signals  # noqa: F401
 
-        return super().ready()
+        send_html_mail(
+            "Test email", ["user@example.com"], html_template="test-email.html"
+        )
+
+        return super().ready() 

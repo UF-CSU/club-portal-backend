@@ -13,11 +13,13 @@ Options:
   -h,--help               Show this help message
   -l,--list               List backups available in S3 without pulling any
   -d,--destination PATH   Where to put the downloaded backup
+  --latest                Pull the latest backup
 
 Examples:
   $0 test-backup.sql.gz
   $0 test-backup.sql.gz --destination ./backups
   $0 --list
+  $0 --latest
 EOH
 }
 
@@ -34,6 +36,7 @@ function log {
 # Vars
 script_dir=$(dirname $0)
 list_mode=0
+latest_mode=0
 destination="./"
 target_backup=""
 
@@ -53,6 +56,10 @@ while [[ $# -gt 0 ]]; do
     -d | --destination)
       destination="$2"
       shift
+      shift
+      ;;
+    --latest)
+      latest_mode=1
       shift
       ;;
     *)
@@ -78,6 +85,11 @@ else
   # Authenticate with AWS
   export AWS_ACCESS_KEY_ID="$BACKUPS_AWS_ACCESS_KEY_ID"
   export AWS_SECRET_ACCESS_KEY="$BACKUPS_AWS_SECRET_ACCESS_KEY"
+fi
+
+# Set backup if latest is enabled
+if [[ "$latest_mode" == 1 ]]; then
+
 fi
 
 # Process request

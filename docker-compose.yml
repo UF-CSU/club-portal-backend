@@ -208,6 +208,7 @@ services:
     volumes:
       - static-clubs-dev:/vol/web
     environment:
+      - PORT=8080
       - SERVER_URI=app:9000
       - SERVER_REPLICA_URI=app:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-'0.0.0.0:80'}
