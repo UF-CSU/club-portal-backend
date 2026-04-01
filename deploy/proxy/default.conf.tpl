@@ -18,7 +18,7 @@ upstream app_upstream {
 }
 
 server {
-  listen 8080;
+  listen $PORT;
   
   resolver 127.0.0.11 valid=5s;
   

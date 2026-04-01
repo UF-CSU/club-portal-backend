@@ -23,14 +23,14 @@ tasks:
       - docker-compose --profile dev build
       - task: build:docs:internal
 
-  build:network:
-    sources:
-      - ./Dockerfile
-      - ./pyproject.toml
-      - ./uv.lock
-    run: when_changed
-    cmds:
-      - docker-compose -f docker-compose.network.yml build
+  # build:network:
+  #   sources:
+  #     - ./Dockerfile
+  #     - ./pyproject.toml
+  #     - ./uv.lock
+  #   run: when_changed
+  #   cmds:
+  #     - docker-compose -f docker-compose.network.yml build
 
   dev:
     desc: 'Run the servers config in dev mode'
@@ -46,19 +46,19 @@ tasks:
     cmds:
       - docker-compose --profile slim up
 
-  network:
-    desc: 'Run server in network mode'
-    deps:
-      - build:network
-    cmds:
-      - docker-compose -f docker-compose.network.yml up
+  # network:
+  #   desc: 'Run server in network mode'
+  #   deps:
+  #     - build:network
+  #   cmds:
+  #     - docker-compose -f docker-compose.network.yml up
 
-  network:build:
-    desc: 'Run server in network mode'
-    deps:
-      - build:network
-    cmds:
-      - docker-compose -f docker-compose.network.yml up --build --force-recreate
+  # network:build:
+  #   desc: 'Run server in network mode'
+  #   deps:
+  #     - build:network
+  #   cmds:
+  #     - docker-compose -f docker-compose.network.yml up --build --force-recreate
 
   lint:
     desc: 'Lint python rules using Ruff'
@@ -101,12 +101,12 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
 
-  makemigrations:network:
-    desc: 'Create migration files in network mode'
-    deps:
-      - build:network
-    cmds:
-      - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
+  # makemigrations:network:
+  #   desc: 'Create migration files in network mode'
+  #   deps:
+  #     - build:network
+  #   cmds:
+  #     - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py makemigrations {{.CLI_ARGS}}"
 
   makemigrations:check:
     desc: 'Check if a migration file needs to be made, exits with non-zero code if one does need to be made'
@@ -122,12 +122,12 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py migrate {{.CLI_ARGS}}"
 
-  migrate:network:
-    desc: 'Apply migrations to the database in network mode.'
-    deps:
-      - build:network
-    cmds:
-      - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py migrate {{.CLI_ARGS}}"
+  # migrate:network:
+  #   desc: 'Apply migrations to the database in network mode.'
+  #   deps:
+  #     - build:network
+  #   cmds:
+  #     - docker-compose -f docker-compose.network.yml run --rm app sh -c "python manage.py migrate {{.CLI_ARGS}}"
 
   build-docker:clubs:
     desc: 'Build docker image for clubs server'
@@ -210,10 +210,10 @@ tasks:
     cmds:
       - docker-compose --profile dev down --remove-orphans -v
 
-  clean:network:
-    desc: 'Stop containers and remove volumes'
-    cmds:
-      - docker-compose -f docker-compose.network.yml down --remove-orphans -v
+  # clean:network:
+  #   desc: 'Stop containers and remove volumes'
+  #   cmds:
+  #     - docker-compose -f docker-compose.network.yml down --remove-orphans -v
 
   down:slim:
     desc: 'Stop containers'

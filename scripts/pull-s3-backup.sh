@@ -13,11 +13,13 @@ Options:
   -h,--help               Show this help message
   -l,--list               List backups available in S3 without pulling any
   -d,--destination PATH   Where to put the downloaded backup
+  --latest                Pull the latest backup
 
 Examples:
   $0 test-backup.sql.gz
   $0 test-backup.sql.gz --destination ./backups
   $0 --list
+  $0 --latest
 EOH
 }
 
@@ -34,7 +36,8 @@ function log {
 # Vars
 script_dir=$(dirname $0)
 list_mode=0
-destination="./"
+latest_mode=0
+destination="/var/backups"
 target_backup=""
 
 # Process CLI Arguments
@@ -53,6 +56,10 @@ while [[ $# -gt 0 ]]; do
     -d | --destination)
       destination="$2"
       shift
+      shift
+      ;;
+    --latest)
+      latest_mode=1
       shift
       ;;
     *)
@@ -80,7 +87,13 @@ else
   export AWS_SECRET_ACCESS_KEY="$BACKUPS_AWS_SECRET_ACCESS_KEY"
 fi
 
-# Process request
+# Set backup if latest is enabled
+if [[ "$latest_mode" == 1 ]]; then
+  target_backup=$(aws s3api list-objects --bucket "$bucket" --query 'sort_by(Contents, &LastModified)[-1].Key' --output text)
+  log "Pulled latest backup: $target_backup"
+fi
+
+# Get backup(s) from S3
 if [[ "$list_mode" == 0 && -n "$target_backup" ]]; then
   # Download mode, with backup name
   aws s3 cp "s3://$bucket/$target_backup" "$destination"
@@ -107,8 +120,4 @@ else
     log " - $backup"
   done
 fi
-  
-
-
-
 

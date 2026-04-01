@@ -6,11 +6,12 @@ services:
     volumes:
       - ./app:/app/app
       - ./backups:/var/backups
-      - static-clubs-prod:/vol/web
+      - static-clubs-staging:/vol/web
     environment:
       - PORT=9000
       - WORKER_COUNT=${WORKER_COUNT:-6}
-      - REDIS_HOST=${REDIS_HOST:-clubs-prod-redis}
+      - REDIS_HOST=${REDIS_HOST:-clubs-staging-redis}
+      - S3_STORAGE_BACKEND=0
     env_file:
       - .env
     networks:
@@ -29,11 +30,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./app:/app/app
-      - static-clubs-prod:/vol/web
+      - static-clubs-staging:/vol/web
     environment:
       - PORT=9000
       - WORKER_COUNT=${WORKER_COUNT:-6}
-      - REDIS_HOST=${REDIS_HOST:-clubs-prod-redis}
+      - REDIS_HOST=${REDIS_HOST:-clubs-staging-redis}
+      - S3_STORAGE_BACKEND=0
     env_file:
       - .env
     networks:
@@ -45,13 +47,13 @@ services:
     deploy:
       mode: replicated
       endpoint_mode: vip
-      replicas: ${APP_REPLICAS:-3}
+      replicas: ${APP_REPLICAS:-1}
 
   redis:
     image: redis:alpine
-    container_name: clubs-prod-redis
+    container_name: clubs-staging-redis
     volumes:
-      - redis-clubs-prod:/data
+      - redis-clubs-staging:/data
     networks:
       - cluster
 
@@ -63,7 +65,7 @@ services:
     command: ["celery", "-A", "app", "worker", "--loglevel=info"]
     volumes:
       - ./app:/app/app
-      - static-clubs-prod:/vol/web
+      - static-clubs-staging:/vol/web
     depends_on:
       redis:
         condition: service_started
@@ -91,7 +93,7 @@ services:
       ]
     volumes:
       - ./app:/app/app
-      - static-clubs-prod:/vol/web
+      - static-clubs-staging:/vol/web
     depends_on:
       redis:
         condition: service_started
@@ -109,17 +111,17 @@ services:
     build:
       context: ./deploy/proxy/
     restart: unless-stopped
-    container_name: clubs-prod-proxy
+    container_name: clubs-staging-proxy
     ports:
-      - 8080:8080
+      - 7080:7080
     depends_on:
       # Wait until app is ready, in case app needs to run migrations
       app:
         condition: service_healthy
     volumes:
-      - static-clubs-prod:/vol/web
+      - static-clubs-staging:/vol/web
     environment:
-      - PORT=8080
+      - PORT=7080
       - SERVER_URI=app:9000
       - SERVER_REPLICA_URI=app_replica:9000
       - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
@@ -133,7 +135,7 @@ services:
   postgres:
     image: postgres:17.7-alpine
     volumes:
-      - postgres-clubs-prod:/var/lib/postgresql/data
+      - postgres-clubs-staging:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${POSTGRES_NAME}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -159,11 +161,11 @@ services:
         target: /etc/pgbouncer/userlist.txt
 
 volumes:
-  static-clubs-prod:
-  redis-clubs-prod:
+  static-clubs-staging:
+  redis-clubs-staging:
 
-  postgres-clubs-prod:
-    name: "postgres17-clubs-prod"
+  postgres-clubs-staging:
+    name: "postgres17-clubs-staging"
 
 configs:
   # Postgres Config Settings
@@ -201,5 +203,5 @@ configs:
 
 networks:
   cluster:
-    name: club_portal_prod
+    name: club_portal_staging
     driver: bridge
