@@ -37,7 +37,7 @@ function log {
 script_dir=$(dirname $0)
 list_mode=0
 latest_mode=0
-destination="./"
+destination="/var/backups"
 target_backup=""
 
 # Process CLI Arguments
@@ -89,10 +89,11 @@ fi
 
 # Set backup if latest is enabled
 if [[ "$latest_mode" == 1 ]]; then
-
+  target_backup=$(aws s3api list-objects --bucket "$bucket" --query 'sort_by(Contents, &LastModified)[-1].Key' --output text)
+  log "Pulled latest backup: $target_backup"
 fi
 
-# Process request
+# Get backup(s) from S3
 if [[ "$list_mode" == 0 && -n "$target_backup" ]]; then
   # Download mode, with backup name
   aws s3 cp "s3://$bucket/$target_backup" "$destination"
@@ -119,8 +120,4 @@ else
     log " - $backup"
   done
 fi
-  
-
-
-
 
