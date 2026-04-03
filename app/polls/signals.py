@@ -4,8 +4,8 @@ from clubs.models import Club
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from events.models import Event
+from lib.celery import delay_task
 
-from polls.cache import delete_repopulate_poll_preview_cache
 from polls.models import (
     Poll,
     PollField,
@@ -15,6 +15,7 @@ from polls.models import (
 )
 from polls.serializers import PollSubmissionSerializer
 from polls.services import PollService
+from polls.tasks import regenerate_poll_preview_cache_task
 
 
 @receiver(post_save, sender=Poll)
@@ -87,5 +88,20 @@ def refresh_poll_preview_cache(
     **kwargs,
 ):
     """Sets and invalidates poll previews cache when relations change"""
-    if sender in [Poll, Event, Club, PollField, PollSubmissionLink]:
-        delete_repopulate_poll_preview_cache(instance)
+    if sender not in [Poll, Event, Club, PollField, PollSubmissionLink]:
+        return
+
+    if isinstance(instance, Poll):
+        poll_ids = [instance.pk]
+    elif isinstance(instance, Event):
+        poll_ids = list(Poll.objects.filter(event__id=instance.pk).values_list("id", flat=True))
+    elif isinstance(instance, Club):
+        poll_ids = list(Poll.objects.filter(club__id=instance.pk).values_list("id", flat=True))
+    elif isinstance(instance, PollField):
+        poll_ids = list(Poll.objects.filter(fields__id=instance.pk).values_list("id", flat=True))
+    elif isinstance(instance, PollSubmissionLink):
+        poll_ids = list(Poll.objects.filter(_submission_link__id=instance.pk).values_list("id", flat=True))
+    else:
+        poll_ids = None
+
+    delay_task(regenerate_poll_preview_cache_task, poll_ids=poll_ids)
