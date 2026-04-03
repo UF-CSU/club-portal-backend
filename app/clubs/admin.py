@@ -1,10 +1,5 @@
 from typing import Optional
 
-from core.abstracts.admin import ModelAdminBase
-from django import forms
-from django.contrib import admin
-from utils.formatting import plural_noun
-
 from clubs.forms import TeamMembershipForm
 from clubs.models import (
     Club,
@@ -15,7 +10,6 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
-    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -26,6 +20,11 @@ from clubs.serializers import (
     ClubRoleCsvSerializer,
     TeamCsvSerializer,
 )
+from core.abstracts.admin import ModelAdminBase
+from core.abstracts.models import RoleType
+from django import forms
+from django.contrib import admin
+from utils.formatting import plural_noun
 
 
 class ClubMembershipInlineAdmin(admin.StackedInline):

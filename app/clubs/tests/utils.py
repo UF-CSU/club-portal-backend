@@ -1,14 +1,14 @@
 import uuid
 from typing import Optional
 
+from clubs.models import Club, ClubFile, ClubRole, ClubTag, Team, TeamRole
+from clubs.services import ClubService
+from core.abstracts.models import RoleType
 from django.urls import reverse
 from django.utils.http import urlencode
 from lib.faker import fake
 from users.models import User
 from utils.testing import create_test_image
-
-from clubs.models import Club, ClubFile, ClubRole, ClubTag, RoleType, Team, TeamRole
-from clubs.services import ClubService
 
 ####################################################
 # URLS

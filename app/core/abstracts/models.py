@@ -12,7 +12,7 @@ from django.core.validators import MinLengthValidator
 from django.db import models
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from utils.permissions import get_perm_label
+from utils.permissions import get_perm_label, parse_permissions
 
 
 class CustomManagerMethods[T]:
@@ -338,3 +338,139 @@ class MajorType(models.TextChoices):
 
     CS = "cs", _("Computer Science")
     OTHER = "other", ("Other")
+
+
+class RoleType(models.TextChoices):
+    """Different types of club roles."""
+
+    ADMIN = "admin", _("Admin")
+    EDITOR = "editor", _("Editor")
+    VIEWER = "viewer", _("Viewer")
+    FOLLOWER = "follower", _("Follower")
+    CUSTOM = "custom", _("Custom")
+
+
+class RoleBaseManager(ManagerBase["RoleBase"]):
+    """Manage role queries."""
+
+    def create(
+        self,
+        name: str,
+        is_default=False,
+        perm_labels=None,
+        role_type: RoleType | None =None,
+        **kwargs,
+    ):
+        """
+        Create new role.
+
+        Can either assign initial permissions by perm_labels as ``list[str]``, or
+        by permissions as ``list[Permission]``.
+        """
+        permissions = kwargs.pop("permissions", []) + parse_permissions(
+            perm_labels or []
+        )
+
+        # Set role type
+        if role_type is None:
+            if len(permissions) > 0:
+                role_type = RoleType.CUSTOM
+            else:
+                role_type = RoleType.VIEWER
+        assert role_type is not None
+
+        # Set permissions
+        if role_type != RoleType.CUSTOM:
+            perms_mapping = self.model.get_permissions_by_role_type()
+            permissions = parse_permissions(perms_mapping[role_type])
+
+        role = super().create(
+            name=name, is_default=is_default, role_type=role_type, **kwargs
+        )
+
+        role.permissions.set(permissions)
+        role.save()
+
+        return role
+
+
+class RoleBase(ModelBase):
+    """Extend permission group to manage roles."""
+
+    name = models.CharField(max_length=32)
+
+    role_type = models.CharField(
+        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
+    )
+    order = models.PositiveIntegerField(
+        default=0, help_text="Used to determine the list ordering of a member"
+    )
+    permissions = models.ManyToManyField(Permission, blank=True)
+
+    # Flags
+    is_default = models.BooleanField(
+        default=False,
+        help_text="New members would be automatically assigned this role.",
+    )
+
+    # Meta fields
+    cached_role_type = models.CharField(
+        choices=RoleType.choices, default=None, blank=True, null=True, editable=False
+    )
+
+    # Dynamic Properties
+    @property
+    def perm_labels(self):
+        """Sorted list of permissions labels."""
+        labels = [get_perm_label(perm) for perm in self.permissions.all()]
+        labels.sort()
+
+        return labels
+
+    # Overrides
+    objects: ClassVar[RoleBaseManager] = RoleBaseManager()
+
+    class Meta:
+        ordering = [
+            "order"
+        ]
+        abstract = True
+
+    def __str__(self):
+        return f"{self.name} ({self.group()})"
+
+    def clean(self):
+        """Validate and sync roles on save."""
+        if self.is_default:
+            # Force all other roles to be false
+            self.group().roles.exclude(id=self.id).update(is_default=False)
+
+        return super().clean()
+
+    def delete(self, *args, **kwargs):
+        """Preconditions for role deletion."""
+        assert not self.is_default, "Cannot delete default role."
+
+        return super().delete(*args, **kwargs)
+
+    # Abstract methods
+    def group(self) -> ModelBase:
+        raise NotImplementedError(
+            "Role objects must return group that contains the roles"
+        )
+
+    @classmethod
+    def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
+        raise NotImplementedError(
+            "Role objects must return mapping between role type presets and permissions"
+        )
+
+    # Attach signal
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Lazy to avoid circular import
+        from core.abstracts.signals import on_save_role
+
+        models.signals.post_save.connect(on_save_role, sender=cls)

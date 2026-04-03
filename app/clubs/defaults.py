@@ -4,7 +4,7 @@ General constants and initial values for club items.
 
 from typing import TypedDict
 
-from clubs.models import RoleType
+from core.abstracts.models import RoleType
 
 
 class ClubRolePayloadType(TypedDict):

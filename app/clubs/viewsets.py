@@ -1,30 +1,4 @@
-from core.abstracts.viewsets import (
-    FilterBackendBase,
-    ModelPreviewViewSetBase,
-    ModelViewSetBase,
-    ObjectViewDetailsPermissions,
-    ViewSetBase,
-)
-from core.models import Major
-from django.db.models import Count, Prefetch
-from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
-from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, mixins, permissions, status
-from rest_framework.decorators import action
-from rest_framework.generics import GenericAPIView
-from rest_framework.request import Request
-from rest_framework.response import Response
-from users.models import User
-from utils.cache import check_cache, set_cache
-from utils.views import params_validator, parse_bool_param
-
-from clubs.cache import (
-    DETAIL_CLUB_PREVIEW_PREFIX,
-    LIST_CLUB_PREVIEW_PREFIX,
-)
+from clubs.cache import DETAIL_CLUB_PREVIEW_PREFIX, LIST_CLUB_PREVIEW_PREFIX
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -33,7 +7,6 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
-    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -56,6 +29,29 @@ from clubs.serializers import (
     TeamSerializer,
 )
 from clubs.services import ClubService
+from core.abstracts.models import RoleType
+from core.abstracts.viewsets import (
+    FilterBackendBase,
+    ModelPreviewViewSetBase,
+    ModelViewSetBase,
+    ObjectViewDetailsPermissions,
+    ViewSetBase,
+)
+from core.models import Major
+from django.db.models import Count, Prefetch
+from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
+from drf_spectacular.utils import extend_schema
+from rest_framework import exceptions, mixins, permissions, status
+from rest_framework.decorators import action
+from rest_framework.generics import GenericAPIView
+from rest_framework.request import Request
+from rest_framework.response import Response
+from users.models import User
+from utils.cache import check_cache, set_cache
+from utils.views import params_validator, parse_bool_param
 
 
 def get_user_club_or_404(club_id: int, user: User):

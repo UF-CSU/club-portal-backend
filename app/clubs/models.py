@@ -6,9 +6,17 @@ Club models.
 
 from typing import ClassVar, Optional, Union
 
+from clubs.defaults import (
+    ADMIN_ROLE_PERMISSIONS,
+    EDITOR_ROLE_PERMISSIONS,
+    FOLLOWER_ROLE_PERMISSIONS,
+    VIEWER_ROLE_PERMISSIONS,
+)
 from core.abstracts.models import (
     ManagerBase,
     ModelBase,
+    RoleBase,
+    RoleType,
     ScopeType,
     SocialProfileBase,
     Tag,
@@ -28,17 +36,7 @@ from users.models import ApiKeyType, User, UserAgent
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
 from utils.models import UploadNestedClubFilepathFactory
-from utils.permissions import get_perm_label, get_permission, parse_permissions
-
-
-class RoleType(models.TextChoices):
-    """Different types of club roles."""
-
-    ADMIN = "admin", _("Admin")
-    EDITOR = "editor", _("Editor")
-    VIEWER = "viewer", _("Viewer")
-    FOLLOWER = "follower", _("Follower")
-    CUSTOM = "custom", _("Custom")
+from utils.permissions import parse_permissions
 
 
 class ClubFileOrigin(models.TextChoices):
@@ -361,72 +359,12 @@ class ClubSocialProfile(ClubScopedModel, SocialProfileBase):
         ]
 
 
-class ClubRoleManager(ManagerBase["ClubRole"]):
-    """Manage club role queries."""
-
-    def create(
-        self,
-        club: Club,
-        name: str,
-        is_default=False,
-        perm_labels=None,
-        role_type=None,
-        **kwargs,
-    ):
-        """
-        Create new club role.
-
-        Can either assign initial permissions by perm_labels as ``list[str]``, or
-        by permissions as ``list[Permission]``.
-        """
-        from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
-
-        # perm_labels = perm_labels if perm_labels is not None else []
-        permissions = kwargs.pop("permissions", []) + parse_permissions(
-            perm_labels or []
-        )
-
-        # Set default role type
-        if role_type is None and len(permissions) > 0:
-            role_type = RoleType.CUSTOM
-        elif role_type is None:
-            role_type = RoleType.VIEWER
-
-        # Set default permissions if necessary
-        if role_type == RoleType.ADMIN:
-            permissions = parse_permissions(ADMIN_ROLE_PERMISSIONS)
-        elif role_type == RoleType.VIEWER:
-            perm_labels = parse_permissions(VIEWER_ROLE_PERMISSIONS)
-
-        role = super().create(
-            club=club, name=name, is_default=is_default, role_type=role_type, **kwargs
-        )
-
-        role.permissions.set(permissions)
-        role.save()
-
-        return role
-
-
-class ClubRole(ClubScopedModel, ModelBase):
+class ClubRole(ClubScopedModel, RoleBase):
     """Extend permission group to manage club roles."""
 
-    name = models.CharField(max_length=32)
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="roles")
 
-    role_type = models.CharField(
-        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
-    )
-    order = models.PositiveIntegerField(
-        default=0, help_text="Used to determine the list ordering of a member"
-    )
-    permissions = models.ManyToManyField(Permission, blank=True)
-
     # Flags
-    is_default = models.BooleanField(
-        default=False,
-        help_text="New members would be automatically assigned this role.",
-    )
     is_official = models.BooleanField(
         default=True,
         help_text="Users with this role are counted towards official membership tallies.",
@@ -440,25 +378,7 @@ class ClubRole(ClubScopedModel, ModelBase):
         help_text="Users with this role will be returned when a club's executives are queried.",
     )
 
-    # Meta fields
-    cached_role_type = models.CharField(
-        choices=RoleType.choices, default=None, blank=True, null=True, editable=False
-    )
-
-    # Dynamic Properties
-    @property
-    def perm_labels(self):
-        """Sorted list of permissions labels."""
-        labels = [get_perm_label(perm) for perm in self.permissions.all()]
-        labels.sort()
-
-        return labels
-
-    # Overrides
-    objects: ClassVar[ClubRoleManager] = ClubRoleManager()
-
-    class Meta:
-        ordering = ["order"]
+    class Meta(RoleBase.Meta):
         constraints = [
             models.UniqueConstraint(
                 fields=("is_default", "club"),
@@ -470,23 +390,18 @@ class ClubRole(ClubScopedModel, ModelBase):
             ),
         ]
 
-    def __str__(self):
-        return f"{self.name} ({self.club})"
+    # Abstract methods
+    def group(self) -> Club:
+        return self.club
 
-    def clean(self):
-        """Validate and sync club roles on save."""
-        if self.is_default:
-            # Force all other roles to be false
-            self.club.roles.exclude(id=self.id).update(is_default=False)
-
-        return super().clean()
-
-    def delete(self, *args, **kwargs):
-        """Preconditions for club role deletion."""
-        assert not self.is_default, "Cannot delete default club role."
-
-        return super().delete(*args, **kwargs)
-
+    @classmethod
+    def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
+        return {
+            RoleType.FOLLOWER: FOLLOWER_ROLE_PERMISSIONS,
+            RoleType.VIEWER: VIEWER_ROLE_PERMISSIONS,
+            RoleType.EDITOR: EDITOR_ROLE_PERMISSIONS,
+            RoleType.ADMIN: ADMIN_ROLE_PERMISSIONS
+        }
 
 class ClubMembershipManager(ManagerBase["ClubMembership"]):
     """Manage queries for ClubMemberships."""
@@ -763,65 +678,17 @@ class Team(ClubScopedModel, ModelBase):
         ]
 
 
-class TeamRoleManager(ManagerBase["TeamRole"]):
-    """Manage queries for team roles."""
-
-    def create(
-        self, team: Team, name: str, is_default=False, perm_labels=None, **kwargs
-    ):
-        """
-        Create new team role.
-
-        Can either assign initial permissions by perm_labels as ``list[str]``, or
-        by permissions as ``list[Permission]``.
-        """
-        perm_labels = perm_labels if perm_labels is not None else []
-        permissions = kwargs.pop("permissions", [])
-
-        role = super().create(team=team, name=name, is_default=is_default, **kwargs)
-
-        for perm in perm_labels:
-            perm = get_permission(perm)
-            role.permissions.add(perm)
-
-        for perm in permissions:
-            role.permissions.add(perm)
-
-        return role
-
-
-class TeamRole(ClubScopedModel, ModelBase):
+class TeamRole(ClubScopedModel, RoleBase):
     """Extend permission group to manage club roles."""
 
-    name = models.CharField(max_length=32)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="roles")
-    permissions = models.ManyToManyField(Permission, blank=True)
-    order = models.PositiveIntegerField(
-        default=0, help_text="Used to determine the list ordering of a team member"
-    )
-    role_type = models.CharField(
-        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
-    )
-
-    is_default = models.BooleanField(
-        default=False,
-        help_text="New members would be automatically assigned this role.",
-    )
-
-    # TODO: Implement cached_role_type, signals
 
     # Dynamic properties
     @property
     def club(self):
         return self.team.club
 
-    # Overrides
-    objects: ClassVar[TeamRoleManager] = TeamRoleManager()
-
-    class Meta:
-        ordering = [
-            "order",
-        ]
+    class Meta(RoleBase.Meta):
         constraints = [
             models.UniqueConstraint(
                 fields=("is_default", "team"),
@@ -833,22 +700,19 @@ class TeamRole(ClubScopedModel, ModelBase):
             ),
         ]
 
-    def __str__(self):
-        return f"{self.name} ({self.team})"
+    # Abstract methods
+    def group(self) -> Team:
+        return self.team
 
-    def clean(self):
-        """Validate and sync team roles on save."""
-        if self.is_default:
-            # Force all other roles to be false
-            self.team.roles.exclude(id=self.id).update(is_default=False)
-
-        return super().clean()
-
-    def delete(self, *args, **kwargs):
-        """Preconditions for team role deletion."""
-        assert not self.is_default, "Cannot delete default team role."
-
-        return super().delete(*args, **kwargs)
+    @classmethod
+    def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
+        # TODO: Create permissions for TeamRole
+        return {
+            RoleType.FOLLOWER: [],
+            RoleType.VIEWER: [],
+            RoleType.EDITOR: [],
+            RoleType.ADMIN: []
+        }
 
 
 class TeamMembershipManager(ManagerBase["TeamMembership"]):
@@ -1057,6 +921,11 @@ class ClubApiKey(ClubScopedModel, ModelBase):
 
         token, _ = Token.objects.get_or_create(user=self.user_agent)
         return token
+
+    def get_secret(self):
+        """Get secret string."""
+
+        return self.get_token().key
 
     def get_secret(self):
         """Get secret string."""

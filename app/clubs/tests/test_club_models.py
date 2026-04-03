@@ -2,24 +2,23 @@
 Unit tests for generic model functions, validation, etc.
 """
 
+from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
+from clubs.models import (
+    Club,
+    ClubApiKey,
+    ClubMembership,
+    Team,
+    TeamMembership,
+    TeamRole,
+)
+from clubs.tests.utils import create_test_club, create_test_clubrole
+from core.abstracts.models import RoleType
 from core.abstracts.tests import TestsBase
 from django.core import exceptions
 from rest_framework.authtoken.models import Token
 from users.models import User
 from users.tests.utils import create_test_user
 from utils.permissions import get_permission
-
-from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
-from clubs.models import (
-    Club,
-    ClubApiKey,
-    ClubMembership,
-    RoleType,
-    Team,
-    TeamMembership,
-    TeamRole,
-)
-from clubs.tests.utils import create_test_club, create_test_clubrole
 
 
 class ClubModelTests(TestsBase):
