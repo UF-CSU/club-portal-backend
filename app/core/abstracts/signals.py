@@ -19,13 +19,14 @@ def on_save_role(sender, instance: RoleBase, created=False, **kwargs):
             instance.save()
         return
 
+    perms_mapping = instance.get_permissions_by_role_type()
+    permissions = perms_mapping[instance.role_type]
+
     if instance.cached_role_type != instance.role_type:
         # Role type out of sync, set permissions
         instance.cached_role_type = instance.role_type
 
-        perms_mapping = instance.get_permissions_by_role_type()
-        permissions = parse_permissions(perms_mapping[instance.role_type])
-        instance.permissions.set(permissions)
+        instance.permissions.set(parse_permissions(permissions))
 
         instance.save()
     elif instance.perm_labels != permissions:

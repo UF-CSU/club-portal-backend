@@ -355,10 +355,11 @@ class RoleBaseManager(ManagerBase["RoleBase"]):
 
     def create(
         self,
+        *,
         name: str,
         is_default=False,
         perm_labels=None,
-        role_type: RoleType | None =None,
+        role_type: RoleType | None = None,
         **kwargs,
     ):
         """
