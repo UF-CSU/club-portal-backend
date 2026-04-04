@@ -124,6 +124,42 @@ class ClubModelTests(TestsBase):
         )
         self.assertTrue(m2.is_admin)
 
+    def test_member_is_implicitly_role(self):
+        """Should properly determine if a user is implicitly a role based on their custom permissions"""
+        club = create_test_club()
+        role = create_test_clubrole(club)
+        self.assertEqual(role.role_type, RoleType.VIEWER)
+
+        # Give user viewer role
+        user = create_test_user()
+        m = ClubMembership.objects.create(club=club, user=user, roles=[role])
+        self.assertFalse(m.is_admin)
+
+        # Add permissions to role (should now be custom)
+        perms_mapping = role.get_permissions_by_role_type()
+        admin_perms = perms_mapping[RoleType.ADMIN]
+        for perm in admin_perms:
+            role.permissions.add(get_permission(perm))
+        role.save()
+        role.refresh_from_db()
+        self.assertEqual(role.role_type, RoleType.CUSTOM)
+
+        # User should be admin
+        self.assertTrue(m.is_admin)
+
+    def test_member_matches_all_roles(self):
+        """Member should match all roles they have permission for"""
+        club = create_test_club()
+        role = create_test_clubrole(club, role_type=RoleType.ADMIN)
+        self.assertEqual(role.role_type, RoleType.ADMIN)
+
+        user = create_test_user()
+        m = ClubMembership.objects.create(club=club, user=user, roles=[role])
+        self.assertTrue(m.is_admin)
+        self.assertTrue(m.is_editor)
+        self.assertTrue(m.is_viewer)
+        self.assertTrue(m.is_follower)
+
 
 class ClubTeamTests(TestsBase):
     """Unit tests for teams."""

@@ -12,7 +12,8 @@ def on_save_role(sender, instance: RoleBase, created=False, **kwargs):
     if created:  # Only continue if being updated
         return
 
-    instance.__dict__.pop("perm_labels", None) # clear cached perm_labels
+    # Clear cached properties
+    instance.__dict__.pop("perm_labels", None)
 
     if instance.role_type == RoleType.CUSTOM:
         # Skip if role type is set to custom

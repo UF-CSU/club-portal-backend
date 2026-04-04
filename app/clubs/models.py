@@ -456,13 +456,13 @@ class ClubMembership(ClubScopedModel, MembershipBase):
     def team_memberships(self):
         return self.user.team_memberships.filter(team__club_id=self.club_id)
 
-    @cached_property
+    @property
     def _has_all_permissions(self) -> bool:
         if self.is_owner:
             return True
         return super()._has_all_permissions
 
-    @cached_property
+    @property
     def is_voter(self) -> bool:
         """Indicates if a user has a voter role."""
         return self._is_flag("is_voter")

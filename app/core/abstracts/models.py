@@ -576,12 +576,12 @@ class MembershipBase(ModelBase):
     def order(self, value: int):
         self.order_override = value
 
-    @cached_property
+    @property
     def _has_all_permissions(self) -> bool:
         # Staff and Superusers have all permissions
         return self.user.is_staff or self.user.is_superuser
 
-    @cached_property
+    @property
     def _permissions(self) -> list[str]:
         """All the permissions of a member."""
         if self._has_all_permissions:
@@ -602,22 +602,22 @@ class MembershipBase(ModelBase):
 
         return role_permissions.issubset(permissions)
 
-    @cached_property
+    @property
     def is_admin(self) -> bool:
         """Indicates if member is an admin for a group."""
         return self._is_role(RoleType.ADMIN)
 
-    @cached_property
+    @property
     def is_editor(self) -> bool:
         """Indicates if member is an editor for a group."""
         return self._is_role(RoleType.EDITOR)
 
-    @cached_property
+    @property
     def is_viewer(self) -> bool:
         """Indicates if member is a viewer for a group."""
         return self._is_role(RoleType.VIEWER)
 
-    @cached_property
+    @property
     def is_follower(self) -> bool:
         """Indicates if member is a follower for a group."""
         return self._is_role(RoleType.FOLLOWER)
