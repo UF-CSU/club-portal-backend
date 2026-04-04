@@ -188,7 +188,6 @@ class UserClubMembershipsViewSet(
         Prefetch(
             "roles",
             queryset=ClubRole.objects.all().order_by("order"),
-            to_attr="_prefetched_roles_cache",
         ),
         Prefetch(
             "user__team_memberships",
@@ -196,10 +195,8 @@ class UserClubMembershipsViewSet(
                 Prefetch(
                     "team__roles",
                     queryset=TeamRole.objects.order_by("order"),
-                    to_attr="prefetched_roles",
                 ),
             ),
-            to_attr="prefetched_team_memberships",
         ),
     )
     serializer_class = ClubMembershipSerializer
@@ -319,7 +316,6 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
         Prefetch(
             "roles",
             queryset=ClubRole.objects.order_by("order"),
-            to_attr="_prefetched_roles_cache",
         ),
         Prefetch(
             "user__team_memberships",
@@ -327,10 +323,8 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
                 Prefetch(
                     "team__roles",
                     queryset=TeamRole.objects.order_by("order"),
-                    to_attr="prefetched_roles",
                 )
             ),
-            to_attr="prefetched_team_memberships",
         ),
     )
 
