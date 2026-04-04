@@ -352,7 +352,7 @@ class RoleType(models.TextChoices):
     CUSTOM = "custom", _("Custom")
 
 
-class RoleBaseManager(ManagerBase["RoleBase"]):
+class RoleManagerBase(ManagerBase["RoleBase"]):
     """Manage role queries."""
 
     def create(
@@ -431,7 +431,7 @@ class RoleBase(ModelBase):
         return labels
 
     # Overrides
-    objects: ClassVar[RoleBaseManager] = RoleBaseManager()
+    objects: ClassVar[RoleManagerBase] = RoleManagerBase()
 
     class Meta:
         ordering = [
@@ -479,7 +479,7 @@ class RoleBase(ModelBase):
         models.signals.post_save.connect(on_save_role, sender=cls)
 
 
-class MembershipBaseManager(ManagerBase["MembershipBase"]):
+class MembershipManagerBase(ManagerBase["MembershipBase"]):
     """Manage queries for Memberships."""
     def create(
         self,
@@ -628,7 +628,7 @@ class MembershipBase(ModelBase):
         return any(getattr(r, flag, False) for r in self.roles.all())
 
     # Overrides
-    objects: ClassVar[MembershipBaseManager] = MembershipBaseManager()
+    objects: ClassVar[MembershipManagerBase] = MembershipManagerBase()
 
     def __str__(self):
         return self.user.__str__()

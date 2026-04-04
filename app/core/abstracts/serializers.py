@@ -517,3 +517,10 @@ class RoundedDecimalField(serializers.DecimalField):
             normalize_output,
             **kwargs,
         )
+
+
+class RoleSerializerBase(ModelSerializerBase):
+    """Represents a group of permissions users can have in a group."""
+
+    class Meta:
+        fields = ["id", "name", "is_default", "order", "role_type"]

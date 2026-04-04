@@ -15,7 +15,7 @@ from clubs.defaults import (
 from core.abstracts.models import (
     ManagerBase,
     MembershipBase,
-    MembershipBaseManager,
+    MembershipManagerBase,
     ModelBase,
     RoleBase,
     RoleType,
@@ -405,7 +405,7 @@ class ClubRole(ClubScopedModel, RoleBase):
             RoleType.ADMIN: ADMIN_ROLE_PERMISSIONS
         }
 
-class ClubMembershipManager(MembershipBaseManager):
+class ClubMembershipManager(MembershipManagerBase):
     """Manage queries for ClubMemberships."""
 
     def update_or_create(self, defaults=None, **kwargs):
@@ -595,7 +595,7 @@ class TeamRole(ClubScopedModel, RoleBase):
         }
 
 
-class TeamMembershipManager(MembershipBaseManager):
+class TeamMembershipManager(MembershipManagerBase):
     """Manage queries for TeamMemberships."""
 
     def create(

@@ -2,6 +2,7 @@ from core.abstracts.serializers import (
     ImageUrlField,
     ModelSerializerBase,
     PermissionRelatedField,
+    RoleSerializerBase,
     SerializerBase,
 )
 from core.models import Major
@@ -122,12 +123,11 @@ class ClubTagSerializer(ModelSerializerBase):
         fields = ["id", "name", "color", "order"]
 
 
-class ClubRoleSerializer(ModelSerializerBase):
+class ClubRoleSerializer(RoleSerializerBase):
     """Represents a group of permissions users can have in a club."""
 
-    class Meta:
+    class Meta(RoleSerializerBase.Meta):
         model = ClubRole
-        fields = ["id", "name", "is_default", "order", "role_type"]
 
 
 class ClubSerializer(ModelSerializerBase):
