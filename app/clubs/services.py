@@ -11,7 +11,7 @@ from users.models import User
 from users.services import UserService
 from utils.helpers import get_full_url
 
-from clubs.models import Club, ClubMembership, ClubRole
+from clubs.models import Club, ClubMembership, ClubRole, Team, TeamMembership, TeamRole
 
 
 class ClubService(ServiceBase[Club]):
@@ -99,6 +99,50 @@ class ClubService(ServiceBase[Club]):
 
         return member
 
+    def add_team_member(
+        self,
+        user: User,
+        team: Team,
+        roles: Optional[list[TeamRole | str]] = None,
+        send_email=False,
+        team_redirect_url=None,
+        fail_silently=True,
+        **kwargs,
+    ):
+        """Create membership for pre-existing user."""
+
+        # If membership exists, just sync roles and continue
+        member_query = TeamMembership.objects.filter(club=self.obj, team=team, user=user)
+        if fail_silently and member_query.exists():
+            if not roles:
+                return
+
+            member = member_query.first()
+            member.add_roles(*roles)
+
+            return
+
+        # Create new membership
+        member = TeamMembership.objects.create(
+            club=self.obj, team=team, user=user, roles=roles, **kwargs
+        )
+        url = team_redirect_url or CLUB_INVITE_REDIRECT_URL % {"id": self.obj.id}
+
+        if send_email:
+            send_html_mail(
+                subject=f"You have been added to the team {team.name} in club {self.obj.name}",
+                to=[user.email],
+                html_template="clubs/email_invite_template.html",
+                html_context={
+                    "team_name": team.name,
+                    "club_name": self.obj.name,
+                    "invite_url": url,
+                    "logo_url": self.logo_url,
+                },
+            )
+
+        return member
+
     def set_member_role(self, user: User, role: ClubRole | str):
         """Replace a member's roles with given role."""
 
@@ -151,6 +195,22 @@ class ClubService(ServiceBase[Club]):
             to=emails,
             html_template="clubs/email_invite_template.html",
             html_context={
+                "club_name": self.obj.name,
+                "invite_url": self.full_join_url,
+                "logo_url": self.logo_url,
+            },
+            send_separately=True,
+        )
+
+    def send_team_email_invite(self, team: Team, emails: list[str]):
+        """Send email invite to list of emails separately."""
+
+        send_html_mail(
+            subject=f"You have been invited to team {team.name} in club {self.obj.name}",
+            to=emails,
+            html_template="clubs/email_invite_template.html",
+            html_context={
+                "team_name": team.name,
                 "club_name": self.obj.name,
                 "invite_url": self.full_join_url,
                 "logo_url": self.logo_url,

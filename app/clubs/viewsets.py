@@ -24,8 +24,10 @@ from clubs.serializers import (
     ClubSerializer,
     ClubTagSerializer,
     FollowClubsSerializer,
-    InviteClubMemberSerializer,
+    InviteMemberSerializer,
     JoinClubsSerializer,
+    TeamMemberCreateSerializer,
+    TeamMemberSerializer,
     TeamSerializer,
 )
 from clubs.services import ClubService
@@ -422,10 +424,35 @@ class TeamViewSet(ClubNestedViewSetBase):
         return super().list(request, *args, **kwargs)
 
 
+class TeamMemberViewSet(ClubNestedViewSetBase):
+    """Manage members in a team."""
+
+    serializer_class = TeamMemberSerializer
+    queryset = TeamMembership.objects.select_related("team").prefetch_related(
+        Prefetch(
+            "team__roles",
+            queryset=TeamRole.objects.order_by("order"),
+        )
+    )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+        context["team_id"] = self.kwargs.get("team_id")
+        return context
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return TeamMemberCreateSerializer
+
+        return super().get_serializer_class()
+
+
 class InviteClubMemberView(GenericAPIView):
     """Creates a POST route for inviting club members."""
 
-    serializer_class = InviteClubMemberSerializer
+    serializer_class = InviteMemberSerializer
     authentication_classes = ViewSetBase.authentication_classes
     permission_classes = ViewSetBase.permission_classes
 
@@ -438,6 +465,27 @@ class InviteClubMemberView(GenericAPIView):
         emails = serializer.data.get("emails", [])
 
         ClubService(club).send_email_invite(emails)
+
+        return Response(status=status.HTTP_202_ACCEPTED)
+
+
+class InviteTeamMemberView(GenericAPIView):
+    """Creates a POST route for inviting team members."""
+
+    serializer_class = InviteMemberSerializer
+    authentication_classes = ViewSetBase.authentication_classes
+    permission_classes = ViewSetBase.permission_classes
+
+    @extend_schema(responses={202: None})
+    def post(self, request, club_id: int, team_id: int, *args, **kwargs):
+        club = get_object_or_404(Club, id=club_id)
+        team = get_object_or_404(Team, id=team_id)
+        serializer = self.serializer_class(data=request.POST)
+        serializer.is_valid(raise_exception=True)
+
+        emails = serializer.data.get("emails", [])
+
+        ClubService(club).send_team_email_invite(team=team, emails=emails)
 
         return Response(status=status.HTTP_202_ACCEPTED)
 

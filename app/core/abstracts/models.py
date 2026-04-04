@@ -578,8 +578,8 @@ class MembershipBase(ModelBase):
 
     @property
     def _has_all_permissions(self) -> bool:
-        # Staff and Superusers have all permissions
-        return self.user.is_staff or self.user.is_superuser
+        # Superusers have all permissions
+        return self.user.is_superuser
 
     @property
     def _permissions(self) -> list[str]:

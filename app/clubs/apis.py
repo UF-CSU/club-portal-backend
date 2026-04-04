@@ -18,6 +18,11 @@ router.register(
 )
 router.register(r"clubs/(?P<club_id>.+)/teams", viewsets.TeamViewSet, basename="team")
 router.register(
+    r"clubs/(?P<club_id>.+)/teams/(?P<team_id>.+)/members",
+    viewsets.TeamMemberViewSet,
+    basename="teammember",
+)
+router.register(
     r"clubs/(?P<club_id>.+)/apikeys", viewsets.ClubApiKeyViewSet, basename="apikey"
 )
 router.register(
@@ -37,7 +42,10 @@ urlpatterns = [
     path("clubs/follow/", viewsets.FollowClubsViewSet.as_view(), name="follow"),
     path("", include(router.urls)),
     path(
-        "clubs/<int:id>/invite/", viewsets.InviteClubMemberView.as_view(), name="invite"
+        "clubs/<int:id>/invite/", viewsets.InviteClubMemberView.as_view(), name="clubinvite"
+    ),
+    path(
+        "clubs/<int:club_id>/teams/<int:team_id>/invite/", viewsets.InviteTeamMemberView.as_view(), name="teaminvite"
     ),
     path("tags/", viewsets.ClubTagsView.as_view(), name="tags"),
 ]

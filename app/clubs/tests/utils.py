@@ -16,7 +16,7 @@ from utils.testing import create_test_image
 
 
 def club_invite_url(club_id: int):
-    return reverse("api-clubs:invite", args=[club_id])
+    return reverse("api-clubs:clubinvite", args=[club_id])
 
 
 def club_members_list_url(club_id: int):

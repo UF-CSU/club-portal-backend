@@ -13,7 +13,8 @@ from clubs.serializers import (
     ClubSerializer,
     ClubSocialSerializer,
     ClubTagSerializer,
-    TeamMembershipSerializer,
+    TeamMemberCreateSerializer,
+    TeamMemberSerializer,
     TeamSerializer,
 )
 from events.serializers import (
@@ -60,7 +61,7 @@ SERIALIZERS_CREATE_READ_UPDATE: list[InputSerializerType] = [
     ClubFileSerializer,
     ClubPhotoSerializer,
     TeamSerializer,
-    TeamMembershipSerializer,
+    (TeamMemberSerializer, TeamMemberCreateSerializer),
     # Event types
     EventSerializer,
     EventHostSerializer,

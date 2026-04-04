@@ -550,6 +550,10 @@ class Team(ClubScopedModel, ModelBase):
     roles: models.QuerySet["TeamRole"]
 
     # Overrides
+    @cached_property
+    def member_count(self) -> int:
+        return self.memberships.count()
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
