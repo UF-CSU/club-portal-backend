@@ -7,14 +7,14 @@ def regenerate_poll_preview_cache_task(
 ):
     """Delete and recreate poll preview cache in a background Celery worker."""
 
+    from utils.cache import set_cache
+
     from polls.cache import (
         LIST_POLL_PREVIEW_PREFIX,
-        DETAIL_POLL_PREVIEW_PREFIX,
         poll_preview_repopulate_helper,
     )
     from polls.models import Poll
     from polls.serializers import PollPreviewSerializer
-    from utils.cache import set_cache
 
     if poll_ids:
         polls = Poll.objects.filter(id__in=poll_ids)
