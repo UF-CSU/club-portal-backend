@@ -148,7 +148,6 @@ services:
 
   pgbouncer:
     image: edoburu/pgbouncer
-    container_name: pgbouncer
     restart: always
     depends_on:
       - postgres
