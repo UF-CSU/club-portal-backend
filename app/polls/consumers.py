@@ -46,3 +46,11 @@ class PollSubmissionConsumer(ConsumerBase):
                 "data": event["data"],
             }
         )
+
+    async def poll_update(self, event):
+        await self.send_json(
+            {
+                "type": "poll_update",
+                "data": event["data"],
+            }
+        )

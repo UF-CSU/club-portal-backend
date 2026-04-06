@@ -311,9 +311,12 @@ class ClubFile(ClubScopedModel, ModelBase):
         return get_full_url(self.file.url)
 
     @cached_property
-    def size(self) -> str:
+    def size(self) -> str | None:
         """Get a string representation of the size of the file."""
-        return format_bytes(self.file.size)
+        try:
+            return format_bytes(self.file.size)
+        except (FileNotFoundError, OSError):
+            return None
 
     @cached_property
     def file_type(self) -> str:
