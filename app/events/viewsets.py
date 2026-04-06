@@ -252,12 +252,14 @@ class EventViewset(ModelViewSetBase):
     def filter_queryset(self, queryset):
         include_public = self.kwargs.get("include_public", False)
 
-        queryset = queryset.filter_for_user(self.request.user)
-
         if include_public:
-            queryset = queryset | self.queryset.filter(
-                Q(is_public=True) & Q(is_draft=False)
-            )
+            # Include events from user's clubs OR public non-draft events from any club
+            queryset = queryset.filter(
+                Q(clubs__memberships__user=self.request.user)
+                | (Q(is_public=True) & Q(is_draft=False))
+            ).distinct()
+        else:
+            queryset = queryset.filter_for_user(self.request.user)
 
         if self.action == "retrieve":
             return queryset
