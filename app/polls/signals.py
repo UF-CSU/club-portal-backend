@@ -4,6 +4,7 @@ from clubs.models import Club
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from events.models import Event
+from lib.celery import delay_task
 
 from polls.cache import delete_repopulate_poll_preview_cache
 from polls.models import (
@@ -88,4 +89,4 @@ def refresh_poll_preview_cache(
 ):
     """Sets and invalidates poll previews cache when relations change"""
     if sender in [Poll, Event, Club, PollField, PollSubmissionLink]:
-        delete_repopulate_poll_preview_cache(instance)
+        delay_task(delete_repopulate_poll_preview_cache, instance=instance)
