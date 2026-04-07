@@ -66,6 +66,7 @@ EDITOR_ROLE_PERMISSIONS = [
     "polls.change_pollfield",
     "polls.delete_pollfield",
     "polls.view_choiceinputoption",
+    "polls.view_pollsubmission",
     "polls.add_choiceinputoption",
     "polls.change_choiceinputoption",
     "polls.delete_choiceinputoption",
