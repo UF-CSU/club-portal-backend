@@ -94,13 +94,23 @@ def refresh_poll_preview_cache(
     if isinstance(instance, Poll):
         poll_ids = [instance.pk]
     elif isinstance(instance, Event):
-        poll_ids = list(Poll.objects.filter(event__id=instance.pk).values_list("id", flat=True))
+        poll_ids = list(
+            Poll.objects.filter(event__id=instance.pk).values_list("id", flat=True)
+        )
     elif isinstance(instance, Club):
-        poll_ids = list(Poll.objects.filter(club__id=instance.pk).values_list("id", flat=True))
+        poll_ids = list(
+            Poll.objects.filter(club__id=instance.pk).values_list("id", flat=True)
+        )
     elif isinstance(instance, PollField):
-        poll_ids = list(Poll.objects.filter(fields__id=instance.pk).values_list("id", flat=True))
+        poll_ids = list(
+            Poll.objects.filter(fields__id=instance.pk).values_list("id", flat=True)
+        )
     elif isinstance(instance, PollSubmissionLink):
-        poll_ids = list(Poll.objects.filter(_submission_link__id=instance.pk).values_list("id", flat=True))
+        poll_ids = list(
+            Poll.objects.filter(_submission_link__id=instance.pk).values_list(
+                "id", flat=True
+            )
+        )
     else:
         poll_ids = None
 
