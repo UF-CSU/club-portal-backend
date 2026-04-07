@@ -100,9 +100,7 @@ class ClubNestedViewSetBase(ModelViewSetBase):
 class ClubQueryFilter(FilterBackendBase):
     """Filter by club."""
 
-    filter_fields = [
-        {"name": "club", "schema_type": "number", "description": "Club ID"}
-    ]
+    filter_fields = [{"name": "club", "schema_type": "number", "description": "Club ID"}]
 
     def filter_queryset(self, request, queryset, view):
         club_id = request.query_params.get("club", None)
@@ -124,9 +122,7 @@ class IsClubAdminFilter(FilterBackendBase):
         # When type conversion works and is_admin is a boolean, update the code
         if is_admin == "true":
             admin_clubs = list(
-                request.user.club_memberships.filter_is_admin().values_list(
-                    "club__id", flat=True
-                )
+                request.user.club_memberships.filter_is_admin().values_list("club__id", flat=True)
             )
             queryset = queryset.filter(id__in=admin_clubs)
 
@@ -236,9 +232,7 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
             Prefetch("socials", queryset=ClubSocialProfile.objects.order_by("order")),
             Prefetch(
                 "memberships",
-                queryset=ClubMembership.objects.filter(is_owner=True).select_related(
-                    "user"
-                ),
+                queryset=ClubMembership.objects.filter(is_owner=True).select_related("user"),
                 to_attr="prefetched_owner_memberships",
             ),
         )
@@ -275,9 +269,7 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
         params = request.query_params.copy()
         limit = params.get("limit", None)
         offset = params.get("offset", None)
-        is_csu_partner = parse_bool_param(
-            params.get("is_csu_partner", None), "is_csu_partner"
-        )
+        is_csu_partner = parse_bool_param(params.get("is_csu_partner", None), "is_csu_partner")
 
         result = check_cache(
             LIST_CLUB_PREVIEW_PREFIX,
@@ -316,9 +308,7 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
     """Manage members in a club."""
 
     serializer_class = ClubMemberSerializer
-    queryset = ClubMembership.objects.select_related(
-        "user", "user__profile"
-    ).prefetch_related(
+    queryset = ClubMembership.objects.select_related("user", "user__profile").prefetch_related(
         "user__socials",
         Prefetch(
             "roles",
@@ -353,9 +343,7 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
 
     def perform_update(self, serializer):
         instance: ClubMembership = serializer.instance
-        user_membership = ClubMembership.objects.get(
-            user=self.request.user, club=instance.club
-        )
+        user_membership = ClubMembership.objects.get(user=self.request.user, club=instance.club)
 
         # Only admins can change member roles
         roles = serializer.validated_data.get("roles", None)
@@ -366,9 +354,7 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
         is_owner_value = serializer.validated_data.get("is_owner", None)
         if is_owner_value is not None:
             if not user_membership.is_owner:
-                raise exceptions.PermissionDenied(
-                    detail="Only owners can change ownership"
-                )
+                raise exceptions.PermissionDenied(detail="Only owners can change ownership")
 
             elif user_membership.is_owner and is_owner_value is False:
                 raise exceptions.ParseError(
@@ -511,9 +497,7 @@ class FollowClubsViewSet(GenericAPIView):
 
         for club in clubs:
             club_ids.append(club.id)
-            already_member = ClubMembership.objects.filter(
-                club=club, user=request.user
-            ).exists()
+            already_member = ClubMembership.objects.filter(club=club, user=request.user).exists()
             if already_member:
                 continue
 
