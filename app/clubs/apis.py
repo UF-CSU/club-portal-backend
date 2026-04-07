@@ -7,7 +7,7 @@ router = DefaultRouter()
 router.register("clubs", viewsets.ClubViewSet, basename="club")
 router.register("club-previews", viewsets.ClubPreviewViewSet, basename="clubpreview")
 router.register(
-    r"clubs/(?P<club_id>.+)/members",
+    r"clubs/(?P<club_id>\d+)/members",
     viewsets.ClubMemberViewSet,
     basename="clubmember",
 )

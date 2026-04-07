@@ -68,6 +68,18 @@ def get_user_club_or_404(club_id: int, user: User):
         ) from e
 
 
+def get_user_team_or_404(team_id: int, user: User):
+    """Get team for user, or raise 404 error."""
+
+    try:
+        return Team.objects.get_for_user(team_id, user)
+
+    except Team.DoesNotExist as e:
+        raise exceptions.NotFound(
+            detail="Team with id %s does not exist for user." % team_id
+        ) from e
+
+
 class ClubNestedViewSetBase(ModelViewSetBase):
     """
     Represents objects that require a club id to query.
@@ -93,6 +105,33 @@ class ClubNestedViewSetBase(ModelViewSetBase):
 
     def perform_create(self, serializer, **kwargs):
         serializer.save(club=self.club, **kwargs)
+
+
+class TeamNestedViewSetBase(ModelViewSetBase):
+    """
+    Represents objects that require a team id to query.
+    """
+
+    # permission_classes = ModelViewSetBase.permission_classes + [
+    #     permissions.IsAuthenticated
+    # ]
+
+    def check_permissions(self, request):
+        # This runs before `get_queryset`, will short-circuit out if user
+        # does not have a team membership
+
+        team_id = int(self.kwargs.get("team_id"))
+        self.team = get_user_team_or_404(team_id, self.request.user)
+
+        super().check_permissions(request)
+
+    def get_queryset(self):
+        self.queryset = self.queryset.filter(team__id=self.team.id)
+
+        return super().get_queryset()
+
+    def perform_create(self, serializer, **kwargs):
+        serializer.save(team=self.team, **kwargs)
 
 
 class ClubQueryFilter(FilterBackendBase):
@@ -424,7 +463,7 @@ class TeamViewSet(ClubNestedViewSetBase):
         return super().list(request, *args, **kwargs)
 
 
-class TeamMemberViewSet(ClubNestedViewSetBase):
+class TeamMemberViewSet(TeamNestedViewSetBase):
     """Manage members in a team."""
 
     serializer_class = TeamMemberSerializer

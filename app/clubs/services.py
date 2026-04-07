@@ -112,7 +112,7 @@ class ClubService(ServiceBase[Club]):
         """Create membership for pre-existing user."""
 
         # If membership exists, just sync roles and continue
-        member_query = TeamMembership.objects.filter(club=self.obj, team=team, user=user)
+        member_query = TeamMembership.objects.filter(team=team, user=user)
         if fail_silently and member_query.exists():
             if not roles:
                 return
@@ -124,7 +124,7 @@ class ClubService(ServiceBase[Club]):
 
         # Create new membership
         member = TeamMembership.objects.create(
-            club=self.obj, team=team, user=user, roles=roles, **kwargs
+            team=team, user=user, roles=roles, **kwargs
         )
         url = team_redirect_url or CLUB_INVITE_REDIRECT_URL % {"id": self.obj.id}
 

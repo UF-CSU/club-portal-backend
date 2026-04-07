@@ -522,5 +522,10 @@ class RoundedDecimalField(serializers.DecimalField):
 class RoleSerializerBase(ModelSerializerBase):
     """Represents a group of permissions users can have in a group."""
 
+    permissions = serializers.ListField(
+        child=serializers.CharField(read_only=True),
+        source='perm_labels',
+    )
+
     class Meta:
-        fields = ["id", "name", "is_default", "order", "role_type"]
+        fields = ["id", "name", "is_default", "order", "role_type", "permissions"]

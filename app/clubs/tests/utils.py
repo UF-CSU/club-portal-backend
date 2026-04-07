@@ -44,7 +44,6 @@ CLUBS_JOIN_URL = reverse("api-clubs:join")
 CLUBS_PREVIEW_LIST_URL = reverse("api-clubs:clubpreview-list")
 CLUB_MEMBERSHIPS_LIST_URL = reverse("api-clubs:user_clubmembership-list")
 
-
 def club_list_url_member(is_admin: bool = None):
     url = reverse("api-clubs:club-list")
 

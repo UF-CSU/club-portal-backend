@@ -7,10 +7,14 @@ Club models.
 from typing import ClassVar, Optional, Union
 
 from clubs.defaults import (
-    ADMIN_ROLE_PERMISSIONS,
-    EDITOR_ROLE_PERMISSIONS,
-    FOLLOWER_ROLE_PERMISSIONS,
-    VIEWER_ROLE_PERMISSIONS,
+    CLUB_ADMIN_ROLE_PERMISSIONS,
+    CLUB_EDITOR_ROLE_PERMISSIONS,
+    CLUB_FOLLOWER_ROLE_PERMISSIONS,
+    CLUB_VIEWER_ROLE_PERMISSIONS,
+    TEAM_ADMIN_ROLE_PERMISSIONS,
+    TEAM_EDITOR_ROLE_PERMISSIONS,
+    TEAM_FOLLOWER_ROLE_PERMISSIONS,
+    TEAM_VIEWER_ROLE_PERMISSIONS,
 )
 from core.abstracts.models import (
     ManagerBase,
@@ -240,10 +244,6 @@ class Club(ClubScopedModel, UniqueModel):
             return False
 
     @property
-    def default_role(self) -> str:
-        return self.roles.get(is_default=True).name
-
-    @property
     def executives(self):
         return self.memberships.filter(roles__is_executive=True)
 
@@ -399,10 +399,10 @@ class ClubRole(ClubScopedModel, RoleBase):
     @classmethod
     def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
         return {
-            RoleType.FOLLOWER: FOLLOWER_ROLE_PERMISSIONS,
-            RoleType.VIEWER: VIEWER_ROLE_PERMISSIONS,
-            RoleType.EDITOR: EDITOR_ROLE_PERMISSIONS,
-            RoleType.ADMIN: ADMIN_ROLE_PERMISSIONS
+            RoleType.FOLLOWER: CLUB_FOLLOWER_ROLE_PERMISSIONS,
+            RoleType.VIEWER: CLUB_VIEWER_ROLE_PERMISSIONS,
+            RoleType.EDITOR: CLUB_EDITOR_ROLE_PERMISSIONS,
+            RoleType.ADMIN: CLUB_ADMIN_ROLE_PERMISSIONS
         }
 
 class ClubMembershipManager(MembershipManagerBase):
@@ -529,7 +529,65 @@ class TeamAccessType(models.TextChoices):
     """No one can join."""
 
 
-class Team(ClubScopedModel, ModelBase):
+class TeamScopedModel:
+    """Attributes required for an object scoped for teams."""
+
+    scope = ScopeType.TEAM
+
+    @property
+    def teams(self) -> models.QuerySet["Team"]:
+        """QuerySet of teams allowed to access object."""
+
+        if hasattr(self, "team"):
+            return Team.objects.filter(id=self.team.id)
+
+        raise NotImplementedError(
+            "Team scoped objects must have pointer to all allowed teams."
+        )
+
+
+class TeamManager(ManagerBase["Team"]):
+    """Manage team queries."""
+
+    def filter_for_user(self, user: User):
+        """Get teams for user."""
+
+        if user.is_superuser:
+            return self.all()
+        elif user.is_anonymous:
+            return self.none()
+        elif (
+            getattr(user, "is_useragent", False)
+            and user.useragent.apikey_type == "club"
+        ):
+            # TODO: Abstract this useragent club
+            return self.filter(club__id=user.useragent.club_apikey.club.id)
+
+        return self.filter(memberships__user=user)
+
+    def get_for_user(self, id: int, user: User):
+        """Get team for user, or throw 404."""
+
+        if user.is_superuser:
+            return self.get(id=id)
+        elif (
+            getattr(user, "is_useragent", False)
+            and user.useragent.apikey_type == "club"
+        ):
+            # TODO: Abstract this useragent club
+            key_club = user.useragent.club_apikey.club
+
+            team = self.get(id=id, memberships__user__id=user.id)
+
+            if key_club.id != team.club.id:
+                raise self.model.DoesNotExist
+
+            return team
+
+        return self.get(id=id, memberships__user__id=user.id)
+
+
+class Team(TeamScopedModel, ModelBase):
     """Smaller groups within clubs."""
 
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="teams")
@@ -550,6 +608,8 @@ class Team(ClubScopedModel, ModelBase):
     roles: models.QuerySet["TeamRole"]
 
     # Overrides
+    objects: ClassVar[TeamManager] = TeamManager()
+
     @cached_property
     def member_count(self) -> int:
         return self.memberships.count()
@@ -562,7 +622,7 @@ class Team(ClubScopedModel, ModelBase):
         ]
 
 
-class TeamRole(ClubScopedModel, RoleBase):
+class TeamRole(TeamScopedModel, RoleBase):
     """Extend permission group to manage club roles."""
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="roles")
@@ -590,12 +650,11 @@ class TeamRole(ClubScopedModel, RoleBase):
 
     @classmethod
     def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
-        # TODO: Create permissions for TeamRole
         return {
-            RoleType.FOLLOWER: [],
-            RoleType.VIEWER: [],
-            RoleType.EDITOR: [],
-            RoleType.ADMIN: []
+            RoleType.FOLLOWER: TEAM_FOLLOWER_ROLE_PERMISSIONS,
+            RoleType.VIEWER: TEAM_VIEWER_ROLE_PERMISSIONS,
+            RoleType.EDITOR: TEAM_EDITOR_ROLE_PERMISSIONS,
+            RoleType.ADMIN: TEAM_ADMIN_ROLE_PERMISSIONS
         }
 
 
@@ -615,7 +674,7 @@ class TeamMembershipManager(MembershipManagerBase):
 
         return membership
 
-class TeamMembership(ClubScopedModel, MembershipBase):
+class TeamMembership(TeamScopedModel, MembershipBase):
     """Manage club member's assignment to a team."""
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="memberships")

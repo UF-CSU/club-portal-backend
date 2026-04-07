@@ -2,7 +2,6 @@ from core.abstracts.serializers import (
     ImageUrlField,
     ModelSerializerBase,
     PermissionRelatedField,
-    RoleSerializerBase,
     SerializerBase,
 )
 from core.models import Major
@@ -95,14 +94,6 @@ class ClubTagSerializer(ModelSerializerBase):
         fields = ["id", "name", "color", "order"]
 
 
-class ClubRoleSerializer(RoleSerializerBase):
-    """Represents a group of permissions users can have in a club."""
-
-    class Meta(RoleSerializerBase.Meta):
-        model = ClubRole
-        fields = RoleSerializerBase.Meta.fields + ["is_official", "is_voter", "is_executive"]
-
-
 class ClubSerializer(ModelSerializerBase):
     """Represents a Club object with all fields."""
 
@@ -118,7 +109,6 @@ class ClubSerializer(ModelSerializerBase):
         required=False,
         many=True,
     )
-    roles = ClubRoleSerializer(many=True, required=False)
     logo_url = ImageUrlField(required=False, write_only=True)
 
     member_count = serializers.IntegerField(read_only=True)
@@ -141,8 +131,6 @@ class ClubSerializer(ModelSerializerBase):
             "majors",
             "primary_color",
             "text_color",
-            "default_role",
-            "roles",
             "instagram_followers",
             "logo_url",
             "gatorconnect_organization_id",
@@ -433,18 +421,8 @@ class ClubUserNestedSerializer(ModelSerializerBase):
         read_only_fields = ["username", "email", "name", "socials"]
 
 
-class TeamRoleSerializer(RoleSerializerBase):
-    """Represents a group of permissions users can have in a club."""
-
-    class Meta(RoleSerializerBase.Meta):
-        model = TeamRole
-        fields = RoleSerializerBase.Meta.fields
-
-
 class TeamSerializer(ModelSerializerBase):
     """Represents a sub group of users within a club."""
-
-    roles = TeamRoleSerializer(many=True, required=False)
 
     member_count = serializers.IntegerField(read_only=True)
 

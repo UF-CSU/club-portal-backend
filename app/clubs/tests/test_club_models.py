@@ -2,7 +2,7 @@
 Unit tests for generic model functions, validation, etc.
 """
 
-from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
+from clubs.defaults import CLUB_ADMIN_ROLE_PERMISSIONS, CLUB_VIEWER_ROLE_PERMISSIONS
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -72,7 +72,7 @@ class ClubModelTests(TestsBase):
 
         # Check default state
         self.assertEqual(role.role_type, RoleType.VIEWER)
-        self.assertListEqual(role.perm_labels, VIEWER_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True)
 
         # Check state after adding permission
         role.permissions.add(get_permission("clubs.change_club"))
@@ -84,13 +84,13 @@ class ClubModelTests(TestsBase):
         role.role_type = RoleType.VIEWER
         role.save()
         role.refresh_from_db()
-        self.assertListEqual(role.perm_labels, VIEWER_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True)
         self.assertNotIn("clubs.change_club", role.perm_labels)
 
         # Check setting to admin
         role.role_type = RoleType.ADMIN
         role.save()
-        self.assertListEqual(role.perm_labels, ADMIN_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(role.perm_labels, CLUB_ADMIN_ROLE_PERMISSIONS, sort_lists=True)
 
     def test_member_is_admin(self):
         """Should properly display if a user is an admin or not."""

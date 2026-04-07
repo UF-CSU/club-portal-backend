@@ -141,6 +141,7 @@ class ScopeType(models.TextChoices):
 
     GLOBAL = "global", _("Global")
     CLUB = "club", _("Club")
+    TEAM = "team", _("Team")
 
 
 class ModelBase(models.Model):
