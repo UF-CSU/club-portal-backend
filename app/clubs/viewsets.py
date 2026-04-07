@@ -357,6 +357,11 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
             user=self.request.user, club=instance.club
         )
 
+        # Only admins can change member roles
+        roles = serializer.validated_data.get("roles", None)
+        if roles is not None and not user_membership.is_admin:
+            raise exceptions.PermissionDenied(detail="Only admins can update member roles")
+
         # Check club ownership edge cases
         is_owner_value = serializer.validated_data.get("is_owner", None)
         if is_owner_value is not None:
