@@ -382,7 +382,11 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         Can either assign initial permissions by perm_labels as ``list[str]``, or
         by permissions as ``list[Permission]``.
         """
-        from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
+        from clubs.defaults import (
+            ADMIN_ROLE_PERMISSIONS,
+            EDITOR_ROLE_PERMISSIONS,
+            VIEWER_ROLE_PERMISSIONS,
+        )
 
         # perm_labels = perm_labels if perm_labels is not None else []
         permissions = kwargs.pop("permissions", []) + parse_permissions(
@@ -398,8 +402,10 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         # Set default permissions if necessary
         if role_type == RoleType.ADMIN:
             permissions = parse_permissions(ADMIN_ROLE_PERMISSIONS)
+        elif role_type == RoleType.EDITOR:
+            permissions = parse_permissions(EDITOR_ROLE_PERMISSIONS)
         elif role_type == RoleType.VIEWER:
-            perm_labels = parse_permissions(VIEWER_ROLE_PERMISSIONS)
+            permissions = parse_permissions(VIEWER_ROLE_PERMISSIONS)
 
         role = super().create(
             club=club, name=name, is_default=is_default, role_type=role_type, **kwargs

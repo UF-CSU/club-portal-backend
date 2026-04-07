@@ -7,6 +7,7 @@ from utils.permissions import parse_permissions
 
 from clubs.defaults import (
     ADMIN_ROLE_PERMISSIONS,
+    EDITOR_ROLE_PERMISSIONS,
     INITIAL_CLUB_ROLES,
     INITIAL_TEAM_ROLES,
     VIEWER_ROLE_PERMISSIONS,
@@ -86,6 +87,20 @@ def on_save_club_role(sender, instance: ClubRole, created=False, **kwargs):
             instance.permissions.set(parse_permissions(VIEWER_ROLE_PERMISSIONS))
             instance.save()
         elif instance.perm_labels != VIEWER_ROLE_PERMISSIONS:
+            # Role type in sync, permissions out of sync
+            instance.role_type = RoleType.CUSTOM
+            instance.cached_role_type = RoleType.CUSTOM
+            instance.save()
+        else:
+            # Role type in sync, permissions in sync
+            pass
+    elif instance.role_type == RoleType.EDITOR:
+        if instance.cached_role_type != RoleType.EDITOR:
+            # Role type out of sync, set permissions
+            instance.cached_role_type = RoleType.EDITOR
+            instance.permissions.set(parse_permissions(EDITOR_ROLE_PERMISSIONS))
+            instance.save()
+        elif instance.perm_labels != EDITOR_ROLE_PERMISSIONS:
             # Role type in sync, permissions out of sync
             instance.role_type = RoleType.CUSTOM
             instance.cached_role_type = RoleType.CUSTOM
