@@ -6,6 +6,7 @@ from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from django.utils import timezone
 from lib.faker import fake
 from rest_framework import exceptions
+from users.tests.utils import create_test_user
 
 from polls.models import (
     Poll,
@@ -184,6 +185,50 @@ class PollServiceTests(PeriodicTaskTestsBase):
             create_test_pollsubmission(poll)
 
         # Sanity checks
+        poll.refresh_from_db()
+        self.assertEqual(poll.fields.count(), initial_question_count + QUESTION_COUNT)
+        self.assertEqual(poll.submissions.count(), SUBMISSION_COUNT)
+
+        service = PollService(poll)
+        df = service.get_submissions_df()
+        self.assertEqual(len(df), SUBMISSION_COUNT)
+        self.assertEqual(len(df.columns), SUBMISSION_COL_COUNT)
+
+    def test_poll_submissions_df_deleted_user(self):
+        """Should convert submissions to a dataframe even when a user who submitted has been deleted."""
+
+        QUESTION_COUNT = 3
+        SUBMISSION_COUNT = 10
+
+        # + user_id, user_email, user_school_email, date
+        SUBMISSION_COL_COUNT = QUESTION_COUNT + 4
+
+        # Create form
+        poll = create_test_poll()
+        initial_question_count = poll.questions.count()
+
+        for i in range(QUESTION_COUNT):
+            create_test_pollquestion(poll, label=f"Question {i + 1}")
+
+        # Create submission
+        for _i in range(SUBMISSION_COUNT - 1):
+            create_test_pollsubmission(poll)
+
+        # Create user to delete it
+        user_to_delete = create_test_user()
+        create_test_pollsubmission(poll, user_to_delete)
+
+        # Sanity checks
+        poll.refresh_from_db()
+        self.assertEqual(poll.fields.count(), initial_question_count + QUESTION_COUNT)
+        self.assertEqual(poll.submissions.count(), SUBMISSION_COUNT)
+
+        service = PollService(poll)
+        df = service.get_submissions_df()
+        self.assertEqual(len(df), SUBMISSION_COUNT)
+        self.assertEqual(len(df.columns), SUBMISSION_COL_COUNT)
+
+        user_to_delete.delete()
         poll.refresh_from_db()
         self.assertEqual(poll.fields.count(), initial_question_count + QUESTION_COUNT)
         self.assertEqual(poll.submissions.count(), SUBMISSION_COUNT)
