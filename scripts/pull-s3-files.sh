@@ -13,7 +13,7 @@ done in the dev docker compose network, and not in production.
 Options:
   -h,--help       Show this help message
   -l,--list       List backups available in S3 without pulling any
-  -d,--dryrun    Dry-run syncing with AWS
+  -d,--dryrun     Dry-run syncing with AWS
 
 Examples:
   $0
@@ -34,7 +34,8 @@ function log {
 # Vars
 list_mode=0
 dry_mode=0
-media_dir="/vol/web/media/public"
+media_root="/vol/web"
+media_dir="$media_root/media/public"
 
 # Process CLI Arguments
 while [[ $# -gt 0 ]]; do
@@ -62,9 +63,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Check if in a docker container
-if [[ ! -w "$media_dir" || ! -x "$media_dir" ]]; then
+if [[ ! -w "$media_root" || ! -x "$media_root" ]]; then
   log red "Media folder not found, or is not writable by current user. Make sure to run this in the development docker container."
-  exit 2
+else
+  mkdir -p "$media_dir" # Ensure full directory path exists
 fi
 
 # Setup AWS

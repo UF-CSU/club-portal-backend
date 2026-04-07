@@ -159,8 +159,8 @@ createdb "$POSTGRES_NAME"
 log check "Dropped and recreated database '$POSTGRES_NAME'"
 
 # Un-compress file and apply the postgres dump
-log circle "Restoring backup file $backup_file for $db_uri..."
+log circle "Restoring backup file $backup_file for $PGNAME..."
 gunzip -c "$backup_file" | psql --dbname="$db_uri"
-log check "\\rRestored backup file $backup_file for $db_uri"
+log check "\\rRestored backup file $backup_file for $PGNAME"
 
 log green "\nSuccessfully restored backup $backup_file"
