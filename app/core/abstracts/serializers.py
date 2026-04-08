@@ -524,11 +524,12 @@ class RoundedDecimalField(serializers.DecimalField):
 class RolePermissionField(serializers.ChoiceField):
     """Display role permissions in JSON."""
 
-    def __init__(self, role_model: RoleBase, **kwargs):
+    def __init__(self, role_model: type[RoleBase], **kwargs):
         perms_mapping = role_model.get_permissions_by_role_type()
         allowed_perms = perms_mapping[RoleType.ADMIN]
 
         super().__init__(choices=allowed_perms, **kwargs)
+        self.enum_name = f"{role_model.__name__}PermissionsType"
 
     def to_internal_value(self, data):
         return get_permission(data)
