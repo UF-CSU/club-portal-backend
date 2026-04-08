@@ -664,7 +664,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         )
 
     def test_either_role_type_or_permissions(self):
-        """Admins can create role by specifying role type."""
+        """Only one of role type or permissions should be specified when creating a new role."""
 
         payload = {
             "name": "New Role",
