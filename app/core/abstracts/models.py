@@ -9,6 +9,7 @@ from typing import Any, ClassVar, Optional, Self
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core import exceptions
+from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
 from django.db import models, transaction
 from django.urls import reverse_lazy
@@ -356,21 +357,18 @@ class RoleType(models.TextChoices):
 class RoleManagerBase(ManagerBase["RoleBase"]):
     """Manage role queries."""
 
-    def create(
+    def _clean_perms(
         self,
-        *,
-        name: str,
-        is_default=False,
         perm_labels=None,
         role_type: RoleType | None = None,
-        **kwargs,
+        **kwargs
     ):
         """
-        Create new role.
-
-        Can either assign initial permissions by perm_labels as ``list[str]``, or
+        Outputs permissions from perm_labels as ``list[str]``, or
         by permissions as ``list[Permission]``.
+        Outputs proper role_type.
         """
+
         permissions = kwargs.pop("permissions", []) + parse_permissions(
             perm_labels or []
         )
@@ -388,8 +386,49 @@ class RoleManagerBase(ManagerBase["RoleBase"]):
             perms_mapping = self.model.get_permissions_by_role_type()
             permissions = parse_permissions(perms_mapping[role_type])
 
+        return role_type, permissions, kwargs
+
+
+    def create(
+        self,
+        *,
+        name: str,
+        is_default=False,
+        perm_labels=None,
+        role_type: RoleType | None = None,
+        **kwargs,
+    ):
+        """
+        Create new role.
+        """
+        role_type, permissions, kwargs = self._clean_perms(perm_labels, role_type, **kwargs)
+
         role = super().create(
             name=name, is_default=is_default, role_type=role_type, **kwargs
+        )
+
+        role.permissions.set(permissions)
+        role.save()
+
+        return role
+
+    def update(
+        self,
+        role: "RoleBase",
+        *,
+        name: str,
+        is_default=False,
+        perm_labels=None,
+        role_type: RoleType | None = None,
+        **kwargs,
+    ):
+        """
+        Update role.
+        """
+        role_type, permissions, kwargs = self._clean_perms(perm_labels, role_type, **kwargs)
+
+        role = super().update(
+            role, name=name, is_default=is_default, role_type=role_type, **kwargs
         )
 
         role.permissions.set(permissions)
@@ -505,6 +544,9 @@ class MembershipManagerBase(ManagerBase["MembershipBase"]):
         for role in roles:
             if isinstance(role, str):
                 role = membership.group().roles.get(name=role)
+
+            if role.group() != membership.group():
+                raise ValidationError("Role must belong to the same group as membership")
 
             membership.roles.add(role)
 

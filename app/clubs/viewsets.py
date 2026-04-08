@@ -20,6 +20,7 @@ from clubs.serializers import (
     ClubMembershipSerializer,
     ClubPreviewListParamSerializer,
     ClubPreviewSerializer,
+    ClubRoleSerializer,
     ClubRosterSerializer,
     ClubSerializer,
     ClubTagSerializer,
@@ -28,6 +29,7 @@ from clubs.serializers import (
     JoinClubsSerializer,
     TeamMemberCreateSerializer,
     TeamMemberSerializer,
+    TeamRoleSerializer,
     TeamSerializer,
 )
 from clubs.services import ClubService
@@ -437,6 +439,19 @@ class ClubMembershipSingleViewSet(
         return get_object_or_404(self.queryset)
 
 
+class ClubRoleViewSet(ClubNestedViewSetBase):
+    """Manage roles in a club."""
+
+    serializer_class = ClubRoleSerializer
+    queryset = ClubRole.objects.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+        context["club_id"] = self.kwargs.get("club_id")
+        return context
+
 class TeamViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for Team objects."""
 
@@ -486,6 +501,20 @@ class TeamMemberViewSet(TeamNestedViewSetBase):
             return TeamMemberCreateSerializer
 
         return super().get_serializer_class()
+
+
+class TeamRoleViewSet(TeamNestedViewSetBase):
+    """Manage roles in a team."""
+
+    serializer_class = TeamRoleSerializer
+    queryset = TeamRole.objects.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+        context["team_id"] = self.kwargs.get("team_id")
+        return context
 
 
 class InviteClubMemberView(GenericAPIView):

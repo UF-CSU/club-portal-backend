@@ -1,16 +1,3 @@
-from core.abstracts.serializers import (
-    ImageUrlField,
-    ModelSerializerBase,
-    PermissionRelatedField,
-    SerializerBase,
-)
-from core.models import Major
-from django.core.validators import MinValueValidator
-from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
-from rest_framework import serializers
-from rest_framework.fields import empty
-from users.models import SocialProfile, User
-from users.services import UserService
 
 from clubs.models import (
     Club,
@@ -26,6 +13,21 @@ from clubs.models import (
     TeamRole,
 )
 from clubs.services import ClubService
+from core.abstracts.serializers import (
+    ImageUrlField,
+    MemberSerializerBase,
+    ModelSerializerBase,
+    PermissionRelatedField,
+    RoleSerializerBase,
+    SerializerBase,
+)
+from core.models import Major
+from django.core.validators import MinValueValidator
+from querycsv.serializers import CsvModelSerializer, WritableSlugRelatedField
+from rest_framework import serializers
+from rest_framework.fields import empty
+from users.models import SocialProfile, User
+from users.services import UserService
 
 
 class ClubFileSerializer(ModelSerializerBase):
@@ -327,7 +329,7 @@ class ClubMembershipSerializer(ModelSerializerBase):
         }
 
 
-class ClubMemberSerializer(ModelSerializerBase):
+class ClubMemberSerializer(MemberSerializerBase):
     """Show information about all members of a club."""
 
     user = ClubMemberUserNestedSerializer()
@@ -339,6 +341,7 @@ class ClubMemberSerializer(ModelSerializerBase):
         queryset=ClubRole.objects.none(),
         required=False,
     )
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -352,6 +355,20 @@ class ClubMemberSerializer(ModelSerializerBase):
             self.fields["roles"].queryset = filtered_roles
             if hasattr(self.fields["roles"], "child_relation"):
                 self.fields["roles"].child_relation.queryset = filtered_roles
+
+
+    # Abstract method
+    def get_user_perm_ids(self, request):
+        club_id = self.context.get("club_id")
+        assert club_id is not None
+
+        user = request.user
+        user_perm_ids = set(
+            user.club_memberships.filter(club__id=club_id)
+            .prefetch_related("roles", "roles__permissions")
+            .values_list("roles__permissions__id", flat=True)
+        )
+        return user_perm_ids
 
     class Meta:
         model = ClubMembership
@@ -421,6 +438,27 @@ class ClubUserNestedSerializer(ModelSerializerBase):
         read_only_fields = ["username", "email", "name", "socials"]
 
 
+class ClubRoleSerializer(RoleSerializerBase):
+    """Represents a group of permissions users can have in a club."""
+
+    # Abstract method
+    def get_user_perm_ids(self, request):
+        club_id = self.context.get("club_id")
+        assert club_id is not None
+
+        user = request.user
+        user_perm_ids = set(
+            user.club_memberships.filter(club__id=club_id)
+            .prefetch_related("roles", "roles__permissions")
+            .values_list("roles__permissions__id", flat=True)
+        )
+        return user_perm_ids
+
+    class Meta(RoleSerializerBase.Meta):
+        model = ClubRole
+        fields = RoleSerializerBase.Meta.fields + ["is_official", "is_voter", "is_executive"]
+
+
 class TeamSerializer(ModelSerializerBase):
     """Represents a sub group of users within a club."""
 
@@ -433,7 +471,7 @@ class TeamSerializer(ModelSerializerBase):
         ]
 
 
-class TeamMemberSerializer(ModelSerializerBase):
+class TeamMemberSerializer(MemberSerializerBase):
     """Show information about all members of a team."""
 
     user = ClubMemberUserNestedSerializer()
@@ -457,6 +495,20 @@ class TeamMemberSerializer(ModelSerializerBase):
             self.fields["roles"].queryset = filtered_roles
             if hasattr(self.fields["roles"], "child_relation"):
                 self.fields["roles"].child_relation.queryset = filtered_roles
+
+    # Abstract method
+    def get_user_perm_ids(self, request):
+        team_id = self.context.get("team_id")
+        assert team_id is not None
+
+        user = request.user
+        user_perm_ids = set(
+            user.team_memberships.filter(team__id=team_id)
+            .prefetch_related("roles", "roles__permissions")
+            .values_list("roles__permissions__id", flat=True)
+        )
+        return user_perm_ids
+
 
     class Meta:
         model = TeamMembership
@@ -505,6 +557,26 @@ class TeamMemberCreateSerializer(TeamMemberSerializer):
         membership = ClubService(team.club).add_team_member(team=team, **validated_data, fail_silently=False)
 
         return membership
+
+
+class TeamRoleSerializer(RoleSerializerBase):
+    """Represents a group of permissions users can have in a team."""
+
+    # Abstract method
+    def get_user_perm_ids(self, request):
+        team_id = self.context.get("team_id")
+        assert team_id is not None
+
+        user = request.user
+        user_perm_ids = set(
+            user.team_memberships.filter(team__id=team_id)
+            .prefetch_related("roles", "roles__permissions")
+            .values_list("roles__permissions__id", flat=True)
+        )
+        return user_perm_ids
+
+    class Meta(RoleSerializerBase.Meta):
+        model = TeamRole
 
 
 class ClubApiKeySerializer(ModelSerializerBase):

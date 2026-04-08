@@ -16,11 +16,21 @@ router.register(
     viewsets.ClubMembershipSingleViewSet,
     basename="clubmembership",
 )
+router.register(
+    r"clubs/(?P<club_id>\d+)/roles",
+    viewsets.ClubRoleViewSet,
+    basename="clubrole",
+)
 router.register(r"clubs/(?P<club_id>.+)/teams", viewsets.TeamViewSet, basename="team")
 router.register(
     r"clubs/(?P<club_id>.+)/teams/(?P<team_id>.+)/members",
     viewsets.TeamMemberViewSet,
     basename="teammember",
+)
+router.register(
+    r"clubs/(?P<club_id>\d+)/teams/(?P<team_id>.+)/roles",
+    viewsets.TeamRoleViewSet,
+    basename="teamrole",
 )
 router.register(
     r"clubs/(?P<club_id>.+)/apikeys", viewsets.ClubApiKeyViewSet, basename="apikey"

@@ -1,11 +1,10 @@
-from core.abstracts.tests import TestsBase
-from events.tests.utils import create_test_event
-from users.tests.utils import create_test_user
-
 from clubs.defaults import INITIAL_CLUB_ROLES
 from clubs.models import ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import create_test_club, create_test_team
+from core.abstracts.tests import TestsBase
+from events.tests.utils import create_test_event
+from users.tests.utils import create_test_user
 
 
 class ClubPermsBasicTests(TestsBase):
@@ -122,14 +121,10 @@ class ClubScopedPermsTests(TestsBase):
         self.assertFalse(self.user.has_perm("clubs.change_team", team2))
 
     def test_team_perms(self):
-        """Team permissions are scoped to team."""
+        """Team permissions are scoped to team (can have team admin without being club admin)."""
 
         team1 = create_test_team(self.club1)
         team2 = create_test_team(self.club2)
-
-        # Without being part of team, user does not have permissions
-        self.assertFalse(self.user.has_perm("clubs.view_teammembership", team1))
-        self.assertFalse(self.user.has_perm("clubs.view_teammembership", team2))
 
         # Add user to team
         self.service1.add_team_member(self.user, team1, roles=["Admin"])
@@ -141,4 +136,23 @@ class ClubScopedPermsTests(TestsBase):
 
         # Does not have admin perms if non-admin
         self.assertTrue(self.user.has_perm("clubs.view_teammembership", team2))
+        self.assertFalse(self.user.has_perm("clubs.change_teammembership", team2))
+
+    def test_club_admin_team_perms(self):
+        """Club admins are also admins of teams."""
+
+        team1 = create_test_team(self.club1)
+        team2 = create_test_team(self.club2)
+
+        # Add user to team
+        self.service1.add_team_member(self.user, team1)
+        self.service2.add_team_member(self.user, team2)
+
+        # Make user admin of club1
+        self.service1.add_member_role(self.user, role="President")
+
+        # Club admin has team admin
+        self.assertTrue(self.user.has_perm("clubs.change_teammembership", team1))
+
+        # Club non-admin does not have team admin
         self.assertFalse(self.user.has_perm("clubs.change_teammembership", team2))

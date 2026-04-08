@@ -36,6 +36,8 @@ CLUB_VIEWER_ROLE_PERMISSIONS = [
     "clubs.view_clubrole",
     "clubs.view_clubphoto",
     "clubs.view_clubtag",
+    "clubs.view_teammembership",
+    "clubs.view_teamrole",
     # Events
     "events.view_event",
     "events.view_private_event",
@@ -53,6 +55,12 @@ CLUB_EDITOR_ROLE_PERMISSIONS = [
     "clubs.change_clubfile",
     "clubs.add_clubmembership",
     "clubs.change_clubmembership",
+    "clubs.add_clubrole",
+    "clubs.change_clubrole",
+    "clubs.add_teammembership",
+    "clubs.change_teammembership",
+    "clubs.add_teamrole",
+    "clubs.change_teamrole",
     # Events
     "events.add_event",
     "events.change_event",
@@ -78,6 +86,9 @@ CLUB_ADMIN_ROLE_PERMISSIONS = [
     "clubs.delete_team",
     "clubs.delete_clubfile",
     "clubs.delete_clubmembership",
+    "clubs.delete_clubrole",
+    "clubs.delete_teammembership",
+    "clubs.delete_teamrole",
     "clubs.add_clubapikey",
     "clubs.view_clubapikey",
     "clubs.change_clubapikey",
@@ -112,7 +123,7 @@ TEAM_VIEWER_ROLE_PERMISSIONS = [
     *TEAM_FOLLOWER_ROLE_PERMISSIONS,
     # Teams
     "clubs.view_teammembership",
-    "clubs.view_teamrole",
+    "clubs.view_teamrole"
 ]
 """View internal team info & stats."""
 
@@ -121,13 +132,16 @@ TEAM_EDITOR_ROLE_PERMISSIONS = [
     # Teams
     "clubs.add_teammembership",
     "clubs.change_teammembership",
+    "clubs.add_teamrole",
+    "clubs.change_teamrole"
 ]
 """Edit and add permissions with some restrictions."""
 
 TEAM_ADMIN_ROLE_PERMISSIONS = [
     *TEAM_EDITOR_ROLE_PERMISSIONS,
     # Teams
-    "clubs.delete_teammembership"
+    "clubs.delete_teammembership",
+    "clubs.delete_teamrole"
 ]
 """All permissions for a team"""
 

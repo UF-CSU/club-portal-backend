@@ -92,6 +92,17 @@ class ClubModelTests(TestsBase):
         role.save()
         self.assertListEqual(role.perm_labels, CLUB_ADMIN_ROLE_PERMISSIONS, sort_lists=True)
 
+    def test_create_member_wrong_roles(self):
+        """Cannot give member roles from a different club."""
+
+        club1 = create_test_club()
+        club2 = create_test_club()
+        role = create_test_clubrole(club2)
+
+        user = create_test_user()
+        with self.assertRaises(exceptions.ValidationError):
+            ClubMembership.objects.create(club=club1, user=user, roles=[role])
+
     def test_member_is_admin(self):
         """Should properly display if a user is an admin or not."""
         club = create_test_club()

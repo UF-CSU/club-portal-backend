@@ -35,6 +35,14 @@ def club_detail_url(club_id: int):
     return reverse("api-clubs:club-detail", args=[club_id])
 
 
+def club_roles_list_url(club_id: int):
+    return reverse("api-clubs:clubrole-list", args=[club_id])
+
+
+def club_roles_detail_url(club_id: int, role_id: int):
+    return reverse("api-clubs:clubrole-detail", args=[club_id, role_id])
+
+
 def club_apikey_list_url(club_id: int):
     return reverse("api-clubs:apikey-list", args=[club_id])
 

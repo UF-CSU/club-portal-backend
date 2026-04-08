@@ -3,6 +3,8 @@ from enum import Enum
 from time import sleep
 
 import requests
+from rest_framework.exceptions import PermissionDenied
+from core.abstracts.models import RoleType
 from django.contrib.auth.models import Permission
 from django.core import validators
 from django.core.files import File
@@ -522,10 +524,94 @@ class RoundedDecimalField(serializers.DecimalField):
 class RoleSerializerBase(ModelSerializerBase):
     """Represents a group of permissions users can have in a group."""
 
-    permissions = serializers.ListField(
-        child=serializers.CharField(read_only=True),
-        source='perm_labels',
-    )
+    permissions = PermissionRelatedField(many=True, required=False)
+
+    def validate(self, data):
+        """
+        Check that user is not trying to elevate roles.
+        A user cannot assign permissions they don't already have.
+        """
+
+        # Check that only one of role_type or permissions is set
+        role_type = data.get("role_type", None)
+        permissions = data.get("permissions", None)
+        if role_type is not None and role_type != RoleType.CUSTOM and permissions is not None:
+            raise serializers.ValidationError(
+                "Please provide role_type or permissions, not both."
+            )
+
+        # Allowed if not from request context (we need access to user)
+        request = self.context.get("request", None)
+        if request is None:
+            return data
+
+        user_perm_ids = self.get_user_perm_ids(request)
+
+        # Aggregate permissions that are trying to be assigned
+        perm_ids = set()
+
+        # Check role type assignment
+        if role_type is not None and role_type != RoleType.CUSTOM:
+            perms_mapping = self.Meta.model.get_permissions_by_role_type()
+            perm_labels = perms_mapping[role_type]
+            for perm_label in perm_labels:
+                perm_ids.add(get_permission(perm_label).id)
+
+        # Check permissions
+        if permissions is not None:
+            perm_ids.update([p.id for p in permissions])
+
+        if perm_ids.issubset(user_perm_ids):
+            return data
+        else:
+            raise PermissionDenied(
+                "You cannot assign permissions you do not have."
+            )
+
+    # Abstract methods
+    def get_user_perm_ids(self, request):
+        raise NotImplementedError(
+            "Role serializers must return permissions user has in group"
+        )
 
     class Meta:
         fields = ["id", "name", "is_default", "order", "role_type", "permissions"]
+
+
+class MemberSerializerBase(ModelSerializerBase):
+    """Show information about all members of a group."""
+
+    def validate(self, data):
+        """
+        Check that user is not trying to elevate roles.
+        A user cannot assign a member a role that is higher than their current role.
+        """
+
+        # Allowed if not from request context (we need access to user)
+        request = self.context.get("request", None)
+        if request is None:
+            return data
+
+        user_perm_ids = self.get_user_perm_ids(request)
+
+        # Aggregate permissions that are trying to be assigned
+        perm_ids = set()
+
+        # Check roles
+        roles = data.get("roles", None)
+        if roles is not None:
+            for role in roles:
+                perm_ids.update([p.id for p in role.permissions.all()])
+
+        if perm_ids.issubset(user_perm_ids):
+            return data
+        else:
+            raise PermissionDenied(
+                "You cannot assign roles higher than the one you currently have."
+            )
+
+    # Abstract methods
+    def get_user_perm_ids(self, request):
+        raise NotImplementedError(
+            "Member serializers must return permissions user has in group"
+        )
