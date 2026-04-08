@@ -1,5 +1,6 @@
-from core.abstracts.models import RoleBase, RoleType
 from utils.permissions import parse_permissions
+
+from core.abstracts.models import RoleBase, RoleType
 
 
 def on_save_role(sender, instance: RoleBase, created=False, **kwargs):

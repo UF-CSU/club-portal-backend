@@ -6,16 +6,6 @@ Club models.
 
 from typing import ClassVar, Optional, Union
 
-from clubs.defaults import (
-    CLUB_ADMIN_ROLE_PERMISSIONS,
-    CLUB_EDITOR_ROLE_PERMISSIONS,
-    CLUB_FOLLOWER_ROLE_PERMISSIONS,
-    CLUB_VIEWER_ROLE_PERMISSIONS,
-    TEAM_ADMIN_ROLE_PERMISSIONS,
-    TEAM_EDITOR_ROLE_PERMISSIONS,
-    TEAM_FOLLOWER_ROLE_PERMISSIONS,
-    TEAM_VIEWER_ROLE_PERMISSIONS,
-)
 from core.abstracts.models import (
     ManagerBase,
     MembershipBase,
@@ -36,13 +26,23 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.text import slugify
-from django.utils.translation import gettext_lazy as _
 from rest_framework.authtoken.models import Token
 from users.models import ApiKeyType, User, UserAgent
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
 from utils.models import UploadNestedClubFilepathFactory
 from utils.permissions import parse_permissions
+
+from clubs.defaults import (
+    CLUB_ADMIN_ROLE_PERMISSIONS,
+    CLUB_EDITOR_ROLE_PERMISSIONS,
+    CLUB_FOLLOWER_ROLE_PERMISSIONS,
+    CLUB_VIEWER_ROLE_PERMISSIONS,
+    TEAM_ADMIN_ROLE_PERMISSIONS,
+    TEAM_EDITOR_ROLE_PERMISSIONS,
+    TEAM_FOLLOWER_ROLE_PERMISSIONS,
+    TEAM_VIEWER_ROLE_PERMISSIONS,
+)
 
 
 class ClubFileOrigin(models.TextChoices):
@@ -402,8 +402,9 @@ class ClubRole(ClubScopedModel, RoleBase):
             RoleType.FOLLOWER: CLUB_FOLLOWER_ROLE_PERMISSIONS,
             RoleType.VIEWER: CLUB_VIEWER_ROLE_PERMISSIONS,
             RoleType.EDITOR: CLUB_EDITOR_ROLE_PERMISSIONS,
-            RoleType.ADMIN: CLUB_ADMIN_ROLE_PERMISSIONS
+            RoleType.ADMIN: CLUB_ADMIN_ROLE_PERMISSIONS,
         }
+
 
 class ClubMembershipManager(MembershipManagerBase):
     """Manage queries for ClubMemberships."""
@@ -659,7 +660,7 @@ class TeamRole(TeamScopedModel, RoleBase):
             RoleType.FOLLOWER: TEAM_FOLLOWER_ROLE_PERMISSIONS,
             RoleType.VIEWER: TEAM_VIEWER_ROLE_PERMISSIONS,
             RoleType.EDITOR: TEAM_EDITOR_ROLE_PERMISSIONS,
-            RoleType.ADMIN: TEAM_ADMIN_ROLE_PERMISSIONS
+            RoleType.ADMIN: TEAM_ADMIN_ROLE_PERMISSIONS,
         }
 
 
@@ -678,6 +679,7 @@ class TeamMembershipManager(MembershipManagerBase):
         membership = super().create(team=team, user=user, roles=roles, **kwargs)
 
         return membership
+
 
 class TeamMembership(TeamScopedModel, MembershipBase):
     """Manage club member's assignment to a team."""
@@ -820,11 +822,6 @@ class ClubApiKey(ClubScopedModel, ModelBase):
 
         token, _ = Token.objects.get_or_create(user=self.user_agent)
         return token
-
-    def get_secret(self):
-        """Get secret string."""
-
-        return self.get_token().key
 
     def get_secret(self):
         """Get secret string."""

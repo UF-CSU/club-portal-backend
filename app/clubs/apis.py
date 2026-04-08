@@ -52,10 +52,14 @@ urlpatterns = [
     path("clubs/follow/", viewsets.FollowClubsViewSet.as_view(), name="follow"),
     path("", include(router.urls)),
     path(
-        "clubs/<int:id>/invite/", viewsets.InviteClubMemberView.as_view(), name="clubinvite"
+        "clubs/<int:id>/invite/",
+        viewsets.InviteClubMemberView.as_view(),
+        name="clubinvite",
     ),
     path(
-        "clubs/<int:club_id>/teams/<int:team_id>/invite/", viewsets.InviteTeamMemberView.as_view(), name="teaminvite"
+        "clubs/<int:club_id>/teams/<int:team_id>/invite/",
+        viewsets.InviteTeamMemberView.as_view(),
+        name="teaminvite",
     ),
     path("tags/", viewsets.ClubTagsView.as_view(), name="tags"),
 ]

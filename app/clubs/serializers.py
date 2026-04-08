@@ -1,18 +1,3 @@
-
-from clubs.models import (
-    Club,
-    ClubApiKey,
-    ClubFile,
-    ClubMembership,
-    ClubPhoto,
-    ClubRole,
-    ClubSocialProfile,
-    ClubTag,
-    Team,
-    TeamMembership,
-    TeamRole,
-)
-from clubs.services import ClubService
 from core.abstracts.serializers import (
     ImageUrlField,
     MemberSerializerBase,
@@ -29,6 +14,21 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 from users.models import SocialProfile, User
 from users.services import UserService
+
+from clubs.models import (
+    Club,
+    ClubApiKey,
+    ClubFile,
+    ClubMembership,
+    ClubPhoto,
+    ClubRole,
+    ClubSocialProfile,
+    ClubTag,
+    Team,
+    TeamMembership,
+    TeamRole,
+)
+from clubs.services import ClubService
 
 
 class ClubFileSerializer(ModelSerializerBase):
@@ -288,7 +288,7 @@ class ClubMemberTeamNestedSerializer(ModelSerializerBase):
             "is_editor",
             "is_viewer",
             "is_follower",
-            "order"
+            "order",
         ]
 
 
@@ -343,7 +343,6 @@ class ClubMemberSerializer(MemberSerializerBase):
         required=False,
     )
 
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not hasattr(self, "context") or not self.context:
@@ -356,7 +355,6 @@ class ClubMemberSerializer(MemberSerializerBase):
             self.fields["roles"].queryset = filtered_roles
             if hasattr(self.fields["roles"], "child_relation"):
                 self.fields["roles"].child_relation.queryset = filtered_roles
-
 
     # Abstract method
     def get_user_perm_ids(self, request):
@@ -459,7 +457,11 @@ class ClubRoleSerializer(RoleSerializerBase):
 
     class Meta(RoleSerializerBase.Meta):
         model = ClubRole
-        fields = RoleSerializerBase.Meta.fields + ["is_official", "is_voter", "is_executive"]
+        fields = RoleSerializerBase.Meta.fields + [
+            "is_official",
+            "is_voter",
+            "is_executive",
+        ]
 
 
 class TeamSerializer(ModelSerializerBase):
@@ -512,7 +514,6 @@ class TeamMemberSerializer(MemberSerializerBase):
         )
         return user_perm_ids
 
-
     class Meta:
         model = TeamMembership
         fields = [
@@ -557,7 +558,9 @@ class TeamMemberCreateSerializer(TeamMemberSerializer):
     def create(self, validated_data):
         team = validated_data.pop("team")
 
-        membership = ClubService(team.club).add_team_member(team=team, **validated_data, fail_silently=False)
+        membership = ClubService(team.club).add_team_member(
+            team=team, **validated_data, fail_silently=False
+        )
 
         return membership
 

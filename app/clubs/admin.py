@@ -1,5 +1,8 @@
 from typing import Optional
 
+from core.abstracts.admin import ModelAdminBase, RoleAdminBase, RoleInlineAdminBase
+from django.contrib import admin
+
 from clubs.forms import TeamMembershipForm
 from clubs.models import (
     Club,
@@ -20,8 +23,6 @@ from clubs.serializers import (
     ClubRoleCsvSerializer,
     TeamCsvSerializer,
 )
-from core.abstracts.admin import ModelAdminBase, RoleAdminBase, RoleInlineAdminBase
-from django.contrib import admin
 
 
 class ClubMembershipInlineAdmin(admin.StackedInline):
@@ -107,7 +108,11 @@ class ClubRoleAdmin(RoleAdminBase):
 
     csv_serializer_class = ClubRoleCsvSerializer
 
-    list_display = RoleAdminBase.list_display + ("role_type", "is_default", "is_executive")
+    list_display = RoleAdminBase.list_display + (
+        "role_type",
+        "is_default",
+        "is_executive",
+    )
     search_fields = RoleAdminBase.search_fields + (
         "club__name",
         "club__alias",
@@ -215,9 +220,7 @@ class TeamAdmin(ModelAdminBase):
 class TeamRoleAdmin(RoleAdminBase):
     """Manage team roles in admin."""
 
-    list_display = RoleAdminBase.list_display + (
-        "team",
-    )
+    list_display = RoleAdminBase.list_display + ("team",)
     list_filter = ("team",)
     search_fields = RoleAdminBase.search_fields + (
         "team__name",

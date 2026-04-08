@@ -150,7 +150,7 @@ class CustomBackend(ModelBackend):
                     return True
 
                 # Check if user has permission as part of club team is part of
-                scoped_clubs = list(map(lambda team: team.club, scoped_teams))
+                scoped_clubs = [team.club for team in scoped_teams]
 
                 club_perms = self.get_club_permissions(user_obj, scoped_clubs, obj)
                 perm_obj = get_permission(perm, obj)

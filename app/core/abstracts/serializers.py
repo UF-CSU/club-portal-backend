@@ -3,8 +3,6 @@ from enum import Enum
 from time import sleep
 
 import requests
-from rest_framework.exceptions import PermissionDenied
-from core.abstracts.models import RoleBase, RoleType
 from django.contrib.auth.models import Permission
 from django.core import validators
 from django.core.files import File
@@ -15,8 +13,11 @@ from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from utils.helpers import get_full_url
 from utils.permissions import get_perm_label, get_permission
+
+from core.abstracts.models import RoleBase, RoleType
 
 
 class FieldType(Enum):
@@ -546,7 +547,10 @@ class RolePermissionsField(serializers.ListField):
 
     # permissions field is ManyRelatedManager, need to call .all()
     def to_representation(self, data):
-        return [self.child.to_representation(item) if item is not None else None for item in data.all()]
+        return [
+            self.child.to_representation(item) if item is not None else None
+            for item in data.all()
+        ]
 
 
 class RoleSerializerBase(ModelSerializerBase):
@@ -561,7 +565,11 @@ class RoleSerializerBase(ModelSerializerBase):
         # Check that only one of role_type or permissions is set
         role_type = data.get("role_type", None)
         permissions = data.get("permissions", None)
-        if role_type is not None and role_type != RoleType.CUSTOM and permissions is not None:
+        if (
+            role_type is not None
+            and role_type != RoleType.CUSTOM
+            and permissions is not None
+        ):
             raise serializers.ValidationError(
                 "Please provide role_type or permissions, not both."
             )
@@ -590,9 +598,7 @@ class RoleSerializerBase(ModelSerializerBase):
         if perm_ids.issubset(user_perm_ids):
             return data
         else:
-            raise PermissionDenied(
-                "You cannot assign permissions you do not have."
-            )
+            raise PermissionDenied("You cannot assign permissions you do not have.")
 
     # Abstract methods
     def get_user_perm_ids(self, request):

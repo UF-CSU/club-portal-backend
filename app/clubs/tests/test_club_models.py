@@ -2,7 +2,19 @@
 Unit tests for generic model functions, validation, etc.
 """
 
-from clubs.defaults import CLUB_ADMIN_ROLE_PERMISSIONS, CLUB_VIEWER_ROLE_PERMISSIONS, INITIAL_TEAM_ROLES
+from core.abstracts.models import RoleType
+from core.abstracts.tests import TestsBase
+from django.core import exceptions
+from rest_framework.authtoken.models import Token
+from users.models import User
+from users.tests.utils import create_test_user
+from utils.permissions import get_permission
+
+from clubs.defaults import (
+    CLUB_ADMIN_ROLE_PERMISSIONS,
+    CLUB_VIEWER_ROLE_PERMISSIONS,
+    INITIAL_TEAM_ROLES,
+)
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -12,13 +24,6 @@ from clubs.models import (
     TeamRole,
 )
 from clubs.tests.utils import create_test_club, create_test_clubrole
-from core.abstracts.models import RoleType
-from core.abstracts.tests import TestsBase
-from django.core import exceptions
-from rest_framework.authtoken.models import Token
-from users.models import User
-from users.tests.utils import create_test_user
-from utils.permissions import get_permission
 
 
 class ClubModelTests(TestsBase):
@@ -72,7 +77,9 @@ class ClubModelTests(TestsBase):
 
         # Check default state
         self.assertEqual(role.role_type, RoleType.VIEWER)
-        self.assertListEqual(role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(
+            role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True
+        )
 
         # Check state after adding permission
         role.permissions.add(get_permission("clubs.change_club"))
@@ -84,13 +91,17 @@ class ClubModelTests(TestsBase):
         role.role_type = RoleType.VIEWER
         role.save()
         role.refresh_from_db()
-        self.assertListEqual(role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(
+            role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True
+        )
         self.assertNotIn("clubs.change_club", role.perm_labels)
 
         # Check setting to admin
         role.role_type = RoleType.ADMIN
         role.save()
-        self.assertListEqual(role.perm_labels, CLUB_ADMIN_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(
+            role.perm_labels, CLUB_ADMIN_ROLE_PERMISSIONS, sort_lists=True
+        )
 
     def test_create_member_wrong_roles(self):
         """Cannot give member roles from a different club."""

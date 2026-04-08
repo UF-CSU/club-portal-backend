@@ -294,9 +294,12 @@ class TypeGenerator:
         # Check if type should be string literal or enum
         compare_key = list(field.choices.keys())[0]
         enum_name = getattr(field, "enum_name", None)
-        is_enum = len(field.choices.keys()) > 20 or str(compare_key).lower() != str(
-            field.choices.get(compare_key)
-        ).lower().replace(" ", "_") or (enum_name is not None)
+        is_enum = (
+            len(field.choices.keys()) > 20
+            or str(compare_key).lower()
+            != str(field.choices.get(compare_key)).lower().replace(" ", "_")
+            or (enum_name is not None)
+        )
 
         # Generate the type
         if is_enum:

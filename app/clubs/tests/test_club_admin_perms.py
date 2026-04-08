@@ -1,4 +1,18 @@
 import pytz
+from core.abstracts.models import RoleType
+from core.abstracts.tests import PrivateApiTestsBase
+from django.utils import timezone
+from events.models import Event, RecurringEvent
+from events.tests.utils import (
+    EVENT_LIST_URL,
+    RECURRINGEVENT_LIST_URL,
+    create_test_event,
+    event_detail_url,
+)
+from lib.faker import fake
+from users.tests.utils import create_test_user
+from utils.testing import create_test_uploadable_image
+
 from clubs.defaults import CLUB_EDITOR_ROLE_PERMISSIONS
 from clubs.models import ClubFile, ClubMembership, ClubRole
 from clubs.services import ClubService
@@ -14,19 +28,6 @@ from clubs.tests.utils import (
     create_test_clubfile,
     create_test_clubrole,
 )
-from core.abstracts.models import RoleType
-from core.abstracts.tests import PrivateApiTestsBase
-from django.utils import timezone
-from events.models import Event, RecurringEvent
-from events.tests.utils import (
-    EVENT_LIST_URL,
-    RECURRINGEVENT_LIST_URL,
-    create_test_event,
-    event_detail_url,
-)
-from lib.faker import fake
-from users.tests.utils import create_test_user
-from utils.testing import create_test_uploadable_image
 
 
 class ApiClubAdminTests(PrivateApiTestsBase):
@@ -578,7 +579,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertResOk(res)
 
         # Editor cannot make other member admin
-        payload={"roles": ["Vice-President"]}
+        payload = {"roles": ["Vice-President"]}
         res = self.client.patch(url, payload)
         self.assertResForbidden(res)
 
@@ -640,22 +641,27 @@ class ApiClubAdminTests(PrivateApiTestsBase):
             ClubRole.objects.filter(club=self.club).count(),
             initial_role_count + 1,
         )
-        self.assertTrue(ClubRole.objects.filter(club=self.club, name=payload["name"]).exists())
+        self.assertTrue(
+            ClubRole.objects.filter(club=self.club, name=payload["name"]).exists()
+        )
 
     def test_add_role_using_type(self):
         """Admins can create role by specifying role type."""
 
-        payload = {
-            "name": "New Role",
-            "role_type": "editor"
-        }
+        payload = {"name": "New Role", "role_type": "editor"}
         url = club_roles_list_url(self.club.id)
         res = self.client.post(url, payload, format="json")
         self.assertResCreated(res)
 
-        club_roles = ClubRole.objects.filter(club=self.club, name=payload["name"], role_type=payload["role_type"])
+        club_roles = ClubRole.objects.filter(
+            club=self.club, name=payload["name"], role_type=payload["role_type"]
+        )
         self.assertTrue(club_roles.exists())
-        self.assertListEqual(club_roles.first().perm_labels, CLUB_EDITOR_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(
+            club_roles.first().perm_labels,
+            CLUB_EDITOR_ROLE_PERMISSIONS,
+            sort_lists=True,
+        )
 
     def test_either_role_type_or_permissions(self):
         """Admins can create role by specifying role type."""
@@ -663,7 +669,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         payload = {
             "name": "New Role",
             "role_type": "editor",
-            "permissions": ["clubs.view_clubrole"]
+            "permissions": ["clubs.view_clubrole"],
         }
         url = club_roles_list_url(self.club.id)
         res = self.client.post(url, payload, format="json")
@@ -673,7 +679,7 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         payload = {
             "name": "New Role",
             "role_type": "custom",
-            "permissions": ["clubs.view_clubrole"]
+            "permissions": ["clubs.view_clubrole"],
         }
         url = club_roles_list_url(self.club.id)
         res = self.client.post(url, payload, format="json")

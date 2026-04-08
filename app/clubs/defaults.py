@@ -123,7 +123,7 @@ TEAM_VIEWER_ROLE_PERMISSIONS = [
     *TEAM_FOLLOWER_ROLE_PERMISSIONS,
     # Teams
     "clubs.view_teammembership",
-    "clubs.view_teamrole"
+    "clubs.view_teamrole",
 ]
 """View internal team info & stats."""
 
@@ -133,7 +133,7 @@ TEAM_EDITOR_ROLE_PERMISSIONS = [
     "clubs.add_teammembership",
     "clubs.change_teammembership",
     "clubs.add_teamrole",
-    "clubs.change_teamrole"
+    "clubs.change_teamrole",
 ]
 """Edit and add permissions with some restrictions."""
 
@@ -141,7 +141,7 @@ TEAM_ADMIN_ROLE_PERMISSIONS = [
     *TEAM_EDITOR_ROLE_PERMISSIONS,
     # Teams
     "clubs.delete_teammembership",
-    "clubs.delete_teamrole"
+    "clubs.delete_teamrole",
 ]
 """All permissions for a team"""
 
@@ -203,9 +203,5 @@ INITIAL_TEAM_ROLES: list[TeamRolePayloadType] = [
         "role_type": RoleType.VIEWER,
         "is_default": True,
     },
-    {
-        "name": "Admin",
-        "role_type": RoleType.ADMIN,
-        "is_default": False
-    }
+    {"name": "Admin", "role_type": RoleType.ADMIN, "is_default": False},
 ]

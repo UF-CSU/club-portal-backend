@@ -19,9 +19,9 @@ from querycsv.serializers import CsvModelSerializer
 from querycsv.services import QueryCsvService
 from querycsv.views import QueryCsvViewSet
 from utils.admin import get_admin_context, get_model_admin_reverse
+from utils.formatting import plural_noun
 
 from core.abstracts.models import ModelBase, RoleType
-from utils.formatting import plural_noun
 
 
 class AdminBase:

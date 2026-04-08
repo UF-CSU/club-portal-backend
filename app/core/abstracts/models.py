@@ -358,10 +358,7 @@ class RoleManagerBase(ManagerBase["RoleBase"]):
     """Manage role queries."""
 
     def _clean_perms(
-        self,
-        perm_labels=None,
-        role_type: RoleType | None = None,
-        **kwargs
+        self, perm_labels=None, role_type: RoleType | None = None, **kwargs
     ):
         """
         Outputs permissions from perm_labels as ``list[str]``, or
@@ -388,7 +385,6 @@ class RoleManagerBase(ManagerBase["RoleBase"]):
 
         return role_type, permissions, kwargs
 
-
     def create(
         self,
         *,
@@ -401,7 +397,9 @@ class RoleManagerBase(ManagerBase["RoleBase"]):
         """
         Create new role.
         """
-        role_type, permissions, kwargs = self._clean_perms(perm_labels, role_type, **kwargs)
+        role_type, permissions, kwargs = self._clean_perms(
+            perm_labels, role_type, **kwargs
+        )
 
         role = super().create(
             name=name, is_default=is_default, role_type=role_type, **kwargs
@@ -425,7 +423,9 @@ class RoleManagerBase(ManagerBase["RoleBase"]):
         """
         Update role.
         """
-        role_type, permissions, kwargs = self._clean_perms(perm_labels, role_type, **kwargs)
+        role_type, permissions, kwargs = self._clean_perms(
+            perm_labels, role_type, **kwargs
+        )
 
         role = super().update(
             role, name=name, is_default=is_default, role_type=role_type, **kwargs
@@ -474,9 +474,7 @@ class RoleBase(ModelBase):
     objects: ClassVar[RoleManagerBase] = RoleManagerBase()
 
     class Meta:
-        ordering = [
-            "order"
-        ]
+        ordering = ["order"]
         abstract = True
 
     def __str__(self):
@@ -521,6 +519,7 @@ class RoleBase(ModelBase):
 
 class MembershipManagerBase(ManagerBase["MembershipBase"]):
     """Manage queries for Memberships."""
+
     def create(
         self,
         *,
@@ -546,7 +545,9 @@ class MembershipManagerBase(ManagerBase["MembershipBase"]):
                 role = membership.group().roles.get(name=role)
 
             if role.group() != membership.group():
-                raise ValidationError("Role must belong to the same group as membership")
+                raise ValidationError(
+                    "Role must belong to the same group as membership"
+                )
 
             membership.roles.add(role)
 
@@ -597,8 +598,8 @@ class MembershipBase(ModelBase):
     """Manage member's assignment to a group."""
 
     # Properties overridden in subclass
-    user = None # models.ForeignKey(User, on_delete=models.CASCADE)
-    roles = None # models.ManyToManyField(RoleBase, blank=True)
+    user = None  # models.ForeignKey(User, on_delete=models.CASCADE)
+    roles = None  # models.ManyToManyField(RoleBase, blank=True)
 
     # Meta fields
     order_override = models.PositiveIntegerField(null=True, blank=True)
@@ -720,6 +721,4 @@ class MembershipBase(ModelBase):
 
     @classmethod
     def role_model(self) -> type[RoleBase]:
-        raise NotImplementedError(
-            "Membership objects must return role model"
-        )
+        raise NotImplementedError("Membership objects must return role model")

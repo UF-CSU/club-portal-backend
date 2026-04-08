@@ -1,12 +1,12 @@
-from clubs.defaults import INITIAL_CLUB_ROLES, INITIAL_TEAM_ROLES
-from clubs.models import Club, ClubFile, ClubRole, ClubTag, Team, TeamRole
-from clubs.tasks import regenerate_club_preview_cache_task
+from app.settings import ENABLE_AUTO_CREATE_CLUB_LOGO
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from lib.celery import delay_task
 from utils.images import create_default_icon
 
-from app.settings import ENABLE_AUTO_CREATE_CLUB_LOGO
+from clubs.defaults import INITIAL_CLUB_ROLES, INITIAL_TEAM_ROLES
+from clubs.models import Club, ClubFile, ClubRole, ClubTag, Team, TeamRole
+from clubs.tasks import regenerate_club_preview_cache_task
 
 
 @receiver(post_save, sender=Club)
