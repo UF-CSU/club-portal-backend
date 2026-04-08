@@ -146,7 +146,16 @@ class CustomBackend(ModelBackend):
                 team_perms = self.get_team_permissions(user_obj, scoped_teams, obj)
                 perm_obj = get_permission(perm, obj)
 
-                return perm_obj in team_perms
+                if perm_obj in team_perms:
+                    return True
+
+                # Check if user has permission as part of club team is part of
+                scoped_clubs = list(map(lambda team: team.club, scoped_teams))
+
+                club_perms = self.get_club_permissions(user_obj, scoped_clubs, obj)
+                perm_obj = get_permission(perm, obj)
+
+                return perm_obj in club_perms
 
     def has_perm(self, user_obj, perm, obj=None):
         """Runs when checking any user's permissions."""

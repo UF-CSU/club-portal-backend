@@ -610,6 +610,11 @@ class Team(TeamScopedModel, ModelBase):
     # Overrides
     objects: ClassVar[TeamManager] = TeamManager()
 
+    @property
+    def team(self):
+        """Used for permissions checking."""
+        return self
+
     @cached_property
     def member_count(self) -> int:
         return self.memberships.count()

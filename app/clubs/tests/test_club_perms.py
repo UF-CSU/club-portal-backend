@@ -105,7 +105,7 @@ class ClubScopedPermsTests(TestsBase):
         self.assertFalse(self.user.has_perm("events.change_event", event2))
 
     def test_club_team_perms(self):
-        """Team permissions should be scoped to a club."""
+        """Team permissions include club permissions."""
 
         team1 = create_test_team(self.club1)
         team2 = create_test_team(self.club2)
@@ -120,3 +120,25 @@ class ClubScopedPermsTests(TestsBase):
         # Test access to other club's teams
         self.assertFalse(self.user.has_perm("clubs.view_team", team2))
         self.assertFalse(self.user.has_perm("clubs.change_team", team2))
+
+    def test_team_perms(self):
+        """Team permissions are scoped to team."""
+
+        team1 = create_test_team(self.club1)
+        team2 = create_test_team(self.club2)
+
+        # Without being part of team, user does not have permissions
+        self.assertFalse(self.user.has_perm("clubs.view_teammembership", team1))
+        self.assertFalse(self.user.has_perm("clubs.view_teammembership", team2))
+
+        # Add user to team
+        self.service1.add_team_member(self.user, team1, roles=["Admin"])
+        self.service2.add_team_member(self.user, team2)
+
+        # Has appropriate admin perms
+        self.assertTrue(self.user.has_perm("clubs.view_teammembership", team1))
+        self.assertTrue(self.user.has_perm("clubs.change_teammembership", team1))
+
+        # Does not have admin perms if non-admin
+        self.assertTrue(self.user.has_perm("clubs.view_teammembership", team2))
+        self.assertFalse(self.user.has_perm("clubs.change_teammembership", team2))

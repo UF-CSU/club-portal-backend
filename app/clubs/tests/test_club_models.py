@@ -2,7 +2,7 @@
 Unit tests for generic model functions, validation, etc.
 """
 
-from clubs.defaults import CLUB_ADMIN_ROLE_PERMISSIONS, CLUB_VIEWER_ROLE_PERMISSIONS
+from clubs.defaults import CLUB_ADMIN_ROLE_PERMISSIONS, CLUB_VIEWER_ROLE_PERMISSIONS, INITIAL_TEAM_ROLES
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -173,7 +173,7 @@ class ClubTeamTests(TestsBase):
         ClubMembership.objects.create(club=club, user=user)
 
         team = Team.objects.create(name="Example Team", club=club)
-        self.assertEqual(TeamRole.objects.count(), 1)
+        self.assertEqual(TeamRole.objects.count(), len(INITIAL_TEAM_ROLES))
         role = team.roles.first()
 
         TeamMembership.objects.create(team=team, user=user)
@@ -232,13 +232,14 @@ class ClubTeamTests(TestsBase):
         team = Team.objects.create(name="Example team", club=club)
 
         # Sanity check initial role
-        self.assertEqual(team.roles.count(), 1)
+        initial_count = len(INITIAL_TEAM_ROLES)
+        self.assertEqual(team.roles.count(), initial_count)
         r1 = team.roles.first()
         self.assertTrue(r1.is_default)
 
         # Create new role
         r2 = TeamRole.objects.create(team=team, name="Team Admin", is_default=False)
-        self.assertEqual(team.roles.count(), 2)
+        self.assertEqual(team.roles.count(), initial_count + 1)
         self.assertFalse(r2.is_default)
 
         # Check setting default
