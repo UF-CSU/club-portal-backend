@@ -4,7 +4,7 @@ from time import sleep
 
 import requests
 from rest_framework.exceptions import PermissionDenied
-from core.abstracts.models import RoleType
+from core.abstracts.models import RoleBase, RoleType
 from django.contrib.auth.models import Permission
 from django.core import validators
 from django.core.files import File
@@ -521,10 +521,35 @@ class RoundedDecimalField(serializers.DecimalField):
         )
 
 
+class RolePermissionField(serializers.ChoiceField):
+    """Display role permissions in JSON."""
+
+    def __init__(self, role_model: RoleBase, **kwargs):
+        perms_mapping = role_model.get_permissions_by_role_type()
+        allowed_perms = perms_mapping[RoleType.ADMIN]
+
+        super().__init__(choices=allowed_perms, **kwargs)
+
+    def to_internal_value(self, data):
+        return get_permission(data)
+
+    def to_representation(self, obj: Permission):
+        return get_perm_label(obj)
+
+
+class RolePermissionsField(serializers.ListField):
+    """Display list of role permissions in JSON."""
+
+    def __init__(self, role_model: RoleBase, **kwargs):
+        super().__init__(child=RolePermissionField(role_model=role_model), **kwargs)
+
+    # permissions field is ManyRelatedManager, need to call .all()
+    def to_representation(self, data):
+        return [self.child.to_representation(item) if item is not None else None for item in data.all()]
+
+
 class RoleSerializerBase(ModelSerializerBase):
     """Represents a group of permissions users can have in a group."""
-
-    permissions = PermissionRelatedField(many=True, required=False)
 
     def validate(self, data):
         """

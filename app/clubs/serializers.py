@@ -18,6 +18,7 @@ from core.abstracts.serializers import (
     MemberSerializerBase,
     ModelSerializerBase,
     PermissionRelatedField,
+    RolePermissionsField,
     RoleSerializerBase,
     SerializerBase,
 )
@@ -441,6 +442,8 @@ class ClubUserNestedSerializer(ModelSerializerBase):
 class ClubRoleSerializer(RoleSerializerBase):
     """Represents a group of permissions users can have in a club."""
 
+    permissions = RolePermissionsField(role_model=ClubRole, required=False)
+
     # Abstract method
     def get_user_perm_ids(self, request):
         club_id = self.context.get("club_id")
@@ -561,6 +564,8 @@ class TeamMemberCreateSerializer(TeamMemberSerializer):
 
 class TeamRoleSerializer(RoleSerializerBase):
     """Represents a group of permissions users can have in a team."""
+
+    permissions = RolePermissionsField(role_model=TeamRole, required=False)
 
     # Abstract method
     def get_user_perm_ids(self, request):
