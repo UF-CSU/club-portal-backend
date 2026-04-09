@@ -510,27 +510,26 @@ class EventService(ServiceBase[Event]):
         If start date is None, will default to current date.
         """
 
+        tzname = timezone.get_current_timezone_name()
+
         if start_date is None:
-            start_date = datetime.datetime.now().replace(day=1).date()
+            start_date = timezone.localdate().replace(day=1)
 
         if end_date is None:
             end_date = start_date + relativedelta(months=1) - datetime.timedelta(days=1)
 
-        start_date_query = f"'{start_date.strftime('%m/%d/%Y')}'::timestamp"
-        end_date_query = f"'{end_date.strftime('%m/%d/%Y')}'::timestamp"
-
         query = f"""
             SELECT calendar::date AS day, COUNT(event.id) AS event_count, SUM(COUNT(event.id)) OVER (ORDER BY calendar::date) AS total_event_count
             FROM generate_series(
-                date_trunc('month', {start_date_query}),
-                date_trunc('month', {end_date_query}) + interval '1 month' - interval '1 day',
+                date_trunc('month', %s::timestamp),
+                date_trunc('month', %s::timestamp) + interval '1 month' - interval '1 day',
                 '1 day'
             ) as calendar
             LEFT JOIN (
                 SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id, event.is_public AS is_public, event.is_draft AS is_draft
                 FROM public.events_event AS event
                 LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id
-            ) AS event ON date_trunc('day', start_at) = calendar
+            ) AS event ON date_trunc('day', start_at AT TIME ZONE %s) = calendar
                 AND (
                     club_id IN ({",".join(["%s" for _ in club_ids])})
                     OR
@@ -541,7 +540,15 @@ class EventService(ServiceBase[Event]):
             """
 
         with connection.cursor() as cursor:
-            cursor.execute(query, [*club_ids])
+            cursor.execute(
+                query,
+                [
+                    start_date.strftime("%m/%d/%Y"),
+                    end_date.strftime("%m/%d/%Y"),
+                    tzname,
+                    *club_ids,
+                ],
+            )
             rows = namedtuplefetchall(cursor)
 
         heatmap: dict[datetime.date, int] = {}

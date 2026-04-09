@@ -3,6 +3,7 @@ Unit tests for Event business logic.
 """
 
 import datetime
+from zoneinfo import ZoneInfo
 
 import freezegun
 from clubs.models import ClubFile
@@ -79,6 +80,24 @@ class EventServiceTests(PeriodicTaskTestsBase):
 
         for _, count in h2.heatmap.items():
             self.assertEqual(count, 0)
+
+    @freezegun.freeze_time("12/30/25 13:00:00+00:00")
+    def test_event_heatmap_uses_active_timezone(self):
+        """Should bucket events by the active local day, not the UTC day."""
+
+        timezone.activate(ZoneInfo("America/New_York"))
+
+        c1 = create_test_club()
+        create_test_event(
+            host=c1,
+            start_at=datetime.datetime(2025, 12, 18, 1, 0, tzinfo=datetime.UTC),
+            end_at=datetime.datetime(2025, 12, 18, 3, 0, tzinfo=datetime.UTC),
+        )
+
+        heatmap = EventService.get_event_heatmap(club_ids=[c1.id])
+
+        self.assertEqual(heatmap.heatmap[datetime.date(2025, 12, 17)], 1)
+        self.assertEqual(heatmap.heatmap[datetime.date(2025, 12, 18)], 0)
 
 
 class RecurringEventTests(TestsBase):
