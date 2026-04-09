@@ -9,6 +9,7 @@ router.register("event-previews", viewsets.EventPreviewViewSet, basename="eventp
 router.register(
     "recurring-events", viewsets.RecurringEventViewSet, basename="recurringevent"
 )
+router.register("tags", viewsets.EventTagViewSet, basename="eventtag")
 
 app_name = "api-events"
 

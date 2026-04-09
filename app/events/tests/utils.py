@@ -17,6 +17,7 @@ from events.models import Event, EventTag
 EVENT_LIST_URL = reverse("api-events:event-list")
 EVENTPREVIEW_LIST_URL = reverse("api-events:eventpreview-list")
 RECURRINGEVENT_LIST_URL = reverse("api-events:recurringevent-list")
+EVENTTAG_LIST_URL = reverse("api-events:eventtag-list")
 
 
 def event_list_url(

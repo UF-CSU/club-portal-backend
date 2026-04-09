@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
 from lib.celery import delay_task
-from rest_framework import permissions, status
+from rest_framework import mixins, permissions, status
 from rest_framework.pagination import BasePagination
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -467,3 +467,12 @@ class EventHeatmapViewSet(APIView):
         serializer = self.serializer_class(heatmap)
 
         return Response(data=serializer.data)
+
+
+class EventTagViewSet(mixins.ListModelMixin, ViewSetBase):
+    """Creates a GET route to list Event Tags"""
+
+    serializer_class = serializers.EventTagSerializer
+    queryset = EventTag.objects.all()
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]

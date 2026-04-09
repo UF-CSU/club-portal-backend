@@ -16,6 +16,8 @@ from rest_framework import serializers
 from utils.helpers import get_full_url
 from utils.permissions import get_perm_label, get_permission
 
+from core.abstracts.models import Tag
+
 
 class FieldType(Enum):
     READONLY = "readonly"
@@ -517,3 +519,11 @@ class RoundedDecimalField(serializers.DecimalField):
             normalize_output,
             **kwargs,
         )
+
+
+class TagSerializer(ModelSerializerBase):
+    """Tag serializer base class"""
+
+    class Meta:
+        model = Tag
+        fields = ["id", "name", "color", "order"]

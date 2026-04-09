@@ -15,6 +15,7 @@ from events.serializers import EventSerializer
 from events.tests.utils import (
     EVENT_LIST_URL,
     EVENTPREVIEW_LIST_URL,
+    EVENTTAG_LIST_URL,
     RECURRINGEVENT_LIST_URL,
     create_test_event,
     create_test_events,
@@ -250,6 +251,19 @@ class EventPublicApiTests(PublicApiTestsBase):
         self.assertIn(public_ev.pk, ids)
         self.assertNotIn(draft_ev.pk, ids)
         self.assertNotIn(private_ev.pk, ids)
+
+    def test_list_event_tag(self):
+        """Tests the event tag list endpoint"""
+        create_test_eventtag()
+        create_test_eventtag()
+
+        url = EVENTTAG_LIST_URL
+        res = self.client.get(url)
+
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertEqual(len(data), 2)
 
 
 class EventPublicTzApiTests(PublicApiTestsBase):

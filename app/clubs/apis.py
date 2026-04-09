@@ -28,6 +28,7 @@ router.register(
     viewsets.UserClubMembershipsViewSet,
     basename="user_clubmembership",
 )
+router.register("tags", viewsets.ClubTagsViewSet, basename="clubtag")
 
 
 app_name = "api-clubs"
@@ -39,5 +40,4 @@ urlpatterns = [
     path(
         "clubs/<int:id>/invite/", viewsets.InviteClubMemberView.as_view(), name="invite"
     ),
-    path("tags/", viewsets.ClubTagsView.as_view(), name="tags"),
 ]
