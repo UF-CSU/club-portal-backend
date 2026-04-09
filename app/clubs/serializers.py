@@ -3,6 +3,7 @@ from core.abstracts.serializers import (
     ModelSerializerBase,
     PermissionRelatedField,
     SerializerBase,
+    TagSerializer,
 )
 from core.models import Major
 from django.core.validators import MinValueValidator
@@ -114,12 +115,11 @@ class ClubSocialSerializer(ModelSerializerBase):
         fields = ["id", "url", "username", "social_type", "order"]
 
 
-class ClubTagSerializer(ModelSerializerBase):
+class ClubTagSerializer(TagSerializer):
     """Represents tags for clubs."""
 
-    class Meta:
+    class Meta(TagSerializer.Meta):
         model = ClubTag
-        fields = ["id", "name", "color", "order"]
 
 
 class ClubRoleSerializer(ModelSerializerBase):

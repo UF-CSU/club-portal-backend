@@ -299,17 +299,13 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
         return Response(result)
 
 
-class ClubTagsView(GenericAPIView):
-    """Creates a GET route for fetching available club tags."""
+class ClubTagsViewSet(mixins.ListModelMixin, ViewSetBase):
+    """Creates a GET route to list Club Tags."""
 
     serializer_class = ClubTagSerializer
-    authentication_classes = ViewSetBase.authentication_classes
-    permission_classes = ViewSetBase.permission_classes
-
-    def get(self, request):
-        tags = ClubTag.objects.all().order_by("order", "name")
-        serializer = self.serializer_class(tags, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    queryset = ClubTag.objects.all()
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
 
 
 class ClubMemberViewSet(ClubNestedViewSetBase):
