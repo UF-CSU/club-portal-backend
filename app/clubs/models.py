@@ -27,6 +27,7 @@ from rest_framework.authtoken.models import Token
 from users.models import ApiKeyType, User, UserAgent
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
+from utils.logging import print_error
 from utils.models import UploadNestedClubFilepathFactory
 from utils.permissions import get_perm_label, get_permission, parse_permissions
 
@@ -316,6 +317,7 @@ class ClubFile(ClubScopedModel, ModelBase):
         try:
             return format_bytes(self.file.size)
         except (FileNotFoundError, OSError):
+            print_error()
             return None
 
     @cached_property
