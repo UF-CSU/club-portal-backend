@@ -427,6 +427,10 @@ class PollField(ClubScopedModel, ModelBase):
     def markup(self) -> Optional["PollMarkup"]:
         return getattr(self, "_markup", None)
 
+    @property
+    def club(self):
+        return self.poll.club
+
     # Overrides
     objects: ClassVar[PollFieldManager] = PollFieldManager()
 
@@ -466,6 +470,10 @@ class PollMarkup(ClubScopedModel, ModelBase):
         PollField, on_delete=models.CASCADE, related_name="_markup"
     )
     content = models.TextField(default="")
+
+    @property
+    def club(self):
+        return self.field.club
 
 
 class PollQuestionManager(ManagerBase["PollQuestion"]):
@@ -522,6 +530,10 @@ class PollQuestion(ClubScopedModel, ModelBase):
 
     # TODO: Add is_editable so we can disable editing of certain profile fields like major/minor
     # is_editable = models.BooleanField(default=True, blank=True, editable=False)
+
+    @property
+    def club(self):
+        return self.field.club
 
     @property
     def input(self):
@@ -711,6 +723,10 @@ class InputBase(ClubScopedModel, ModelBase):
     def poll(self):
         return self.question.field.poll
 
+    @property
+    def club(self):
+        return self.question.club
+
     class Meta:
         abstract = True
 
@@ -823,6 +839,10 @@ class ChoiceInputOption(ClubScopedModel, ModelBase):
                 condition=models.Q(is_other=True),
             ),
         ]
+
+    @property
+    def club(self):
+        return self.input.poll.club
 
     def save(self, *args, **kwargs):
         if self.order is None:

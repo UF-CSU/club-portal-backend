@@ -30,6 +30,7 @@ from rest_framework.authtoken.models import Token
 from users.models import ApiKeyType, User, UserAgent
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
+from utils.logging import print_error
 from utils.models import UploadNestedClubFilepathFactory
 from utils.permissions import parse_permissions
 
@@ -311,9 +312,13 @@ class ClubFile(ClubScopedModel, ModelBase):
         return get_full_url(self.file.url)
 
     @cached_property
-    def size(self) -> str:
+    def size(self) -> str | None:
         """Get a string representation of the size of the file."""
-        return format_bytes(self.file.size)
+        try:
+            return format_bytes(self.file.size)
+        except (FileNotFoundError, OSError):
+            print_error()
+            return None
 
     @cached_property
     def file_type(self) -> str:

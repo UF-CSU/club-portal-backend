@@ -4,9 +4,10 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from lib.qrcodes import create_qrcode_image
+from lib.celery import delay_task
 
 from analytics.models import LinkVisit, QRCode
+from analytics.tasks import generate_qrcode_image_task
 
 
 @receiver(post_save, sender=QRCode)
@@ -14,9 +15,7 @@ def on_save_qrcode(sender, instance: Optional[QRCode], **kwargs):
     if instance.image:
         return
 
-    img = create_qrcode_image(instance.url)
-    instance.image = img
-    instance.save()
+    delay_task(generate_qrcode_image_task, instance.pk)
 
 
 @receiver(post_save, sender=LinkVisit)

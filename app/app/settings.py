@@ -18,6 +18,7 @@ from socket import gethostbyname, gethostname
 
 import sentry_sdk  # type: ignore
 from celery.schedules import crontab
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -283,6 +284,7 @@ SESSION_COOKIE_SECURE = environ_bool("SESSION_COOKIE_SECURE", False)
 
 # CORS Settings
 CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
+CORS_ALLOW_HEADERS = [*default_headers, "x-timezone"]
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_CREDENTIALS = True
 

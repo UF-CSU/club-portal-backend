@@ -67,6 +67,17 @@ CLUB_EDITOR_ROLE_PERMISSIONS = [
     "events.view_recurringevent",
     "events.view_event_analytics",
     # Polls
+    "polls.add_poll",
+    "polls.change_poll",
+    "polls.view_pollfield",
+    "polls.add_pollfield",
+    "polls.change_pollfield",
+    "polls.delete_pollfield",
+    "polls.view_choiceinputoption",
+    "polls.view_pollsubmission",
+    "polls.add_choiceinputoption",
+    "polls.change_choiceinputoption",
+    "polls.delete_choiceinputoption",
     "polls.view_poll_analytics",
     # Analytics
     "analytics.view_link",
@@ -99,18 +110,7 @@ CLUB_ADMIN_ROLE_PERMISSIONS = [
     "events.change_recurringevent",
     "events.delete_recurringevent",
     # Polls
-    "polls.add_poll",
-    "polls.change_poll",
     "polls.delete_poll",
-    "polls.view_pollsubmission",
-    "polls.view_pollfield",
-    "polls.add_pollfield",
-    "polls.change_pollfield",
-    "polls.delete_pollfield",
-    "polls.view_choiceinputoption",
-    "polls.add_choiceinputoption",
-    "polls.change_choiceinputoption",
-    "polls.delete_choiceinputoption",
     "polls.view_private_poll",
 ]
 """All permissions for a club"""

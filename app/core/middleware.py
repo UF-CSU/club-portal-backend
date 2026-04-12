@@ -17,9 +17,20 @@ class TimezoneMiddleware(BaseMiddleware):
     Ref: https://docs.djangoproject.com/en/5.1/topics/i18n/timezones/
     """
 
+    def get_timezone(self, request: HttpRequest) -> zoneinfo.ZoneInfo:
+        tzname = (
+            request.headers.get("X-Timezone")
+            or request.COOKIES.get("user_timezone")
+            or "UTC"
+        )
+
+        try:
+            return zoneinfo.ZoneInfo(tzname)
+        except zoneinfo.ZoneInfoNotFoundError:
+            return zoneinfo.ZoneInfo("UTC")
+
     async def on_request(self, request: HttpRequest, *args, **kwargs):
-        tzname = request.COOKIES.get("user_timezone", "UTC")
-        timezone.activate(zoneinfo.ZoneInfo(tzname))
+        timezone.activate(self.get_timezone(request))
 
         return await super().on_request(request, *args, **kwargs)
 

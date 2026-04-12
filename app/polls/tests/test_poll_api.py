@@ -82,6 +82,17 @@ class PollViewAuthTests(PrivateApiTestsBase):
 
         self.club = create_test_club(members=[self.user])
 
+    def authenticate_as_club_admin(self):
+        self.user = create_test_user()
+        self.club = create_test_club(admins=[self.user])
+        self.client.force_authenticate(user=self.user)
+
+    def authenticate_as_club_editor(self):
+        self.user = create_test_user()
+        self.club = create_test_club()
+        ClubService(self.club).add_member(self.user, roles=["Officer"])
+        self.client.force_authenticate(user=self.user)
+
     def test_get_polls_for_club(self):
         """Should only return polls for club a user is part of."""
 
@@ -484,6 +495,8 @@ class PollViewAuthTests(PrivateApiTestsBase):
     def test_update_choice_options(self):
         """Should be able to update the options for a choice field."""
 
+        self.authenticate_as_club_admin()
+
         # Create initial poll and choice field
         poll = create_test_poll(club=self.club)
 
@@ -550,6 +563,108 @@ class PollViewAuthTests(PrivateApiTestsBase):
         res = self.client.delete(url)
         self.assertResNoContent(res)
         self.assertFalse(ChoiceInputOption.objects.filter(id=choice.id).exists())
+
+    def test_editor_can_delete_choice_option(self):
+        """Editor role should be able to delete choice options."""
+
+        self.authenticate_as_club_editor()
+
+        poll = create_test_poll(club=self.club)
+        payload = {
+            "field_type": "question",
+            "question": {
+                "label": "Updated question?",
+                "description": fake.paragraph(),
+                "input_type": "choice",
+                "choice_input": {
+                    "is_multiple": True,
+                    "choice_type": "select",
+                    "options": [
+                        {"label": "Option 1"},
+                        {"label": "Option 2"},
+                    ],
+                },
+            },
+        }
+
+        create_res = self.client.post(pollfield_list_url(poll.pk), data=payload)
+        self.assertResCreated(create_res)
+
+        field = poll.fields.last()
+        choice = field.question.choice_input.options.order_by("order").first()
+        self.assertIsNotNone(choice)
+
+        delete_res = self.client.delete(
+            polloption_detail_url(poll.id, field.id, choice.id)
+        )
+        self.assertResNoContent(delete_res)
+        self.assertFalse(ChoiceInputOption.objects.filter(id=choice.id).exists())
+
+    def test_update_choice_field_options_via_patch(self):
+        """Should sync choice options when updating a field."""
+
+        self.authenticate_as_club_admin()
+
+        poll = create_test_poll(club=self.club)
+        payload = {
+            "field_type": "question",
+            "question": {
+                "label": "Pick one",
+                "description": fake.paragraph(),
+                "input_type": "choice",
+                "choice_input": {
+                    "is_multiple": True,
+                    "choice_type": "select",
+                    "options": [
+                        {"label": "Option 1"},
+                        {"label": "Option 2"},
+                    ],
+                },
+            },
+        }
+
+        create_res = self.client.post(pollfield_list_url(poll.pk), data=payload)
+        self.assertResCreated(create_res)
+
+        field = poll.fields.last()
+        existing_options = list(field.question.choice_input.options.order_by("order"))
+        update_payload = {
+            "question": {
+                "label": "Pick one updated",
+                "choice_input": {
+                    "is_multiple": True,
+                    "choice_type": "select",
+                    "options": [
+                        {
+                            "id": existing_options[1].id,
+                            "label": "Option 2 updated",
+                            "value": "option-2-updated",
+                        },
+                        {
+                            "label": "Option 3",
+                            "value": "option-3",
+                        },
+                    ],
+                },
+            }
+        }
+
+        update_res = self.client.patch(
+            pollfield_detail_url(poll.pk, field.pk), data=update_payload, format="json"
+        )
+        self.assertResOk(update_res)
+
+        field.refresh_from_db()
+        options = list(field.question.choice_input.options.order_by("order"))
+
+        self.assertEqual(field.question.label, "Pick one updated")
+        self.assertLength(options, 2)
+        self.assertEqual(options[0].label, "Option 2 updated")
+        self.assertEqual(options[0].value, "option-2-updated")
+        self.assertEqual(options[1].label, "Option 3")
+        self.assertFalse(
+            ChoiceInputOption.objects.filter(id=existing_options[0].id).exists()
+        )
 
     def test_delete_poll(self):
         """Should delete poll via api."""

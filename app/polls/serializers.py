@@ -186,9 +186,46 @@ class PollQuestionSerializer(ModelSerializerBase):
         # Update question fields
         question = super().update(instance, validated_data)
         input_kwargs = input_data[question.input_type] or {}
+        options_data = None
+
+        if question.input_type == models.PollInputType.CHOICE:
+            options_data = input_kwargs.pop("options", None)
+
         question.update_input(**input_kwargs)
 
+        if options_data is not None:
+            self.update_choice_options(question.choice_input, options_data)
+
         return question
+
+    def update_choice_options(
+        self, choice_input: models.ChoiceInput, options_data: list[dict]
+    ) -> None:
+        existing_options = {option.id: option for option in choice_input.options.all()}
+        retained_option_ids: list[int] = []
+
+        for option_data in options_data:
+            option_id = option_data.pop("id", None)
+
+            if option_id is None:
+                option = models.ChoiceInputOption.objects.create(
+                    input=choice_input, **option_data
+                )
+            else:
+                option = existing_options.get(option_id)
+                if option is None:
+                    raise exceptions.ValidationError(
+                        {"question": "Choice option does not belong to this field."}
+                    )
+
+                for key, value in option_data.items():
+                    setattr(option, key, value)
+
+                option.save()
+
+            retained_option_ids.append(option.id)
+
+        choice_input.options.exclude(id__in=retained_option_ids).delete()
 
 
 class PollMarkupNestedSerializer(ModelSerializerBase):
