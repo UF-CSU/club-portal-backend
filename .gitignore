@@ -21,6 +21,7 @@ _deprecated/
 generated/
 WARP.md
 backups/
+.DS_Store
 
 # C extensions
 *.so

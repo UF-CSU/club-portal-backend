@@ -282,6 +282,18 @@ class EventPublicTzApiTests(PublicApiTestsBase):
         self.assertEqual(data["start_date"], "2025-11-25")
         self.assertEqual(data["end_date"], "2025-12-02")
 
+    @freezegun.freeze_time("11/25/25 23:00:00-05:00")
+    def test_event_list_header_timezone(self):
+        """Should interpret date params using the explicit timezone header."""
+
+        url = EVENTPREVIEW_LIST_URL
+        res = self.client.get(url, headers={"X-Timezone": "America/New_York"})
+
+        data = res.json()
+
+        self.assertEqual(data["start_date"], "2025-11-25")
+        self.assertEqual(data["end_date"], "2025-12-02")
+
 
 class EventPrivateApiTests(PrivateApiTestsBase):
     """Events api tests for authenticated users."""

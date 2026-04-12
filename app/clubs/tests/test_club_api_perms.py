@@ -281,7 +281,7 @@ class SingleClubApiPermsTests(PublicApiTestsBase):
             "is_owner": True,
         }
 
-        res = self.client.post(url, data=payload)
+        res = self.client.patch(url, data=payload)
         self.assertResForbidden(res)
 
         # Ensure their role didn't change

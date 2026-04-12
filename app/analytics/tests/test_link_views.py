@@ -3,6 +3,7 @@ from core.abstracts.tests import PublicViewTestsBase
 from lib.faker import fake
 
 from analytics.models import Link, QRCode
+from analytics.tasks import generate_qrcode_image_task
 
 
 def create_test_link(club=None, **kwargs):
@@ -54,12 +55,26 @@ class LinkViewTests(PublicViewTestsBase):
         self.assertEqual(link.visits.count(), 2)
 
     def test_link_qrcode(self):
-        """Should create qrcode when specified."""
+        """Should create qrcode record when specified."""
 
         link1 = create_test_link(create_qrcode=False)
         self.assertIsNone(link1.qrcode)
 
         link2 = create_test_link(create_qrcode=True)
         self.assertIsInstance(link2.qrcode, QRCode)
-        self.assertIsNotNone(link2.qrcode.image)
-        self.assertIsNotNone(link2.qrcode.image.file)
+        self.assertIsNotNone(link2.qrcode.pk)
+
+    def test_generate_qrcode_task(self):
+        """Should attach the qrcode image when the task runs."""
+
+        link = create_test_link(create_qrcode=True)
+        qrcode = link.qrcode
+
+        self.assertIsNotNone(qrcode)
+        self.assertFalse(bool(qrcode.image))
+
+        generate_qrcode_image_task(qrcode.pk)
+
+        qrcode.refresh_from_db()
+        self.assertTrue(bool(qrcode.image))
+        self.assertIsNotNone(qrcode.image.file)

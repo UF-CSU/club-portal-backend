@@ -27,6 +27,7 @@ from rest_framework.authtoken.models import Token
 from users.models import ApiKeyType, User, UserAgent
 from utils.formatting import format_bytes
 from utils.helpers import get_full_url, get_import_path
+from utils.logging import print_error
 from utils.models import UploadNestedClubFilepathFactory
 from utils.permissions import get_perm_label, get_permission, parse_permissions
 
@@ -311,9 +312,13 @@ class ClubFile(ClubScopedModel, ModelBase):
         return get_full_url(self.file.url)
 
     @cached_property
-    def size(self) -> str:
+    def size(self) -> str | None:
         """Get a string representation of the size of the file."""
-        return format_bytes(self.file.size)
+        try:
+            return format_bytes(self.file.size)
+        except (FileNotFoundError, OSError):
+            print_error()
+            return None
 
     @cached_property
     def file_type(self) -> str:
@@ -379,7 +384,11 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         Can either assign initial permissions by perm_labels as ``list[str]``, or
         by permissions as ``list[Permission]``.
         """
-        from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
+        from clubs.defaults import (
+            ADMIN_ROLE_PERMISSIONS,
+            EDITOR_ROLE_PERMISSIONS,
+            VIEWER_ROLE_PERMISSIONS,
+        )
 
         # perm_labels = perm_labels if perm_labels is not None else []
         permissions = kwargs.pop("permissions", []) + parse_permissions(
@@ -395,8 +404,10 @@ class ClubRoleManager(ManagerBase["ClubRole"]):
         # Set default permissions if necessary
         if role_type == RoleType.ADMIN:
             permissions = parse_permissions(ADMIN_ROLE_PERMISSIONS)
+        elif role_type == RoleType.EDITOR:
+            permissions = parse_permissions(EDITOR_ROLE_PERMISSIONS)
         elif role_type == RoleType.VIEWER:
-            perm_labels = parse_permissions(VIEWER_ROLE_PERMISSIONS)
+            permissions = parse_permissions(VIEWER_ROLE_PERMISSIONS)
 
         role = super().create(
             club=club, name=name, is_default=is_default, role_type=role_type, **kwargs
