@@ -17,7 +17,7 @@ from rest_framework.exceptions import PermissionDenied
 from utils.helpers import get_full_url
 from utils.permissions import get_perm_label, get_permission
 
-from core.abstracts.models import RoleBase, RoleType
+from core.abstracts.models import RoleBase, RoleType, Tag
 
 
 class FieldType(Enum):
@@ -647,3 +647,11 @@ class MemberSerializerBase(ModelSerializerBase):
         raise NotImplementedError(
             "Member serializers must return permissions user has in group"
         )
+
+
+class TagSerializer(ModelSerializerBase):
+    """Tag serializer base class"""
+
+    class Meta:
+        model = Tag
+        fields = ["id", "name", "color", "order"]

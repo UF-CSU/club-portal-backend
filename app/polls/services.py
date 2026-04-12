@@ -140,10 +140,16 @@ class PollService(ServiceBase[Poll]):
 
         for submission in self.obj.submissions.all():
             try:
+                user_id = None
+                user_school_email = None
+                if submission.user is not None:
+                    user_id = submission.user.id
+                    user_school_email = submission.user.profile.school_email
+
                 row = {
-                    "User ID": submission.user.id,
+                    "User ID": user_id,
                     # "User Email": submission.user.email,
-                    "User School Email": submission.user.profile.school_email,
+                    "User School Email": user_school_email,
                     "Submission Date": timezone.localtime(
                         submission.created_at, timezone=pytz.timezone(tzname)
                     ),
@@ -220,12 +226,14 @@ class PollService(ServiceBase[Poll]):
         )
 
         self._validate_submission(submission)
-        self._update_user_fields_from_submission(submission)
 
-        if self.obj.event is not None:
-            EventAttendance.objects.get_or_create(
-                user=submission.user, event=self.obj.event
-            )
+        if submission.user is not None:
+            self._update_user_fields_from_submission(submission)
+
+            if self.obj.event is not None:
+                EventAttendance.objects.get_or_create(
+                    user=submission.user, event=self.obj.event
+                )
 
         submission.refresh_from_db()
         return submission
