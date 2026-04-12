@@ -40,7 +40,13 @@ Roles can be either custom or be one of the following "preset" types:
 3. EDITOR
 4. ADMIN
 
-Role models define the permissions associated with these presets through the `get_permissions_by_role_type` method.
+Role models define the permissions associated with these presets through the `role_type_perms_mapping` class property.
+
+### Flags
+
+Roles can also have additional properties known as flags. For example, `ClubRole` objects also indicate whether the member `is_official`, `is_voter`, or `is_executive`.
+
+Since these flags vary from role-to-role, the `_is_flag` helper method on the Membership object can be used to determine if the member has a role with a flag.
 
 ## API
 

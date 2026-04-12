@@ -158,7 +158,7 @@ class ClubModelTests(TestsBase):
         self.assertFalse(m.is_admin)
 
         # Add permissions to role (should now be custom)
-        perms_mapping = role.get_permissions_by_role_type()
+        perms_mapping = role.__class__.role_type_perms_mapping
         admin_perms = perms_mapping[RoleType.ADMIN]
         for perm in admin_perms:
             role.permissions.add(get_permission(perm))

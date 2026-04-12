@@ -23,7 +23,7 @@ def on_save_role(sender, instance: RoleBase, created=False, **kwargs):
             instance.save()
         return
 
-    perms_mapping = instance.get_permissions_by_role_type()
+    perms_mapping = instance.__class__.role_type_perms_mapping
     permissions = perms_mapping[instance.role_type]
 
     if instance.cached_role_type != instance.role_type:

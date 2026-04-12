@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
 from django.db import models, transaction
 from django.urls import reverse_lazy
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, classproperty
 from django.utils.translation import gettext_lazy as _
 from utils.permissions import get_perm_label, parse_permissions
 
@@ -380,7 +380,7 @@ class RoleManagerBase(ManagerBase["RoleBase"]):
 
         # Set permissions
         if role_type != RoleType.CUSTOM:
-            perms_mapping = self.model.get_permissions_by_role_type()
+            perms_mapping = self.model.role_type_perms_mapping
             permissions = parse_permissions(perms_mapping[role_type])
 
         return role_type, permissions, kwargs
@@ -477,14 +477,15 @@ class RoleBase(ModelBase):
         ordering = ["order"]
         abstract = True
 
+    @cached_property
     def __str__(self):
-        return f"{self.name} ({self.group()})"
+        return f"{self.name} ({self.group})"
 
     def clean(self):
         """Validate and sync roles on save."""
         if self.is_default:
             # Force all other roles to be false
-            self.group().roles.exclude(id=self.id).update(is_default=False)
+            self.group.roles.exclude(id=self.id).update(is_default=False)
 
         return super().clean()
 
@@ -495,13 +496,14 @@ class RoleBase(ModelBase):
         return super().delete(*args, **kwargs)
 
     # Abstract methods
+    @property
     def group(self) -> ModelBase:
         raise NotImplementedError(
             "Role objects must return group that contains the roles"
         )
 
-    @classmethod
-    def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
+    @classproperty
+    def role_type_perms_mapping(cls) -> dict[RoleType, list[str]]:
         raise NotImplementedError(
             "Role objects must return mapping between role type presets and permissions"
         )
@@ -534,7 +536,7 @@ class MembershipManagerBase(ManagerBase["MembershipBase"]):
 
         if len(roles) < 1:
             try:
-                default_role = membership.group().roles.get(is_default=True)
+                default_role = membership.group.roles.get(is_default=True)
                 roles.append(default_role)
             except Exception:
                 # Club has no default role
@@ -542,9 +544,9 @@ class MembershipManagerBase(ManagerBase["MembershipBase"]):
 
         for role in roles:
             if isinstance(role, str):
-                role = membership.group().roles.get(name=role)
+                role = membership.group.roles.get(name=role)
 
-            if role.group() != membership.group():
+            if role.group != membership.group:
                 raise ValidationError(
                     "Role must belong to the same group as membership"
                 )
@@ -629,7 +631,7 @@ class MembershipBase(ModelBase):
     def _permissions(self) -> list[str]:
         """All the permissions of a member."""
         if self._has_all_permissions:
-            perms_mapping = self.role_model().get_permissions_by_role_type()
+            perms_mapping = self.role_model.role_type_perms_mapping
             return perms_mapping[RoleType.ADMIN]
 
         permissions = set()
@@ -641,7 +643,7 @@ class MembershipBase(ModelBase):
         """Helper method to determine if a member is a role"""
         permissions = set(self._permissions)
 
-        perms_mapping = self.role_model().get_permissions_by_role_type()
+        perms_mapping = self.role_model().role_type_perms_mapping
         role_permissions = set(perms_mapping[role_type])
 
         return role_permissions.issubset(permissions)
@@ -685,7 +687,7 @@ class MembershipBase(ModelBase):
 
         for role in roles:
             if isinstance(role, str):
-                role = self.group().roles.get(name=role)
+                role = self.group.roles.get(name=role)
 
             # If there's an issue, reverse all db ops
             with transaction.atomic():
@@ -706,19 +708,20 @@ class MembershipBase(ModelBase):
 
         # Check that all roles are assigned to club
         for role in self.roles.all():
-            if role.group().id != self.group().id:
+            if role.group.id != self.group.id:
                 raise exceptions.ValidationError(
-                    f"Role {role} is not a part of group {self.group()}."
+                    f"Role {role} is not a part of group {self.group}."
                 )
 
         return super().clean()
 
     # Abstract methods
+    @property
     def group(self) -> ModelBase:
         raise NotImplementedError(
             "Membership objects must return group that contains the memberships"
         )
 
-    @classmethod
-    def role_model(self) -> type[RoleBase]:
+    @classproperty
+    def role_model(cls) -> type[RoleBase]:
         raise NotImplementedError("Membership objects must return role model")

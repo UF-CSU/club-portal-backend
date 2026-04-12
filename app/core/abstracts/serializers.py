@@ -526,7 +526,7 @@ class RolePermissionField(serializers.ChoiceField):
     """Display role permissions in JSON."""
 
     def __init__(self, role_model: type[RoleBase], **kwargs):
-        perms_mapping = role_model.get_permissions_by_role_type()
+        perms_mapping = role_model.role_type_perms_mapping
         allowed_perms = perms_mapping[RoleType.ADMIN]
 
         super().__init__(choices=allowed_perms, **kwargs)
@@ -586,7 +586,7 @@ class RoleSerializerBase(ModelSerializerBase):
 
         # Check role type assignment
         if role_type is not None and role_type != RoleType.CUSTOM:
-            perms_mapping = self.Meta.model.get_permissions_by_role_type()
+            perms_mapping = self.Meta.model.role_type_perms_mapping
             perm_labels = perms_mapping[role_type]
             for perm_label in perm_labels:
                 perm_ids.add(get_permission(perm_label).id)

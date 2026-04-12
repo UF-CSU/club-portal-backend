@@ -71,15 +71,15 @@ def get_user_club_or_404(club_id: int, user: User):
         ) from e
 
 
-def get_user_team_or_404(team_id: int, user: User):
+def get_user_team_or_404(club_id: int, team_id: int, user: User):
     """Get team for user, or raise 404 error."""
 
     try:
-        return Team.objects.get_for_user(team_id, user)
+        return Team.objects.get_for_user(club_id, team_id, user)
 
     except Team.DoesNotExist as e:
         raise exceptions.NotFound(
-            detail="Team with id %s does not exist for user." % team_id
+            detail=f"Team with id {team_id} in club with id {club_id} does not exist for user."
         ) from e
 
 
@@ -123,8 +123,9 @@ class TeamNestedViewSetBase(ModelViewSetBase):
         # This runs before `get_queryset`, will short-circuit out if user
         # does not have a team membership
 
+        club_id = int(self.kwargs.get("club_id"))
         team_id = int(self.kwargs.get("team_id"))
-        self.team = get_user_team_or_404(team_id, self.request.user)
+        self.team = get_user_team_or_404(club_id, team_id, self.request.user)
 
         super().check_permissions(request)
 

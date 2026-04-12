@@ -24,7 +24,7 @@ from django.core import exceptions
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, classproperty
 from django.utils.text import slugify
 from rest_framework.authtoken.models import Token
 from users.models import ApiKeyType, User, UserAgent
@@ -393,11 +393,12 @@ class ClubRole(ClubScopedModel, RoleBase):
         ]
 
     # Abstract methods
+    @property
     def group(self) -> Club:
         return self.club
 
-    @classmethod
-    def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
+    @classproperty
+    def role_type_perms_mapping(cls) -> dict[RoleType, list[str]]:
         return {
             RoleType.FOLLOWER: CLUB_FOLLOWER_ROLE_PERMISSIONS,
             RoleType.VIEWER: CLUB_VIEWER_ROLE_PERMISSIONS,
@@ -506,11 +507,12 @@ class ClubMembership(ClubScopedModel, MembershipBase):
         return super().clean()
 
     # Abstract methods
+    @property
     def group(self) -> ModelBase:
         return self.club
 
-    @classmethod
-    def role_model(self) -> type[RoleBase]:
+    @classproperty
+    def role_model(cls) -> type[RoleBase]:
         return ClubRole
 
 
@@ -566,11 +568,11 @@ class TeamManager(ManagerBase["Team"]):
 
         return self.filter(memberships__user=user)
 
-    def get_for_user(self, id: int, user: User):
+    def get_for_user(self, club_id: int, team_id: int, user: User):
         """Get team for user, or throw 404."""
 
         if user.is_superuser:
-            return self.get(id=id)
+            return self.get(id=team_id)
         elif (
             getattr(user, "is_useragent", False)
             and user.useragent.apikey_type == "club"
@@ -578,14 +580,14 @@ class TeamManager(ManagerBase["Team"]):
             # TODO: Abstract this useragent club
             key_club = user.useragent.club_apikey.club
 
-            team = self.get(id=id, memberships__user__id=user.id)
+            team = self.get(id=team_id, club__id=club_id, memberships__user__id=user.id)
 
             if key_club.id != team.club.id:
                 raise self.model.DoesNotExist
 
             return team
 
-        return self.get(id=id, memberships__user__id=user.id)
+        return self.get(id=team_id, club__id=club_id, memberships__user__id=user.id)
 
 
 class Team(TeamScopedModel, ModelBase):
@@ -651,11 +653,12 @@ class TeamRole(TeamScopedModel, RoleBase):
         ]
 
     # Abstract methods
+    @property
     def group(self) -> Team:
         return self.team
 
-    @classmethod
-    def get_permissions_by_role_type(self) -> dict[RoleType, list[str]]:
+    @classproperty
+    def role_type_perms_mapping(cls) -> dict[RoleType, list[str]]:
         return {
             RoleType.FOLLOWER: TEAM_FOLLOWER_ROLE_PERMISSIONS,
             RoleType.VIEWER: TEAM_VIEWER_ROLE_PERMISSIONS,
@@ -716,11 +719,12 @@ class TeamMembership(TeamScopedModel, MembershipBase):
         return super().clean()
 
     # Abstract methods
+    @property
     def group(self) -> ModelBase:
         return self.team
 
-    @classmethod
-    def role_model(self) -> type[RoleBase]:
+    @classproperty
+    def role_model(cls) -> type[RoleBase]:
         return TeamRole
 
 
