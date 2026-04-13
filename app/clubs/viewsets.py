@@ -1,3 +1,4 @@
+from core.abstracts.models import RoleType
 from core.abstracts.viewsets import (
     FilterBackendBase,
     ModelPreviewViewSetBase,
@@ -21,10 +22,7 @@ from users.models import User
 from utils.cache import check_cache, set_cache
 from utils.views import params_validator, parse_bool_param
 
-from clubs.cache import (
-    DETAIL_CLUB_PREVIEW_PREFIX,
-    LIST_CLUB_PREVIEW_PREFIX,
-)
+from clubs.cache import DETAIL_CLUB_PREVIEW_PREFIX, LIST_CLUB_PREVIEW_PREFIX
 from clubs.models import (
     Club,
     ClubApiKey,
@@ -33,7 +31,6 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
-    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -47,12 +44,16 @@ from clubs.serializers import (
     ClubMembershipSerializer,
     ClubPreviewListParamSerializer,
     ClubPreviewSerializer,
+    ClubRoleSerializer,
     ClubRosterSerializer,
     ClubSerializer,
     ClubTagSerializer,
     FollowClubsSerializer,
-    InviteClubMemberSerializer,
+    InviteMemberSerializer,
     JoinClubsSerializer,
+    TeamMemberCreateSerializer,
+    TeamMemberSerializer,
+    TeamRoleSerializer,
     TeamSerializer,
 )
 from clubs.services import ClubService
@@ -67,6 +68,18 @@ def get_user_club_or_404(club_id: int, user: User):
     except Club.DoesNotExist as e:
         raise exceptions.NotFound(
             detail="Club with id %s does not exist for user." % club_id
+        ) from e
+
+
+def get_user_team_or_404(club_id: int, team_id: int, user: User):
+    """Get team for user, or raise 404 error."""
+
+    try:
+        return Team.objects.get_for_user(club_id, team_id, user)
+
+    except Team.DoesNotExist as e:
+        raise exceptions.NotFound(
+            detail=f"Team with id {team_id} in club with id {club_id} does not exist for user."
         ) from e
 
 
@@ -95,6 +108,34 @@ class ClubNestedViewSetBase(ModelViewSetBase):
 
     def perform_create(self, serializer, **kwargs):
         serializer.save(club=self.club, **kwargs)
+
+
+class TeamNestedViewSetBase(ModelViewSetBase):
+    """
+    Represents objects that require a team id to query.
+    """
+
+    # permission_classes = ModelViewSetBase.permission_classes + [
+    #     permissions.IsAuthenticated
+    # ]
+
+    def check_permissions(self, request):
+        # This runs before `get_queryset`, will short-circuit out if user
+        # does not have a team membership
+
+        club_id = int(self.kwargs.get("club_id"))
+        team_id = int(self.kwargs.get("team_id"))
+        self.team = get_user_team_or_404(club_id, team_id, self.request.user)
+
+        super().check_permissions(request)
+
+    def get_queryset(self):
+        self.queryset = self.queryset.filter(team__id=self.team.id)
+
+        return super().get_queryset()
+
+    def perform_create(self, serializer, **kwargs):
+        serializer.save(team=self.team, **kwargs)
 
 
 class ClubQueryFilter(FilterBackendBase):
@@ -192,7 +233,6 @@ class UserClubMembershipsViewSet(
         Prefetch(
             "roles",
             queryset=ClubRole.objects.all().order_by("order"),
-            to_attr="_prefetched_roles_cache",
         ),
         Prefetch(
             "user__team_memberships",
@@ -200,10 +240,8 @@ class UserClubMembershipsViewSet(
                 Prefetch(
                     "team__roles",
                     queryset=TeamRole.objects.order_by("order"),
-                    to_attr="prefetched_roles",
                 ),
             ),
-            to_attr="prefetched_team_memberships",
         ),
     )
     serializer_class = ClubMembershipSerializer
@@ -319,7 +357,6 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
         Prefetch(
             "roles",
             queryset=ClubRole.objects.order_by("order"),
-            to_attr="_prefetched_roles_cache",
         ),
         Prefetch(
             "user__team_memberships",
@@ -327,10 +364,8 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
                 Prefetch(
                     "team__roles",
                     queryset=TeamRole.objects.order_by("order"),
-                    to_attr="prefetched_roles",
                 )
             ),
-            to_attr="prefetched_team_memberships",
         ),
     )
 
@@ -402,6 +437,20 @@ class ClubMembershipSingleViewSet(
         return get_object_or_404(self.queryset)
 
 
+class ClubRoleViewSet(ClubNestedViewSetBase):
+    """Manage roles in a club."""
+
+    serializer_class = ClubRoleSerializer
+    queryset = ClubRole.objects.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+        context["club_id"] = self.kwargs.get("club_id")
+        return context
+
+
 class TeamViewSet(ClubNestedViewSetBase):
     """CRUD Api routes for Team objects."""
 
@@ -428,10 +477,49 @@ class TeamViewSet(ClubNestedViewSetBase):
         return super().list(request, *args, **kwargs)
 
 
+class TeamMemberViewSet(TeamNestedViewSetBase):
+    """Manage members in a team."""
+
+    serializer_class = TeamMemberSerializer
+    queryset = TeamMembership.objects.select_related("team").prefetch_related(
+        Prefetch(
+            "team__roles",
+            queryset=TeamRole.objects.order_by("order"),
+        )
+    )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+        context["team_id"] = self.kwargs.get("team_id")
+        return context
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return TeamMemberCreateSerializer
+
+        return super().get_serializer_class()
+
+
+class TeamRoleViewSet(TeamNestedViewSetBase):
+    """Manage roles in a team."""
+
+    serializer_class = TeamRoleSerializer
+    queryset = TeamRole.objects.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == "list":
+            context["skip_role_queryset"] = True
+        context["team_id"] = self.kwargs.get("team_id")
+        return context
+
+
 class InviteClubMemberView(GenericAPIView):
     """Creates a POST route for inviting club members."""
 
-    serializer_class = InviteClubMemberSerializer
+    serializer_class = InviteMemberSerializer
     authentication_classes = ViewSetBase.authentication_classes
     permission_classes = ViewSetBase.permission_classes
 
@@ -444,6 +532,27 @@ class InviteClubMemberView(GenericAPIView):
         emails = serializer.data.get("emails", [])
 
         ClubService(club).send_email_invite(emails)
+
+        return Response(status=status.HTTP_202_ACCEPTED)
+
+
+class InviteTeamMemberView(GenericAPIView):
+    """Creates a POST route for inviting team members."""
+
+    serializer_class = InviteMemberSerializer
+    authentication_classes = ViewSetBase.authentication_classes
+    permission_classes = ViewSetBase.permission_classes
+
+    @extend_schema(responses={202: None})
+    def post(self, request, club_id: int, team_id: int, *args, **kwargs):
+        club = get_object_or_404(Club, id=club_id)
+        team = get_object_or_404(Team, id=team_id)
+        serializer = self.serializer_class(data=request.POST)
+        serializer.is_valid(raise_exception=True)
+
+        emails = serializer.data.get("emails", [])
+
+        ClubService(club).send_team_email_invite(team=team, emails=emails)
 
         return Response(status=status.HTTP_202_ACCEPTED)
 

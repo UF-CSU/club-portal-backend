@@ -112,7 +112,7 @@ class ManyClubsApiPermsTests(PublicApiTestsBase):
         self.assertResForbidden(res)
 
         role = ClubRole.objects.create(
-            c1,
+            club=c1,
             name="Editor",
             perm_labels=["clubs.change_club", "clubs.view_club"],
             # role_type=RoleType.CUSTOM,
@@ -138,7 +138,7 @@ class ManyClubsApiPermsTests(PublicApiTestsBase):
         club = self.clubs[0]
         svc = ClubService(club)
         role = ClubRole.objects.create(
-            club, name="Subscriber", perm_labels=["clubs.view_club"]
+            club=club, name="Subscriber", perm_labels=["clubs.view_club"]
         )
         svc.add_member(self.user, roles=[role])
 
@@ -149,7 +149,7 @@ class ManyClubsApiPermsTests(PublicApiTestsBase):
         self.assertResForbidden(res)
 
         role = ClubRole.objects.create(
-            club, name="Member Viewer", perm_labels=["clubs.view_clubmembership"]
+            club=club, name="Member Viewer", perm_labels=["clubs.view_clubmembership"]
         )
         svc.add_member_role(self.user, role)
 

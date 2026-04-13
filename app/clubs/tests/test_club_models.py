@@ -2,6 +2,7 @@
 Unit tests for generic model functions, validation, etc.
 """
 
+from core.abstracts.models import RoleType
 from core.abstracts.tests import TestsBase
 from django.core import exceptions
 from rest_framework.authtoken.models import Token
@@ -9,12 +10,15 @@ from users.models import User
 from users.tests.utils import create_test_user
 from utils.permissions import get_permission
 
-from clubs.defaults import ADMIN_ROLE_PERMISSIONS, VIEWER_ROLE_PERMISSIONS
+from clubs.defaults import (
+    CLUB_ADMIN_ROLE_PERMISSIONS,
+    CLUB_VIEWER_ROLE_PERMISSIONS,
+    INITIAL_TEAM_ROLES,
+)
 from clubs.models import (
     Club,
     ClubApiKey,
     ClubMembership,
-    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -73,7 +77,9 @@ class ClubModelTests(TestsBase):
 
         # Check default state
         self.assertEqual(role.role_type, RoleType.VIEWER)
-        self.assertListEqual(role.perm_labels, VIEWER_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(
+            role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True
+        )
 
         # Check state after adding permission
         role.permissions.add(get_permission("clubs.change_club"))
@@ -85,13 +91,28 @@ class ClubModelTests(TestsBase):
         role.role_type = RoleType.VIEWER
         role.save()
         role.refresh_from_db()
-        self.assertListEqual(role.perm_labels, VIEWER_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(
+            role.perm_labels, CLUB_VIEWER_ROLE_PERMISSIONS, sort_lists=True
+        )
         self.assertNotIn("clubs.change_club", role.perm_labels)
 
         # Check setting to admin
         role.role_type = RoleType.ADMIN
         role.save()
-        self.assertListEqual(role.perm_labels, ADMIN_ROLE_PERMISSIONS, sort_lists=True)
+        self.assertListEqual(
+            role.perm_labels, CLUB_ADMIN_ROLE_PERMISSIONS, sort_lists=True
+        )
+
+    def test_create_member_wrong_roles(self):
+        """Cannot give member roles from a different club."""
+
+        club1 = create_test_club()
+        club2 = create_test_club()
+        role = create_test_clubrole(club2)
+
+        user = create_test_user()
+        with self.assertRaises(exceptions.ValidationError):
+            ClubMembership.objects.create(club=club1, user=user, roles=[role])
 
     def test_member_is_admin(self):
         """Should properly display if a user is an admin or not."""
@@ -125,6 +146,42 @@ class ClubModelTests(TestsBase):
         )
         self.assertTrue(m2.is_admin)
 
+    def test_member_is_implicitly_role(self):
+        """Should properly determine if a user is implicitly a role based on their custom permissions"""
+        club = create_test_club()
+        role = create_test_clubrole(club)
+        self.assertEqual(role.role_type, RoleType.VIEWER)
+
+        # Give user viewer role
+        user = create_test_user()
+        m = ClubMembership.objects.create(club=club, user=user, roles=[role])
+        self.assertFalse(m.is_admin)
+
+        # Add permissions to role (should now be custom)
+        perms_mapping = role.__class__.role_type_perms_mapping
+        admin_perms = perms_mapping[RoleType.ADMIN]
+        for perm in admin_perms:
+            role.permissions.add(get_permission(perm))
+        role.save()
+        role.refresh_from_db()
+        self.assertEqual(role.role_type, RoleType.CUSTOM)
+
+        # User should be admin
+        self.assertTrue(m.is_admin)
+
+    def test_member_matches_all_roles(self):
+        """Member should match all roles they have permission for"""
+        club = create_test_club()
+        role = create_test_clubrole(club, role_type=RoleType.ADMIN)
+        self.assertEqual(role.role_type, RoleType.ADMIN)
+
+        user = create_test_user()
+        m = ClubMembership.objects.create(club=club, user=user, roles=[role])
+        self.assertTrue(m.is_admin)
+        self.assertTrue(m.is_editor)
+        self.assertTrue(m.is_viewer)
+        self.assertTrue(m.is_follower)
+
 
 class ClubTeamTests(TestsBase):
     """Unit tests for teams."""
@@ -138,7 +195,7 @@ class ClubTeamTests(TestsBase):
         ClubMembership.objects.create(club=club, user=user)
 
         team = Team.objects.create(name="Example Team", club=club)
-        self.assertEqual(TeamRole.objects.count(), 1)
+        self.assertEqual(TeamRole.objects.count(), len(INITIAL_TEAM_ROLES))
         role = team.roles.first()
 
         TeamMembership.objects.create(team=team, user=user)
@@ -197,13 +254,14 @@ class ClubTeamTests(TestsBase):
         team = Team.objects.create(name="Example team", club=club)
 
         # Sanity check initial role
-        self.assertEqual(team.roles.count(), 1)
+        initial_count = len(INITIAL_TEAM_ROLES)
+        self.assertEqual(team.roles.count(), initial_count)
         r1 = team.roles.first()
         self.assertTrue(r1.is_default)
 
         # Create new role
         r2 = TeamRole.objects.create(team=team, name="Team Admin", is_default=False)
-        self.assertEqual(team.roles.count(), 2)
+        self.assertEqual(team.roles.count(), initial_count + 1)
         self.assertFalse(r2.is_default)
 
         # Check setting default
