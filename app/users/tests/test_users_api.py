@@ -7,7 +7,6 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from lib.faker import fake
 from rest_framework import status
-from rest_framework.test import APIClient
 
 from users.models import EmailVerificationCode
 from users.tests.utils import (
@@ -29,9 +28,6 @@ def create_user(**params):
 
 class PublicUserApiTests(PublicApiTestsBase):
     """Test the public features of the user API."""
-
-    def setUp(self):
-        self.client = APIClient()
 
     def test_create_user_success(self):
         """Test creating a user is successful."""

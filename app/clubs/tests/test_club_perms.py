@@ -69,6 +69,7 @@ class ClubScopedPermsTests(TestsBase):
     """
 
     def setUp(self):
+        super().setUp()
         self.club1 = create_test_club()
         self.club2 = create_test_club()
 

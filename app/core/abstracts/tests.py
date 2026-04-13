@@ -1,11 +1,15 @@
 import datetime
 import json
+import logging
 import os
+from collections import deque
 from typing import Literal, Optional
 
 import pytz
 from django import forms
 from django.core import mail
+from django.db.backends.postgresql.base import DatabaseWrapper
+from django.db.transaction import get_connection
 from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
@@ -17,11 +21,50 @@ from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
 from users.tests.utils import create_test_adminuser
 
+from app import settings
 from core.abstracts.schedules import run_func
 
 
 class TestsBase(TestCase):
     """Abstract testing utilities."""
+
+    max_db_queries = 9000
+    check_query_count = True
+
+    @property
+    def testName(self):
+        """Name of the current running test."""
+
+        return ".".join(self.id().split(".")[-2:])
+
+    def setUp(self):
+        # Initialize database listener before everything else
+        self.connection: DatabaseWrapper = get_connection()
+        self.connection.force_debug_cursor = True
+        # Sanity check that query counter always starts at 0
+        self.assertEqual(len(self.connection.queries_log), 0)
+        return super().setUp()
+
+    def tearDown(self):
+        try:
+            queries_after: deque = self.connection.queries_log
+
+            if settings.POSTGRES_COUNT_TEST_QUERIES:
+                print(f"DB Queries for {self.testName}: {len(queries_after)}")
+
+            if self.check_query_count:
+                self.assertLess(
+                    len(queries_after),
+                    self.max_db_queries,
+                    f"Excessive database calls! Expected query count to be less than {self.max_db_queries}, but got {len(queries_after)}",
+                )
+        except AttributeError as e:
+            logging.error(
+                "Unable to check query count! Make sure to call super().setUp() in your setUp method."
+            )
+            raise e
+
+        return super().tearDown()
 
     def assertObjFields(self, object, fields: dict):
         """Object fields should match given field values."""
@@ -312,6 +355,7 @@ class PublicApiTestsBase(PublicViewTestsBase):
     client: APIClientWrapper
 
     def setUp(self):
+        super().setUp()
         self.client = APIClientWrapper()
         self.client.cookies.clear()
 
