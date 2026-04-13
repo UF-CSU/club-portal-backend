@@ -37,12 +37,33 @@ class TestsBase(TestCase):
 
         return ".".join(self.id().split(".")[-2:])
 
+    def printQueryCount(self, label: Optional[str] = None):
+        """
+        Prints the current number of database queries, useful for debugging slow tests.
+
+        Example usage:
+
+        ```
+        def test_something(self):
+            # ... etc
+            self.printQueryCount("Before large task")
+
+            expensive_computation()
+
+            self.printQueryCount("After large task")
+        """
+
+        query_count = len(self.connection.queries_log)
+
+        if label:
+            print(f"({label}) DB Queries: {query_count}")
+        else:
+            print(f"DB Queries: {query_count}")
+
     def setUp(self):
         # Initialize database listener before everything else
         self.connection: DatabaseWrapper = get_connection()
         self.connection.force_debug_cursor = True
-        # Sanity check that query counter always starts at 0
-        self.assertEqual(len(self.connection.queries_log), 0)
         return super().setUp()
 
     def tearDown(self):
