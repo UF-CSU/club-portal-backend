@@ -191,6 +191,9 @@ if POSTGRES_MAX_POOL_SIZE > 0:
 POSTGRES_COUNT_TEST_QUERIES = environ_bool("POSTGRES_COUNT_TEST_QUERIES", 0)
 """If True, will display number of queries captured after each unit test."""
 
+POSTGRES_SHOW_TEST_QUERIES = environ_bool("POSTGRES_SHOW_TEST_QUERIES", 0)
+"""If True, will show the queries captured after each unit test."""
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 

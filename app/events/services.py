@@ -11,13 +11,14 @@ from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from dateutil.relativedelta import relativedelta
 from django.db import connection, models
+from django.db.models import Prefetch
 from django.utils import timezone
 from polls.services import PollTemplateService
 from users.models import User
 from utils.dates import get_day_count
 from utils.db import dictfetchone, namedtuplefetchall
 
-from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
+from events.models import DayType, Event, EventAttendanceLink, EventHost, RecurringEvent
 
 
 class EventHeatmapDict(TypedDict):
@@ -163,11 +164,11 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             minute=59,
             second=59,
         )
-        # print("initial events:", rec_ev.events.all())
+
         event_query = rec_ev.events.all().filter(
             models.Q(start_at__date__gte=query_date_start)
             & models.Q(start_at__date__lte=query_date_end)
-        )
+        ).order_by("id")
 
         if (
             event_query.exists()
@@ -179,7 +180,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
         elif event_query.exists():
             if event_query.count() > 1:
-                event = event_query.order_by("id").first()
+                event = event_query.first()
                 event_query.filter(~models.Q(id=event.pk)).delete()
             else:
                 event = event_query.first()
@@ -249,7 +250,18 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
         # Delete events outside of range
         query_days = [DayType(day).to_query_weekday() for day in rec_ev.days]
-        query = rec_ev.events.all()
+        query = (
+            rec_ev.events.all()
+            .select_related("recurring_event")
+            .prefetch_related(
+                Prefetch(
+                    "hosts",
+                    queryset=EventHost.objects.select_related("club").only(
+                        "id", "event_id", "club_id", "is_primary"
+                    ),
+                )
+            )
+        )
 
         if rec_ev.prevent_sync_past_events:
             # Exclude past events if necessary

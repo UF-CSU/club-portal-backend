@@ -166,14 +166,18 @@ class RecurringEventTests(TestsBase):
         service = RecurringEventService(rec)
         service.sync_events()
 
-        # print("queries:", len(context.captured_queries))
-
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
         self.assertEqual(rec.expected_event_count, EXPECTED_EV_COUNT)
         self.assertEqual(rec.attachments.count(), len(files))
         self.assertEqual(ClubFile.objects.count(), club_files_count_before)
 
-        for i, event in enumerate(list(Event.objects.all().order_by("start_at"))):
+        for i, event in enumerate(
+            list(
+                Event.objects.all()
+                .prefetch_related("hosts", "attachments")
+                .order_by("start_at")
+            )
+        ):
             if i % 2 == 0:
                 # Tuesdays
                 self.assertEqual(event.start_at.weekday(), 1)
@@ -580,6 +584,7 @@ class RecurringEventTests(TestsBase):
         )
 
         events = RecurringEventService(rec).sync_events()
+
         self.assertEqual(events.filter(name=rec.name).count(), 8)
         self.assertEqual(events.filter(_poll__template=template).count(), 8)
 
@@ -590,6 +595,7 @@ class RecurringEventTests(TestsBase):
         # Resync events
         rec.name = fake.title()
         rec.save()
+
         events = RecurringEventService(rec).sync_events()
 
         # Verify event with custom poll was not overridden
