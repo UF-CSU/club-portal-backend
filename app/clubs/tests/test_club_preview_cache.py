@@ -253,32 +253,21 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         test_club = create_test_club()
         test_club_preview = ClubPreviewSerializer(test_club).data
 
-        self.printQueryCount("Spot 0")
-
         self.runQueuedTasks()
         cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk)
         self.assertEqual(test_club_preview, cached_preview)
 
         cache.clear()
-        self.printQueryCount("Spot 1")
 
         url = club_preview_detail_url(test_club.pk)
-        self.printQueryCount("Spot 1.1")
-
         start_no_cache = time()
         res = self.client.get(url)
-        self.printQueryCount("Spot 1.3")
         end_no_cache = time()
-        self.printQueryCount("Spot 1.4")
         self.assertEqual(test_club_preview, res.json())
-
-        self.printQueryCount("Spot 1.5")
 
         self.runQueuedTasks()
         cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk)
         self.assertEqual(cached_preview, res.json())
-
-        self.printQueryCount("Spot 2")
 
         start_cache = time()
         res = self.client.get(url)
@@ -289,7 +278,6 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         )
 
         create_test_clubtag([])
-        self.printQueryCount("Spot 3")
 
         self.runQueuedTasks()
         self.assertEqual(
@@ -299,13 +287,9 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
 
         create_test_clubtag([test_club])
 
-        self.printQueryCount("Spot 4")
-
         self.runQueuedTasks()
         res = self.client.get(url)
         self.assertEqual(
             res.json(),
             check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk),
         )
-
-        self.printQueryCount("After test")

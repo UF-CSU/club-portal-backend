@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 import os
-from collections import deque
 from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Literal, Optional
@@ -15,7 +14,8 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.backends.postgresql.base import DatabaseWrapper
 from django.http import HttpResponse
-from django.test import TransactionTestCase
+from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django_celery_beat.models import PeriodicTask
 from pytz import timezone
@@ -41,7 +41,7 @@ TESTING_TASK_QUEUE: ContextVar[list[TestingDebouncedTask]] = ContextVar(
 )
 
 
-class TestsBase(TransactionTestCase):
+class TestsBase(TestCase):
     """Abstract testing utilities."""
 
     max_db_queries = 9000
@@ -58,9 +58,12 @@ class TestsBase(TransactionTestCase):
         cache.clear()
 
         # Initialize database listener before everything else
-        self.connection: DatabaseWrapper = connections[DEFAULT_DB_ALIAS]
-        self.connection.force_debug_cursor = True
-        self.last_query_count = 0
+        connection: DatabaseWrapper = connections[DEFAULT_DB_ALIAS]
+        connection.force_debug_cursor = True
+        self.db_context = CaptureQueriesContext(connection)
+        self.db_context.__enter__()
+
+        self.last_printed_query_count = 0
 
         return super().setUp()
 
@@ -70,7 +73,7 @@ class TestsBase(TransactionTestCase):
 
         # Check db query count
         try:
-            queries_after: deque = self.connection.queries_log
+            queries_after = self.db_context.captured_queries
 
             if settings.POSTGRES_SHOW_TEST_QUERIES:
                 print(
@@ -97,8 +100,10 @@ class TestsBase(TransactionTestCase):
                 "Unable to check query count! Make sure to call super().setUp() in your setUp method."
             )
             raise e
+        finally:
+            cache.clear()
+            self.db_context.__exit__(None, None, None)
 
-        cache.clear()
         return super().tearDown()
 
     def runQueuedTasks(self):
@@ -135,16 +140,16 @@ class TestsBase(TransactionTestCase):
         """
 
         try:
-            query_count = len(self.connection.queries_log)
-            query_diff = query_count - self.last_query_count
+            query_count = len(self.db_context.captured_queries)
+            query_diff = query_count - self.last_printed_query_count
             query_diff_display = (
-                f" (+{query_diff})" if self.last_query_count != 0 else ""
+                f" (+{query_diff})" if self.last_printed_query_count != 0 else ""
             )
 
             label_display = f"({label}) " if label else ""
 
             print(f"{label_display}DB Queries: {query_count}{query_diff_display}")
-            self.last_query_count = query_count
+            self.last_printed_query_count = query_count
         except Exception as e:
             print("Unable to print query count:", e)
             pass

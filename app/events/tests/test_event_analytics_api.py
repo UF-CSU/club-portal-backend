@@ -246,7 +246,6 @@ class EventAnalyticsApiCalculationTests(EventAnalyticsTestsBase):
         - [4] 2/11: 10 users, 10 members, 10 returning
         - [5] 2/18: 8 users, 8 members, 8 returning
         """
-        super().setUp()
 
         if self.LOAD_CACHED_DATA:
             self.import_cached_data()
@@ -674,6 +673,8 @@ class EventAnalyticsApiCalculationTests(EventAnalyticsTestsBase):
                 "contenttypes",
                 output="fixtures/test/event-analytics-test-data.json.gz",
             )
+
+        super().setUp()
 
     @freezegun.freeze_time("02/21/2026 13:00:00")
     def test_event_average_analytics(self):
