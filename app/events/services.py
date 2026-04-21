@@ -165,10 +165,14 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             second=59,
         )
 
-        event_query = rec_ev.events.all().filter(
-            models.Q(start_at__date__gte=query_date_start)
-            & models.Q(start_at__date__lte=query_date_end)
-        ).order_by("id")
+        event_query = (
+            rec_ev.events.all()
+            .filter(
+                models.Q(start_at__date__gte=query_date_start)
+                & models.Q(start_at__date__lte=query_date_end)
+            )
+            .order_by("id")
+        )
 
         if (
             event_query.exists()
