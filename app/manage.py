@@ -14,7 +14,9 @@ def main():
         command = "help"
 
     running_tests = command == "test"
-    if running_tests:
+    show_test_cov = running_tests and len(sys.argv) < 3
+    
+    if show_test_cov:
         from coverage import Coverage
 
         cov = Coverage(config_file='../pyproject.toml')
@@ -31,7 +33,7 @@ def main():
         ) from exc
     execute_from_command_line(sys.argv)
 
-    if running_tests:
+    if show_test_cov:
         try:
             cov.stop()
             cov.save()

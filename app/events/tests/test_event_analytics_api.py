@@ -167,6 +167,7 @@ class EventAnalyticsApiCalculationTests(EventAnalyticsTestsBase):
     """Unit tests for Event Analytics API."""
 
     LOAD_CACHED_DATA = True
+    check_query_count = False  # Too many queries happen on setUp
 
     @factory.django.mute_signals(post_save)
     def import_cached_data(self):

@@ -188,6 +188,12 @@ if POSTGRES_MAX_POOL_SIZE > 0:
         "timeout": 60,
     }
 
+POSTGRES_COUNT_TEST_QUERIES = environ_bool("POSTGRES_COUNT_TEST_QUERIES", 0)
+"""If True, will display number of queries captured after each unit test."""
+
+POSTGRES_SHOW_TEST_QUERIES = environ_bool("POSTGRES_SHOW_TEST_QUERIES", 0)
+"""If True, will show the queries captured after each unit test."""
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -572,7 +578,7 @@ if TESTING:
     # Force disable notifications
     EMAIL_HOST_PASSWORD = None
     # Suppress logs in test mode
-    logging.disable(logging.ERROR)
+    logging.disable(logging.WARNING)
 
     # Force disconnect from social providers
     for provider in SOCIALACCOUNT_PROVIDERS.keys():

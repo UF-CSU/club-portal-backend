@@ -1,10 +1,8 @@
-from celery import shared_task
+from lib.celery import debounced_task
 
 
-@shared_task
-def regenerate_poll_preview_cache_task(
-    poll_ids: list[int] | None = None,
-):
+@debounced_task(delay_sec=1)
+def regenerate_poll_preview_cache_task(poll_ids: list[int] | None = None):
     """Delete and recreate poll preview cache in a background Celery worker."""
 
     from utils.cache import set_cache

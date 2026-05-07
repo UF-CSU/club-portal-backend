@@ -1,13 +1,21 @@
 import datetime
 import json
+import logging
 import os
+from collections.abc import Callable
+from contextvars import ContextVar
 from typing import Literal, Optional
 
+import attrs
 import pytz
 from django import forms
 from django.core import mail
+from django.core.cache import cache
+from django.db import DEFAULT_DB_ALIAS, connections
+from django.db.backends.postgresql.base import DatabaseWrapper
 from django.http import HttpResponse
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django_celery_beat.models import PeriodicTask
 from pytz import timezone
@@ -17,11 +25,134 @@ from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
 from users.tests.utils import create_test_adminuser
 
+from app import settings
 from core.abstracts.schedules import run_func
+
+
+@attrs.define
+class TestingDebouncedTask:
+    cb: Callable
+    args: list
+    kwargs: dict
+
+
+TESTING_TASK_QUEUE: ContextVar[list[TestingDebouncedTask]] = ContextVar(
+    "testing_task_queue", default=list
+)
 
 
 class TestsBase(TestCase):
     """Abstract testing utilities."""
+
+    max_db_queries = 9000
+    check_query_count = True
+
+    @property
+    def testName(self):
+        """Name of the current running test."""
+
+        return ".".join(self.id().split(".")[-2:])
+
+    def setUp(self):
+        TESTING_TASK_QUEUE.set([])
+        cache.clear()
+
+        # Initialize database listener before everything else
+        connection: DatabaseWrapper = connections[DEFAULT_DB_ALIAS]
+        connection.force_debug_cursor = True
+        self.db_context = CaptureQueriesContext(connection)
+        self.db_context.__enter__()
+
+        self.last_printed_query_count = 0
+
+        return super().setUp()
+
+    def tearDown(self):
+        # Handle queued Celery tasks
+        self.runQueuedTasks()
+
+        # Check db query count
+        try:
+            queries_after = self.db_context.captured_queries
+
+            if settings.POSTGRES_SHOW_TEST_QUERIES:
+                print(
+                    "Captured queries:",
+                    "\n".join(
+                        [
+                            f"\t({i}) {query.get('sql', None)}"
+                            for i, query in enumerate(queries_after)
+                        ]
+                    ),
+                )
+
+            if settings.POSTGRES_COUNT_TEST_QUERIES:
+                print(f"DB Queries for {self.testName}: {len(queries_after)}")
+
+            if self.check_query_count:
+                self.assertLess(
+                    len(queries_after),
+                    self.max_db_queries,
+                    f"Excessive database calls! Expected query count to be less than {self.max_db_queries}, but got {len(queries_after)}",
+                )
+        except AttributeError as e:
+            logging.error(
+                "Unable to check query count! Make sure to call super().setUp() in your setUp method."
+            )
+            raise e
+        finally:
+            cache.clear()
+            self.db_context.__exit__(None, None, None)
+
+        return super().tearDown()
+
+    def runQueuedTasks(self):
+        """Apply all queued celery tasks that were debounced."""
+
+        # Apply in loop so infinite loops can be caught
+        while len(TESTING_TASK_QUEUE.get()) > 0:
+            tasks = [*TESTING_TASK_QUEUE.get()]
+            TESTING_TASK_QUEUE.set([])
+
+            for i in range(len(tasks)):
+                task = tasks[i]
+                task.cb(*task.args, **task.kwargs)
+
+    def printQueryCount(self, label: Optional[str] = None):
+        """
+        Prints the current number of database queries, useful for debugging slow tests.
+
+        Example usage:
+
+        ```
+        def test_something(self):
+            # ... etc
+            self.printQueryCount("Before large task")
+
+            expensive_computation()
+
+            self.printQueryCount("After large task")
+
+        # Logged:
+        # (Before large task) DB Queries: 0
+        # (After large task) DB Queries: 23
+        ```
+        """
+
+        try:
+            query_count = len(self.db_context.captured_queries)
+            query_diff = query_count - self.last_printed_query_count
+            query_diff_display = (
+                f" (+{query_diff})" if self.last_printed_query_count != 0 else ""
+            )
+
+            label_display = f"({label}) " if label else ""
+
+            print(f"{label_display}DB Queries: {query_count}{query_diff_display}")
+            self.last_printed_query_count = query_count
+        except Exception as e:
+            print("Unable to print query count:", e)
+            pass
 
     def assertObjFields(self, object, fields: dict):
         """Object fields should match given field values."""
@@ -312,6 +443,7 @@ class PublicApiTestsBase(PublicViewTestsBase):
     client: APIClientWrapper
 
     def setUp(self):
+        super().setUp()
         self.client = APIClientWrapper()
         self.client.cookies.clear()
 

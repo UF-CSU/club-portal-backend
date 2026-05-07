@@ -20,14 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class ClubPreviewCacheTests(PublicApiTestsBase):
-    def setUp(self):
-        cache.clear()
-        return super().setUp()
-
-    def tearDown(self):
-        cache.clear()
-        return super().tearDown()
-
     def test_valid_params_retrieve(self):
         """To ensure params are validated correctly and return the correct error response if not"""
         test_club = create_test_club()
@@ -260,18 +252,20 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         """For the detail endpoint of club previews"""
         test_club = create_test_club()
         test_club_preview = ClubPreviewSerializer(test_club).data
+
+        self.runQueuedTasks()
         cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk)
         self.assertEqual(test_club_preview, cached_preview)
 
         cache.clear()
 
         url = club_preview_detail_url(test_club.pk)
-
         start_no_cache = time()
         res = self.client.get(url)
         end_no_cache = time()
         self.assertEqual(test_club_preview, res.json())
 
+        self.runQueuedTasks()
         cached_preview = check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk)
         self.assertEqual(cached_preview, res.json())
 
@@ -284,12 +278,16 @@ class ClubPreviewCacheTests(PublicApiTestsBase):
         )
 
         create_test_clubtag([])
+
+        self.runQueuedTasks()
         self.assertEqual(
             res.json(),
             check_cache(DETAIL_CLUB_PREVIEW_PREFIX, club_id=test_club.pk),
         )
 
         create_test_clubtag([test_club])
+
+        self.runQueuedTasks()
         res = self.client.get(url)
         self.assertEqual(
             res.json(),
