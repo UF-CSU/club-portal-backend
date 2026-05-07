@@ -4,7 +4,7 @@ General constants and initial values for club items.
 
 from typing import TypedDict
 
-from clubs.models import RoleType
+from core.abstracts.models import RoleType
 
 
 class ClubRolePayloadType(TypedDict):
@@ -22,11 +22,11 @@ class TeamRolePayloadType(TypedDict):
     is_default: bool
 
 
-FOLLOWER_ROLE_PERMISSIONS = []
+CLUB_FOLLOWER_ROLE_PERMISSIONS = []
 """View public club info."""
 
-VIEWER_ROLE_PERMISSIONS = [
-    *FOLLOWER_ROLE_PERMISSIONS,
+CLUB_VIEWER_ROLE_PERMISSIONS = [
+    *CLUB_FOLLOWER_ROLE_PERMISSIONS,
     # Clubs
     "clubs.view_club",
     "clubs.view_club_details",
@@ -36,6 +36,8 @@ VIEWER_ROLE_PERMISSIONS = [
     "clubs.view_clubrole",
     "clubs.view_clubphoto",
     "clubs.view_clubtag",
+    "clubs.view_teammembership",
+    "clubs.view_teamrole",
     # Events
     "events.view_event",
     "events.view_private_event",
@@ -43,8 +45,8 @@ VIEWER_ROLE_PERMISSIONS = [
 ]
 """View internal club info & stats."""
 
-EDITOR_ROLE_PERMISSIONS = [
-    *VIEWER_ROLE_PERMISSIONS,
+CLUB_EDITOR_ROLE_PERMISSIONS = [
+    *CLUB_VIEWER_ROLE_PERMISSIONS,
     # Clubs
     "clubs.change_club",
     "clubs.add_team",
@@ -53,12 +55,29 @@ EDITOR_ROLE_PERMISSIONS = [
     "clubs.change_clubfile",
     "clubs.add_clubmembership",
     "clubs.change_clubmembership",
+    "clubs.add_clubrole",
+    "clubs.change_clubrole",
+    "clubs.add_teammembership",
+    "clubs.change_teammembership",
+    "clubs.add_teamrole",
+    "clubs.change_teamrole",
     # Events
     "events.add_event",
     "events.change_event",
     "events.view_recurringevent",
     "events.view_event_analytics",
     # Polls
+    "polls.add_poll",
+    "polls.change_poll",
+    "polls.view_pollfield",
+    "polls.add_pollfield",
+    "polls.change_pollfield",
+    "polls.delete_pollfield",
+    "polls.view_choiceinputoption",
+    "polls.view_pollsubmission",
+    "polls.add_choiceinputoption",
+    "polls.change_choiceinputoption",
+    "polls.delete_choiceinputoption",
     "polls.view_poll_analytics",
     # Analytics
     "analytics.view_link",
@@ -72,12 +91,15 @@ EDITOR_ROLE_PERMISSIONS = [
 ]
 """Edit and add permissions with some restrictions."""
 
-ADMIN_ROLE_PERMISSIONS = [
-    *EDITOR_ROLE_PERMISSIONS,
+CLUB_ADMIN_ROLE_PERMISSIONS = [
+    *CLUB_EDITOR_ROLE_PERMISSIONS,
     # Clubs
     "clubs.delete_team",
     "clubs.delete_clubfile",
     "clubs.delete_clubmembership",
+    "clubs.delete_clubrole",
+    "clubs.delete_teammembership",
+    "clubs.delete_teamrole",
     "clubs.add_clubapikey",
     "clubs.view_clubapikey",
     "clubs.change_clubapikey",
@@ -88,26 +110,48 @@ ADMIN_ROLE_PERMISSIONS = [
     "events.change_recurringevent",
     "events.delete_recurringevent",
     # Polls
-    "polls.add_poll",
-    "polls.change_poll",
     "polls.delete_poll",
-    "polls.view_pollsubmission",
-    "polls.view_pollfield",
-    "polls.add_pollfield",
-    "polls.change_pollfield",
-    "polls.delete_pollfield",
-    "polls.view_choiceinputoption",
-    "polls.add_choiceinputoption",
-    "polls.change_choiceinputoption",
-    "polls.delete_choiceinputoption",
     "polls.view_private_poll",
 ]
 """All permissions for a club"""
 
+# TODO: Flesh out team permissions
+TEAM_FOLLOWER_ROLE_PERMISSIONS = []
+"""View public team info."""
+
+TEAM_VIEWER_ROLE_PERMISSIONS = [
+    *TEAM_FOLLOWER_ROLE_PERMISSIONS,
+    # Teams
+    "clubs.view_teammembership",
+    "clubs.view_teamrole",
+]
+"""View internal team info & stats."""
+
+TEAM_EDITOR_ROLE_PERMISSIONS = [
+    *TEAM_VIEWER_ROLE_PERMISSIONS,
+    # Teams
+    "clubs.add_teammembership",
+    "clubs.change_teammembership",
+    "clubs.add_teamrole",
+    "clubs.change_teamrole",
+]
+"""Edit and add permissions with some restrictions."""
+
+TEAM_ADMIN_ROLE_PERMISSIONS = [
+    *TEAM_EDITOR_ROLE_PERMISSIONS,
+    # Teams
+    "clubs.delete_teammembership",
+    "clubs.delete_teamrole",
+]
+"""All permissions for a team"""
+
 # Sort permissions lists to use for testing, assertions, etc
-VIEWER_ROLE_PERMISSIONS.sort()
-EDITOR_ROLE_PERMISSIONS.sort()
-ADMIN_ROLE_PERMISSIONS.sort()
+CLUB_VIEWER_ROLE_PERMISSIONS.sort()
+CLUB_EDITOR_ROLE_PERMISSIONS.sort()
+CLUB_ADMIN_ROLE_PERMISSIONS.sort()
+TEAM_VIEWER_ROLE_PERMISSIONS.sort()
+TEAM_EDITOR_ROLE_PERMISSIONS.sort()
+TEAM_ADMIN_ROLE_PERMISSIONS.sort()
 
 
 INITIAL_CLUB_ROLES: list[ClubRolePayloadType] = [
@@ -158,5 +202,6 @@ INITIAL_TEAM_ROLES: list[TeamRolePayloadType] = [
         "name": "Member",
         "role_type": RoleType.VIEWER,
         "is_default": True,
-    }
+    },
+    {"name": "Admin", "role_type": RoleType.ADMIN, "is_default": False},
 ]

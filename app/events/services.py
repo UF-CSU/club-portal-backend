@@ -11,12 +11,14 @@ from core.abstracts.schedules import schedule_clocked_func
 from core.abstracts.services import ServiceBase
 from dateutil.relativedelta import relativedelta
 from django.db import connection, models
+from django.db.models import Prefetch
 from django.utils import timezone
+from polls.services import PollTemplateService
 from users.models import User
 from utils.dates import get_day_count
 from utils.db import dictfetchone, namedtuplefetchall
 
-from events.models import DayType, Event, EventAttendanceLink, RecurringEvent
+from events.models import DayType, Event, EventAttendanceLink, EventHost, RecurringEvent
 
 
 class EventHeatmapDict(TypedDict):
@@ -162,10 +164,14 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
             minute=59,
             second=59,
         )
-        # print("initial events:", rec_ev.events.all())
-        event_query = rec_ev.events.all().filter(
-            models.Q(start_at__date__gte=query_date_start)
-            & models.Q(start_at__date__lte=query_date_end)
+
+        event_query = (
+            rec_ev.events.all()
+            .filter(
+                models.Q(start_at__date__gte=query_date_start)
+                & models.Q(start_at__date__lte=query_date_end)
+            )
+            .order_by("id")
         )
 
         if (
@@ -178,7 +184,7 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
         elif event_query.exists():
             if event_query.count() > 1:
-                event = event_query.order_by("id").first()
+                event = event_query.first()
                 event_query.filter(~models.Q(id=event.pk)).delete()
             else:
                 event = event_query.first()
@@ -211,6 +217,16 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
         for key, value in rec_ev.get_event_update_kwargs().items():
             setattr(event, key, value)
 
+        # Create polls if recurring event has an attached template
+        if rec_ev.template is not None:
+            # Create new poll ONLY if event does not already have a poll
+            # Rationale: What if one specific event in a series wants a custom poll
+            if event.poll is None:
+                payload = {"event": event}
+                if rec_ev.club:
+                    payload["club"] = rec_ev.club
+                PollTemplateService(rec_ev.template).create_poll(**payload)
+
         # Sync attachments
         # TODO: Should admins be allowed to set custom attachments for individual events?
         rec_ev.refresh_from_db()
@@ -238,7 +254,18 @@ class RecurringEventService(ServiceBase[RecurringEvent]):
 
         # Delete events outside of range
         query_days = [DayType(day).to_query_weekday() for day in rec_ev.days]
-        query = rec_ev.events.all()
+        query = (
+            rec_ev.events.all()
+            .select_related("recurring_event")
+            .prefetch_related(
+                Prefetch(
+                    "hosts",
+                    queryset=EventHost.objects.select_related("club").only(
+                        "id", "event_id", "club_id", "is_primary"
+                    ),
+                )
+            )
+        )
 
         if rec_ev.prevent_sync_past_events:
             # Exclude past events if necessary
@@ -499,27 +526,26 @@ class EventService(ServiceBase[Event]):
         If start date is None, will default to current date.
         """
 
+        tzname = timezone.get_current_timezone_name()
+
         if start_date is None:
-            start_date = datetime.datetime.now().replace(day=1).date()
+            start_date = timezone.localdate().replace(day=1)
 
         if end_date is None:
             end_date = start_date + relativedelta(months=1) - datetime.timedelta(days=1)
 
-        start_date_query = f"'{start_date.strftime('%m/%d/%Y')}'::timestamp"
-        end_date_query = f"'{end_date.strftime('%m/%d/%Y')}'::timestamp"
-
         query = f"""
             SELECT calendar::date AS day, COUNT(event.id) AS event_count, SUM(COUNT(event.id)) OVER (ORDER BY calendar::date) AS total_event_count
             FROM generate_series(
-                date_trunc('month', {start_date_query}),
-                date_trunc('month', {end_date_query}) + interval '1 month' - interval '1 day',
+                date_trunc('month', %s::timestamp),
+                date_trunc('month', %s::timestamp) + interval '1 month' - interval '1 day',
                 '1 day'
             ) as calendar
             LEFT JOIN (
                 SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id, event.is_public AS is_public, event.is_draft AS is_draft
                 FROM public.events_event AS event
                 LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id
-            ) AS event ON date_trunc('day', start_at) = calendar
+            ) AS event ON date_trunc('day', start_at AT TIME ZONE %s) = calendar
                 AND (
                     club_id IN ({",".join(["%s" for _ in club_ids])})
                     OR
@@ -530,7 +556,15 @@ class EventService(ServiceBase[Event]):
             """
 
         with connection.cursor() as cursor:
-            cursor.execute(query, [*club_ids])
+            cursor.execute(
+                query,
+                [
+                    start_date.strftime("%m/%d/%Y"),
+                    end_date.strftime("%m/%d/%Y"),
+                    tzname,
+                    *club_ids,
+                ],
+            )
             rows = namedtuplefetchall(cursor)
 
         heatmap: dict[datetime.date, int] = {}

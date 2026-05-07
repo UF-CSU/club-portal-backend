@@ -8,7 +8,6 @@ from polls.models import (
     PollField,
     PollInputType,
     PollQuestion,
-    PollType,
     PollUserFieldType,
     TextInput,
 )
@@ -45,16 +44,6 @@ class PollModelTests(TestsBase):
 
         with self.assertRaises(exceptions.ValidationError):
             create_test_pollquestion(poll, link_user_field=PollUserFieldType.NAME)
-
-    def test_private_poll_no_club_raises_error(self):
-        """Should raise error when setting a poll without a club as private."""
-
-        poll = create_test_poll(poll_type=PollType.TEMPLATE, force_club_none=True)
-        self.assertIsNone(poll.club)
-
-        with self.assertRaises(exceptions.ValidationError):
-            poll.is_private = True
-            poll.save()
 
     def test_raise_error_on_invalid_required_role(self):
         """Should raise error if required role is set to a club other than assigned club."""

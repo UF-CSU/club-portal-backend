@@ -1,0 +1,206 @@
+services:
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    volumes:
+      - ./app:/app/app
+      - ./backups:/var/backups
+      - static-clubs-staging:/vol/web
+    environment:
+      - PORT=9000
+      - WORKER_COUNT=${WORKER_COUNT:-6}
+      - REDIS_HOST=${REDIS_HOST:-clubs-staging-redis}
+      - S3_STORAGE_BACKEND=0
+    env_file:
+      - .env
+    networks:
+      - cluster
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+      start_interval: 15s
+
+  app_replica:
+    build:
+      context: .
+    restart: unless-stopped
+    volumes:
+      - ./app:/app/app
+      - static-clubs-staging:/vol/web
+    environment:
+      - PORT=9000
+      - WORKER_COUNT=${WORKER_COUNT:-6}
+      - REDIS_HOST=${REDIS_HOST:-clubs-staging-redis}
+      - S3_STORAGE_BACKEND=0
+    env_file:
+      - .env
+    networks:
+      - cluster
+    depends_on:
+      # Wait until app is ready, in case app needs to run migrations
+      app:
+        condition: service_healthy
+    deploy:
+      mode: replicated
+      endpoint_mode: vip
+      replicas: ${APP_REPLICAS:-1}
+
+  redis:
+    image: redis:alpine
+    container_name: clubs-staging-redis
+    volumes:
+      - redis-clubs-staging:/data
+    networks:
+      - cluster
+
+  celery:
+    build:
+      context: .
+    restart: unless-stopped
+    user: django-user
+    command: ["celery", "-A", "app", "worker", "--loglevel=info"]
+    volumes:
+      - ./app:/app/app
+      - static-clubs-staging:/vol/web
+    depends_on:
+      redis:
+        condition: service_started
+      app:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - cluster
+
+  celerybeat:
+    build:
+      context: .
+    user: django-user
+    restart: unless-stopped
+    command:
+      [
+        "celery",
+        "-A",
+        "app",
+        "beat",
+        "--loglevel=info",
+        "--scheduler",
+        "django_celery_beat.schedulers:DatabaseScheduler",
+      ]
+    volumes:
+      - ./app:/app/app
+      - static-clubs-staging:/vol/web
+    depends_on:
+      redis:
+        condition: service_started
+      app:
+        condition: service_healthy
+      celery:
+        condition: service_started
+
+    env_file:
+      - .env
+    networks:
+      - cluster
+
+  proxy:
+    build:
+      context: ./deploy/proxy/
+    restart: unless-stopped
+    container_name: clubs-staging-proxy
+    ports:
+      - 7080:7080
+    depends_on:
+      # Wait until app is ready, in case app needs to run migrations
+      app:
+        condition: service_healthy
+    volumes:
+      - static-clubs-staging:/vol/web
+    environment:
+      - PORT=7080
+      - SERVER_URI=app:9000
+      - SERVER_REPLICA_URI=app_replica:9000
+      - PROXY_DOCS_URI=${PROXY_DOCS_URI:-''}
+      - S3_STORAGE_BUCKET_NAME=${S3_STORAGE_BUCKET_NAME}
+      - ENV=PROD
+      # No delay needed, since app has health checks
+      - DELAY=0s
+    networks:
+      - cluster
+
+  postgres:
+    image: postgres:17.7-alpine
+    volumes:
+      - postgres-clubs-staging:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_NAME}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - cluster
+    configs:
+      - source: postgresql.auto.conf
+        target: /var/lib/postgresql/postgresql.auto.conf
+
+  pgbouncer:
+    image: edoburu/pgbouncer
+    restart: always
+    depends_on:
+      - postgres
+    networks:
+      - cluster
+    configs:
+      - source: pgbouncer.ini
+        target: /etc/pgbouncer/pgbouncer.ini
+      - source: userlist.txt
+        target: /etc/pgbouncer/userlist.txt
+
+volumes:
+  static-clubs-staging:
+  redis-clubs-staging:
+
+  postgres-clubs-staging:
+    name: "postgres17-clubs-staging"
+
+configs:
+  # Postgres Config Settings
+  # Use .auto.conf instead of .conf so default conf is not altered
+  postgresql.auto.conf:
+    # Docs: https://www.postgresql.org/docs/15/runtime-config.html
+    content: |
+      max_connections = 1000
+
+  # PGBouncer Config Settings
+  pgbouncer.ini:
+    # Docs: https://www.pgbouncer.org/config.html
+    content: |
+      [databases]
+      * = host=postgres port=5432 auth_user=${POSTGRES_USER} dbname=${POSTGRES_NAME}
+      ${POSTGRES_NAME} = host=postgres port=5432 auth_user=${POSTGRES_USER}
+
+      [pgbouncer]
+      listen_addr = pgbouncer
+      listen_port = 6432
+      auth_type = plain
+      auth_file = /etc/pgbouncer/userlist.txt
+      pool_mode = transaction
+      max_client_conn = 1000
+      default_pool_size = 100
+
+      log_connections = 0
+      log_disconnections = 0
+      stats_period = 300
+
+      admin_users = ${POSTGRES_USER}
+  userlist.txt:
+    content: |
+      "${POSTGRES_USER}" "${POSTGRES_PASSWORD}"
+
+networks:
+  cluster:
+    name: club_portal_staging
+    driver: bridge

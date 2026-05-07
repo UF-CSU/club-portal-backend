@@ -5,6 +5,8 @@ from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PeriodicTaskTestsBase, TestsBase
 from django.utils import timezone
 from lib.faker import fake
+from rest_framework import exceptions
+from users.tests.utils import create_test_user
 
 from polls.models import (
     Poll,
@@ -192,26 +194,69 @@ class PollServiceTests(PeriodicTaskTestsBase):
         self.assertEqual(len(df), SUBMISSION_COUNT)
         self.assertEqual(len(df.columns), SUBMISSION_COL_COUNT)
 
+    def test_poll_submissions_df_deleted_user(self):
+        """Should convert submissions to a dataframe even when a user who submitted has been deleted."""
+
+        QUESTION_COUNT = 3
+        SUBMISSION_COUNT = 10
+
+        # + user_id, user_email, user_school_email, date
+        SUBMISSION_COL_COUNT = QUESTION_COUNT + 4
+
+        # Create form
+        poll = create_test_poll()
+        initial_question_count = poll.questions.count()
+
+        for i in range(QUESTION_COUNT):
+            create_test_pollquestion(poll, label=f"Question {i + 1}")
+
+        # Create submission
+        for _i in range(SUBMISSION_COUNT - 1):
+            create_test_pollsubmission(poll)
+
+        # Create user to delete it
+        user_to_delete = create_test_user()
+        create_test_pollsubmission(poll, user_to_delete)
+
+        # Sanity checks
+        poll.refresh_from_db()
+        self.assertEqual(poll.fields.count(), initial_question_count + QUESTION_COUNT)
+        self.assertEqual(poll.submissions.count(), SUBMISSION_COUNT)
+
+        service = PollService(poll)
+        df = service.get_submissions_df()
+        self.assertEqual(len(df), SUBMISSION_COUNT)
+        self.assertEqual(len(df.columns), SUBMISSION_COL_COUNT)
+
+        user_to_delete.delete()
+        poll.refresh_from_db()
+        self.assertEqual(poll.fields.count(), initial_question_count + QUESTION_COUNT)
+        self.assertEqual(poll.submissions.count(), SUBMISSION_COUNT)
+
+        service = PollService(poll)
+        df = service.get_submissions_df()
+        self.assertEqual(len(df), SUBMISSION_COUNT)
+        self.assertEqual(len(df.columns), SUBMISSION_COL_COUNT)
+
 
 class PollTemplateServiceTests(TestsBase):
     """Unit tests for the poll template service."""
 
-    def setUp(self):
-        super().setUp()
-
-        self.tpl = PollTemplate.objects.create(
-            poll_name="Example Poll", template_name="Test Template"
-        )
-        self.service = PollTemplateService(self.tpl)
-
     def test_create_poll(self):
         """Should create new poll from template."""
 
-        # Setup fields
-        f1 = PollField.objects.create(poll=self.tpl, order=2)
-        f2 = PollField.objects.create(poll=self.tpl, order=3)
-
+        # Create template
         club = create_test_club()
+        template = PollTemplate.objects.create(
+            club=club,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+
+        # Setup fields
+        f1 = PollField.objects.create(poll=template, order=2)
+        f2 = PollField.objects.create(poll=template, order=3)
 
         expected_q1 = PollQuestion.objects.create(
             field=f1,
@@ -226,15 +271,101 @@ class PollTemplateServiceTests(TestsBase):
             create_input=True,
         )
 
-        #     # Generate poll
-        poll = self.service.create_poll(club=club)
+        # Create poll
+        poll = PollTemplateService(template).create_poll()
         self.assertIsNotNone(poll)
 
-        # for field in poll.fields.all():
-        #   print(field.question.label)
+        self.assertEqual(poll.template, template)
+        self.assertEqual(poll.club, template.club)
+        self.assertEqual(poll.name, template.name)
+        self.assertEqual(poll.description, template.description)
+        self.assertEqual(poll.is_private, template.is_private)
 
-        self.assertEqual(poll.fields.count(), 3)
-        self.assertEqual(PollField.objects.count(), 5)
+        self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
+        self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)
+
+    def test_create_poll_with_overrides(self):
+        """Should create new poll from template, overriding set defaults."""
+
+        # Create template
+        club = create_test_club()
+        template = PollTemplate.objects.create(
+            club=club,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+
+        # Setup fields
+        f1 = PollField.objects.create(poll=template, order=2)
+        f2 = PollField.objects.create(poll=template, order=3)
+
+        expected_q1 = PollQuestion.objects.create(
+            field=f1,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+        expected_q2 = PollQuestion.objects.create(
+            field=f2,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+
+        # Create poll
+        overrides = {"name": fake.title(), "description": fake.sentence()}
+        poll = PollTemplateService(template).create_poll(**overrides)
+        self.assertIsNotNone(poll)
+
+        self.assertEqual(poll.template, template)
+        self.assertEqual(poll.club, template.club)
+        self.assertEqual(poll.name, overrides["name"])
+        self.assertEqual(poll.description, overrides["description"])
+        self.assertEqual(poll.is_private, template.is_private)
+
+        self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
+        self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)
+
+    def test_create_poll_without_club(self):
+        # Create template
+        template = PollTemplate.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+
+        # Setup fields
+        f1 = PollField.objects.create(poll=template, order=2)
+        f2 = PollField.objects.create(poll=template, order=3)
+
+        expected_q1 = PollQuestion.objects.create(
+            field=f1,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+        expected_q2 = PollQuestion.objects.create(
+            field=f2,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+
+        # Should fail without specifying club
+        with self.assertRaises(exceptions.ValidationError):
+            PollTemplateService(template).create_poll()
+
+        # If club is provided, should now work
+        club = create_test_club()
+        poll = PollTemplateService(template).create_poll(club=club)
+        self.assertIsNotNone(poll)
+
+        self.assertEqual(poll.template, template)
+        self.assertEqual(poll.club, club)
+        self.assertEqual(poll.name, template.name)
+        self.assertEqual(poll.description, template.description)
+        self.assertEqual(poll.is_private, template.is_private)
 
         self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
         self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)

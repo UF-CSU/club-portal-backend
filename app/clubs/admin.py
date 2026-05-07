@@ -1,9 +1,7 @@
 from typing import Optional
 
-from core.abstracts.admin import ModelAdminBase
-from django import forms
+from core.abstracts.admin import ModelAdminBase, RoleAdminBase, RoleInlineAdminBase
 from django.contrib import admin
-from utils.formatting import plural_noun
 
 from clubs.forms import TeamMembershipForm
 from clubs.models import (
@@ -15,7 +13,6 @@ from clubs.models import (
     ClubRole,
     ClubSocialProfile,
     ClubTag,
-    RoleType,
     Team,
     TeamMembership,
     TeamRole,
@@ -64,12 +61,10 @@ class ClubSocialInlineAdmin(admin.TabularInline):
     extra = 0
 
 
-class ClubRoleInlineAdmin(admin.TabularInline):
+class ClubRoleInlineAdmin(RoleInlineAdminBase):
     """Manage roles for a club."""
 
     model = ClubRole
-    extra = 0
-    exclude = ["permissions"]
 
 
 class ClubAdmin(ModelAdminBase):
@@ -108,50 +103,20 @@ class ClubAdmin(ModelAdminBase):
         return obj.memberships.count()
 
 
-class ClubRoleForm(forms.ModelForm):
-    """Defines how roles should be edited."""
-
-    class Meta:
-        model = ClubRole
-        fields = "__all__"
-
-    def clean(self):
-        super().clean()
-
-        # Prevent manual setting of permissions if there is a permissions preset
-        if self.cleaned_data.get("role_type", RoleType.CUSTOM) != RoleType.CUSTOM:
-            self.cleaned_data.pop("permissions")
-
-
-class ClubRoleAdmin(ModelAdminBase):
+class ClubRoleAdmin(RoleAdminBase):
     """Manage club roles in admin."""
 
     csv_serializer_class = ClubRoleCsvSerializer
-    form = ClubRoleForm
 
-    list_display = ("name", "club", "role_type", "is_default", "is_executive", "order")
-    prefetch_related_fields = ("permissions",)
-    search_fields = (
-        "name",
+    list_display = RoleAdminBase.list_display + (
+        "role_type",
+        "is_default",
+        "is_executive",
+    )
+    search_fields = RoleAdminBase.search_fields + (
         "club__name",
         "club__alias",
     )
-    actions = ("sync_roles",)
-
-    @admin.action
-    def sync_roles(self, request, queryset):
-        """Sync role permissions."""
-
-        queryset.update(cached_role_type=None)
-        for role in queryset:
-            role.save()
-
-        self.message_user(
-            request,
-            message=f"Synced {queryset.count()} {plural_noun(queryset.count(), 'role')}",
-        )
-
-        return
 
 
 class ClubTagAdmin(ModelAdminBase):
@@ -228,12 +193,10 @@ class TeamMembershipInlineAdmin(admin.TabularInline):
         return formset
 
 
-class TeamRoleInlineAdmin(admin.TabularInline):
+class TeamRoleInlineAdmin(RoleInlineAdminBase):
     """Manage team roles in admin."""
 
     model = TeamRole
-    extra = 0
-    exclude = ("permissions",)
 
 
 class TeamAdmin(ModelAdminBase):
@@ -254,24 +217,16 @@ class TeamAdmin(ModelAdminBase):
         return obj.memberships.count()
 
 
-class TeamRoleAdmin(ModelAdminBase):
+class TeamRoleAdmin(RoleAdminBase):
     """Manage team roles in admin."""
 
-    list_display = (
-        "name",
-        "team",
-        "club",
-        "order",
-    )
-    filter_horizontal = ("permissions",)
+    list_display = RoleAdminBase.list_display + ("team",)
     list_filter = ("team",)
-    search_fields = (
-        "name",
+    search_fields = RoleAdminBase.search_fields + (
         "team__name",
         "team__club__name",
         "team__club__alias",
     )
-    prefetch_related_fields = ("permissions",)
 
 
 class ApiKeyAdmin(ModelAdminBase):

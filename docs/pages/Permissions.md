@@ -15,3 +15,45 @@ With `app` being the name of the module/app (like `users`, `clubs`, etc), and `m
 
 - <https://testdriven.io/blog/django-permissions/>
 - <https://docs.djangoproject.com/en/5.1/ref/contrib/auth/>
+
+## Roles
+
+### Model Hierarchy
+
+1. Group
+2. Member
+3. Role
+
+Role has a many-to-many field `permissions` to Permission objects. You can get a Permission object from a `perm_label` using the `get_permission` method, where the label follows the format mentioned above (ex: `app.add_model`).
+
+To make it more concrete, here's how the models look for a club:
+
+1. `Club`
+2. `ClubMembership`
+3. `ClubRole`
+
+### Role Type
+
+Roles can be either custom or be one of the following "preset" types:
+1. FOLLOWER
+2. VIEWER
+3. EDITOR
+4. ADMIN
+
+Role models define the permissions associated with these presets through the `role_type_perms_mapping` class property.
+
+### Flags
+
+Roles can also have additional properties known as flags. For example, `ClubRole` objects also indicate whether the member `is_official`, `is_voter`, or `is_executive`.
+
+Since these flags vary from role-to-role, the `_is_flag` helper method on the Membership object can be used to determine if the member has a role with a flag.
+
+## API
+
+The roles that a member has are returned in the member detail route (ex: `GET /clubs/<id>/members`). **Only the name of the role is returned**, the permissions need to be retrieved from the role detail route (ex: `GET /clubs/<id>/roles`).
+
+A member's roles can be modified through the member detail route. However, the roles that you can add to a user is limited by the roles that you currently have. Your role must supersede (contain all of the permissions of) the roles that you are trying to add. For example, if you're an EDITOR, you can add the FOLLOWER, VIEWER, or EDITOR roles to a member, but not ADMIN.
+
+A role's permissions can be modified through the role detail route. However, the permissions that you are trying to add is limited by the permissions that you currently have. You must have all the permissions that you are trying to add. For example, if you're an ADMIN, you can add any permission to a role, while if you're an EDITOR, you won't be able to add ADMIN-only permissions.
+
+Obviously, this only applies if you have the permissions to modify members/roles.

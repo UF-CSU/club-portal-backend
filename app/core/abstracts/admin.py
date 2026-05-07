@@ -3,6 +3,7 @@ import logging
 from functools import update_wrapper
 from typing import Literal, Optional, TypedDict
 
+from django import forms
 from django.contrib import admin
 from django.db import models
 from django.http import FileResponse, HttpRequest
@@ -18,8 +19,9 @@ from querycsv.serializers import CsvModelSerializer
 from querycsv.services import QueryCsvService
 from querycsv.views import QueryCsvViewSet
 from utils.admin import get_admin_context, get_model_admin_reverse
+from utils.formatting import plural_noun
 
-from core.abstracts.models import ModelBase
+from core.abstracts.models import ModelBase, RoleType
 
 
 class AdminBase:
@@ -273,3 +275,51 @@ class StackedInlineBase(InlineBase, admin.StackedInline):
 
 class TabularInlineBase(InlineBase, admin.TabularInline):
     """Display fk related objects in a table, fields flowing horizontally in rows."""
+
+
+class RoleFormBase(forms.ModelForm):
+    """Defines how roles should be edited."""
+
+    class Meta:
+        fields = "__all__"
+
+    def clean(self):
+        super().clean()
+
+        # Prevent manual setting of permissions if there is a permissions preset
+        if self.cleaned_data.get("role_type", RoleType.CUSTOM) != RoleType.CUSTOM:
+            self.cleaned_data.pop("permissions")
+
+
+class RoleAdminBase(ModelAdminBase):
+    """Manage roles in admin."""
+
+    form = RoleFormBase
+
+    list_display = ("name", "club", "order")
+    prefetch_related_fields = ("permissions",)
+    search_fields = ("name",)
+    filter_horizontal = ("permissions",)
+    actions = ("sync_roles",)
+
+    @admin.action
+    def sync_roles(self, request, queryset):
+        """Sync role permissions."""
+
+        queryset.update(cached_role_type=None)
+        for role in queryset:
+            role.save()
+
+        self.message_user(
+            request,
+            message=f"Synced {queryset.count()} {plural_noun(queryset.count(), 'role')}",
+        )
+
+        return
+
+
+class RoleInlineAdminBase(admin.TabularInline):
+    """Manage roles in inline admin."""
+
+    extra = 0
+    exclude = ("permissions",)

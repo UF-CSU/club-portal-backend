@@ -14,9 +14,11 @@ from polls.models import (
     NumberInput,
     Poll,
     PollField,
+    PollInputType,
     PollMarkup,
     PollQuestion,
     PollStatusType,
+    PollTemplate,
     ScaleInput,
     TextInput,
     UploadInput,
@@ -31,6 +33,8 @@ from polls.tests.utils import (
     pollpreview_detail_url,
     polls_detail_url,
     pollsubmission_list_url,
+    polltemplate_create_poll_url,
+    polltemplate_list_url,
 )
 
 # TODO: Edgecase: Should prevent poll.club != poll.event.primary_club
@@ -77,6 +81,17 @@ class PollViewAuthTests(PrivateApiTestsBase):
         super().setUp()
 
         self.club = create_test_club(members=[self.user])
+
+    def authenticate_as_club_admin(self):
+        self.user = create_test_user()
+        self.club = create_test_club(admins=[self.user])
+        self.client.force_authenticate(user=self.user)
+
+    def authenticate_as_club_editor(self):
+        self.user = create_test_user()
+        self.club = create_test_club()
+        ClubService(self.club).add_member(self.user, roles=["Officer"])
+        self.client.force_authenticate(user=self.user)
 
     def test_get_polls_for_club(self):
         """Should only return polls for club a user is part of."""
@@ -480,6 +495,8 @@ class PollViewAuthTests(PrivateApiTestsBase):
     def test_update_choice_options(self):
         """Should be able to update the options for a choice field."""
 
+        self.authenticate_as_club_admin()
+
         # Create initial poll and choice field
         poll = create_test_poll(club=self.club)
 
@@ -546,6 +563,108 @@ class PollViewAuthTests(PrivateApiTestsBase):
         res = self.client.delete(url)
         self.assertResNoContent(res)
         self.assertFalse(ChoiceInputOption.objects.filter(id=choice.id).exists())
+
+    def test_editor_can_delete_choice_option(self):
+        """Editor role should be able to delete choice options."""
+
+        self.authenticate_as_club_editor()
+
+        poll = create_test_poll(club=self.club)
+        payload = {
+            "field_type": "question",
+            "question": {
+                "label": "Updated question?",
+                "description": fake.paragraph(),
+                "input_type": "choice",
+                "choice_input": {
+                    "is_multiple": True,
+                    "choice_type": "select",
+                    "options": [
+                        {"label": "Option 1"},
+                        {"label": "Option 2"},
+                    ],
+                },
+            },
+        }
+
+        create_res = self.client.post(pollfield_list_url(poll.pk), data=payload)
+        self.assertResCreated(create_res)
+
+        field = poll.fields.last()
+        choice = field.question.choice_input.options.order_by("order").first()
+        self.assertIsNotNone(choice)
+
+        delete_res = self.client.delete(
+            polloption_detail_url(poll.id, field.id, choice.id)
+        )
+        self.assertResNoContent(delete_res)
+        self.assertFalse(ChoiceInputOption.objects.filter(id=choice.id).exists())
+
+    def test_update_choice_field_options_via_patch(self):
+        """Should sync choice options when updating a field."""
+
+        self.authenticate_as_club_admin()
+
+        poll = create_test_poll(club=self.club)
+        payload = {
+            "field_type": "question",
+            "question": {
+                "label": "Pick one",
+                "description": fake.paragraph(),
+                "input_type": "choice",
+                "choice_input": {
+                    "is_multiple": True,
+                    "choice_type": "select",
+                    "options": [
+                        {"label": "Option 1"},
+                        {"label": "Option 2"},
+                    ],
+                },
+            },
+        }
+
+        create_res = self.client.post(pollfield_list_url(poll.pk), data=payload)
+        self.assertResCreated(create_res)
+
+        field = poll.fields.last()
+        existing_options = list(field.question.choice_input.options.order_by("order"))
+        update_payload = {
+            "question": {
+                "label": "Pick one updated",
+                "choice_input": {
+                    "is_multiple": True,
+                    "choice_type": "select",
+                    "options": [
+                        {
+                            "id": existing_options[1].id,
+                            "label": "Option 2 updated",
+                            "value": "option-2-updated",
+                        },
+                        {
+                            "label": "Option 3",
+                            "value": "option-3",
+                        },
+                    ],
+                },
+            }
+        }
+
+        update_res = self.client.patch(
+            pollfield_detail_url(poll.pk, field.pk), data=update_payload, format="json"
+        )
+        self.assertResOk(update_res)
+
+        field.refresh_from_db()
+        options = list(field.question.choice_input.options.order_by("order"))
+
+        self.assertEqual(field.question.label, "Pick one updated")
+        self.assertLength(options, 2)
+        self.assertEqual(options[0].label, "Option 2 updated")
+        self.assertEqual(options[0].value, "option-2-updated")
+        self.assertEqual(options[1].label, "Option 3")
+        self.assertFalse(
+            ChoiceInputOption.objects.filter(id=existing_options[0].id).exists()
+        )
 
     def test_delete_poll(self):
         """Should delete poll via api."""
@@ -1017,3 +1136,129 @@ class PollViewAuthTests(PrivateApiTestsBase):
     #     self.assertEqual(poll.submissions.count(), 1)
     #     self.assertFalse(poll.submissions.first().is_valid)
     #     self.assertIsNotNone(poll.submissions.first().error)
+
+
+class PollTemplateViewAuthTests(PrivateApiTestsBase):
+    """Test managing poll templates via REST api and views."""
+
+    def test_get_polltemplates(self):
+        """Should only return poll templates based on user's clubs"""
+
+        # Create templates
+        template1 = PollTemplate.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+        club1 = create_test_club()
+        template2 = PollTemplate.objects.create(
+            club=club1,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+        club2 = create_test_club()
+        PollTemplate.objects.create(
+            club=club2,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+
+        url = polltemplate_list_url()
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # User with no clubs should only have access to templates without clubs
+        data = res.json()
+        self.assertLength(data, 1, data)
+        self.assertEqual(data[0]["id"], template1.id)
+
+        # Add user to club
+        ClubService(club1).add_member(self.user)
+
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Should now be able to see template2
+        data = res.json()
+        self.assertLength(data, 2, data)
+        self.assertListEqual(
+            [d["id"] for d in data], [template1.id, template2.id], True
+        )
+
+        # Test filtering
+        url = polltemplate_list_url(club1.id)
+        res = self.client.get(url)
+        self.assertResOk(res)
+
+        # Should only see template2
+        data = res.json()
+        self.assertLength(data, 1, data)
+        self.assertEqual(data[0]["id"], template2.id)
+
+    def test_create_poll_from_template(self):
+        """Create poll from poll template"""
+
+        # Create template
+        club = create_test_club()
+        template = PollTemplate.objects.create(
+            club=club,
+            name=fake.title(),
+            description=fake.sentence(),
+            is_private=True,
+        )
+
+        # Setup fields
+        f1 = PollField.objects.create(poll=template, order=2)
+        f2 = PollField.objects.create(poll=template, order=3)
+
+        expected_q1 = PollQuestion.objects.create(
+            field=f1,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+        expected_q2 = PollQuestion.objects.create(
+            field=f2,
+            label=fake.sentence(),
+            input_type=PollInputType.TEXT,
+            create_input=True,
+        )
+
+        # Empty payload
+        url = polltemplate_create_poll_url(template.pk)
+        res = self.client.post(url, data={}, format="json")
+        self.assertEqual(res.status_code, 201, res.content)
+
+        self.assertEqual(Poll.objects.count(), 1)
+        poll = Poll.objects.first()
+
+        self.assertEqual(poll.template, template)
+        self.assertEqual(poll.club, template.club)
+        self.assertEqual(poll.name, template.name)
+        self.assertEqual(poll.description, template.description)
+        self.assertEqual(poll.is_private, template.is_private)
+
+        self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
+        self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)
+
+        # Cleanup
+        Poll.objects.all().delete()
+
+        # Payload
+        payload = {"name": fake.title(), "description": fake.sentence()}
+        res = self.client.post(url, data=payload, format="json")
+        self.assertEqual(res.status_code, 201, res.content)
+
+        self.assertEqual(Poll.objects.count(), 1)
+        poll = Poll.objects.first()
+
+        self.assertEqual(poll.template, template)
+        self.assertEqual(poll.club, template.club)
+        self.assertEqual(poll.name, payload["name"])
+        self.assertEqual(poll.description, payload["description"])
+        self.assertEqual(poll.is_private, template.is_private)
+
+        self.assertEqual(poll.fields.get(order=2).question.label, expected_q1.label)
+        self.assertEqual(poll.fields.get(order=3).question.label, expected_q2.label)

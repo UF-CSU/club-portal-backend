@@ -1,4 +1,5 @@
 import pytz
+from core.abstracts.models import RoleType
 from core.abstracts.tests import PrivateApiTestsBase
 from django.utils import timezone
 from events.models import Event, RecurringEvent
@@ -12,7 +13,8 @@ from lib.faker import fake
 from users.tests.utils import create_test_user
 from utils.testing import create_test_uploadable_image
 
-from clubs.models import ClubFile, ClubMembership, RoleType
+from clubs.defaults import CLUB_EDITOR_ROLE_PERMISSIONS
+from clubs.models import ClubFile, ClubMembership, ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import (
     club_detail_url,
@@ -20,8 +22,11 @@ from clubs.tests.utils import (
     club_file_list_url,
     club_members_detail_url,
     club_members_list_url,
+    club_roles_detail_url,
+    club_roles_list_url,
     create_test_club,
     create_test_clubfile,
+    create_test_clubrole,
 )
 
 
@@ -559,6 +564,25 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         )
         self.assertFalse(self.membership.is_admin)
 
+    def test_edit_member_roles_elevation(self):
+        """Roles can only be added if you already have that role."""
+        # Member cannot change other member's roles
+        self.other_service.add_member(self.user)
+        payload = {"roles": ["Officer"]}
+        url = club_members_detail_url(self.other_club.id, self.other_user_membership.id)
+        res = self.client.patch(url, payload)
+        self.assertResForbidden(res)
+
+        # Editor can change other member's roles
+        self.other_service.add_member_role(self.user, "Officer")
+        res = self.client.patch(url, payload)
+        self.assertResOk(res)
+
+        # Editor cannot make other member admin
+        payload = {"roles": ["Vice-President"]}
+        res = self.client.patch(url, payload)
+        self.assertResForbidden(res)
+
     def test_remove_members(self):
         """Admins should be able to remove members, including other owners."""
 
@@ -600,3 +624,85 @@ class ApiClubAdminTests(PrivateApiTestsBase):
         self.assertFalse(
             ClubMembership.objects.filter(club=self.club, user=self.user).exists()
         )
+
+    def test_add_role(self):
+        """Admins can create roles."""
+
+        payload = {
+            "name": "New Role",
+        }
+        initial_role_count = ClubRole.objects.filter(club=self.club).count()
+
+        url = club_roles_list_url(self.club.id)
+        res = self.client.post(url, payload, format="json")
+        self.assertResCreated(res)
+
+        self.assertEqual(
+            ClubRole.objects.filter(club=self.club).count(),
+            initial_role_count + 1,
+        )
+        self.assertTrue(
+            ClubRole.objects.filter(club=self.club, name=payload["name"]).exists()
+        )
+
+    def test_add_role_using_type(self):
+        """Admins can create role by specifying role type."""
+
+        payload = {"name": "New Role", "role_type": "editor"}
+        url = club_roles_list_url(self.club.id)
+        res = self.client.post(url, payload, format="json")
+        self.assertResCreated(res)
+
+        club_roles = ClubRole.objects.filter(
+            club=self.club, name=payload["name"], role_type=payload["role_type"]
+        )
+        self.assertTrue(club_roles.exists())
+        self.assertListEqual(
+            club_roles.first().perm_labels,
+            CLUB_EDITOR_ROLE_PERMISSIONS,
+            sort_lists=True,
+        )
+
+    def test_either_role_type_or_permissions(self):
+        """Only one of role type or permissions should be specified when creating a new role."""
+
+        payload = {
+            "name": "New Role",
+            "role_type": "editor",
+            "permissions": ["clubs.view_clubrole"],
+        }
+        url = club_roles_list_url(self.club.id)
+        res = self.client.post(url, payload, format="json")
+        self.assertResBadRequest(res)
+
+        # Allowed if custom is passed in
+        payload = {
+            "name": "New Role",
+            "role_type": "custom",
+            "permissions": ["clubs.view_clubrole"],
+        }
+        url = club_roles_list_url(self.club.id)
+        res = self.client.post(url, payload, format="json")
+        self.assertResCreated(res)
+
+    def test_add_role_elevation(self):
+        """Permissions can only be added if you already have that permission."""
+
+        role = create_test_clubrole(self.other_club)
+
+        # Member cannot modify any role's permissions
+        self.other_service.add_member(self.user)
+        payload = {"permissions": ["clubs.view_clubrole"]}
+        url = club_roles_detail_url(self.other_club.id, role.id)
+        res = self.client.patch(url, payload)
+        self.assertResForbidden(res)
+
+        # Editor can change role's permissions
+        self.other_service.add_member_role(self.user, "Officer")
+        res = self.client.patch(url, payload)
+        self.assertResOk(res)
+
+        # Editor cannot add admin permissions to role
+        payload = {"permissions": ["clubs.delete_teamrole"]}
+        res = self.client.patch(url, payload)
+        self.assertResForbidden(res)

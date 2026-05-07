@@ -7,9 +7,10 @@ from core.models import Major
 from lib.faker import fake
 from users.models import User
 from users.tests.utils import create_test_user
+from utils.permissions import get_permission
 from utils.testing import create_test_uploadable_image
 
-from clubs.models import ClubApiKey, ClubFile
+from clubs.models import ClubApiKey, ClubFile, ClubRole
 from clubs.services import ClubService
 from clubs.tests.utils import (
     CLUBS_JOIN_URL,
@@ -19,7 +20,9 @@ from clubs.tests.utils import (
     club_invite_url,
     club_list_url_member,
     club_members_list_url,
+    club_roles_list_url,
     create_test_club,
+    create_test_clubrole,
     create_test_clubs,
 )
 
@@ -235,6 +238,62 @@ class ClubsApiPrivateTests(PrivateApiTestsBase, EmailTestsBase):
 
         # Check if there is only 3 clubs and 1 original club returned
         self.assertLength(res_body, 3 + 1)
+
+    def test_get_roles(self):
+        """User should be able to get roles of a club."""
+
+        url = club_roles_list_url(self.club.id)
+        res = self.client.get(url)
+        res_body = res.json()
+        initial_len = len(res_body)
+
+        # Create role
+        create_test_clubrole(self.club)
+        res = self.client.get(url)
+        res_body = res.json()
+        self.assertLength(res_body, initial_len + 1)
+
+    def test_get_role_permissions(self):
+        """User should be able to see permissions for each role of a club."""
+
+        # Create new role
+        role = ClubRole.objects.create(
+            club=self.club,
+            name="Role",
+            perm_labels=["clubs.change_club"],
+        )
+
+        url = club_roles_list_url(self.club.id)
+        res = self.client.get(url)
+        res_body = res.json()
+
+        found = False
+        for r in res_body:
+            if r["name"] == role.name:
+                found = True
+                self.assertListEqual(
+                    r["permissions"], role.perm_labels, sort_lists=True
+                )
+                break
+        if not found:
+            self.fail(f"Role {role.name} not found")
+
+        # Change role permissions
+        new_perm = "clubs.delete_team"
+        role.permissions.set([get_permission(new_perm)])
+
+        # Permissions should be updated
+        res = self.client.get(url)
+        res_body = res.json()
+
+        found = False
+        for r in res_body:
+            if r["name"] == role.name:
+                found = True
+                self.assertListEqual(r["permissions"], [new_perm], sort_lists=True)
+                break
+        if not found:
+            self.fail(f"Role {role.name} not found")
 
     def test_join_clubs(self):
         """User should be able to join multiple clubs."""

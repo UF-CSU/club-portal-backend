@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from django.db.models import Prefetch, Q, QuerySet
 from django.utils import timezone
 from lib.celery import delay_task
-from rest_framework import permissions, status
+from rest_framework import mixins, permissions, status
 from rest_framework.pagination import BasePagination
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -252,12 +252,14 @@ class EventViewset(ModelViewSetBase):
     def filter_queryset(self, queryset):
         include_public = self.kwargs.get("include_public", False)
 
-        queryset = queryset.filter_for_user(self.request.user)
-
         if include_public:
-            queryset = queryset | self.queryset.filter(
-                Q(is_public=True) & Q(is_draft=False)
-            )
+            # Include events from user's clubs OR public non-draft events from any club
+            queryset = queryset.filter(
+                Q(clubs__memberships__user=self.request.user)
+                | (Q(is_public=True) & Q(is_draft=False))
+            ).distinct()
+        else:
+            queryset = queryset.filter_for_user(self.request.user)
 
         if self.action == "retrieve":
             return queryset
@@ -465,3 +467,12 @@ class EventHeatmapViewSet(APIView):
         serializer = self.serializer_class(heatmap)
 
         return Response(data=serializer.data)
+
+
+class EventTagViewSet(mixins.ListModelMixin, ViewSetBase):
+    """Creates a GET route to list Event Tags"""
+
+    serializer_class = serializers.EventTagSerializer
+    queryset = EventTag.objects.all()
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]

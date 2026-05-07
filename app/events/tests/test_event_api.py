@@ -15,6 +15,7 @@ from events.serializers import EventSerializer
 from events.tests.utils import (
     EVENT_LIST_URL,
     EVENTPREVIEW_LIST_URL,
+    EVENTTAG_LIST_URL,
     RECURRINGEVENT_LIST_URL,
     create_test_event,
     create_test_events,
@@ -251,6 +252,19 @@ class EventPublicApiTests(PublicApiTestsBase):
         self.assertNotIn(draft_ev.pk, ids)
         self.assertNotIn(private_ev.pk, ids)
 
+    def test_list_event_tag(self):
+        """Tests the event tag list endpoint"""
+        create_test_eventtag()
+        create_test_eventtag()
+
+        url = EVENTTAG_LIST_URL
+        res = self.client.get(url)
+
+        self.assertResOk(res)
+
+        data = res.json()
+        self.assertEqual(len(data), 2)
+
 
 class EventPublicTzApiTests(PublicApiTestsBase):
     """Public API tests that include timezones."""
@@ -262,6 +276,18 @@ class EventPublicTzApiTests(PublicApiTestsBase):
         self.set_user_timezone("America/New_York")
         url = EVENTPREVIEW_LIST_URL
         res = self.client.get(url)
+
+        data = res.json()
+
+        self.assertEqual(data["start_date"], "2025-11-25")
+        self.assertEqual(data["end_date"], "2025-12-02")
+
+    @freezegun.freeze_time("11/25/25 23:00:00-05:00")
+    def test_event_list_header_timezone(self):
+        """Should interpret date params using the explicit timezone header."""
+
+        url = EVENTPREVIEW_LIST_URL
+        res = self.client.get(url, headers={"X-Timezone": "America/New_York"})
 
         data = res.json()
 

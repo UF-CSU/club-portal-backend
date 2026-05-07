@@ -8,11 +8,14 @@ from typing import Any, ClassVar, Optional, Self
 
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core import exceptions
+from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse_lazy
+from django.utils.functional import cached_property, classproperty
 from django.utils.translation import gettext_lazy as _
-from utils.permissions import get_perm_label
+from utils.permissions import get_perm_label, parse_permissions
 
 
 class CustomManagerMethods[T]:
@@ -139,6 +142,7 @@ class ScopeType(models.TextChoices):
 
     GLOBAL = "global", _("Global")
     CLUB = "club", _("Club")
+    TEAM = "team", _("Team")
 
 
 class ModelBase(models.Model):
@@ -338,3 +342,386 @@ class MajorType(models.TextChoices):
 
     CS = "cs", _("Computer Science")
     OTHER = "other", ("Other")
+
+
+class RoleType(models.TextChoices):
+    """Different types of club roles."""
+
+    ADMIN = "admin", _("Admin")
+    EDITOR = "editor", _("Editor")
+    VIEWER = "viewer", _("Viewer")
+    FOLLOWER = "follower", _("Follower")
+    CUSTOM = "custom", _("Custom")
+
+
+class RoleManagerBase(ManagerBase["RoleBase"]):
+    """Manage role queries."""
+
+    def _clean_perms(
+        self, perm_labels=None, role_type: RoleType | None = None, **kwargs
+    ):
+        """
+        Outputs permissions from perm_labels as ``list[str]``, or
+        by permissions as ``list[Permission]``.
+        Outputs proper role_type.
+        """
+
+        permissions = kwargs.pop("permissions", []) + parse_permissions(
+            perm_labels or []
+        )
+
+        # Set role type
+        if role_type is None:
+            if len(permissions) > 0:
+                role_type = RoleType.CUSTOM
+            else:
+                role_type = RoleType.VIEWER
+        assert role_type is not None
+
+        # Set permissions
+        if role_type != RoleType.CUSTOM:
+            perms_mapping = self.model.role_type_perms_mapping
+            permissions = parse_permissions(perms_mapping[role_type])
+
+        return role_type, permissions, kwargs
+
+    def create(
+        self,
+        *,
+        name: str,
+        is_default=False,
+        perm_labels=None,
+        role_type: RoleType | None = None,
+        **kwargs,
+    ):
+        """
+        Create new role.
+        """
+        role_type, permissions, kwargs = self._clean_perms(
+            perm_labels, role_type, **kwargs
+        )
+
+        role = super().create(
+            name=name, is_default=is_default, role_type=role_type, **kwargs
+        )
+
+        role.permissions.set(permissions)
+        role.save()
+
+        return role
+
+    def update(
+        self,
+        role: "RoleBase",
+        *,
+        name: str,
+        is_default=False,
+        perm_labels=None,
+        role_type: RoleType | None = None,
+        **kwargs,
+    ):
+        """
+        Update role.
+        """
+        role_type, permissions, kwargs = self._clean_perms(
+            perm_labels, role_type, **kwargs
+        )
+
+        role = super().update(
+            role, name=name, is_default=is_default, role_type=role_type, **kwargs
+        )
+
+        role.permissions.set(permissions)
+        role.save()
+
+        return role
+
+
+class RoleBase(ModelBase):
+    """Extend permission group to manage roles."""
+
+    name = models.CharField(max_length=32)
+
+    role_type = models.CharField(
+        choices=RoleType.choices, default=RoleType.VIEWER, blank=True
+    )
+    order = models.PositiveIntegerField(
+        default=0, help_text="Used to determine the list ordering of a member"
+    )
+    permissions = models.ManyToManyField(Permission, blank=True)
+
+    # Flags
+    is_default = models.BooleanField(
+        default=False,
+        help_text="New members would be automatically assigned this role.",
+    )
+
+    # Meta fields
+    cached_role_type = models.CharField(
+        choices=RoleType.choices, default=None, blank=True, null=True, editable=False
+    )
+
+    # Dynamic Properties
+    @cached_property
+    def perm_labels(self):
+        """Sorted list of permissions labels."""
+        labels = [get_perm_label(perm) for perm in self.permissions.all()]
+        labels.sort()
+
+        return labels
+
+    # Overrides
+    objects: ClassVar[RoleManagerBase] = RoleManagerBase()
+
+    class Meta:
+        ordering = ["order"]
+        abstract = True
+
+    @cached_property
+    def __str__(self):
+        return f"{self.name} ({self.group})"
+
+    def clean(self):
+        """Validate and sync roles on save."""
+        if self.is_default:
+            # Force all other roles to be false
+            self.group.roles.exclude(id=self.id).update(is_default=False)
+
+        return super().clean()
+
+    def delete(self, *args, **kwargs):
+        """Preconditions for role deletion."""
+        assert not self.is_default, "Cannot delete default role."
+
+        return super().delete(*args, **kwargs)
+
+    # Abstract methods
+    @property
+    def group(self) -> ModelBase:
+        raise NotImplementedError(
+            "Role objects must return group that contains the roles"
+        )
+
+    @classproperty
+    def role_type_perms_mapping(cls) -> dict[RoleType, list[str]]:
+        raise NotImplementedError(
+            "Role objects must return mapping between role type presets and permissions"
+        )
+
+    # Attach signal
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Lazy to avoid circular import
+        from core.abstracts.signals import on_save_role
+
+        models.signals.post_save.connect(on_save_role, sender=cls)
+
+
+class MembershipManagerBase(ManagerBase["MembershipBase"]):
+    """Manage queries for Memberships."""
+
+    def create(
+        self,
+        *,
+        user,
+        roles: Optional[list[RoleBase | str]] = None,
+        **kwargs,
+    ):
+        """Create new membership."""
+        roles = roles or []
+
+        membership = super().create(user=user, **kwargs)
+
+        if len(roles) < 1:
+            try:
+                default_role = membership.group.roles.get(is_default=True)
+                roles.append(default_role)
+            except Exception:
+                # Club has no default role
+                pass
+
+        for role in roles:
+            if isinstance(role, str):
+                role = membership.group.roles.get(name=role)
+
+            if role.group != membership.group:
+                raise ValidationError(
+                    "Role must belong to the same group as membership"
+                )
+
+            membership.roles.add(role)
+
+        return membership
+
+    def update_or_create(self, defaults=None, **kwargs):
+        defaults = defaults or {}
+        roles = defaults.pop("roles", [])
+
+        membership = self.filter_one(**defaults)
+        created = False
+        if not membership:
+            membership = self.create(roles=roles, **{**defaults, **kwargs})
+            created = True
+        else:
+            self.filter(id=membership.id).update(**kwargs)
+            membership.refresh_from_db()
+
+            if len(roles) > 0:
+                membership.roles.set(roles, clear=True)
+
+        return membership, created
+
+    def _filter_is_role(self, role_type: RoleType):
+        """Filter memberships that are this role."""
+        queryset = self.prefetch_related("roles")
+        filtered = [m.id for m in queryset if m._is_role(role_type)]
+        return self.filter(id__in=filtered)
+
+    def _filter_is_not_role(self, role_type: RoleType):
+        """Filter memberships that are not this role."""
+        queryset = self.prefetch_related("roles")
+        filtered = [m.id for m in queryset if not m._is_role(role_type)]
+        return self.filter(id__in=filtered)
+
+    def filter_is_admin(self):
+        """Filter memberships that are admin memberships."""
+
+        return self._filter_is_role(RoleType.ADMIN)
+
+    def filter_is_not_admin(self):
+        """Filter memberships that are not admin memberships."""
+
+        return self._filter_is_not_role(RoleType.ADMIN)
+
+
+class MembershipBase(ModelBase):
+    """Manage member's assignment to a group."""
+
+    # Properties overridden in subclass
+    user = None  # models.ForeignKey(User, on_delete=models.CASCADE)
+    roles = None  # models.ManyToManyField(RoleBase, blank=True)
+
+    # Meta fields
+    order_override = models.PositiveIntegerField(null=True, blank=True)
+
+    # Dynamic Properties
+    @property
+    def order(self) -> int:
+        if self.order_override:
+            return self.order_override
+
+        roles = self.roles.all()
+
+        if len(roles) == 0:
+            return 0
+        return roles[0].order
+
+    @order.setter
+    def order(self, value: int):
+        self.order_override = value
+
+    @property
+    def _has_all_permissions(self) -> bool:
+        # Superusers have all permissions
+        return self.user.is_superuser
+
+    @property
+    def _permissions(self) -> list[str]:
+        """All the permissions of a member."""
+        if self._has_all_permissions:
+            perms_mapping = self.role_model.role_type_perms_mapping
+            return perms_mapping[RoleType.ADMIN]
+
+        permissions = set()
+        for r in self.roles.all():
+            permissions.update(r.perm_labels)
+        return list(permissions)
+
+    def _is_role(self, role_type: RoleType) -> bool:
+        """Helper method to determine if a member is a role"""
+        permissions = set(self._permissions)
+
+        perms_mapping = self.role_model().role_type_perms_mapping
+        role_permissions = set(perms_mapping[role_type])
+
+        return role_permissions.issubset(permissions)
+
+    @property
+    def is_admin(self) -> bool:
+        """Indicates if member is an admin for a group."""
+        return self._is_role(RoleType.ADMIN)
+
+    @property
+    def is_editor(self) -> bool:
+        """Indicates if member is an editor for a group."""
+        return self._is_role(RoleType.EDITOR)
+
+    @property
+    def is_viewer(self) -> bool:
+        """Indicates if member is a viewer for a group."""
+        return self._is_role(RoleType.VIEWER)
+
+    @property
+    def is_follower(self) -> bool:
+        """Indicates if member is a follower for a group."""
+        return self._is_role(RoleType.FOLLOWER)
+
+    def _is_flag(self, flag: str) -> bool:
+        """Helper method to determine if a member has a role with a flag"""
+
+        return any(getattr(r, flag, False) for r in self.roles.all())
+
+    # Overrides
+    objects: ClassVar[MembershipManagerBase] = MembershipManagerBase()
+
+    def __str__(self):
+        return self.user.__str__()
+
+    class Meta:
+        abstract = True
+
+    def add_roles(self, *roles: RoleBase | str, commit=True):
+        """Add role to membership."""
+
+        for role in roles:
+            if isinstance(role, str):
+                role = self.group.roles.get(name=role)
+
+            # If there's an issue, reverse all db ops
+            with transaction.atomic():
+                if role in self.roles.all():
+                    continue
+
+                self.roles.add(role)
+
+                if commit:
+                    self.save()
+
+    def clean(self):
+        """Validate membership model."""
+
+        # Only proceed if already created
+        if not self.pk:
+            return super().clean()
+
+        # Check that all roles are assigned to club
+        for role in self.roles.all():
+            if role.group.id != self.group.id:
+                raise exceptions.ValidationError(
+                    f"Role {role} is not a part of group {self.group}."
+                )
+
+        return super().clean()
+
+    # Abstract methods
+    @property
+    def group(self) -> ModelBase:
+        raise NotImplementedError(
+            "Membership objects must return group that contains the memberships"
+        )
+
+    @classproperty
+    def role_model(cls) -> type[RoleBase]:
+        raise NotImplementedError("Membership objects must return role model")

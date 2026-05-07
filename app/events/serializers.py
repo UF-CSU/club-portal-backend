@@ -4,6 +4,7 @@ from core.abstracts.serializers import (
     ModelSerializerBase,
     RoundedDecimalField,
     SerializerBase,
+    TagSerializer,
 )
 from django.core import exceptions
 from drf_spectacular.utils import (
@@ -433,6 +434,13 @@ class EventHeatmapSerializer(SerializerBase):
     end_date = serializers.DateField()
     total_events = serializers.IntegerField()
     heatmap = serializers.DictField(child=serializers.IntegerField())
+
+
+class EventTagSerializer(TagSerializer):
+    """Represents tags for Events"""
+
+    class Meta(TagSerializer.Meta):
+        model = EventTag
 
 
 #############################################################

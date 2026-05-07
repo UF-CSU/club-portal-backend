@@ -32,6 +32,16 @@ class CustomBackend(ModelBackend):
         )
         return Permission.objects.filter(id__in=perm_ids).distinct()
 
+    def get_team_permissions(self, user_obj, teams, obj=None):
+        """Get list of permissions user has with a team."""
+
+        perm_ids = set(
+            user_obj.team_memberships.filter(team__in=teams)
+            .prefetch_related("roles", "roles__permissions")
+            .values_list("roles__permissions__id", flat=True)
+        )
+        return Permission.objects.filter(id__in=perm_ids).distinct()
+
     def has_global_perm(self, user_obj, perm):
         """
         Check if a user has permission to create objects that are not scoped.
@@ -58,6 +68,16 @@ class CustomBackend(ModelBackend):
         elif obj is None:
             perm_ids = set(
                 user_obj.club_memberships.all()
+                .prefetch_related("roles", "roles__permissions")
+                .values_list("roles__permissions__id", flat=True)
+            )
+            perms = Permission.objects.filter(id__in=perm_ids).distinct()
+
+            if get_permission(perm) in perms:
+                return True
+
+            perm_ids = set(
+                user_obj.team_memberships.all()
                 .prefetch_related("roles", "roles__permissions")
                 .values_list("roles__permissions__id", flat=True)
             )
@@ -100,6 +120,38 @@ class CustomBackend(ModelBackend):
                 #             return True
 
                 # Otherwise return perms for all clubs
+                club_perms = self.get_club_permissions(user_obj, scoped_clubs, obj)
+                perm_obj = get_permission(perm, obj)
+
+                return perm_obj in club_perms
+        elif obj.scope == ScopeType.TEAM:
+            assert hasattr(obj, "teams"), (
+                'Team scoped objects must have a "teams" attribute that returns a queryset or ManyToManyRel.'
+            )
+
+            scoped_teams = obj.teams.all()
+
+            if self.user_is_club_useragent(user_obj):
+                key = user_obj.useragent.club_apikey
+
+                # Auto return false if not correct club
+                if not scoped_teams.filter(club__id=key.club.id).exists():
+                    return False
+
+                # Otherwise, check if the permission is assigned to the key
+                perm_obj = get_permission(perm, obj)
+                return perm_obj in key.permissions.all()
+
+            else:
+                team_perms = self.get_team_permissions(user_obj, scoped_teams, obj)
+                perm_obj = get_permission(perm, obj)
+
+                if perm_obj in team_perms:
+                    return True
+
+                # Check if user has permission as part of club team is part of
+                scoped_clubs = [team.club for team in scoped_teams]
+
                 club_perms = self.get_club_permissions(user_obj, scoped_clubs, obj)
                 perm_obj = get_permission(perm, obj)
 

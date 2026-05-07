@@ -186,9 +186,46 @@ class PollQuestionSerializer(ModelSerializerBase):
         # Update question fields
         question = super().update(instance, validated_data)
         input_kwargs = input_data[question.input_type] or {}
+        options_data = None
+
+        if question.input_type == models.PollInputType.CHOICE:
+            options_data = input_kwargs.pop("options", None)
+
         question.update_input(**input_kwargs)
 
+        if options_data is not None:
+            self.update_choice_options(question.choice_input, options_data)
+
         return question
+
+    def update_choice_options(
+        self, choice_input: models.ChoiceInput, options_data: list[dict]
+    ) -> None:
+        existing_options = {option.id: option for option in choice_input.options.all()}
+        retained_option_ids: list[int] = []
+
+        for option_data in options_data:
+            option_id = option_data.pop("id", None)
+
+            if option_id is None:
+                option = models.ChoiceInputOption.objects.create(
+                    input=choice_input, **option_data
+                )
+            else:
+                option = existing_options.get(option_id)
+                if option is None:
+                    raise exceptions.ValidationError(
+                        {"question": "Choice option does not belong to this field."}
+                    )
+
+                for key, value in option_data.items():
+                    setattr(option, key, value)
+
+                option.save()
+
+            retained_option_ids.append(option.id)
+
+        choice_input.options.exclude(id__in=retained_option_ids).delete()
 
 
 class PollMarkupNestedSerializer(ModelSerializerBase):
@@ -352,7 +389,6 @@ class PollSerializer(ModelSerializer):
     status = serializers.ChoiceField(
         choices=models.PollStatusType.choices, read_only=True
     )
-    poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     submissions_download_url = serializers.URLField(read_only=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)
@@ -541,38 +577,39 @@ class PollAnalyticsSerializer(PollSerializer):
         ]
 
 
-class PollTemplateSerializer(PollSerializer):
-    """Json definition for poll templates"""
+class PollTemplateSerializer(ModelSerializer):
+    """JSON definition for poll templates"""
 
-    template_name = serializers.CharField()
     event_type = serializers.ChoiceField(
         choices=EventType.choices, allow_blank=True, required=True
     )
     club = PollClubNestedSerializer(required=False, allow_null=True)
-
-    # Hiding Fields
-    submissions_download_url = None
-    event = None
-    is_published = None
+    fields = PollFieldSerializer(many=True, read_only=True)
 
     class Meta:
         model = models.PollTemplate
-        exclude = ["open_task", "close_task"]
+        fields = "__all__"
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def create(self, validated_data):
-        # is_published = validated_data.pop("is_published")
-        validated_data.pop("event")
-
         club = validated_data.pop("club", None)
-        if club is not None:
+
+        if club:
             validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
-        else:
-            validated_data["club"] = club
 
-        poll_name = validated_data.pop("name")
+        return super().create(validated_data)
 
-        return models.PollTemplate.objects.create(poll_name=poll_name, **validated_data)
+    def update(self, instance, validated_data):
+        has_club = "club" in validated_data
+        club = validated_data.pop("club", None)
+
+        if has_club:
+            if club:
+                validated_data["club"] = get_object_or_404(Club, id=club.get("id"))
+            else:
+                validated_data["club"] = None
+
+        return super().update(instance, validated_data)
 
 
 class PollPreviewSerializer(ModelSerializer):
@@ -583,7 +620,6 @@ class PollPreviewSerializer(ModelSerializer):
         choices=models.PollStatusType.choices, read_only=True
     )
     is_published = serializers.BooleanField(required=False)
-    poll_type = serializers.ChoiceField(choices=models.PollType.choices, read_only=True)
     event = PollEventNestedSerializer(required=False, allow_null=True)
     club = PollClubNestedSerializer(required=True, allow_null=True)
     link = PollLinkNestedSerializer(

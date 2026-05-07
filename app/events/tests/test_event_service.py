@@ -3,6 +3,7 @@ Unit tests for Event business logic.
 """
 
 import datetime
+from zoneinfo import ZoneInfo
 
 import freezegun
 from clubs.models import ClubFile
@@ -12,6 +13,8 @@ from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 from freezegun import freeze_time
 from lib.faker import fake
+from polls.models import PollTemplate
+from polls.tests.utils import create_test_poll
 from users.tests.utils import create_test_user
 
 from events.models import DayType, Event, EventAttendance, RecurringEvent
@@ -77,6 +80,24 @@ class EventServiceTests(PeriodicTaskTestsBase):
 
         for _, count in h2.heatmap.items():
             self.assertEqual(count, 0)
+
+    @freezegun.freeze_time("12/30/25 13:00:00+00:00")
+    def test_event_heatmap_uses_active_timezone(self):
+        """Should bucket events by the active local day, not the UTC day."""
+
+        timezone.activate(ZoneInfo("America/New_York"))
+
+        c1 = create_test_club()
+        create_test_event(
+            host=c1,
+            start_at=datetime.datetime(2025, 12, 18, 1, 0, tzinfo=datetime.UTC),
+            end_at=datetime.datetime(2025, 12, 18, 3, 0, tzinfo=datetime.UTC),
+        )
+
+        heatmap = EventService.get_event_heatmap(club_ids=[c1.id])
+
+        self.assertEqual(heatmap.heatmap[datetime.date(2025, 12, 17)], 1)
+        self.assertEqual(heatmap.heatmap[datetime.date(2025, 12, 18)], 0)
 
 
 class RecurringEventTests(TestsBase):
@@ -145,14 +166,18 @@ class RecurringEventTests(TestsBase):
         service = RecurringEventService(rec)
         service.sync_events()
 
-        # print("queries:", len(context.captured_queries))
-
         self.assertEqual(Event.objects.count(), EXPECTED_EV_COUNT)
         self.assertEqual(rec.expected_event_count, EXPECTED_EV_COUNT)
         self.assertEqual(rec.attachments.count(), len(files))
         self.assertEqual(ClubFile.objects.count(), club_files_count_before)
 
-        for i, event in enumerate(list(Event.objects.all().order_by("start_at"))):
+        for i, event in enumerate(
+            list(
+                Event.objects.all()
+                .prefetch_related("hosts", "attachments")
+                .order_by("start_at")
+            )
+        ):
             if i % 2 == 0:
                 # Tuesdays
                 self.assertEqual(event.start_at.weekday(), 1)
@@ -503,3 +528,76 @@ class RecurringEventTests(TestsBase):
         self.assertEqual(events.count(), 8)
         self.assertEqual(events.filter(_poll__isnull=False).count(), 8)
         self.assertEqual(events.filter(_poll__club__isnull=False).count(), 8)
+
+    @freezegun.freeze_time("2/3/2026")
+    def test_recurring_events_with_template(self):
+        """Should create events with polls made from a template."""
+
+        # Create recurring event with template
+        club = create_test_club()
+
+        template = PollTemplate.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+        )
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
+            start_date=datetime.datetime(year=2026, month=2, day=1).date(),
+            end_date=datetime.datetime(year=2026, month=2, day=28).date(),
+            event_start_time=datetime.time(hour=17),
+            event_end_time=datetime.time(hour=19),
+            club=club,
+            timezone="UTC",
+            template=template,
+        )
+
+        events = RecurringEventService(rec).sync_events()
+
+        # Verify events were created correctly
+        self.assertEqual(events.count(), 8)
+        self.assertEqual(events.filter(_poll__template=template).count(), 8)
+
+    @freezegun.freeze_time("2/3/2026")
+    def test_recurring_events_with_template_event_has_custom_poll(self):
+        """Should not override events with custom polls when having a recurring event with template."""
+
+        # Create recurring event with template
+        club = create_test_club()
+
+        template = PollTemplate.objects.create(
+            name=fake.title(),
+            description=fake.sentence(),
+        )
+
+        rec = RecurringEvent.objects.create(
+            name=fake.title(),
+            days=[DayType.MONDAY, DayType.WEDNESDAY],
+            start_date=datetime.datetime(year=2026, month=2, day=1).date(),
+            end_date=datetime.datetime(year=2026, month=2, day=28).date(),
+            event_start_time=datetime.time(hour=17),
+            event_end_time=datetime.time(hour=19),
+            club=club,
+            timezone="UTC",
+            template=template,
+        )
+
+        events = RecurringEventService(rec).sync_events()
+
+        self.assertEqual(events.filter(name=rec.name).count(), 8)
+        self.assertEqual(events.filter(_poll__template=template).count(), 8)
+
+        # Change poll for first event
+        poll = create_test_poll()
+        events.first().poll = poll
+
+        # Resync events
+        rec.name = fake.title()
+        rec.save()
+
+        events = RecurringEventService(rec).sync_events()
+
+        # Verify event with custom poll was not overridden
+        self.assertEqual(events.filter(name=rec.name).count(), 8)
+        self.assertEqual(events.filter(_poll__template=template).count(), 7)

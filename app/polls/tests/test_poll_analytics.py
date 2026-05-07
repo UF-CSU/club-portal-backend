@@ -1,6 +1,5 @@
 from clubs.tests.utils import create_test_club, create_test_clubfile
 from core.abstracts.tests import (
-    APIClientWrapper,
     PrivateApiTestsBase,
     PublicApiTestsBase,
 )
@@ -47,10 +46,8 @@ class PollViewPublicTests(PublicApiTestsBase):
 class PollAnalyticsPrivateTests(PrivateApiTestsBase):
     """Tests retrieval of analytics for polls when a user has the correct permissions"""
 
-    def setUp(self):
-        self.user = create_test_user()
-        self.client = APIClientWrapper()
-        self.client.force_authenticate(self.user)
+    def create_authenticated_user(self):
+        return create_test_user()
 
     def test_get_poll_analytics(self):
         """Poll analytics view should correctly compile and return analytics for a
