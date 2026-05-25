@@ -419,9 +419,18 @@ DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "admin@example.
 #######################
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
-DJANGO_CACHE_REDIS_DB = os.environ.get("DJANGO_CACHE_REDIS_DB", 0)
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", None)
 
-DJANGO_REDIS_URL = f"redis://{REDIS_HOST}/{DJANGO_CACHE_REDIS_DB}"
+
+def _get_redis_host(db: int, include_password=True):
+    if REDIS_PASSWORD is None or not include_password:
+        return f"redis://{REDIS_HOST}/{db}"
+    else:
+        return f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}/{db}"
+
+
+DJANGO_CACHE_REDIS_DB = os.environ.get("DJANGO_CACHE_REDIS_DB", 0)
+DJANGO_REDIS_URL = _get_redis_host(DJANGO_CACHE_REDIS_DB, include_password=False)
 
 CACHES = {
     "default": {
@@ -429,6 +438,7 @@ CACHES = {
         "LOCATION": DJANGO_REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": REDIS_PASSWORD,
         },
     }
 }
@@ -441,11 +451,11 @@ DJANGO_ENABLE_CELERY = environ_bool("DJANGO_ENABLE_CELERY", 1)
 
 # What celery uses to communicate to workers
 CELERY_BROKER_REDIS_DB = os.environ.get("CELERY_BROKER_REDIS_DB", 1)
-CELERY_BROKER_URL = f"redis://{REDIS_HOST}/{CELERY_BROKER_REDIS_DB}"
+CELERY_BROKER_URL = _get_redis_host(CELERY_BROKER_REDIS_DB)
 
 # What celery uses to store results of tasks
 CELERY_RESULT_BACKEND_REDIS_DB = os.environ.get("CELERY_RESULT_BROKER_REDIS_DB", 1)
-CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}/{CELERY_RESULT_BACKEND_REDIS_DB}"
+CELERY_RESULT_BACKEND = _get_redis_host(CELERY_RESULT_BACKEND_REDIS_DB)
 
 CELERY_TASK_ACKS_LATE = bool(int(os.environ.get("CELERY_TASK_ACKS_LATE", "1")))
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = bool(
@@ -471,7 +481,7 @@ if CELERY_BEAT_ENABLE_HEARTBEAT:
 # == Channels Config == #
 #########################
 CHANNELS_REDIS_DB = os.environ.get("CHANNELS_REDIS_DB", 2)
-CHANNELS_REDIS_URL = f"redis://{REDIS_HOST}/{CHANNELS_REDIS_DB}"
+CHANNELS_REDIS_URL = _get_redis_host(CHANNELS_REDIS_DB)
 
 CHANNEL_LAYERS = {
     "default": {

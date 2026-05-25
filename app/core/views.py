@@ -38,11 +38,27 @@ def index(request):
 
 async def health_check(request):
     """API Health Check."""
-    payload = {"status": 200, "message": "Systems operational."}
+    success_payload = {"status": 200, "message": "Systems operational."}
+    error_payload = {"status": 500, "message": "1 or more system checks failed."}
+    payload = success_payload
 
-    await Club.objects.afirst()
+    # Check async db connection
+    try:
+        await Club.objects.afirst()
+    except Exception as e:
+        print_error(e)
+        payload = error_payload
 
-    return JsonResponse(payload, status=200)
+    # Check redis
+    try:
+        timestamp = str(datetime.now())
+        cache.set("last_check", timestamp, timeout=10)
+        assert await cache.aget("last_check") == timestamp
+    except Exception as e:
+        print_error(e)
+        payload = error_payload
+
+    return JsonResponse(payload, status=payload["status"])
 
 
 def api_exception_handler(exc, context):
