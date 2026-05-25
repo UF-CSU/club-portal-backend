@@ -40,8 +40,6 @@ def delay_task(cb: callable, *args, **kwargs):
     ```
     """
 
-    from core.abstracts.tests import TESTING_TASK_QUEUE, TestingDebouncedTask
-
     delay_sec = getattr(cb, "delay_sec", None)
 
     # If delay_sec was set, configure debouncing for function
@@ -55,7 +53,9 @@ def delay_task(cb: callable, *args, **kwargs):
     # Schedule task depending on implementation/environment
     if DJANGO_ENABLE_CELERY and delay_sec and not TESTING:
         cb.apply_async(args=args, kwargs=kwargs, countdown=delay_sec)
-    elif DJANGO_ENABLE_CELERY and delay_sec:
+    elif DJANGO_ENABLE_CELERY and delay_sec and TESTING:
+        from core.abstracts.tests import TESTING_TASK_QUEUE, TestingDebouncedTask
+
         TESTING_TASK_QUEUE.get().append(
             TestingDebouncedTask(cb=cb, args=args, kwargs=kwargs)
         )

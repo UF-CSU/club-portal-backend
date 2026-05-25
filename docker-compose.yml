@@ -30,7 +30,7 @@ services:
       - PORT=9000
       - DJANGO_BASE_URL=${DJANGO_BASE_URL:-http://localhost:9000}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:9000/admin/}
-      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_HOSTS=${REDIS_HOST:-redis}
     depends_on:
       - postgres
       - redis

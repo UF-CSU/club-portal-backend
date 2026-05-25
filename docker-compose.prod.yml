@@ -10,7 +10,8 @@ services:
     environment:
       - PORT=9000
       - WORKER_COUNT=${WORKER_COUNT:-6}
-      - REDIS_HOST=${REDIS_HOST:-clubs-prod-redis}
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
     env_file:
       - .env
     networks:
@@ -22,6 +23,9 @@ services:
       retries: 10
       start_period: 60s
       start_interval: 15s
+    depends_on:
+      - redis
+      - pgbouncer
 
   app_replica:
     build:
@@ -33,7 +37,8 @@ services:
     environment:
       - PORT=9000
       - WORKER_COUNT=${WORKER_COUNT:-6}
-      - REDIS_HOST=${REDIS_HOST:-clubs-prod-redis}
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
     env_file:
       - .env
     networks:
@@ -48,12 +53,28 @@ services:
       replicas: ${APP_REPLICAS:-3}
 
   redis:
-    image: redis:alpine
-    container_name: clubs-prod-redis
+    image: redis:8.6-alpine
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
-      - redis-clubs-prod:/data
+      - redis8-clubs-prod:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$${REDIS_PASSWORD}", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 10s
     networks:
       - cluster
+    configs:
+      - source: redis.conf
+        target: /usr/local/etc/redis/redis.conf
+    sysctls:
+      # Accept up to 65535 connections in the listen backlog
+      - net.core.somaxconn=65535
 
   celery:
     build:
@@ -69,6 +90,9 @@ services:
         condition: service_started
       app:
         condition: service_healthy
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+      - REDIS_HOST=redis:6379
     env_file:
       - .env
     networks:
@@ -99,7 +123,9 @@ services:
         condition: service_healthy
       celery:
         condition: service_started
-
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+      - REDIS_HOST=redis:6379
     env_file:
       - .env
     networks:
@@ -129,6 +155,9 @@ services:
       - DELAY=0s
     networks:
       - cluster
+    sysctls:
+      # Accept up to 65535 connections in the listen backlog
+      - net.core.somaxconn=65535
 
   postgres:
     image: postgres:17.7-alpine
@@ -143,10 +172,12 @@ services:
     configs:
       - source: postgresql.auto.conf
         target: /var/lib/postgresql/postgresql.auto.conf
+    sysctls:
+      # Accept up to 65535 connections in the listen backlog
+      - net.core.somaxconn=65535
 
   pgbouncer:
     image: edoburu/pgbouncer
-    container_name: pgbouncer
     restart: always
     depends_on:
       - postgres
@@ -157,10 +188,14 @@ services:
         target: /etc/pgbouncer/pgbouncer.ini
       - source: userlist.txt
         target: /etc/pgbouncer/userlist.txt
+    sysctls:
+      # Accept up to 65535 connections in the listen backlog
+      - net.core.somaxconn=65535
 
 volumes:
   static-clubs-prod:
-  redis-clubs-prod:
+  redis8-clubs-prod:
+    name: "redis8-clubs-prod"
 
   postgres-clubs-prod:
     name: "postgres17-clubs-prod"
@@ -198,6 +233,48 @@ configs:
   userlist.txt:
     content: |
       "${POSTGRES_USER}" "${POSTGRES_PASSWORD}"
+
+  # Redis Settings
+  redis.conf:
+    # Ref: https://oneuptime.com/blog/post/2026-01-21-redis-docker-compose/view#production-ready-docker-compose
+    content: |
+      # Network
+      bind 0.0.0.0
+      port 6379
+      protected-mode yes
+      tcp-backlog 511
+
+      # Security
+      requirepass ${REDIS_PASSWORD:-changeme}
+
+      # Memory
+      maxmemory 450mb
+      maxmemory-policy allkeys-lru
+      maxmemory-samples 5
+
+      # Persistence
+      appendonly yes
+      appendfsync everysec
+      no-appendfsync-on-rewrite no
+      auto-aof-rewrite-percentage 100
+      auto-aof-rewrite-min-size 64mb
+
+      save 900 1
+      save 300 10
+      save 60 10000
+
+      # Performance
+      tcp-keepalive 300
+      timeout 0
+
+      # Lazy freeing
+      lazyfree-lazy-eviction yes
+      lazyfree-lazy-expire yes
+      lazyfree-lazy-server-del yes
+
+      # Logging
+      loglevel notice
+      logfile ""
 
 networks:
   cluster:
