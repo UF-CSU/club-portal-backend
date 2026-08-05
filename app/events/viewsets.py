@@ -461,7 +461,7 @@ class EventHeatmapViewSet(APIView):
                 .values_list("id", flat=True)
                 .distinct()
             )
-        
+
         # Get start/end dates
         now = datetime.now()
         if start_date is None:

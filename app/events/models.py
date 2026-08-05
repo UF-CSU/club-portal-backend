@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel
-from core.abstracts.models import RoleType, ManagerBase, ModelBase, QuerySetBase, Tag
+from core.abstracts.models import ManagerBase, ModelBase, QuerySetBase, RoleType, Tag
 from django.core import exceptions
 from django.core.validators import MaxValueValidator
 from django.db import models
