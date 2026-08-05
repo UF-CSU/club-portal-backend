@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 
 from clubs.models import Club, ClubFile
+from core.abstracts.models import RoleType
 from core.abstracts.viewsets import (
     ModelPreviewViewSetBase,
     ModelViewSetBase,
@@ -255,7 +256,13 @@ class EventViewset(ModelViewSetBase):
         if include_public:
             # Include events from user's clubs OR public non-draft events from any club
             queryset = queryset.filter(
-                Q(clubs__memberships__user=self.request.user)
+                Q(clubs__memberships__user=self.request.user,
+                clubs__memberships__roles__role_type__in=[
+                    RoleType.ADMIN,
+                    RoleType.EDITOR,
+                    RoleType.VIEWER,
+                    RoleType.CUSTOM,
+                ])
                 | (Q(is_public=True) & Q(is_draft=False))
             ).distinct()
         else:

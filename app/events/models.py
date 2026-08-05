@@ -309,7 +309,12 @@ class EventQuerySet(QuerySetBase["Event"]):
         elif user.is_anonymous:
             return self.none()
 
-        return self.filter(clubs__memberships__user=user)
+        return self.filter(clubs__memberships__user=user, clubs__memberships__roles__role_type__in=[
+                    RoleType.ADMIN,
+                    RoleType.EDITOR,
+                    RoleType.VIEWER,
+                    RoleType.CUSTOM,
+                ]).distinct()
 
     def get_for_user(self, id: int, user: User):
         """Get event for user, or throw 404."""
