@@ -438,12 +438,30 @@ class EventHeatmapViewSet(APIView):
         end_date: Optional[date] = None,
         include_public: Optional[bool] = False,
     ):
-        # Parse club ids
-        if clubs is None:
-            clubs = list(
-                Club.objects.filter_for_user(request.user).values_list("id", flat=True)
+        member_club_ids = list(
+            Club.objects.filter(
+                memberships__user=request.user,
+                memberships__roles__role_type__in=[
+                    RoleType.ADMIN,
+                    RoleType.EDITOR,
+                    RoleType.VIEWER,
+                    RoleType.CUSTOM,
+                ],
             )
+            .values_list("id", flat=True)
+            .distinct()
+        )
 
+        if clubs is not None:
+            member_club_ids = [c for c in clubs if c in set(member_club_ids)]
+            requested_club_ids = clubs
+        else:
+            requested_club_ids = list(
+                Club.objects.filter(memberships__user=request.user)
+                .values_list("id", flat=True)
+                .distinct()
+            )
+        
         # Get start/end dates
         now = datetime.now()
         if start_date is None:
@@ -465,7 +483,8 @@ class EventHeatmapViewSet(APIView):
 
         # Generate heatmap
         heatmap = EventService.get_event_heatmap(
-            club_ids=clubs,
+            member_club_ids=member_club_ids,
+            club_ids=requested_club_ids,
             start_date=start_date,
             end_date=end_date,
             include_public=include_public,

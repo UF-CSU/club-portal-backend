@@ -516,7 +516,8 @@ class EventService(ServiceBase[Event]):
     @classmethod
     def get_event_heatmap(
         cls,
-        club_ids: list[int],
+        member_club_ids: Optional[list[int]] = None,
+        club_ids: Optional[list[int]] = None,
         start_date: Optional[datetime.date] = None,
         end_date: Optional[datetime.date] = None,
         include_public: Optional[bool] = False,
@@ -526,6 +527,9 @@ class EventService(ServiceBase[Event]):
         If start date is None, will default to current date.
         """
 
+        member_club_ids = member_club_ids or []
+        club_ids = club_ids or []
+
         tzname = timezone.get_current_timezone_name()
 
         if start_date is None:
@@ -533,6 +537,15 @@ class EventService(ServiceBase[Event]):
 
         if end_date is None:
             end_date = start_date + relativedelta(months=1) - datetime.timedelta(days=1)
+
+        def in_clause(ids: list[int]) -> str:
+            if not ids:
+                return "FALSE"
+            return f"club_id IN ({', '.join(['%s'] * len(ids))})"
+
+        member_filter = in_clause(member_club_ids)
+        public_clubs_filter = in_clause(club_ids)
+        include_public_sql = "TRUE" if include_public else "FALSE"
 
         query = f"""
             SELECT calendar::date AS day, COUNT(event.id) AS event_count, SUM(COUNT(event.id)) OVER (ORDER BY calendar::date) AS total_event_count
@@ -547,9 +560,11 @@ class EventService(ServiceBase[Event]):
                 LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id
             ) AS event ON date_trunc('day', start_at AT TIME ZONE %s) = calendar
                 AND (
-                    club_id IN ({",".join(["%s" for _ in club_ids])})
-                    OR
-                    ({"is_public IS TRUE AND is_draft IS FALSE" if include_public else "FALSE"})
+                    ({member_filter})
+                    OR (
+                        is_public IS TRUE AND is_draft IS FALSE
+                        AND ({include_public_sql} OR ({public_clubs_filter}))
+                    )
                 )
             GROUP BY day
             ORDER BY day
@@ -562,6 +577,7 @@ class EventService(ServiceBase[Event]):
                     start_date.strftime("%m/%d/%Y"),
                     end_date.strftime("%m/%d/%Y"),
                     tzname,
+                    *member_club_ids,
                     *club_ids,
                 ],
             )
