@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from analytics.models import Link
 from clubs.models import Club, ClubFile, ClubScopedModel
-from core.abstracts.models import ManagerBase, ModelBase, QuerySetBase, Tag
+from core.abstracts.models import ManagerBase, ModelBase, QuerySetBase, RoleType, Tag
 from django.core import exceptions
 from django.core.validators import MaxValueValidator
 from django.db import models
@@ -309,7 +309,12 @@ class EventQuerySet(QuerySetBase["Event"]):
         elif user.is_anonymous:
             return self.none()
 
-        return self.filter(clubs__memberships__user=user)
+        return self.filter(clubs__memberships__user=user, clubs__memberships__roles__role_type__in=[
+                    RoleType.ADMIN,
+                    RoleType.EDITOR,
+                    RoleType.VIEWER,
+                    RoleType.CUSTOM,
+                ]).distinct()
 
     def get_for_user(self, id: int, user: User):
         """Get event for user, or throw 404."""

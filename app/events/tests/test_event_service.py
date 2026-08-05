@@ -65,7 +65,7 @@ class EventServiceTests(PeriodicTaskTestsBase):
         )
 
         # Get event count per day for club 1
-        h1 = EventService.get_event_heatmap(club_ids=[c1.id])
+        h1 = EventService.get_event_heatmap(member_club_ids=[c1.id])
 
         for date, count in h1.heatmap.items():
             if date.day == 15:
@@ -76,7 +76,7 @@ class EventServiceTests(PeriodicTaskTestsBase):
                 self.assertEqual(count, 0)
 
         # Get event count per day for club 2
-        h2 = EventService.get_event_heatmap(club_ids=[c2.id])
+        h2 = EventService.get_event_heatmap(member_club_ids=[c2.id])
 
         for _, count in h2.heatmap.items():
             self.assertEqual(count, 0)
@@ -94,7 +94,7 @@ class EventServiceTests(PeriodicTaskTestsBase):
             end_at=datetime.datetime(2025, 12, 18, 3, 0, tzinfo=datetime.UTC),
         )
 
-        heatmap = EventService.get_event_heatmap(club_ids=[c1.id])
+        heatmap = EventService.get_event_heatmap(member_club_ids=[c1.id])
 
         self.assertEqual(heatmap.heatmap[datetime.date(2025, 12, 17)], 1)
         self.assertEqual(heatmap.heatmap[datetime.date(2025, 12, 18)], 0)
