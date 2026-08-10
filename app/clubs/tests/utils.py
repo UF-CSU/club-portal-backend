@@ -1,15 +1,14 @@
 import uuid
 from typing import Optional
 
+from clubs.models import Club, ClubFile, ClubRole, ClubTag, Team, TeamRole
+from clubs.services import ClubService
 from core.abstracts.models import RoleType
 from django.urls import reverse
 from django.utils.http import urlencode
 from lib.faker import fake
 from users.models import User
 from utils.testing import create_test_image
-
-from clubs.models import Club, ClubFile, ClubRole, ClubTag, Team, TeamRole
-from clubs.services import ClubService
 
 ####################################################
 # URLS
@@ -51,6 +50,7 @@ def club_apikey_list_url(club_id: int):
 CLUBS_LIST_URL = reverse("api-clubs:club-list")
 CLUBS_JOIN_URL = reverse("api-clubs:join")
 CLUBS_PREVIEW_LIST_URL = reverse("api-clubs:clubpreview-list")
+CLUBS_PREVIEW_SEARCH_URL = reverse("api-clubs:clubpreview-search")
 CLUB_MEMBERSHIPS_LIST_URL = reverse("api-clubs:user_clubmembership-list")
 
 
