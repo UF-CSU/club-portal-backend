@@ -10,13 +10,13 @@ from .documents import ClubDocument
 
 
 class ClubSortBy(StrEnum):
-    RELEVANCE = 'relevance'
-    FOLLOWERS_DESC = 'followers_desc'
-    FOLLOWERS_ASC = 'followers_asc'
-    NAME_DESC = 'name_desc'
-    NAME_ASC = 'name_asc'
-    FOUNDING_YEAR_DESC = 'founding_year_desc'
-    FOUNDING_YEAR_ASC = 'founding_year_asc'
+    RELEVANCE = "relevance"
+    FOLLOWERS_DESC = "followers_desc"
+    FOLLOWERS_ASC = "followers_asc"
+    NAME_DESC = "name_desc"
+    NAME_ASC = "name_asc"
+    FOUNDING_YEAR_DESC = "founding_year_desc"
+    FOUNDING_YEAR_ASC = "founding_year_asc"
 
 
 class ClubSearchService:
@@ -24,8 +24,12 @@ class ClubSearchService:
 
     SORT_OPTIONS = {
         ClubSortBy.RELEVANCE: {"_score": {"order": "desc"}},
-        ClubSortBy.FOLLOWERS_DESC: {"instagram_followers": {"order": "desc", "missing": "_last"}},
-        ClubSortBy.FOLLOWERS_ASC: {"instagram_followers": {"order": "asc", "missing": "_last"}},
+        ClubSortBy.FOLLOWERS_DESC: {
+            "instagram_followers": {"order": "desc", "missing": "_last"}
+        },
+        ClubSortBy.FOLLOWERS_ASC: {
+            "instagram_followers": {"order": "asc", "missing": "_last"}
+        },
         ClubSortBy.NAME_DESC: {"name.raw": {"order": "desc"}},
         ClubSortBy.NAME_ASC: {"name.raw": {"order": "asc"}},
         ClubSortBy.FOUNDING_YEAR_DESC: {"founding_year": {"order": "desc"}},
@@ -34,14 +38,14 @@ class ClubSearchService:
 
     def __init__(self):
         self.document = ClubDocument
-    
+
     def search(
         self,
         name: str | None = None,
         tags: list[int] | None = None,
         sort: ClubSortBy | None = None,
         limit: int = 20,
-        offset: int = 0
+        offset: int = 0,
     ):
         """
         Args:
@@ -80,25 +84,18 @@ class ClubSearchService:
         search = search[start:end]
 
         # Only return ids
-        search = search.source(
-            fields=['id']
-        )
+        search = search.source(fields=["id"])
 
         # Execute the search
         response = search.execute()
 
         # Return structured results
         return {
-            'ids': [hit.id for hit in response],
-            'total': response.hits.total.value,
+            "ids": [hit.id for hit in response],
+            "total": response.hits.total.value,
         }
 
-
-    def _apply_sorting(
-        self,
-        search: Search,
-        sort: ClubSortBy
-    ):
+    def _apply_sorting(self, search: Search, sort: ClubSortBy):
         """Apply sorting based on the sort parameter"""
 
         sort_field = self.SORT_OPTIONS[sort]
@@ -107,7 +104,6 @@ class ClubSearchService:
             {"id": {"order": "asc"}},
         ]
         return search.sort(*sort_field_with_tiebreaker)
-
 
     def _apply_filters_and_search(
         self,
@@ -130,7 +126,6 @@ class ClubSearchService:
                             }
                         }
                     },
-
                     # Prefix matching
                     {
                         "match_phrase_prefix": {
@@ -140,7 +135,6 @@ class ClubSearchService:
                             }
                         }
                     },
-
                     # Typo tolerance
                     {
                         "match": {

@@ -1,18 +1,3 @@
-from clubs.models import (
-    Club,
-    ClubApiKey,
-    ClubFile,
-    ClubMembership,
-    ClubPhoto,
-    ClubRole,
-    ClubSocialProfile,
-    ClubTag,
-    Team,
-    TeamMembership,
-    TeamRole,
-)
-from clubs.search import ClubSortBy
-from clubs.services import ClubService
 from core.abstracts.serializers import (
     ImageUrlField,
     MemberSerializerBase,
@@ -30,6 +15,22 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 from users.models import SocialProfile, User
 from users.services import UserService
+
+from clubs.models import (
+    Club,
+    ClubApiKey,
+    ClubFile,
+    ClubMembership,
+    ClubPhoto,
+    ClubRole,
+    ClubSocialProfile,
+    ClubTag,
+    Team,
+    TeamMembership,
+    TeamRole,
+)
+from clubs.search import ClubSortBy
+from clubs.services import ClubService
 
 
 class ClubFileSerializer(ModelSerializerBase):
@@ -681,14 +682,15 @@ class ClubPreviewSearchParamSerializer(serializers.Serializer):
         allow_null=True, allow_blank=True, required=False, default=None, validators=[]
     )
     tags = serializers.ListField(
-        child=serializers.PrimaryKeyRelatedField(
-            queryset=ClubTag.objects.all()
-        ),
+        child=serializers.PrimaryKeyRelatedField(queryset=ClubTag.objects.all()),
         required=False,
         default=list,
     )
-    sort=serializers.ChoiceField(
-        allow_null=True, required=False, default=None, choices=[(value.value, value.value) for value in ClubSortBy],
+    sort = serializers.ChoiceField(
+        allow_null=True,
+        required=False,
+        default=None,
+        choices=[(value.value, value.value) for value in ClubSortBy],
     )
 
     class Meta:

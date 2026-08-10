@@ -16,21 +16,17 @@ class ClubDocument(Document):
 
     id = fields.IntegerField(attr="id")
     name = fields.TextField(
-        attr='name',
+        attr="name",
         fields={
-            'raw': fields.KeywordField(),
+            "raw": fields.KeywordField(),
         },
     )
     instagram_followers = fields.IntegerField()
     founding_year = fields.IntegerField()
-    tags = fields.NestedField(
-        properties={
-            'id': fields.IntegerField()
-        }
-    )
+    tags = fields.NestedField(properties={"id": fields.IntegerField()})
 
     class Index:
-        name = 'clubs'
+        name = "clubs"
 
     class Django:
         model = Club

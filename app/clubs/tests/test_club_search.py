@@ -1,11 +1,12 @@
 from unittest.mock import MagicMock, patch
 
+from core.abstracts.tests import PublicApiTestsBase, TestsBase
+from django.test import TestCase
+
 from clubs.models import ClubTag
 from clubs.search import ClubSearchService, ClubSortBy
 from clubs.serializers import ClubPreviewSearchParamSerializer
 from clubs.tests.utils import CLUBS_PREVIEW_SEARCH_URL, create_test_clubs
-from core.abstracts.tests import PublicApiTestsBase, TestsBase
-from django.test import TestCase
 
 
 class ClubPreviewSearchParamSerializerTests(TestsBase):
@@ -21,53 +22,41 @@ class ClubPreviewSearchParamSerializerTests(TestsBase):
 
     def test_valid_limit(self):
         for limit in [1, 10, 100, 1000]:
-            serializer = ClubPreviewSearchParamSerializer(
-                data={"limit": limit}
-            )
+            serializer = ClubPreviewSearchParamSerializer(data={"limit": limit})
 
             self.assertTrue(serializer.is_valid(), serializer.errors)
             self.assertEqual(serializer.validated_data["limit"], limit)
 
     def test_invalid_limit(self):
         for limit in [0, -1, -100]:
-            serializer = ClubPreviewSearchParamSerializer(
-                data={"limit": limit}
-            )
+            serializer = ClubPreviewSearchParamSerializer(data={"limit": limit})
 
             self.assertFalse(serializer.is_valid())
             self.assertIn("limit", serializer.errors)
 
     def test_valid_offset(self):
         for offset in [0, 1, 10, 100]:
-            serializer = ClubPreviewSearchParamSerializer(
-                data={"offset": offset}
-            )
+            serializer = ClubPreviewSearchParamSerializer(data={"offset": offset})
 
             self.assertTrue(serializer.is_valid(), serializer.errors)
             self.assertEqual(serializer.validated_data["offset"], offset)
 
     def test_invalid_offset(self):
         for offset in [-1, -10]:
-            serializer = ClubPreviewSearchParamSerializer(
-                data={"offset": offset}
-            )
+            serializer = ClubPreviewSearchParamSerializer(data={"offset": offset})
 
             self.assertFalse(serializer.is_valid())
             self.assertIn("offset", serializer.errors)
 
     def test_valid_name(self):
         for name in ["Bal", "Chess Club", "", "123"]:
-            serializer = ClubPreviewSearchParamSerializer(
-                data={"name": name}
-            )
+            serializer = ClubPreviewSearchParamSerializer(data={"name": name})
 
             self.assertTrue(serializer.is_valid(), serializer.errors)
             self.assertEqual(serializer.validated_data["name"], name)
 
     def test_null_name(self):
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"name": None}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"name": None})
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertIsNone(serializer.validated_data["name"])
@@ -76,9 +65,7 @@ class ClubPreviewSearchParamSerializerTests(TestsBase):
         tag1 = ClubTag.objects.create(name="Academic")
         tag2 = ClubTag.objects.create(name="Sports")
 
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"tags": [tag1.pk, tag2.pk]}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"tags": [tag1.pk, tag2.pk]})
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(
@@ -87,42 +74,32 @@ class ClubPreviewSearchParamSerializerTests(TestsBase):
         )
 
     def test_empty_tags(self):
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"tags": []}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"tags": []})
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(serializer.validated_data["tags"], [])
 
     def test_invalid_tag_id(self):
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"tags": [999999]}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"tags": [999999]})
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("tags", serializer.errors)
 
     def test_invalid_tag_id_string(self):
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"tags": ["not-an-id"]}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"tags": ["not-an-id"]})
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("tags", serializer.errors)
 
     def test_tags_must_be_list(self):
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"tags": 1}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"tags": 1})
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("tags", serializer.errors)
 
     def test_valid_sort_values(self):
         for sort in ClubSortBy:
-            serializer = ClubPreviewSearchParamSerializer(
-                data={"sort": sort.value}
-            )
+            serializer = ClubPreviewSearchParamSerializer(data={"sort": sort.value})
 
             self.assertTrue(serializer.is_valid(), serializer.errors)
             self.assertEqual(
@@ -131,17 +108,13 @@ class ClubPreviewSearchParamSerializerTests(TestsBase):
             )
 
     def test_invalid_sort(self):
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"sort": "invalid_sort"}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"sort": "invalid_sort"})
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("sort", serializer.errors)
 
     def test_null_sort(self):
-        serializer = ClubPreviewSearchParamSerializer(
-            data={"sort": None}
-        )
+        serializer = ClubPreviewSearchParamSerializer(data={"sort": None})
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertIsNone(serializer.validated_data["sort"])
@@ -306,10 +279,13 @@ class ClubSearchServiceTests(TestCase):
 
             result = self.service._apply_sorting(search, sort)
 
-            self.assertEqual(result.to_dict()["sort"], [
-                expected,
-                {"id": {"order": "asc"}},
-            ])
+            self.assertEqual(
+                result.to_dict()["sort"],
+                [
+                    expected,
+                    {"id": {"order": "asc"}},
+                ],
+            )
 
     @patch.object(ClubSearchService, "_apply_sorting")
     def test_pagination(self, mock_sort):
@@ -395,9 +371,6 @@ class ClubPreviewSearchTests(PublicApiTestsBase):
 
         self.assertResOk(response)
 
-        result_ids = [
-            club["id"]
-            for club in response.json()["results"]
-        ]
+        result_ids = [club["id"] for club in response.json()["results"]]
 
         self.assertEqual(result_ids, ordered_ids)
