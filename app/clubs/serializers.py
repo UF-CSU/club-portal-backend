@@ -1,3 +1,18 @@
+from clubs.models import (
+    Club,
+    ClubApiKey,
+    ClubFile,
+    ClubMembership,
+    ClubPhoto,
+    ClubRole,
+    ClubSocialProfile,
+    ClubTag,
+    Team,
+    TeamMembership,
+    TeamRole,
+)
+from clubs.search import ClubSortBy
+from clubs.services import ClubService
 from core.abstracts.serializers import (
     ImageUrlField,
     MemberSerializerBase,
@@ -15,21 +30,6 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 from users.models import SocialProfile, User
 from users.services import UserService
-
-from clubs.models import (
-    Club,
-    ClubApiKey,
-    ClubFile,
-    ClubMembership,
-    ClubPhoto,
-    ClubRole,
-    ClubSocialProfile,
-    ClubTag,
-    Team,
-    TeamMembership,
-    TeamRole,
-)
-from clubs.services import ClubService
 
 
 class ClubFileSerializer(ModelSerializerBase):
@@ -664,6 +664,31 @@ class ClubPreviewListParamSerializer(serializers.Serializer):
     )
     is_csu_partner = serializers.BooleanField(
         allow_null=True, required=False, default=None, validators=[]
+    )
+
+    class Meta:
+        fields = "__all__"
+
+
+class ClubPreviewSearchParamSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(
+        allow_null=True, required=False, default=100, validators=[MinValueValidator(1)]
+    )
+    offset = serializers.IntegerField(
+        allow_null=True, required=False, default=0, validators=[MinValueValidator(0)]
+    )
+    name = serializers.CharField(
+        allow_null=True, allow_blank=True, required=False, default=None, validators=[]
+    )
+    tags = serializers.ListField(
+        child=serializers.PrimaryKeyRelatedField(
+            queryset=ClubTag.objects.all()
+        ),
+        required=False,
+        default=list,
+    )
+    sort=serializers.ChoiceField(
+        allow_null=True, required=False, default=None, choices=[(value.value, value.value) for value in ClubSortBy],
     )
 
     class Meta:
