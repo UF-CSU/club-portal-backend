@@ -200,6 +200,13 @@ tasks:
     cmds:
       - docker-compose run --rm app sh -c "python manage.py generate_types --check"
 
+  generate_indices:
+    desc: "Recreate and repopulate Elasticsearch indices, optionally searching by model"
+    deps:
+      - build
+    cmds:
+      - docker-compose run --rm app sh -c "python manage.py search_index --rebuild -f {{.CLI_ARGS}} --parallel"
+
   down:
     desc: 'Stop containers'
     cmds:

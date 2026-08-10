@@ -167,6 +167,22 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
+  elasticsearch:
+    # Docs: https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-elasticsearch-docker-compose
+    image: elasticsearch:9.4.4
+    container_name: elasticsearch
+    restart: unless-stopped
+    volumes:
+      - es-clubs-dev:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    profiles:
+      - dev
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+
   pgadmin:
     # Config adapted from: https://stackoverflow.com/a/77519799/10914922
     image: dpage/pgadmin4
@@ -222,6 +238,7 @@ volumes:
   mail-clubs-dev:
   pgadmin-clubs-dev:
   redis-clubs-dev:
+  es-clubs-dev:
 
 configs:
   pgpass:
