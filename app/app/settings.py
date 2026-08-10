@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_elasticsearch_dsl",
     "channels",
     "users",
     "users.authentication",
@@ -482,6 +483,19 @@ CHANNEL_LAYERS = {
     },
 }
 
+##############################
+# == Elasticsearch Config == #
+##############################
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': 'http://elasticsearch:9200'
+    },
+}
+
+ELASTICSEARCH_DSL_INDEX_SETTINGS = {
+    'number_of_shards': 1,
+    'number_of_replicas': 0,
+}
 
 ###############################
 # == Environment Overrides == #
