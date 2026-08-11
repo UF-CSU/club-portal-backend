@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from functools import wraps
 from typing import Any, Optional
 
 import attrs
@@ -106,6 +107,7 @@ def params_validator(
     validator_class: serializers.Serializer,
     query_params: list[str] = None,
     path_params: list[str] = None,
+    list_params: list[str] = None,
 ):
     """
     Validates params based on a serializer class before they are passed to an endpoint.
@@ -128,6 +130,7 @@ def params_validator(
     """
 
     def decorator[T: Callable](callable: T) -> T:
+        @wraps(callable)
         def wrapper(*f_args, **f_kwargs):
             request: Request = f_args[0].request
 
@@ -137,21 +140,24 @@ def params_validator(
                 )
                 raise exceptions.APIException("Internal Server Error", 500)
 
-            request_query_params = dict(request.query_params.copy())
             params: dict = {}
             if query_params:
                 for q in query_params:
-                    # Why is this a list
-                    val = request_query_params.get(q, None)
-                    params[q] = val[0] if val else val
+                    params[q] = request.query_params.get(q, None)
 
             if path_params:
                 for p in path_params:
                     params[p] = f_kwargs.get(p, None)
 
+            if list_params:
+                for q in list_params:
+                    params[q] = request.query_params.getlist(q, [])
+
             try:
                 serializer = validator_class(data=params)
                 serializer.is_valid(raise_exception=True)
+
+                f_kwargs["validated_params"] = serializer.validated_data
             except ValueError as e:
                 print(e.args)
                 raise exceptions.ValidationError() from e

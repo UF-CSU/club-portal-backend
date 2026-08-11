@@ -7,13 +7,13 @@ from core.abstracts.viewsets import (
     ViewSetBase,
 )
 from core.models import Major
-from django.db.models import Count, Prefetch
+from django.db.models import Case, Count, IntegerField, Prefetch, When
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from drf_spectacular.utils import extend_schema
-from rest_framework import exceptions, mixins, permissions, status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import exceptions, mixins, permissions, serializers, status
 from rest_framework.decorators import action
 from rest_framework.generics import GenericAPIView
 from rest_framework.request import Request
@@ -35,6 +35,7 @@ from clubs.models import (
     TeamMembership,
     TeamRole,
 )
+from clubs.search import ClubSearchService
 from clubs.serializers import (
     ClubApiKeySerializer,
     ClubApiSecretSerializer,
@@ -43,6 +44,7 @@ from clubs.serializers import (
     ClubMemberSerializer,
     ClubMembershipSerializer,
     ClubPreviewListParamSerializer,
+    ClubPreviewSearchParamSerializer,
     ClubPreviewSerializer,
     ClubRoleSerializer,
     ClubRosterSerializer,
@@ -335,6 +337,64 @@ class ClubPreviewViewSet(ModelPreviewViewSetBase):
             )
 
         return Response(result)
+
+    @extend_schema(
+        parameters=[ClubPreviewSearchParamSerializer],
+        responses=inline_serializer(
+            name="ClubPreviewSearchResponse",
+            fields={
+                "count": serializers.IntegerField(),
+                "next": serializers.URLField(allow_null=True),
+                "previous": serializers.URLField(allow_null=True),
+                "offset": serializers.IntegerField(),
+                "results": ClubPreviewSerializer(many=True),
+            },
+        ),
+    )
+    @action(detail=False, methods=["get"])
+    @params_validator(
+        ClubPreviewSearchParamSerializer,
+        query_params=["limit", "offset", "name", "sort"],
+        list_params=["tags"],
+    )
+    def search(self, request: Request, *args, **kwargs):
+        paginator = self.pagination_class()
+        paginator.request = request
+
+        # Parse query parameters
+        params = kwargs["validated_params"]
+        name = params["name"]
+        tags = [tag.id for tag in params["tags"]]
+        sort = params["sort"]
+        limit = paginator.get_limit(request)
+        offset = paginator.get_offset(request)
+
+        search_service = ClubSearchService()
+        results = search_service.search(
+            name=name, tags=tags, sort=sort, limit=limit, offset=offset
+        )
+        ids = results["ids"]
+
+        if ids:
+            # Preserve ordering from Elasticsearch
+            ordering = Case(
+                *[
+                    When(pk=club_id, then=position)
+                    for position, club_id in enumerate(ids)
+                ],
+                output_field=IntegerField(),
+            )
+
+            clubs = self.get_queryset().filter(id__in=ids).order_by(ordering)
+        else:
+            clubs = self.get_queryset().none()
+        serializer = ClubPreviewSerializer(clubs, many=True)
+
+        paginator.count = results["total"]
+        paginator.offset = offset
+        paginator.limit = limit
+
+        return paginator.get_paginated_response(serializer.data)
 
 
 class ClubTagsViewSet(mixins.ListModelMixin, ViewSetBase):

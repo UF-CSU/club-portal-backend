@@ -213,6 +213,7 @@ If you have Taskfile installed, you can use the following:
 | `task show_urls`                   | Show all available urls for the server, and their reverse labels |
 | `task loaddata`                    | Load all available fixtures/mock data into database              |
 | `task generate_types`              | Create TypeScript interfaces for serializers                     |
+| `task generate_indices`            | Recreate and repopulate Elasticsearch indices                    |
 | `task cache_clear`                 | Clear all cached data                                            |
 | `task cache_clear -- cache_prefix` | Clear cache with prefix (replace "cache_prefix")                 |
 | `task cache_keys`                  | List all keys in cache                                           |
