@@ -1,12 +1,11 @@
 from unittest.mock import MagicMock, patch
 
-from core.abstracts.tests import PublicApiTestsBase, TestsBase
-from django.test import TestCase
-
 from clubs.models import ClubTag
 from clubs.search import ClubSearchService, ClubSortBy
 from clubs.serializers import ClubPreviewSearchParamSerializer
 from clubs.tests.utils import CLUBS_PREVIEW_SEARCH_URL, create_test_clubs
+from core.abstracts.tests import PublicApiTestsBase, TestsBase
+from django.test import SimpleTestCase
 
 
 class ClubPreviewSearchParamSerializerTests(TestsBase):
@@ -120,7 +119,7 @@ class ClubPreviewSearchParamSerializerTests(TestsBase):
         self.assertIsNone(serializer.validated_data["sort"])
 
 
-class ClubSearchServiceTests(TestCase):
+class ClubSearchServiceTests(SimpleTestCase):
     def setUp(self):
         self.service = ClubSearchService()
 
