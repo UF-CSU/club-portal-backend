@@ -12,7 +12,7 @@ from users.models import User
 from utils.dates import parse_datetime
 from utils.helpers import reverse_query
 
-from events.models import Event, EventTag
+from events.models import Event, EventStatus, EventTag
 
 EVENT_LIST_URL = reverse("api-events:event-list")
 EVENTPREVIEW_LIST_URL = reverse("api-events:eventpreview-list")
@@ -106,6 +106,7 @@ def create_test_event(
         "host": host,
         "secondary_hosts": secondary_hosts,
         "enable_attendance": False,
+        "status": EventStatus.PUBLISHED,
         **kwargs,
     }
 

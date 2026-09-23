@@ -4,13 +4,14 @@ from zoneinfo import ZoneInfo
 import freezegun
 from clubs.tests.utils import create_test_club
 from core.abstracts.tests import PrivateApiTestsBase, PublicApiTestsBase
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from lib.faker import fake
 from polls.tests.utils import polls_detail_url
 from users.tests.utils import create_test_user
 from utils.helpers import reverse_query
 
-from events.models import Event, RecurringEvent
+from events.models import Event, EventStatus, RecurringEvent
 from events.serializers import EventSerializer
 from events.tests.utils import (
     EVENT_LIST_URL,
@@ -70,7 +71,7 @@ class EventPublicApiTests(PublicApiTestsBase):
 
         e1 = create_test_event(is_public=True)
         create_test_event(is_public=False)
-        create_test_event(is_draft=True)
+        create_test_event(status=EventStatus.DRAFT)
 
         url = EVENTPREVIEW_LIST_URL
 
@@ -94,7 +95,7 @@ class EventPublicApiTests(PublicApiTestsBase):
 
         e1 = create_test_event(is_public=True)
         e2 = create_test_event(is_public=False)
-        e3 = create_test_event(is_draft=True)
+        e3 = create_test_event(status=EventStatus.DRAFT)
 
         url1 = event_preview_detail_url(e1.pk)
         url2 = event_preview_detail_url(e2.pk)
@@ -237,7 +238,7 @@ class EventPublicApiTests(PublicApiTestsBase):
 
         club = create_test_club()
         public_ev = create_test_event(host=club)
-        draft_ev = create_test_event(host=club, is_draft=True)
+        draft_ev = create_test_event(host=club, status=EventStatus.DRAFT)
         private_ev = create_test_event(host=club, is_public=False)
 
         url = EVENTPREVIEW_LIST_URL
@@ -767,6 +768,77 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         event = Event.objects.first()
         self.assertIsNotNone(event.poll)
 
+    def test_event_status_create_update_and_validation(self):
+        """Event status is writable and constrained to the publication enum."""
+
+        club = create_test_club(admins=[self.user])
+        payload = {
+            "start_at": "2025-10-22T13:00:00Z",
+            "end_at": "2025-10-22T15:00:00Z",
+            "name": "Test Event",
+            "hosts": [{"club_id": club.id, "is_primary": True}],
+            "status": EventStatus.PLANNED,
+        }
+
+        res = self.client.post(EVENT_LIST_URL, payload)
+        self.assertResCreated(res)
+        event = Event.objects.get(pk=res.json()["id"])
+        self.assertEqual(event.status, EventStatus.PLANNED)
+        self.assertEqual(res.json()["status"], EventStatus.PLANNED)
+
+        res = self.client.patch(
+            event_detail_url(event.id), {"status": EventStatus.PUBLISHED}
+        )
+        self.assertResOk(res)
+        event.refresh_from_db()
+        self.assertEqual(event.status, EventStatus.PUBLISHED)
+
+        res = self.client.patch(event_detail_url(event.id), {"status": "INVALID"})
+        self.assertEqual(res.status_code, 400)
+
+    def test_event_visibility_and_status_filtering(self):
+        """Publication visibility differs for guests, members, and club admins."""
+
+        member = create_test_user()
+        owning_admin = create_test_user()
+        other_admin = create_test_user()
+        club = create_test_club(members=[member], admins=[owning_admin])
+        create_test_club(admins=[other_admin])
+
+        draft = create_test_event(host=club, status=EventStatus.DRAFT)
+        planned = create_test_event(host=club, status=EventStatus.PLANNED)
+        published = create_test_event(host=club, status=EventStatus.PUBLISHED)
+
+        self.assertEqual(
+            set(
+                Event.objects.visible_to_user(AnonymousUser()).values_list(
+                    "id", flat=True
+                )
+            ),
+            {published.id},
+        )
+        self.assertEqual(
+            set(Event.objects.visible_to_user(member).values_list("id", flat=True)),
+            {published.id},
+        )
+        self.assertEqual(
+            set(
+                Event.objects.visible_to_user(owning_admin).values_list("id", flat=True)
+            ),
+            {draft.id, planned.id, published.id},
+        )
+        self.assertEqual(
+            set(
+                Event.objects.visible_to_user(other_admin).values_list("id", flat=True)
+            ),
+            {planned.id},
+        )
+
+        self.client.force_authenticate(user=owning_admin)
+        res = self.client.get(f"{EVENT_LIST_URL}?status={EventStatus.PLANNED}")
+        self.assertResOk(res)
+        self.assertEqual([event["id"] for event in res.json()["results"]], [planned.id])
+
     def test_delete_event_poll_disables_attendance(self):
         """Should disable event attendance when poll is deleted."""
 
@@ -894,7 +966,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
 
         club = create_test_club(admins=[self.user])
         public_ev = create_test_event(host=club)
-        draft_ev = create_test_event(host=club, is_draft=True)
+        draft_ev = create_test_event(host=club, status=EventStatus.DRAFT)
         private_ev = create_test_event(host=club, is_public=False)
 
         url = EVENTPREVIEW_LIST_URL + f"?clubs={club.pk}"
@@ -925,6 +997,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
             "enable_attendance": False,
             "timezone": "America/New_York",
             "event_type": "gbm",
+            "status": EventStatus.PLANNED,
             "days": [0, 2],
         }
 
@@ -940,6 +1013,7 @@ class EventPrivateApiTests(PrivateApiTestsBase):
         self.assertNotEqual(rec_ev.events.count(), 0)
 
         for event in rec_ev.events.all():
+            self.assertEqual(event.status, EventStatus.PLANNED)
             self.assertEqual(
                 event.start_at.astimezone(ZoneInfo("America/New_York")).hour, 18
             )

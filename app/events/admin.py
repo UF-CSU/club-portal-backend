@@ -202,7 +202,7 @@ class EventAdmin(ModelAdminBase):
                     "location",
                     "start_at",
                     "end_at",
-                    "is_draft",
+                    "status",
                     # "is_poll_submission_required",
                     "enable_attendance",
                 )
