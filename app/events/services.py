@@ -18,7 +18,14 @@ from users.models import User
 from utils.dates import get_day_count
 from utils.db import dictfetchone, namedtuplefetchall
 
-from events.models import DayType, Event, EventAttendanceLink, EventHost, RecurringEvent
+from events.models import (
+    DayType,
+    Event,
+    EventAttendanceLink,
+    EventHost,
+    EventStatus,
+    RecurringEvent,
+)
 
 
 class EventHeatmapDict(TypedDict):
@@ -442,7 +449,7 @@ class EventService(ServiceBase[Event]):
 
         # Get all events that start later than today
         now = datetime.datetime.now().replace(tzinfo=local_tz)
-        query = Event.objects.filter(start_at__gt=now)
+        query = Event.objects.filter(start_at__gt=now, status=EventStatus.PUBLISHED)
 
         for event in query:
             e = cls(event).create_calendar_event(local_tz)
@@ -498,7 +505,11 @@ class EventService(ServiceBase[Event]):
         # events past today
         now = datetime.datetime.now().replace(tzinfo=local_tz)
         query = (
-            Event.objects.filter(clubs__in=user_clubs, start_at__gt=now)
+            Event.objects.filter(
+                clubs__in=user_clubs,
+                start_at__gt=now,
+                status=EventStatus.PUBLISHED,
+            )
             .distinct()
             .order_by("start_at")
         )
@@ -542,14 +553,14 @@ class EventService(ServiceBase[Event]):
                 '1 day'
             ) as calendar
             LEFT JOIN (
-                SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id, event.is_public AS is_public, event.is_draft AS is_draft
+                SELECT event.id AS id, event.start_at AS start_at, host.club_id AS club_id, event.is_public AS is_public, event.status AS status
                 FROM public.events_event AS event
                 LEFT JOIN public.events_eventhost AS host ON host.event_id = event.id
             ) AS event ON date_trunc('day', start_at AT TIME ZONE %s) = calendar
                 AND (
                     club_id IN ({",".join(["%s" for _ in club_ids])})
                     OR
-                    ({"is_public IS TRUE AND is_draft IS FALSE" if include_public else "FALSE"})
+                    ({"is_public IS TRUE AND status = 'PUBLISHED'" if include_public else "FALSE"})
                 )
             GROUP BY day
             ORDER BY day

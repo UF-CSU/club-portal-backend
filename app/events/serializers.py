@@ -71,7 +71,6 @@ class EventAttendanceLinkSerializer(ModelSerializerBase):
 class EventPreviewSerializer(ModelSerializerBase):
     """Shows minimal fields for public events."""
 
-    status = serializers.CharField(read_only=True)
     duration = serializers.CharField(read_only=True)
     is_all_day = serializers.BooleanField(read_only=True)
     hosts = EventHostSerializer(many=True, required=False)
@@ -100,7 +99,6 @@ class EventPreviewSerializer(ModelSerializerBase):
             "is_all_day",
             "hosts",
             "tags",
-            "is_draft",
             "is_public",
             "primary_color",
             "text_color",

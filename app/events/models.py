@@ -79,6 +79,14 @@ class EventType(models.TextChoices):
     OTHER = "other", _("Other")
 
 
+class EventStatus(models.TextChoices):
+    """Publication workflow state for an event."""
+
+    DRAFT = "DRAFT", _("Draft")
+    PLANNED = "PLANNED", _("Planned")
+    PUBLISHED = "PUBLISHED", _("Published")
+
+
 class EventTag(Tag):
     """Group together different types of events."""
 
@@ -95,6 +103,12 @@ class EventFields(ClubScopedModel, ModelBase):
     )
     description = models.TextField(null=True, blank=True)
     location = models.CharField(null=True, blank=True, max_length=255)
+    status = models.CharField(
+        max_length=10,
+        choices=EventStatus.choices,
+        default=EventStatus.DRAFT,
+        db_index=True,
+    )
 
     attachments = models.ManyToManyField(
         ClubFile, blank=True, related_name="%(class)ss"
@@ -256,6 +270,7 @@ class RecurringEvent(EventFields):
             "is_public": self.is_public,
             "description": self.description,
             "enable_attendance": self.enable_attendance,
+            "status": self.status,
         }
 
 
@@ -311,6 +326,43 @@ class EventQuerySet(QuerySetBase["Event"]):
 
         return self.filter(clubs__memberships__user=user)
 
+    def visible_to_user(self, user: User):
+        """Return events visible through the publication workflow.
+
+        Members can see published events hosted by their clubs. Club admins can
+        additionally see every state for their own clubs and planned events from
+        other clubs.
+        """
+
+        if user.is_superuser:
+            return self.all()
+        if user.is_anonymous:
+            return self.filter(status=EventStatus.PUBLISHED)
+
+        from clubs.models import ClubMembership, RoleType
+
+        membership_clubs = Club.objects.filter(memberships__user=user)
+        admin_clubs = Club.objects.filter(
+            models.Q(memberships__user=user, memberships__is_owner=True)
+            | models.Q(
+                memberships__user=user,
+                memberships__roles__role_type=RoleType.ADMIN,
+            )
+        )
+        is_admin = ClubMembership.objects.filter(
+            models.Q(user=user, is_owner=True)
+            | models.Q(user=user, roles__role_type=RoleType.ADMIN)
+        ).exists()
+
+        visibility = models.Q(
+            clubs__in=membership_clubs,
+            status=EventStatus.PUBLISHED,
+        ) | models.Q(clubs__in=admin_clubs)
+        if is_admin:
+            visibility |= models.Q(status=EventStatus.PLANNED)
+
+        return self.filter(visibility).distinct()
+
     def get_for_user(self, id: int, user: User):
         """Get event for user, or throw 404."""
 
@@ -341,7 +393,6 @@ class Event(EventFields):
 
     tags = models.ManyToManyField(EventTag, blank=True, related_name="events")
 
-    is_draft = models.BooleanField(default=False, db_index=True)
     is_public = models.BooleanField(default=True, db_index=True)
     make_public_at = models.DateTimeField(null=True, blank=True)
     make_public_task = models.ForeignKey(
@@ -421,15 +472,6 @@ class Event(EventFields):
     @property
     def is_cancelled(self):
         return hasattr(self, "cancellation")
-
-    @property
-    def status(self):
-        if timezone.now() < self.start_at:
-            return "SCHEDULED"
-        elif self.start_at <= timezone.now() < self.end_at:
-            return "IN_PROGRESS"
-        else:
-            return "ENDED"
 
     @property
     def duration(self):

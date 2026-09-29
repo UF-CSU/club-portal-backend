@@ -25,6 +25,7 @@ from events.models import (
     EventAttendanceLink,
     EventCancellation,
     EventHost,
+    EventStatus,
     EventTag,
 )
 from events.services import EventService
@@ -154,7 +155,7 @@ class EventPreviewViewSet(ModelPreviewViewSetBase):
     """API For showing public event previews."""
 
     queryset = (
-        Event.objects.filter(Q(is_public=True) & Q(is_draft=False))
+        Event.objects.filter(Q(is_public=True) & Q(status=EventStatus.PUBLISHED))
         .prefetch_related(
             Prefetch(
                 "hosts",
@@ -180,7 +181,7 @@ class EventPreviewViewSet(ModelPreviewViewSetBase):
     )
     serializer_class = serializers.EventPreviewSerializer
     pagination_class = CustomDatePagination
-    filterset_fields = ["clubs"]
+    filterset_fields = ["clubs", "status"]
 
 
 class EventViewset(ModelViewSetBase):
@@ -223,7 +224,7 @@ class EventViewset(ModelViewSetBase):
     ).distinct("id")
     serializer_class = serializers.EventSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ["clubs"]
+    filterset_fields = ["clubs", "status"]
     pagination_class = CustomDatePagination
 
     def get_serializer_class(self):
@@ -252,14 +253,12 @@ class EventViewset(ModelViewSetBase):
     def filter_queryset(self, queryset):
         include_public = self.kwargs.get("include_public", False)
 
+        queryset = queryset.visible_to_user(self.request.user)
+
         if include_public:
-            # Include events from user's clubs OR public non-draft events from any club
-            queryset = queryset.filter(
-                Q(clubs__memberships__user=self.request.user)
-                | (Q(is_public=True) & Q(is_draft=False))
-            ).distinct()
-        else:
-            queryset = queryset.filter_for_user(self.request.user)
+            queryset = queryset | self.queryset.filter(
+                Q(is_public=True) & Q(status=EventStatus.PUBLISHED)
+            )
 
         if self.action == "retrieve":
             return queryset
@@ -278,6 +277,16 @@ class EventViewset(ModelViewSetBase):
         return super().check_permissions(request)
 
     def check_object_permissions(self, request, obj):
+        # Planned events are intentionally visible to club admins outside the
+        # hosting club. They do not otherwise have object permissions for that
+        # club, so allow this narrowly-defined workflow exception.
+        if (
+            request.method in permissions.SAFE_METHODS
+            and obj.status == EventStatus.PLANNED
+            and Event.objects.visible_to_user(request.user).filter(pk=obj.pk).exists()
+        ):
+            return
+
         obj_permission = ObjectViewPermissions()
         if not obj_permission.has_object_permission(request, self, obj):
             self.permission_denied(
