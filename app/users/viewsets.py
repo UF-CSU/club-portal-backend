@@ -111,7 +111,16 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         """Retrieve and return the authenticated user."""
-        return self.request.user
+        # Prefetch relations used by the serializer and is_club_admin
+        return (
+            User.objects.select_related("profile")
+            .prefetch_related(
+                "club_memberships__club",
+                "club_memberships__roles__permissions",
+                "socials",
+            )
+            .get(pk=self.request.user.pk)
+        )
 
 
 class OauthDirectoryView(generics.RetrieveAPIView):

@@ -70,9 +70,10 @@ def parse_permissions(perms: list | None, fail_silently=False) -> list[Permissio
 def get_perm_label(perm: Permission):
     """Get permission label in the form of `app_label.codename`."""
 
-    codename, app_label, _ = perm.natural_key()
+    # get_for_id uses the ContentType cache, avoids a query per permission
+    content_type = ContentType.objects.get_for_id(perm.content_type_id)
 
-    return "%s.%s" % (app_label, codename)
+    return "%s.%s" % (content_type.app_label, perm.codename)
 
 
 def get_perm_labels_for_model(model: type[models.Model]):

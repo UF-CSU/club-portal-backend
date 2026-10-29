@@ -392,7 +392,9 @@ if S3_STORAGE_BACKEND:
 
 # Sentry
 sentry_sdk.init(
-    dsn=os.environ.get("SENTRY_DSN", ""), send_default_pii=True, traces_sample_rate=1.0
+    dsn=os.environ.get("SENTRY_DSN", ""),
+    send_default_pii=True,
+    traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "1.0")),
 )
 
 

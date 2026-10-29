@@ -232,11 +232,14 @@ class UserClubMembershipsViewSet(
     ).prefetch_related(
         Prefetch(
             "roles",
-            queryset=ClubRole.objects.all().order_by("order"),
+            queryset=ClubRole.objects.prefetch_related("permissions").order_by(
+                "order"
+            ),
         ),
         Prefetch(
             "user__team_memberships",
             queryset=TeamMembership.objects.select_related("team").prefetch_related(
+                "roles__permissions",
                 Prefetch(
                     "team__roles",
                     queryset=TeamRole.objects.order_by("order"),
@@ -361,6 +364,7 @@ class ClubMemberViewSet(ClubNestedViewSetBase):
         Prefetch(
             "user__team_memberships",
             queryset=TeamMembership.objects.select_related("team").prefetch_related(
+                "roles__permissions",
                 Prefetch(
                     "team__roles",
                     queryset=TeamRole.objects.order_by("order"),

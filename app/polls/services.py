@@ -186,7 +186,7 @@ class PollService(ServiceBase[Poll]):
     def _update_user_fields_from_submission(self, submission: PollSubmission):
         """For each answer with a linked user field in submission, update user field."""
 
-        answers = submission.answers.all()
+        answers = submission.answers.select_related("question")
         user = submission.user
 
         if not user:

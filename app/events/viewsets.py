@@ -168,6 +168,8 @@ class EventPreviewViewSet(ModelPreviewViewSetBase):
                     "club__name",
                     "club__alias",
                     "club__logo_id",
+                    "club__primary_color",
+                    "club__text_color",
                 ),
             ),
             Prefetch(
@@ -202,6 +204,8 @@ class EventViewset(ModelViewSetBase):
                     "club__name",
                     "club__alias",
                     "club__logo_id",
+                    "club__primary_color",
+                    "club__text_color",
                 ),
             ),
             Prefetch(

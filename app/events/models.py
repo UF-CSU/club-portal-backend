@@ -413,6 +413,11 @@ class Event(EventFields):
     def primary_club(self):
         """Get the primary club hosting the event."""
 
+        # Use prefetched hosts when available to avoid a query per event
+        prefetched = getattr(self, "_prefetched_objects_cache", {}).get("hosts")
+        if prefetched is not None:
+            return next((h.club for h in prefetched if h.is_primary), None)
+
         host = self.hosts.filter(is_primary=True)
         if not host.exists():
             return None

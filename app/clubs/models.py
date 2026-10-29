@@ -461,6 +461,13 @@ class ClubMembership(ClubScopedModel, MembershipBase):
     # Dynamic Properties
     @cached_property
     def team_memberships(self):
+        # Use prefetched user team memberships when available to avoid a query per membership
+        prefetched = getattr(self.user, "_prefetched_objects_cache", {}).get(
+            "team_memberships"
+        )
+        if prefetched is not None:
+            return [tm for tm in prefetched if tm.team.club_id == self.club_id]
+
         return self.user.team_memberships.filter(team__club_id=self.club_id)
 
     @property

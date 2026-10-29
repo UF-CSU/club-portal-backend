@@ -648,17 +648,16 @@ class PollSubmissionAnswerSerializer(ModelSerializerBase):
         exclude = ["submission"]
 
     def run_prevalidation(self, data=None):
-        data.pop("options_value", [])
+        # Only scopes the options queryset, so skip the extra full validation pass
         question_id = data.get("question")
 
-        res = super().run_prevalidation(data)
         self.fields[
             "options_value"
         ].child_relation.queryset = models.ChoiceInputOption.objects.filter(
             input__question__id=question_id
         )
 
-        return res
+        return data
 
 
 class PollSubmissionSerializer(ModelSerializerBase):
@@ -680,6 +679,10 @@ class PollSubmissionSerializer(ModelSerializerBase):
             "created_at",
             "updated_at",
         ]
+
+    def run_prevalidation(self, data=None):
+        # Nothing to scope before validation, avoid validating every answer twice
+        return data
 
     def create(self, validated_data):
         answers: list = validated_data.pop("answers", [])
