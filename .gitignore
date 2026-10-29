@@ -180,3 +180,7 @@ override.tf.json
 
 # Node modules
 node_modules
+# Load test tokens (synthetic test users) and outputs
+loadtest/tokens.json
+loadtest/results/
+loadtest/.env
